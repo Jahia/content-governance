@@ -69,7 +69,11 @@ export const CitationsSettings = ({title: panelTitle, toolbarLeft}) => {
 
             return s;
         } catch (e) {
-            setFailed(e.code === 403 ? t('citationsSettings.forbidden') : (e.message || t('citationsSettings.error')));
+            if (e.type === 'switchedOff') {
+                setFailed(t('citationsSettings.switchedOff'));
+            } else {
+                setFailed(e.code === 403 ? t('citationsSettings.forbidden') : (e.message || t('citationsSettings.error')));
+            }
             return null;
         } finally {
             setBusy(false);

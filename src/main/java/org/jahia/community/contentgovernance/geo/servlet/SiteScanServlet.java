@@ -76,7 +76,7 @@ public class SiteScanServlet extends GeoServlet {
     /** Applies to the scans only, never to reading their results. */
     private static final int RATE_MAX_CALLS = 30;
     private static final long RATE_WINDOW_MS = 600_000L;
-    private static final int MAX_PAGES = 2000;
+    private static final int MAX_PAGES = SiteScanJob.DEFAULT_MAX_PAGES;
 
     /**
      * Injected through the constructor rather than into the field, so a servlet

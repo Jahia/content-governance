@@ -253,8 +253,11 @@ Reporting is safe to run against anything. Writing is not. Keep the two visibly 
 
 ## Configuration
 
-Three files in `digital-factory-data/karaf/etc/`, each shipped with `# default configuration` as
-its first line, so a redeploy never overwrites them. Edits apply at once, with no redeploy.
+Files in `digital-factory-data/karaf/etc/`. The module ships the first two with `# default
+configuration` as their first line, so a redeploy never overwrites them; the BotRank files are added by
+a server administrator and never shipped. Edits apply at once, with no redeploy, except for scheduled
+scans: a schedule keeps the fetch limits it was given when it was saved or when the module last
+started.
 
 ### `org.jahia.community.contentgovernance.geo.cfg`
 
@@ -350,6 +353,11 @@ baseUrl =
 
 A scan's optional scope has to name a node inside the site it was started from, and it is resolved
 before it is compared, so a relative path cannot leave the site it came from.
+
+The site scan reads every published page of the site, and the dashboard and the drawer's facts from
+the last scan show their paths and titles to anyone holding **publish** on the site, pages restricted
+to some members included: knowing what the site publishes is what the dashboard is for. The AI
+citations panels list only the pages the reader may read (decision 2026-10-29, as in GEO Readiness).
 
 ## Known gaps
 

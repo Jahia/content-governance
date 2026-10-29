@@ -1,10 +1,12 @@
 package org.jahia.community.contentgovernance.geo.scheduler;
 
 import org.jahia.community.contentgovernance.geo.check.ScanStore;
+import org.jahia.community.contentgovernance.geo.config.GeoReadinessConfigService;
 import org.jahia.settings.SettingsBean;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
 import org.quartz.JobDataMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +34,10 @@ import java.util.List;
 public class ScanLifecycle {
 
     private static final Logger logger = LoggerFactory.getLogger(ScanLifecycle.class);
+
+    // The fetch limits a restored trigger runs with, the same the scan endpoint puts on a new one.
+    @Reference
+    private GeoReadinessConfigService config;
 
     /** DS instantiates this. */
     public ScanLifecycle() {
@@ -82,6 +88,9 @@ public class ScanLifecycle {
             data.put(SiteScanJob.SCOPE, s.scope);
             data.put(SiteScanJob.BASE_URL, s.baseUrl);
             data.put(SiteScanJob.USER_KEY, s.userKey);
+            data.put(SiteScanJob.TIMEOUT_MS, config.getFetchTimeoutMs());
+            data.put(SiteScanJob.MAX_BYTES, config.getMaxBodyBytes());
+            data.put(SiteScanJob.MAX_PAGES, SiteScanJob.DEFAULT_MAX_PAGES);
             ScanScheduler.schedule(s.sitePath, s.language, s.cron, data);
         }
         if (!stored.isEmpty()) {

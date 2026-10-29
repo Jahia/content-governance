@@ -46,7 +46,7 @@ public class CitationSyncJob extends BackgroundJob {
             return;
         }
         if (!CitationsAccess.moduleEnabled(sitePath)) {
-            stop(sitePath, "the daily sync stopped: the GEO readiness module is no longer enabled on the site");
+            stop(sitePath, "the daily sync stopped: AI citations are switched off for this site, or the module is no longer enabled on it");
             return;
         }
         if (!stillPermitted(owner, sitePath)) {
