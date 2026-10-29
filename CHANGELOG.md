@@ -2,9 +2,12 @@
 
 ## 1.1.0
 
-* Fixed glossaries missing from New content after an upgrade from Content Compliance Scan.
+### Fixed
 
-* Fixed the Content governance entry of the site administration menu, which showed no icon.
+* After an upgrade from Content Compliance Scan, **New content** offers **Compliance glossary** and
+  **Non-authorised term** again, with their labels: the module takes the glossary types over when it
+  starts. Existing glossaries are unchanged.
+* The **Content governance** entry of the site administration menu shows the module's icon.
 
 ## 1.0.0
 
