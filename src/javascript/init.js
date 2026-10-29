@@ -75,6 +75,7 @@ function register() {
     registry.add('adminRoute', 'contentGovernanceSettings', {
         targets: ['administration-sites:95'],
         label: `${NS}:settings.navLabel`,
+        icon: buttonIcon,
         isSelectable: true,
         requiredPermission: 'site-admin',
         requireModuleInstalledOnSite: MODULE,
