@@ -23,6 +23,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.Reader;
 import java.net.URL;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -951,7 +952,7 @@ public class AiReviewServlet extends HttpServlet {
     private static String readBody(HttpServletRequest req) throws IOException {
         StringBuilder sb = new StringBuilder();
         char[] buf = new char[8192];
-        java.io.Reader reader = req.getReader();
+        Reader reader = req.getReader();
         int n;
         while ((n = reader.read(buf)) != -1) {
             if (sb.length() + n > MAX_BODY_CHARS) {

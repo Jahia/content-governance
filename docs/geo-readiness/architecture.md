@@ -255,7 +255,9 @@ Reporting is safe to run against anything. Writing is not. Keep the two visibly 
 
 Files in `digital-factory-data/karaf/etc/`. The module ships the first two with `# default
 configuration` as their first line, so a redeploy never overwrites them; the BotRank files are added by
-a server administrator and never shipped. Edits apply at once, with no redeploy.
+a server administrator and never shipped. Edits apply at once, with no redeploy, except for scheduled
+scans: a schedule keeps the fetch limits it was given when it was saved or when the module last
+started.
 
 ### `org.jahia.community.contentgovernance.geo.cfg`
 

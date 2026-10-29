@@ -34,7 +34,7 @@ const CACHE_MAX_ENTRIES = 10;
 // Bump whenever the cached `results` shape changes (e.g. a new analyzer key),
 // so entries written by an older module version are ignored instead of
 // restored into UI that expects the new shape.
-const CACHE_SCHEMA = 3;
+const CACHE_SCHEMA = 4;
 
 const cacheKey = (path, language) => `${CACHE_PREFIX}${language}:${path}`;
 
@@ -124,15 +124,15 @@ function keepEnabled(results, isOn) {
             kept[key] = results[key];
         }
     }
+    if (results.page) {
+        kept.page = results.page;
+    }
     return kept;
 }
 
-/** Images without alt for the alt text assist: kept on the accessibility result, older caches on SEO's. */
+/** Images without alt for the alt text assist, from the page facts kept with every audit. */
 function imagesWithoutAlt(results) {
-    if (results.a11y && typeof results.a11y.imagesWithoutAlt === 'number') {
-        return results.a11y.imagesWithoutAlt;
-    }
-    return results.seo ? results.seo.imagesWithoutAlt : 0;
+    return results.page ? results.page.imagesWithoutAlt : 0;
 }
 
 /**
@@ -274,21 +274,24 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
                 removeToolingElements(frame.contentDocument);
 
                 // Only the tabs the site keeps on are measured. Eco-design reads the vitals
-                // measurement and the alt text assist the SEO image count, so those two run as
-                // inputs; what is kept is the switched-on tabs only.
+                // measurement, so vitals run as its input; the SEO read is a cheap DOM pass that
+                // always runs, for the page facts the AI tasks need (title, description, images
+                // without alt). What is kept is those facts and the switched-on tabs only.
                 // Vitals first: axe injection and link checks would otherwise
                 // appear in the page's own resource statistics.
                 const vitals = isOn('vitals') || isOn('ecodesign') ? await runWebVitals(frame) : null;
                 const ecodesign = isOn('ecodesign') ? runEcodesign(frame, vitals) : null;
                 const readability = isOn('readability') ? runReadability(frame, language) : null;
-                const seo = isOn('seo') || isOn('accessibility') ? runSeo(frame, language) : null;
+                const seo = runSeo(frame, language);
+                const page = {
+                    title: seo.title ? seo.title.text : '',
+                    description: seo.description ? (seo.description.text || '') : '',
+                    imagesWithoutAlt: seo.imagesWithoutAlt || 0
+                };
                 const a11y = isOn('accessibility') ? await runAccessibility(frame) : null;
-                if (a11y && seo) {
-                    a11y.imagesWithoutAlt = seo.imagesWithoutAlt;
-                }
                 const links = isOn('links') ? await runLinks(frame) : null;
                 const jahia = isOn('jahia') ? await runJahiaHealth(frame, {client: apolloClient, path, language}) : null;
-                const newResults = keepEnabled({a11y, vitals, ecodesign, readability, seo, links, jahia}, isOn);
+                const newResults = {page, ...keepEnabled({a11y, vitals, ecodesign, readability, seo, links, jahia}, isOn)};
                 const timestamp = Date.now();
                 setResults(newResults);
                 setAuditedAt(timestamp);

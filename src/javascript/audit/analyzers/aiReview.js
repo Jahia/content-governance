@@ -339,7 +339,7 @@ export async function requestAltAssist({language, path, results, frame, aiStatus
         language,
         uiLanguage: (window.contextJsParameters && window.contextJsParameters.uilang) || language,
         path,
-        title: results.seo && results.seo.title ? results.seo.title.text : '',
+        title: results.page ? results.page.title : '',
         images: items
     });
 
@@ -353,8 +353,8 @@ export function requestAiReview({language, path, results, frame}) {
         // language, falling back to the audited page language
         uiLanguage: (window.contextJsParameters && window.contextJsParameters.uilang) || language,
         path,
-        title: results.seo ? results.seo.title.text : '',
-        description: results.seo ? (results.seo.description.text || '') : '',
+        title: results.page ? results.page.title : '',
+        description: results.page ? results.page.description : '',
         findings: buildDigest(results),
         text: extractPageText(frame)
     };

@@ -62,10 +62,11 @@ jContent / Page Builder header
   `common/HelpTab.jsx`) says what it is for, then `audit.tabs.aiNotConfigured`.
 
 A tab switched off is not measured. Its analyzer does not run, and its result is not cached,
-exported or sent to the AI review (`keepEnabled` in `AuditSection.jsx`). Two analyzers still run as
-inputs of another tab: Web Vitals for Ecodesign, and SEO for the alt text assist of Accessibility
-(its image count is copied onto the accessibility result as `imagesWithoutAlt`); neither is kept
-when its own tab is off. A cached audit that lacks a tab switched back on since is measured again.
+exported or sent to the AI review (`keepEnabled` in `AuditSection.jsx`). Web Vitals still runs as the
+input of Ecodesign, and the SEO read (a DOM pass) always runs for the page facts the AI tasks need:
+`results.page` holds the title, the meta description and the number of images without alt, whatever
+the switches. Neither result is kept when its own tab is off. A cached audit that lacks a tab switched
+back on since is measured again; `CACHE_SCHEMA` 4 drops caches from before `results.page`.
 The analyzers call no module endpoint; the server enforces the switches on the AI endpoint (see
 [Feature gates](#feature-gates)).
 
@@ -159,6 +160,7 @@ support from `contentGovernance.siteSettings.ai`.
 | Authenticated, not `guest` | 403 `unauthenticated` |
 | `Content-Type` starts with `application/json` | 415 `invalidRequest` |
 | `Origin`, else `Referer`, has the request's host (`Host` header without port, else `getServerName()`); a request with neither header passes, as a non-browser caller | 403 `crossOrigin` |
+| Body is at most 4 194 304 characters | 413 `invalidRequest` |
 | Body parses as JSON | 400 `invalidRequest` |
 | `path` is absolute, exists and has `jcr:read` for the caller's session | 403 `noAccess` |
 | The site of the page enables the feature of the task (`SiteFeatures.isEnabled`) | 403 `switchedOff` |
