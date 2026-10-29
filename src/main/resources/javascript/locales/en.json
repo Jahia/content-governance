@@ -1,0 +1,1842 @@
+{
+  "content-governance": {
+    "geo": {
+      "action": {
+        "open": "GEO readiness"
+      },
+      "drawer": {
+        "title": "GEO readiness",
+        "subtitle": "Can AI crawlers actually read this page?",
+        "close": "Close",
+        "run": "Run check",
+        "rerun": "Run again",
+        "running": "Checking, one request per crawler…",
+        "lastRun": "Last check: {{date}}",
+        "url": "Tested URL"
+      },
+      "crawler": {
+        "tab": "Crawler access",
+        "verdict": {
+          "ok": "Every crawler we tested can read this page.",
+          "blocked": "{{count}} crawler is blocked.",
+          "blocked_plural": "{{count}} crawlers are blocked.",
+          "thin": "Some crawlers receive far less text than a browser. The page may need JavaScript to show its content.",
+          "unpublishedTitle": "This page is not published",
+          "unpublished": "This page has never been published, so there is no public URL to test yet.",
+          "empty": "Even a browser receives almost no text before JavaScript runs ({{count}} words). Crawlers will see an empty page.",
+          "unreachable": "The server could not reach the page for {{count}} crawler.",
+          "unreachable_plural": "The server could not reach the page for {{count}} crawlers."
+        },
+        "agent": "Crawler",
+        "status": "Status",
+        "time": "Time",
+        "size": "Size",
+        "words": "Words",
+        "blocked": "Blocked",
+        "reachable": "Reachable",
+        "initialHtml": "What the crawler receives before JavaScript runs",
+        "h1": "H1 heading",
+        "metaDescription": "Meta description",
+        "canonical": "Canonical URL",
+        "links": "Links",
+        "jsonLd": "Structured data",
+        "present": "Present",
+        "missing": "Missing",
+        "explain": {
+          "403": "The server refused this crawler. This is usually a firewall or bot-protection rule, not a content problem.",
+          "jsOnly": "A browser sees much more text than the crawler does. The content probably arrives through JavaScript, which crawlers do not run.",
+          "layer": "Fix layer",
+          "empty": "The initial HTML is a shell. The content arrives through JavaScript, or after a client-side redirect, and crawlers do not run either. Server-side rendering is the fix, not a robots.txt change.",
+          "blockedButAllowed": "Your robots.txt allows {{count}} of these crawlers, but the server refused them anyway. The block is coming from a firewall or bot protection, not from your content or your robots.txt. This is an infrastructure fix.",
+          "reachableButDisallowed": "Your robots.txt tells {{count}} of these crawlers not to fetch this page. They can reach it, but a well-behaved crawler will not read it. Change robots.txt if you want them to."
+        },
+        "metaRefresh": "Client-side redirect: the page tells a browser to go to {{url}}. Crawlers stay on this shell.",
+        "robots": "robots.txt",
+        "wordCount": "{{count}} word",
+        "wordCount_plural": "{{count}} words",
+        "thinMark": "far less text",
+        "noResponse": "no response",
+        "mismatch": {
+          "blockedButAllowed": "allowed but refused",
+          "reachableButDisallowed": "disallowed but served"
+        }
+      },
+      "error": {
+        "generic": "The check could not be completed.",
+        "rateLimit": "Too many checks in a short time. Try again in a few minutes.",
+        "notPublished": "Publish this page first, then run the check."
+      },
+      "files": {
+        "tab": "Site files",
+        "robots": {
+          "title": "robots.txt",
+          "absent": "This site has no robots.txt. Every crawler is allowed everywhere by default. That works, but nobody decided it.",
+          "noneNamed": "No AI crawler is named in robots.txt. They all fall under the wildcard rule, so they are allowed by default rather than on purpose.",
+          "someNamed": "{{count}} AI crawler is named explicitly in robots.txt.",
+          "someNamed_plural": "{{count}} AI crawlers are named explicitly in robots.txt.",
+          "someDisallowed": "{{count}} of them cannot fetch this page.",
+          "declared": "Declared",
+          "effective": "For this page",
+          "rule": "Matching rule",
+          "byName": "By name",
+          "byWildcard": "Wildcard",
+          "allowed": "Allowed",
+          "disallowed": "Disallowed",
+          "noRule": "No rule matches, so allowed",
+          "sitemaps": "{{count}} sitemap declared:",
+          "sitemaps_plural": "{{count}} sitemaps declared:",
+          "control": {
+            "title": "Control AI crawlers",
+            "intro": "Sets each crawler's site-wide stance in robots.txt. Groups you have not changed are left exactly as they are, comments and Sitemap lines included.",
+            "stance": "Stance",
+            "allow": "Allow",
+            "block": "Block",
+            "loading": "Reading robots.txt…",
+            "changes": "What would change",
+            "apply": "Apply and publish",
+            "confirm": "Confirm overwrite",
+            "applied": "Written and published. Run the check again to see it.",
+            "cannotWrite": "You do not have permission to change this site's settings.",
+            "noMixin": "This site has no robots.txt yet. Applying will create one.",
+            "placeholder": "What is stored is the module's placeholder, not a real file.",
+            "error": "robots.txt could not be read or written.",
+            "rule": "Blocking replaces that crawler's rules with a site-wide refusal. Allowing only undoes a site-wide refusal: a crawler with path rules such as Disallow: /docs/ is left alone, because flattening that would throw away work. A crawler sharing a group with others is moved into its own group so the others keep their rules.",
+            "allowed": "Allowed",
+            "errorTitle": "robots.txt",
+            "noMixinTitle": "No robots.txt yet",
+            "placeholderTitle": "Placeholder only",
+            "appliedTitle": "Saved",
+            "checkAccess": "Check what the server does",
+            "recheckAccess": "Check again",
+            "checkingAccess": "Fetching as each crawler…",
+            "accessExplain": "robots.txt states a policy. Only a fetch shows whether the server honours it.",
+            "accessTested": "Tested against {{url}}",
+            "served": "served in {{ms}}ms",
+            "refused": "refused, HTTP {{status}}",
+            "verdictServed": "All {{count}} AI crawlers are served by this site",
+            "verdictRefused": "{{count}} AI crawler is refused by the server",
+            "verdictRefused_plural": "{{count}} AI crawlers are refused by the server",
+            "verdictAgree": "robots.txt and the server agree on every crawler.",
+            "verdictMismatch": "{{count}} crawler is treated differently from what robots.txt says. One of the two is wrong.",
+            "verdictMismatch_plural": "{{count}} crawlers are treated differently from what robots.txt says. One of the two is wrong.",
+            "bot": {
+              "GPTBot": "Collects pages to train OpenAI's models. Blocking it does not affect whether ChatGPT can cite you.",
+              "OAI-SearchBot": "Builds the index behind ChatGPT's search results. Blocking it takes you out of those answers.",
+              "ChatGPT-User": "Fetches a page when someone asks ChatGPT about it. Blocking it means ChatGPT cannot open your pages on request.",
+              "ClaudeBot": "Collects pages to train Anthropic's models. Blocking it does not affect whether Claude can cite you.",
+              "Claude-SearchBot": "Builds the index behind Claude's search. Blocking it takes you out of those answers.",
+              "PerplexityBot": "Builds Perplexity's search index. Blocking it takes you out of its answers.",
+              "Perplexity-User": "Fetches a page when someone asks Perplexity about it.",
+              "Google-Extended": "Controls whether your content trains Gemini and grounds its answers. It does not affect Google Search ranking.",
+              "GoogleOther": "A general-purpose Google crawler used by several product teams. Its exact use is not published.",
+              "Bingbot": "Builds the Bing index, which also grounds Microsoft Copilot. Blocking it takes you out of both.",
+              "CCBot": "Collects pages for Common Crawl, a public dataset many models train on.",
+              "Bytespider": "Collects pages to train ByteDance's models.",
+              "Amazonbot": "Crawls for Alexa answers and Amazon search.",
+              "Applebot-Extended": "Controls whether your content trains Apple Intelligence. It does not affect Siri or Spotlight results.",
+              "meta-externalagent": "Collects pages to train Meta's models."
+            },
+            "purpose": {
+              "search": "Answers questions",
+              "training": "Trains models",
+              "other": "Mixed or undocumented"
+            },
+            "searchBlockedTitle": "{{count}} crawler that answers questions is blocked",
+            "searchBlockedTitle_plural": "{{count}} crawlers that answer questions are blocked",
+            "searchBlocked": "Blocking a crawler that builds answers removes you from that assistant's replies. Blocking one that only trains models does not. Check this is what you meant: {{names}}.",
+            "noAnswer": "no answer",
+            "verdictUnreachable": "The server could not reach the page for {{count}} crawler, so what the site does with it is unknown",
+            "verdictUnreachable_plural": "The server could not reach the page for {{count}} crawlers, so what the site does with them is unknown"
+          },
+          "unreachable": "robots.txt could not be fetched, so what it allows is unknown. This is a connection problem, not a finding about the file."
+        },
+        "llms": {
+          "title": "llms.txt",
+          "present": "This site publishes an llms.txt.",
+          "absent": "No llms.txt at the site root (HTTP {{status}}). AI engines have no curated map of your best content.",
+          "servedHtml": "The site returned an HTML page for /llms.txt instead of a text file. That counts as not having one.",
+          "h1": "Title",
+          "summary": "Summary line",
+          "sections": "Sections",
+          "links": "Links",
+          "contentType": "Content type",
+          "generate": {
+            "title": "Generate from the page tree",
+            "intro": "Builds the file from published pages, their titles and their descriptions. No model, no external service: the same site always produces the same file.",
+            "button": "Generate",
+            "running": "Generating…",
+            "stats": "{{links}} links in {{sections}} sections",
+            "generated": "Generated",
+            "current": "Currently stored",
+            "unchanged": "Identical to what is already stored. Nothing to apply.",
+            "differs": "This differs from what is stored. Review it before applying.",
+            "placeholder": "What is stored is the module's placeholder, not a real file.",
+            "noMixin": "The site has no llms.txt yet. Applying will create one.",
+            "cannotWrite": "You do not have permission to change this site's settings.",
+            "apply": "Apply and publish",
+            "confirm": "Confirm overwrite",
+            "applied": "Written and published. Run the check again to see it.",
+            "error": "The generator could not run.",
+            "rule": "Pages hidden from the navigation are left out, and descriptions are never invented. Edit the text before applying if you want something different: what you see is exactly what gets written.",
+            "changes": "What would change",
+            "errorTitle": "llms.txt",
+            "noMixinTitle": "No llms.txt yet",
+            "placeholderTitle": "Placeholder only",
+            "appliedTitle": "Saved"
+          },
+          "stale": {
+            "title": "llms.txt no longer matches this site",
+            "summary": "{{stale}} entries are out of date and {{missing}} pages are not listed. Regenerating below will bring it back in line.",
+            "why": {
+              "addressChanged": "the address changed, this one now redirects",
+              "noLongerListed": "no longer part of the generated list",
+              "gone": "no longer published, or no visitor can read it",
+              "notListed": "published, but missing from the file"
+            }
+          },
+          "fresh": {
+            "title": "llms.txt is up to date",
+            "summary": "All {{count}} entries match what generating would produce right now, so regenerating would change nothing."
+          },
+          "unreachable": "llms.txt could not be fetched, so whether the site publishes one is unknown. This is a connection problem, not a finding about the file."
+        },
+        "llmsFull": {
+          "label": "llms-full.txt"
+        },
+        "editedInSettings": "robots.txt and llms.txt belong to the whole site. Edit them under Additional, SEO, GEO readiness."
+      },
+      "score": {
+        "tab": "Score",
+        "headline": "{{passed}} of {{total}} checks passed",
+        "criticalFailed": "{{count}} critical issue",
+        "criticalFailed_plural": "{{count}} critical issues",
+        "importantFailed": "{{count}} important issue",
+        "importantFailed_plural": "{{count}} important issues",
+        "allGood": "Everything we can check from here passes.",
+        "observed": "Observed",
+        "why": "Why it matters",
+        "group": {
+          "access": "Can a crawler reach it",
+          "content": "Is what arrives usable",
+          "files": "Site-level files"
+        },
+        "severity": {
+          "critical": "Critical",
+          "important": "Important",
+          "advisory": "Advisory"
+        },
+        "rubric": "Each check reads one fact already in this report. Being disallowed in robots.txt is not counted as a failure: refusing a crawler is a legitimate choice. A disagreement between the policy and the server is.",
+        "check": {
+          "reachable": {
+            "label": "Every AI crawler gets the page",
+            "fix": "At least one crawler was refused. That is usually a firewall or bot-protection rule rather than a content problem."
+          },
+          "policyMatchesReality": {
+            "label": "robots.txt matches what the server does",
+            "fix": "The policy and the server disagree for at least one crawler. One of the two is wrong, and the report names which."
+          },
+          "noClientRedirect": {
+            "label": "No client-side redirect",
+            "fix": "The page tells a browser to go elsewhere. Crawlers do not follow that, so this shell is all they read."
+          },
+          "namedInRobots": {
+            "label": "AI crawlers named in robots.txt",
+            "fix": "No AI crawler is named. They fall to the wildcard group, so you have no explicit policy for them."
+          },
+          "contentInInitialHtml": {
+            "label": "Real text in the initial HTML",
+            "fix": "The page returns almost no text before JavaScript runs. Server-side rendering is the fix, not a robots.txt change."
+          },
+          "sameContentForCrawlers": {
+            "label": "Crawlers get the same text as a browser",
+            "fix": "At least one crawler receives far less text than the browser did. Check what the server varies on the user agent."
+          },
+          "title": {
+            "label": "Title present and a usable length",
+            "fix": "A title under 10 or over 70 characters is either uninformative or truncated wherever it is quoted."
+          },
+          "singleH1": {
+            "label": "Exactly one H1",
+            "fix": "Zero or several H1 headings leave the main subject of the page ambiguous."
+          },
+          "headingOutline": {
+            "label": "Sub-headings structure the page",
+            "fix": "Retrieval splits pages on headings. A page with no H2 is one undifferentiated block."
+          },
+          "metaDescription": {
+            "label": "Meta description present",
+            "fix": "Without it the summary shown alongside an answer is generated from whatever text comes first."
+          },
+          "canonical": {
+            "label": "Canonical URL declared",
+            "fix": "Without a canonical, the same content reachable at several addresses is treated as several pages."
+          },
+          "langDeclared": {
+            "label": "Page language declared",
+            "fix": "The html lang attribute is missing, so the language has to be guessed. On a multilingual site that is a real risk."
+          },
+          "structuredData": {
+            "label": "Structured data present",
+            "fix": "No JSON-LD was found. Schema types are the most direct way to state what this page is about."
+          },
+          "freshness": {
+            "label": "Modification date published",
+            "fix": "No dateModified was found. Assistants weigh recency, and an undated page cannot show it is current."
+          },
+          "imageAlt": {
+            "label": "Images carry alt text",
+            "fix": "Some images have no alt text. To a text-only crawler those images simply do not exist."
+          },
+          "robotsPresent": {
+            "label": "robots.txt is served",
+            "fix": "No robots.txt. Everything is allowed by default, which is a decision you did not get to make."
+          },
+          "llmsPresent": {
+            "label": "llms.txt is served",
+            "fix": "No llms.txt. It is the one file that tells an assistant which pages matter and why."
+          },
+          "guestReadable": {
+            "label": "A visitor with no account can read it",
+            "fix": "A guest cannot read this page, so no crawler ever will. Some servers answer a gated page with a login form and a 200, which looks like success. Check the page's access restrictions."
+          },
+          "fetched": {
+            "label": "The server could fetch the page",
+            "fix": "The server could not connect to the page for at least one crawler. This is a connection problem on the server, not a refusal by the site, and the checks of what arrives are unreliable until it is fixed."
+          }
+        },
+        "checkColumn": "Check",
+        "severityLabel": "Severity",
+        "fromTemplate": "Comes from the template “{{template}}”, which renders {{count}} pages. Fixing it there fixes all of them.",
+        "passed": "Passed",
+        "failed": "Failed"
+      },
+      "diff": {
+        "identical": "No change. The file would be written exactly as it is now.",
+        "summary": "{{added}} lines added, {{removed}} removed",
+        "unchanged": "… {{count}} unchanged lines"
+      },
+      "dashboard": {
+        "navLabel": "GEO readiness",
+        "title": "GEO readiness for site {{site}} - {{language}}",
+        "intro": "The two files that tell AI crawlers what to do with this site: robots.txt states the policy, llms.txt says which pages matter and why. Both belong to the whole site, so they are edited here rather than from a page.",
+        "tab": {
+          "robots": "robots.txt",
+          "llms": "llms.txt",
+          "visibility": "Invisible content",
+          "score": "Site score",
+          "sitemap": "Sitemap vs reality",
+          "links": "Internal links",
+          "vanity": "Addresses",
+          "freshness": "Freshness",
+          "languages": "Languages",
+          "schema": "Structured data",
+          "report": "Report",
+          "citations-overview": "Overview",
+          "citations-ranking": "Ranking",
+          "citations-pages": "Pages",
+          "citations-engines": "Engines"
+        },
+        "group": {
+          "overview": "Overview",
+          "reach": "Can a crawler reach it",
+          "usable": "Is what arrives usable",
+          "files": "Site-level files",
+          "citations": "AI citations"
+        }
+      },
+      "visibility": {
+        "title": "Content no AI can read",
+        "intro": "Published pages that a visitor with no account cannot read. A crawler served a login form gets a cheerful 200 and reports success, so only the repository knows these pages are invisible.",
+        "scan": "Scan the site",
+        "scanning": "Reading every published page…",
+        "rescan": "Scan again",
+        "summary": "{{readable}} of {{scanned}} published pages can be read by a visitor with no account",
+        "noFindings": "Every published page can be read without an account.",
+        "truncated": "Only the first {{scanned}} pages were scanned. The rest were not looked at.",
+        "findingsTitle": "Probably not intended",
+        "deliberateTitle": "Closed on purpose",
+        "deliberateIntro": "Pages inside a branch that is closed as a whole, which normally means a members area rather than a mistake.",
+        "page": "Page",
+        "reason": "Reason",
+        "error": "The scan could not be completed.",
+        "errorTitle": "Scan failed",
+        "kind": {
+          "isolatedRestriction": "Closed, inside an open section",
+          "expiredCondition": "A visibility condition ended on {{date}}",
+          "hiddenByCondition": "Hidden right now by a visibility condition",
+          "gatedBranch": "Part of a closed branch",
+          "noindex": "Set to noindex, so it will not be cited"
+        },
+        "noindexTitle": "This page is set to noindex",
+        "noindex": "Search engines and AI crawlers are told not to index this page, so it will not be cited. That is often deliberate for legal or utility pages. If it is not, the setting is on the page itself.",
+        "gatedTitle": "No visitor can read this page",
+        "gated": "A visitor with no account cannot open this page, so no AI crawler ever will. Some servers answer a gated page with a login form and a 200, which looks like success from outside. The setting is in the page's access restrictions."
+      },
+      "score17": {
+        "title": "Site score",
+        "intro": "Every published page scored, one fetch each, on a schedule you set. The per-page drawer fetches as sixteen crawlers to compare them; doing that site-wide would be hundreds of thousands of requests, so a scan fetches once per page as a single AI crawler.",
+        "headline": "{{percent}}% of checks pass across the site",
+        "up": "up {{n}} points since the last run",
+        "down": "down {{n}} points since the last run",
+        "counts": "{{scored}} pages scored · {{critical}} with a critical failure · {{unreadable}} no visitor can read",
+        "runNow": "Scan now",
+        "scanning": "Scanning…",
+        "runningTitle": "Scan in progress",
+        "running": "{{done}} of {{total}} pages",
+        "failedTitle": "Last scan failed",
+        "failed": "The run did not finish. The server log has the detail.",
+        "lastRun": "Last scan: {{date}}",
+        "nextRun": "Next scheduled: {{date}}",
+        "bySection": "By section",
+        "pages": "{{count}} page",
+        "pages_plural": "{{count}} pages",
+        "worstPages": "Pages with findings",
+        "template": "template {{name}}",
+        "critical": "{{count}} critical",
+        "schedule": "Schedule",
+        "scheduleHelp": "A Quartz cron expression, in the server's timezone. Leave the scope empty to scan the whole site, or give a path to scan one branch. A running scan appears in the administration job list.",
+        "scopePlaceholder": "whole site",
+        "enabled": "Scheduled",
+        "disabled": "Not scheduled",
+        "save": "Save schedule",
+        "badCron": "That is not a cron expression Quartz accepts. Nothing was saved.",
+        "rateLimit": "Too many scans in a short time. Try again in a few minutes.",
+        "error": "The scan state could not be read.",
+        "errorTitle": "Site score",
+        "truncatedTitle": "Not every page was scanned",
+        "truncated": "The scan stopped at {{pages}} pages. Narrow the scope, or raise the limit.",
+        "enabledLabel": "Scheduled scan",
+        "enabledHelp": "When off, the site is only scanned when you press Scan now.",
+        "cronLabel": "When to scan",
+        "cronHelp": "Runs in the server's timezone, not your browser's.",
+        "scopeLabel": "What to scan",
+        "scopeHelp": "Leave empty for the whole site, or choose a branch to scan only that part.",
+        "browse": "Browse…",
+        "openPage": "Open this page in jContent",
+        "whyFewer": "17 checks here, 18 in the page drawer. Comparing what a crawler receives against what a browser receives needs a second fetch of the same page, so “{{check}}” is only evaluated one page at a time. Both counts report the same failures.",
+        "byTemplate": "By template",
+        "byTemplateHelp": "A check is blamed on the template only when it fails on nearly every page that template renders. Three pages failing out of four hundred is three authors; four hundred out of four hundred is the template.",
+        "oneFix": "{{count}} fix here covers every page",
+        "oneFix_plural": "{{count}} fixes here cover every page",
+        "templateClean": "Nothing here is the template's fault.",
+        "matrixHelp": "One cell per page and check. A column that is solid top to bottom is the template's doing, not the authors'.",
+        "pass": "passes",
+        "failsOn": "{{check}} fails on {{count}} pages",
+        "rowsPerPage": "Pages per view",
+        "of": "of"
+      },
+      "cron": {
+        "every": "Every",
+        "at": "at",
+        "on": "on",
+        "onDay": "on day",
+        "serverTime": "server time · {{cron}}",
+        "freq": {
+          "daily": "day",
+          "weekly": "week",
+          "monthly": "month"
+        },
+        "day": {
+          "monday": "Monday",
+          "tuesday": "Tuesday",
+          "wednesday": "Wednesday",
+          "thursday": "Thursday",
+          "friday": "Friday",
+          "saturday": "Saturday",
+          "sunday": "Sunday"
+        },
+        "aria": {
+          "frequency": "Frequency",
+          "dayOfWeek": "Day of week",
+          "dayOfMonth": "Day of month",
+          "hour": "Hour",
+          "minute": "Minute"
+        }
+      },
+      "sitemap": {
+        "title": "Sitemap against reality",
+        "agreesTitle": "The sitemap matches the site",
+        "agrees": "All {{entries}} entries resolve to published content, and nothing published is missing from it.",
+        "andMore": "and {{count}} more",
+        "notListedTitle": "This page is not in the sitemap",
+        "notListed": "The site publishes a sitemap and this page is not in it, so a crawler has no reason to look for it.",
+        "kind": {
+          "missing": "Published, but not in the sitemap",
+          "unknown": "In the sitemap, but nothing published answers",
+          "staleDate": "The date in the sitemap is wrong",
+          "noindexListed": "Listed in the sitemap and marked noindex",
+          "redirects": "The sitemap lists an address that redirects"
+        },
+        "why": {
+          "missing": "A crawler has no reason to look for these.",
+          "unknown": "Crawl budget spent on addresses that lead nowhere.",
+          "staleDate": "Claiming a page is older than it is tells crawlers not to bother recrawling it. Shown as claimed then actual.",
+          "noindexListed": "The map says index this, the page says do not. One of the two is a mistake.",
+          "redirects": "These pages have a vanity URL, and the sitemap still names the address Jahia redirects away from. Crawlers are being sent through a redirect to reach content that has a direct address, and search engines want the final URL in a sitemap."
+        },
+        "counts": "{{entries}} entries in the sitemap · {{published}} published pages and content items a visitor can read.",
+        "noindexListedTitle": "This page is in the sitemap and marked noindex",
+        "noindexListedPage": "The sitemap tells crawlers to index this page and the page itself tells them not to. One of the two is a mistake.",
+        "staleTitle": "The sitemap's date for this page is wrong",
+        "stalePage": "The sitemap claims {{detail}}. A crawler that trusts the earlier date has no reason to come back for what changed.",
+        "intro": "What the sitemap says against what the site actually publishes. Entries are resolved against the repository rather than fetched, so this costs no requests and needs no site scan. The scheduled scan refreshes it too.",
+        "checkNow": "CHECK NOW",
+        "checking": "CHECKING…",
+        "lastCheck": "Last check: {{date}}",
+        "figureEntries": "In the sitemap",
+        "figurePublished": "Published",
+        "neverTitle": "Not checked yet",
+        "never": "Run a check, or wait for the next scheduled site scan, which refreshes this too.",
+        "limits": "Entries are matched to content, not fetched, so a redirect is not detected: an entry that redirects elsewhere counts as resolving. Every language of the site is compared, and each finding names the URL it belongs to.",
+        "error": {
+          "failedTitle": "The check could not run",
+          "failed": "The sitemap could not be read or compared. The server log has the detail.",
+          "rateTitle": "Too many checks",
+          "rate": "Wait a moment before checking again."
+        },
+        "absent": {
+          "noneTitle": "No sitemap is served",
+          "none": "Nothing answers {{url}} (HTTP {{status}}), so crawlers are handed no map of this site at all. The Sitemap module publishes one per site.",
+          "notSitemapTitle": "That address answers, but not with a sitemap",
+          "notSitemap": "{{url}} returns HTTP {{status}}, but the response is not a sitemap - most often a page or an error page served with a success code. Until that address returns a real sitemap, crawlers have no usable map, and nothing here can be compared.",
+          "unreachableTitle": "The sitemap could not be reached",
+          "unreachable": "{{url}} could not be fetched at all, so whether a sitemap exists is unknown. This is a connection problem, not a finding about your content."
+        },
+        "fromScan": "From the site scan of {{date}}.",
+        "unreachablePageTitle": "The last site scan could not reach the sitemap",
+        "unreachablePage": "{{url}} could not be fetched during the site scan of {{date}}, so whether this page is in the sitemap is unknown."
+      },
+      "links": {
+        "title": "Pages nothing links to",
+        "intro": "A crawler can tell you what it found. It cannot tell you what it missed, because it never knew the page existed. This compares everything published against everything the site actually links to, using the rendered HTML of each page the last scan fetched.",
+        "counts": "{{pages}} published pages judged, from {{read}} pages read in this language.",
+        "neverTitle": "No scan yet",
+        "never": "The link graph is built from the rendered HTML of every page, so it comes from a site scan. Run one from the Site score tab.",
+        "allLinkedTitle": "Every page is linked from somewhere",
+        "allLinked": "No published page in this language is unreachable, and none depends on the menus alone.",
+        "kind": {
+          "orphans": "Nothing links here, and the sitemap does not list it",
+          "weak": "Reachable, but nobody chose to link it"
+        },
+        "why": {
+          "orphans": "No page links to these and no sitemap entry names them. Nothing will ever find them.",
+          "weak": "A crawler can reach these, but only through a menu that lists everything or through the sitemap. No author linked to them, and link-weighted crawlers treat that as a weak signal.",
+          "navOnly": "menu only",
+          "sitemapOnly": "sitemap only"
+        },
+        "limits": "Links are read from rendered HTML, so a menu built from the page tree, a listing, a rich text link and a configured button all count the same. One link per source page: linking twice from the same page is one decision. Only the language of this scan is judged, since only its pages were fetched. Your home page is never reported.",
+        "orphanTitle": "Nothing links to this page",
+        "orphanPage": "No other published page links here and the sitemap does not list it, so a crawler has no way to discover it at all.",
+        "navOnlyTitle": "Only the menu links to this page",
+        "navOnlyPage": "It appears in navigation on {{count}} pages, but no page links to it from its content. Crawlers that weight links treat a menu entry as a weaker signal than a link an author chose to make.",
+        "figure": {
+          "orphans": "Orphan pages",
+          "weak": "Weakly linked"
+        }
+      },
+      "vanity": {
+        "title": "One page, several addresses",
+        "intro": "Jahia owns the vanity URL service, so every address a page answers on is a repository fact rather than something to be discovered by crawling. This is that list, checked against the languages the site serves and against what each page says its canonical is.",
+        "counts": "{{total}} vanity URLs. This site serves: {{languages}}.",
+        "neverTitle": "No scan yet",
+        "never": "The canonical half of this check reads the rendered pages, so it comes from a site scan. Run one from the Site score tab.",
+        "noneTitle": "This site uses no vanity URLs",
+        "none": "Every page answers on its own address only, so nothing here can be split across duplicates.",
+        "agreesTitle": "Every address is accounted for",
+        "agrees": "All {{total}} vanity URLs resolve, none competes with another, and the pages say which address counts.",
+        "kind": {
+          "unresolvable": "Registered under a language this site does not serve",
+          "duplicates": "One page, several live addresses",
+          "canonical": "Nothing says which address counts"
+        },
+        "why": {
+          "unresolvable": "These cannot resolve. The language they are filed under is not one this site publishes, so the address returns a 404 to everybody, including crawlers that were told about it.",
+          "duplicates": "The same content answers on more than one address in the same language. Anything counting links now has two places to put the credit.",
+          "canonical": "The page carries no canonical tag, or one pointing somewhere that is neither its own address nor any of its aliases."
+        },
+        "tag": {
+          "duplicate": "one is default",
+          "noDefault": "none is default",
+          "missing": "no canonical",
+          "elsewhere": "points elsewhere"
+        },
+        "limits": "Inactive vanity URLs are ignored: switching one off is a decision, not a fault. Two pages cannot claim the same address - Jahia renames the second on save, which is where the -1 suffixes on imported sites come from - so there is deliberately no check for it. The canonical part covers only pages the last scan fetched.",
+        "page": {
+          "unresolvableTitle": "This page has an address that cannot work",
+          "unresolvable": "A vanity URL is filed under the language \"{{detail}}\", which this site does not serve, so that address returns a 404 to everybody.",
+          "duplicateTitle": "This page answers on several addresses",
+          "duplicate": "It is reachable at {{detail}}. One is marked default, so engines have a hint, but every link to the other still splits the signal.",
+          "noDefaultTitle": "This page answers on several addresses and none is the default",
+          "noDefault": "It is reachable at {{detail}}, and nothing marks which one is real. Set one as the default vanity URL.",
+          "missingTitle": "This page has aliases but no canonical tag",
+          "missing": "It answers on more than one address and the page does not say which one counts, so engines have to guess.",
+          "elsewhereTitle": "This page's canonical points somewhere unexpected",
+          "elsewhere": "The canonical names {{detail}}, which is neither this page's own address nor any of its vanity URLs. Everything this page earns is being credited elsewhere.",
+          "canonicalTitle": "This page's canonical needs checking",
+          "canonical": "The canonical tag does not name this page's own address or any of its aliases."
+        },
+        "figure": {
+          "unresolvable": "Unserved language",
+          "duplicates": "Duplicate addresses",
+          "canonical": "No canonical"
+        }
+      },
+      "freshness": {
+        "title": "Where the site has gone stale",
+        "intro": "How old everything a visitor can read actually is, taken from the repository rather than from the dates pages choose to publish. Grouped rather than ranked: a legal notice and a property listing age for different reasons, and a single list of oldest-first would put them side by side.",
+        "counts": "{{total}} published items dated, {{undated}} with no modification date.",
+        "thresholdLabel": "Flag a group when nothing in it has changed in",
+        "threshold": {
+          "90": "3 months",
+          "180": "6 months",
+          "365": "a year",
+          "730": "two years"
+        },
+        "measuring": "measuring…",
+        "neverTitle": "Nothing measured yet",
+        "never": "Pick a threshold above to age the published content. It is a repository query, so it answers straight away.",
+        "bucket": {
+          "month": "Changed in the last month",
+          "quarter": "1 to 3 months ago",
+          "halfYear": "3 to 6 months ago",
+          "year": "6 months to a year ago",
+          "older": "More than a year ago"
+        },
+        "byType": "By content type",
+        "byTypeHelp": "How long since anything of this kind changed at all. Longer is worse, and the distinction is what stops a legal page being flagged next to a news article.",
+        "bySection": "By section",
+        "bySectionHelp": "The same measure, grouped the way the work is usually divided up.",
+        "stale": "past the threshold",
+        "days": "{{count}} days",
+        "months": "{{count}} months",
+        "limits": "A group is flagged on its newest item, not its oldest or its average: \"nothing here has been touched\" is actionable, while \"the oldest item is old\" is true of every site. Dates are the repository's own, so a page rebuilt without content changes does not count as fresh. Only the language shown is measured, since a translation carries its own dates.",
+        "items": "{{count}} items",
+        "whenTitle": "When the site was last touched",
+        "bucketShort": {
+          "month": "This month",
+          "quarter": "1-3 months",
+          "halfYear": "3-6 months",
+          "year": "6-12 months",
+          "older": "Over a year"
+        },
+        "axisOlder": "older",
+        "axisRecent": "more recent",
+        "untouched": "nothing here has changed in {{age}}",
+        "allTitle": "Every page, oldest first",
+        "allHelp": "The whole list, so the groups above tell you where to look and this tells you which page. Each row opens in jContent.",
+        "noDate": "no date",
+        "truncated": "Long lists are cut at {{count}} rows; the groups above still count everything.",
+        "figure": {
+          "dated": "Dated items",
+          "undated": "No modification date"
+        }
+      },
+      "languages": {
+        "title": "Readiness one language at a time",
+        "intro": "A single figure for the whole site hides the market that is failing. This is coverage and score for each language the site declares, side by side, so a strong language cannot average out a weak one.",
+        "counts": "{{total}} published items, {{count}} languages declared by this site.",
+        "coverage": "{{published}} of {{total}} published · {{percent}}% covered",
+        "missing": "{{count}} never translated",
+        "pagesScored": "{{count}} pages scored",
+        "notMeasured": "not measured",
+        "unmeasuredTitle": "Some languages have never been scanned",
+        "unmeasured": "{{count}} of these languages has no score yet, which is not the same as scoring badly. A scan runs one language at a time, so each one needs its own schedule on the Site score tab.",
+        "spreadTitle": "One market is measurably behind another",
+        "spread": "There are {{points}} points between the best and worst language. An average across the site would have hidden that, which is exactly how a market ends up invisible to assistants while the brand looks healthy overall.",
+        "errorTitle": "Language coverage could not be read",
+        "error": "The repository could not be queried for translations. The server log has the detail.",
+        "limits": "Coverage counts pages and content items that carry a translation, whether or not anyone has written into it; an empty translation counts as present. Scores come from whatever scan last ran in that language, so two languages scanned weeks apart are not measured against the same site.",
+        "pageMissingTitle": "This page does not exist in every language",
+        "pageMissing": "It has no translation in: {{languages}}. Assistants answering in those languages have nothing of this page to cite.",
+        "pageUnpublishedTitle": "A translation of this page is not published",
+        "pageUnpublished": "It is translated into {{languages}} but that translation has not been published, so no visitor or crawler can see it.",
+        "series": {
+          "coverage": "Translated coverage",
+          "score": "Readiness score"
+        },
+        "figure": {
+          "published": "Published items",
+          "declared": "Languages",
+          "unmeasured": "Not measured",
+          "spread": "Spread between languages",
+          "points": "{{points}} pts"
+        }
+      },
+      "schema": {
+        "tab": "Structured data",
+        "none": "No structured data was generated for this page.",
+        "headline": "schema.org {{type}}",
+        "complete": "everything it needs has a source in the content model",
+        "incomplete": "{{count}} required properties have no source",
+        "unmappedTitle": "This content type is not mapped yet",
+        "unmapped": "Nothing says what a {{nodeType}} is in schema.org terms, so no structured data can be derived from it.",
+        "unmappedHelp": "Map it on the Structured data tab of the GEO readiness dashboard. Nothing guesses here: a type is whatever the person who defined it says it is.",
+        "conflictTitle": "This would contradict the page",
+        "conflict": "The generated {{property}} is \"{{generated}}\" while the page displays \"{{page}}\". Structured data that disagrees with the visible content is worse than none, so fix one of the two before using this.",
+        "missingTitle": "Required properties have no source",
+        "missing": "The content model has nothing to fill: {{properties}}. They are left out rather than invented, because a value that is not in the content is a value the page does not support.",
+        "copy": "COPY SNIPPET",
+        "copied": "COPIED",
+        "sources": "Where each value came from",
+        "limits": "Generated from the content type, not written into the page. Paste it into the template for this type so every item gets it, rather than into one page. Values are read from the published content in this language.",
+        "panel": {
+          "title": "Structured data from the content model",
+          "intro": "Every other tool infers schema.org output from the words on a page. The content type already says what the content is, so it can be derived instead - which is both cheaper and more accurate. Map each type once and every item of it can emit correct JSON-LD.",
+          "counts": "{{mapped}} of {{total}} published items have a mapped type, {{complete}} of them can fill everything their schema type requires.",
+          "items": "{{count}} published items",
+          "ready": "ready",
+          "gaps": "{{count}} without a source",
+          "readyType": "every required property has a source",
+          "noSource": "no source for: {{properties}}",
+          "thin": "Recommended but unavailable: {{properties}}. Valid without them, richer with them.",
+          "save": "SAVE MAPPING",
+          "saving": "SAVING…",
+          "saved": "Mapping saved.",
+          "errorTitle": "The content model could not be read",
+          "error": "Node types could not be listed for this site. The server log has the detail.",
+          "limits": "Saving a mapping stores it. It never writes into a page or a template: the drawer shows the snippet for a page and a person places it. \"Deliberately none\" marks a type that should not emit structured data, so it stops being reported as unmapped.",
+          "legend": {
+            "complete": "Can emit complete JSON-LD",
+            "incomplete": "Mapped, but a required property has no source",
+            "unmapped": "Not mapped"
+          },
+          "suggested": "From the properties it holds, {{type}} describes this model better.",
+          "useSuggested": "Use {{type}}",
+          "figure": {
+            "complete": "Complete JSON-LD",
+            "incomplete": "Missing a source",
+            "unmapped": "Not mapped"
+          }
+        },
+        "mapping": {
+          "unmapped": "Not mapped",
+          "none": "Deliberately none"
+        }
+      },
+      "context": {
+        "site": "This site averages {{percent}}%",
+        "section": "the {{section}} section averages {{percent}}%",
+        "links": "{{nav}} pages link here from navigation, {{content}} from page content",
+        "llms": {
+          "listed": "Listed in llms.txt",
+          "wouldAdd": "Not in llms.txt, but regenerating it would add this page",
+          "notGenerated": "Not in llms.txt, which lists only the site's main pages"
+        }
+      },
+      "paging": {
+        "rowsPerView": "Rows per view",
+        "of": "of",
+        "showing": "Showing {{from}}–{{to}} of {{total}}"
+      },
+      "report": {
+        "title": "The written report",
+        "intro": "Everything else on this dashboard is measured and says so. This tab asks a model to read those measurements and write what they add up to: where the site stands for AI crawlers, what to fix first, who can fix it, and in what order. It answers only when you ask, because each answer is paid for and takes a while.",
+        "notConfiguredTitle": "No provider configured",
+        "notConfigured": "Set AI_PROVIDER, AI_MODEL and AI_API_KEY in digital-factory-data/karaf/etc/org.jahia.community.contentgovernance.llm.cfg to enable this tab. Nothing leaves the server until then.",
+        "provider": "Written by {{provider}} · {{model}}",
+        "privacy": "The provider receives this site's measurements: scores, failing check ids, page paths and titles, counts. Never page bodies, never the key.",
+        "generate": "Write the report",
+        "regenerate": "Write it again",
+        "generating": "Writing…",
+        "generatingHint": "Reading the measurements and writing. This can take up to a minute.",
+        "neverTitle": "No report yet",
+        "never": "Run a site scan first so there is something to read, then ask for the report. The sitemap, links, freshness and language panels feed it too.",
+        "errorTitle": "The report could not be written",
+        "errorGeneric": "The provider did not answer.",
+        "rateLimited": "Too many reports asked for in ten minutes. The limit protects the budget; try again shortly.",
+        "generatedAt": "Written {{date}}",
+        "otherLanguageTitle": "Written in another language",
+        "otherLanguage": "This report was written in {{have}}. Your interface is in {{want}}: write it again to get it in your language.",
+        "truncatedTitle": "Cut short",
+        "truncated": "The model ran out of room before finishing. The end of the report may be missing; raising AI_REPORT_MAX_TOKENS gives it more.",
+        "summary": "Where the site stands",
+        "compliance": "Compliance by area",
+        "priorities": "What to do, in order",
+        "quickWins": "Quick wins",
+        "roadmap": "Roadmap",
+        "why": "Why:",
+        "how": "How:",
+        "pages": "Pages concerned",
+        "none": "Nothing to recommend: the measurements gave the model nothing to act on.",
+        "usage": "{{input}} tokens in, {{output}} out",
+        "disclaimer": "Written by a model from measurements this module took. It prioritises and explains; it does not measure anything itself, and it can be wrong. Check a recommendation against the panel it refers to before acting on it.",
+        "verdict": {
+          "compliant": "GEO compliant",
+          "partial": "Partly compliant",
+          "not_compliant": "Not compliant"
+        },
+        "status": {
+          "met": "Met",
+          "partial": "Partial",
+          "missing": "Missing"
+        },
+        "area": {
+          "reachability": "Can a crawler reach it",
+          "content": "Is what arrives usable",
+          "structured_data": "Structured data",
+          "freshness": "Freshness",
+          "languages": "Languages",
+          "site_files": "robots.txt and llms.txt",
+          "links": "Internal links",
+          "addresses": "Public addresses"
+        },
+        "owner": {
+          "editor": "an editor can do it",
+          "developer": "needs a developer",
+          "administrator": "needs an administrator"
+        },
+        "effort": {
+          "low": "low effort",
+          "medium": "medium effort",
+          "high": "high effort"
+        },
+        "phase": {
+          "now": "Now",
+          "next": "Next",
+          "later": "Later"
+        },
+        "export": {
+          "markdown": "Export as Markdown",
+          "json": "Export as JSON",
+          "title": "GEO readiness report for {{site}}",
+          "generated": "Written {{date}}",
+          "area": "Area",
+          "status": "Status",
+          "note": "Note",
+          "owner": "Owner: {{owner}}",
+          "effort": "Effort: {{effort}}"
+        },
+        "notConfiguredTab": "No AI provider is configured on this server."
+      },
+      "fetchError": {
+        "ConnectException": "The server could not open a connection to that address ({{error}}). A Jahia Cloud server, for one, cannot reach its own public address: ask for that to be allowed, or set PUBLIC_BASE_URL to an address the server can reach.",
+        "SocketTimeoutException": "The address did not answer in time ({{error}}).",
+        "SSLHandshakeException": "The server's Java does not trust the certificate of that address ({{error}}).",
+        "UnknownHostException": "The server cannot resolve that host name ({{error}}).",
+        "other": "The fetch failed with {{error}}."
+      },
+      "citations": {
+        "tab": "AI citations",
+        "asOf": "BotRank data as of {{date}}.",
+        "asOfUnknown": "BotRank has not counted any AI answer yet.",
+        "syncedAt": "Synced {{date}}.",
+        "running": "A sync is running.",
+        "notSyncedTitle": "No sync yet",
+        "notSynced": "The site is connected to BotRank, but its first sync has not run. Figures appear after the next daily sync, or after a site administrator starts one.",
+        "notPublishedTitle": "This page is not published",
+        "notPublished": "AI answers can only cite a published page. Publish it, and its citations appear after the next sync.",
+        "neverTitle": "Not cited yet",
+        "never": "No AI answer tracked for this site has cited this page. The page may be new, or the tracked questions may not cover its subject.",
+        "notRecentTitle": "Not cited recently",
+        "notRecent": "AI answers cited this page {{count}} time in the past, but not in the last 30 days.",
+        "notRecent_plural": "AI answers cited this page {{count}} times in the past, but not in the last 30 days.",
+        "verdict": "Cited {{count}} time in AI answers over the last 30 days",
+        "verdict_plural": "Cited {{count}} times in AI answers over the last 30 days",
+        "variationUp": "+{{count}} on the previous 30 days",
+        "variationDown": "-{{count}} on the previous 30 days",
+        "variationSame": "Same as the previous 30 days",
+        "variationNone": "No comparison",
+        "variationWithheld": "No comparison is shown: no tracked question ran in the previous 30 days.",
+        "rank": "Rank {{rank}} of {{of}} cited pages of the site.",
+        "everCitations": "{{count}} citations since tracking started.",
+        "severalUrls": "Cited under {{count}} addresses of this page, added up.",
+        "mapped": "A site administrator matched a cited address to this page by hand.",
+        "detailsMissingTitle": "Details not available",
+        "detailsMissing": "BotRank did not answer for this page's details during the last sync. The total is up to date; the rest will be after the next sync.",
+        "engines": "AI engines that cite it",
+        "history": "Citations per day",
+        "historyNote": "One bar per day on which tracked questions ran. A day without a bar had no run. Read the trend, not a single day: answers vary from one run to the next.",
+        "prompts": "Questions that cite it",
+        "tags": "Themes",
+        "tagsIntro": "The topics of the tracked questions that cite this page, as BotRank groups them. This is how AI engines read the page, not how it was tagged in Jahia.",
+        "coCited": "Pages cited in the same answers",
+        "coCitedIntro": "Other pages the same AI answers cite, often competitors.",
+        "coCitedRankOnly": "Average position among the sources of those answers: {{theirs}}; this page is not listed as a source in them",
+        "coCitedTotal": "Cited {{count}} time over the last 30 days, with this page or not",
+        "coCitedTotal_plural": "Cited {{count}} times over the last 30 days, with this page or not",
+        "source": "Source: BotRank. Texts and addresses above come from AI answers and are shown as written.",
+        "loadErrorTitle": "Citations could not be loaded",
+        "loadError": "Try again later. If it persists, a site administrator can check the BotRank connection in Site Settings, Content governance, BotRank.",
+        "surface": {
+          "chatgpt": "ChatGPT",
+          "perplexity": "Perplexity",
+          "gemini": "Gemini",
+          "mistral": "Mistral",
+          "aioverview": "Google AI Overview",
+          "aimode": "Google AI Mode",
+          "grok": "Grok",
+          "copilot": "Copilot",
+          "claude": "Claude"
+        },
+        "citationsUnit": "citation",
+        "citationsUnit_plural": "citations",
+        "shareOfPage": "{{percent}}% of this page's citations",
+        "lastCited": "last cited {{day}}",
+        "byEngine": "By AI engine",
+        "tagPrompts": "{{count}} question",
+        "tagPrompts_plural": "{{count}} questions",
+        "youRankHigher": "Your page ranks higher",
+        "theyRankHigher": "Ranks higher than yours",
+        "aheadOf": "Listed before your page in {{ahead}} of the {{count}} answer they share",
+        "aheadOf_plural": "Listed before your page in {{ahead}} of the {{count}} answers they share",
+        "showAll": "Show {{count}} more page",
+        "showAll_plural": "Show {{count}} more pages",
+        "showFewer": "Show fewer",
+        "aheadUnit": "listed before yours",
+        "positionsLabel": "Average position among the sources:",
+        "positionsYours": "yours",
+        "notConfiguredTab": "This site is not connected to BotRank. A site administrator connects it in Site Settings, Content governance, BotRank."
+      },
+      "citationsSettings": {
+        "navLabel": "AI citations (BotRank)",
+        "title": "AI citations (BotRank)",
+        "intro": "Connect this site to a BotRank project to show, on each page, whether AI answers cite it. Jahia reads BotRank once a day; editors never call BotRank themselves.",
+        "notEnabled": "Content Governance is not enabled on this site, or you are not a site administrator. Enable the module in Site Settings, Modules.",
+        "forbidden": "You need to be a site administrator of this site.",
+        "error": "The request failed.",
+        "errorTitle": "Something went wrong",
+        "noConnectionTitle": "No BotRank connection",
+        "noConnection": "A server administrator adds one file per BotRank organisation in karaf/etc, named org.jahia.se.modules.georeadiness.botrank-<id>.cfg, with the organisation's API key. See the module documentation.",
+        "connection": "BotRank connection",
+        "connectionHelp": "The BotRank organisation whose data this site reads.",
+        "connectionProblem": "This connection cannot be used",
+        "choose": "Choose",
+        "project": "Project",
+        "projectHelp": "The BotRank project that tracks the questions about this site.",
+        "projectsErrorTitle": "Projects could not be listed",
+        "hosts": "Hosts of the site",
+        "hostsHelp": "The addresses the site is served on, comma-separated, at most {{max}}. www. does not matter. Needed when the server name is localhost, as on Jahia Cloud.",
+        "enabled": "Daily sync",
+        "enabledHelp": "When on, Jahia reads BotRank every day at this time, Paris time.",
+        "time": "Time",
+        "timeHelp": "HH:mm, Paris time. 06:30 runs after BotRank's night runs.",
+        "save": "Save",
+        "saved": "Settings saved",
+        "syncNow": "Sync now",
+        "syncStarted": "Sync started. It takes a few minutes on a large site.",
+        "lastSync": "Last sync",
+        "status": {
+          "idle": "Idle",
+          "running": "Running",
+          "done": "Done",
+          "failed": "Failed"
+        },
+        "syncedAt": "Last completed: {{date}}",
+        "latestAnswerAt": "Latest AI answer counted by BotRank: {{date}}",
+        "nextRun": "Next daily sync: {{date}}",
+        "citedPages": "Pages with citations: {{count}}",
+        "messageTitle": "Note from the last sync",
+        "unresolved": "Cited addresses not matched to a page",
+        "unresolvedIntro": "Addresses of this site that AI answers cite, but that no published page, vanity URL or mapping matches. Old addresses after a migration often end up here. Match one to a page, then sync.",
+        "unresolvedNone": "Every cited address of the site matches a page.",
+        "citations": "{{count}} citations",
+        "map": "Match to a page",
+        "mappings": "Addresses matched by hand",
+        "unmap": "Remove",
+        "mappingsNote": "A mapping counts from the next sync."
+      },
+      "siteCitations": {
+        "view": {
+          "overview": "AI citations at a glance",
+          "ranking": "Where the site stands",
+          "pages": "Which pages carry it",
+          "engines": "Engines and brand visibility"
+        },
+        "viewIntro": {
+          "overview": "How the answers of AI engines cite this site, from the last daily sync with BotRank: its rank among cited sites, its share of all citations, and what to read first.",
+          "ranking": "The sites that the same AI answers cite, around this one, and how the site's share of citations moved day by day.",
+          "pages": "The addresses of the site that AI answers cite most, matched to their page in Jahia, and the split per host.",
+          "engines": "How often each engine's answers mention the brand, and how often BotRank asks each engine again."
+        },
+        "notConfiguredTitle": "Not connected to BotRank",
+        "notConfigured": "This site is not connected to BotRank. A site administrator connects it in Site Settings, under Content governance, BotRank.",
+        "notConfiguredAdmin": "This site is not connected to BotRank. Connect it in Site Settings, under Content governance, BotRank: pick the connection, the project and the site's hosts.",
+        "notSynced": "The site is connected to BotRank, but no sync has read its site figures yet. They appear after the next daily sync, or after a site administrator starts one.",
+        "metaAsOf": "Data as of {{date}}",
+        "metaPeriod": "{{start}} to {{end}}, against the 30 days before",
+        "metaSynced": "Synced {{date}}",
+        "partialTitle": "Some figures are missing",
+        "partial": "{{count}} read of the site figures failed in the last sync. What BotRank answered is shown; the next sync tries again.",
+        "partial_plural": "{{count}} reads of the site figures failed in the last sync. What BotRank answered is shown; the next sync tries again.",
+        "domainScope": "BotRank counts the whole registrable domain",
+        "domainNote": "Citations, share and rank are BotRank's figures for the whole registrable domain, so they include any other site served on a subdomain of it.",
+        "notCitedTitle": "{{domain}} has never been cited",
+        "notCited": "No AI answer of this BotRank project has ever cited {{domain}}.",
+        "rankLabel": "Rank",
+        "rankShort": "#{{rank}}",
+        "rankFirst": "#1",
+        "rankOf": "among the sites the answers cite",
+        "citations": "Citations",
+        "share": "Share of citations",
+        "citedPages": "Cited pages",
+        "last30": "in AI answers, last 30 days",
+        "citedPagesSub": "addresses of the domain",
+        "points": "{{value}} pts",
+        "takeaways": "What to read first",
+        "tk": {
+          "gap": "{{gap}} of share behind {{domain}}, ranked {{rank}}.",
+          "first": "The site is the most cited of all the sites these answers cite.",
+          "top3": "The three most cited pages carry {{share}} of the domain's citations.",
+          "unmatched": "{{count}} of the {{total}} most cited addresses match no page of the site.",
+          "unmatched_plural": "{{count}} of the {{total}} most cited addresses match no page of the site.",
+          "unresolved": "{{count}} cited address matches no page of the site.",
+          "unresolved_plural": "{{count}} cited addresses match no page of the site.",
+          "bestDay": "Best day: {{day}}, with {{share}} of all citations.",
+          "noComparison": "No comparison yet: BotRank has no comparable previous 30 days for this project."
+        },
+        "visibility": "Brand visibility",
+        "visibilityScore": "of the {{answers}} analysed answer mention the brand.",
+        "visibilityScore_plural": "of the {{answers}} analysed answers mention the brand.",
+        "visibilityNote": "Context, not the site's result: an answer can mention the brand without citing any page of the site.",
+        "leaderboard": "Rank of {{domain}} among cited sites",
+        "leaderboardIntro": "Share of all the citations in the project's AI answers, with the sites just above and below.",
+        "thisSite": "This site",
+        "noRankingTitle": "No ranking",
+        "noRanking": "None of the site's domains is cited by this BotRank project.",
+        "shareHistory": "Share of citations per day",
+        "shareHistoryIntro": "One bar per day the project received AI answers. An empty bar is a day where no answer cited any source.",
+        "statLast": "Latest",
+        "statAverage": "Average",
+        "statBest": "Best",
+        "statLow": "Lowest",
+        "noSource": "no answer cited a source",
+        "topPages": "Most cited pages",
+        "topPagesIntro": "The {{count}} most cited address of the site's hosts, over the last 30 days.",
+        "topPagesIntro_plural": "The {{count}} most cited addresses of the site's hosts, over the last 30 days.",
+        "noTopPages": "No page of the site's hosts was cited over the period.",
+        "unmatched": "No page matched",
+        "unresolved": "{{count}} cited address matches no page of the site. A site administrator can match it to a page in Site Settings, under Content governance, BotRank.",
+        "unresolved_plural": "{{count}} cited addresses match no page of the site. A site administrator can match them to pages in Site Settings, under Content governance, BotRank.",
+        "hosts": "Per host",
+        "host": "Host",
+        "approxShare": "Share, approx.",
+        "hostsNote": "Computed here from the cited pages of each host, since BotRank only filters its list of pages by host. The share is estimated from the domain's own figures.",
+        "byEngine": "Brand visibility per engine",
+        "byMarket": "Brand visibility per market",
+        "oneMarket": "One market tracked: {{market}}, with the project's score of {{score}}.",
+        "engines": "Engines tracked by the project",
+        "enginesIntro": "How often BotRank asks each engine again. New figures appear after the next refresh and the next daily sync.",
+        "intervalNone": "Not refreshed automatically",
+        "intervalDays": "Every day",
+        "intervalDays_plural": "Every {{count}} days",
+        "intervalWeeks": "Every week",
+        "intervalWeeks_plural": "Every {{count}} weeks",
+        "intervalHours": "Every hour",
+        "intervalHours_plural": "Every {{count}} hours",
+        "source": "Source: BotRank. Domains and addresses come from AI answers and are shown as written."
+      },
+      "tabHelp": {
+        "score": "How ready this page is to be read and cited by AI assistants, from the checks that matter most.",
+        "crawler": "Whether each AI crawler can fetch this page, and what blocks it.",
+        "files": "What the site's robots.txt and llms.txt files say to AI crawlers.",
+        "schema": "The structured data (JSON-LD) that tells assistants what this page is about, and what is missing.",
+        "citations": "How often AI answers cite this page, and for which questions, from BotRank."
+      }
+    },
+    "audit": {
+      "action": {
+        "open": "Page audit"
+      },
+      "drawer": {
+        "title": "Page quality",
+        "close": "Close panel",
+        "rerun": "Re-run",
+        "export": "Export JSON",
+        "hidePreview": "Hide preview",
+        "showPreview": "Show preview",
+        "lastAudit": "Last audit: {{date}}",
+        "stale": "The page has been modified since this audit - the results below may be outdated. Re-run when you are done editing.",
+        "preview": "Page preview",
+        "loading": "Loading page preview…",
+        "analyzing": "Analyzing page…",
+        "error": "Analysis failed",
+        "staleTitle": "Page modified since this audit"
+      },
+      "tabs": {
+        "accessibility": "Accessibility",
+        "seo": "SEO",
+        "links": "Links",
+        "jahia": "Jahia",
+        "ai": "AI review",
+        "vitals": "Web Vitals",
+        "readability": "Readability",
+        "ecodesign": "Ecodesign",
+        "badgeTooltip": "{{count}} issues to review",
+        "aiNotConfigured": "No AI provider is configured on this server."
+      },
+      "eco": {
+        "score": "Page criteria met",
+        "scoreHint": "RGESN page-level checks",
+        "weight": "Page weight",
+        "requests": "Requests",
+        "thirdPartyHint": "{{count}} third-party origins",
+        "disclaimer": "Page-level checks against the RGESN 2024 Frontend/Contents families. This is not an RGESN conformity score - a full assessment covers the whole service (hosting, backend, governance); see the manual checklist below. Resource figures are from the editing-workspace render and are indicative.",
+        "criteria": "Automated page criteria",
+        "families": {
+          "frontend": "Frontend",
+          "contents": "Contents",
+          "ux": "UX/UI",
+          "architecture": "Architecture",
+          "strategy": "Strategy",
+          "hosting": "Hosting",
+          "backend": "Backend"
+        },
+        "checks": {
+          "pageWeight": "Page weight",
+          "requests": "HTTP requests",
+          "domSize": "DOM nodes",
+          "lazyLoading": "Below-the-fold images not lazy-loaded",
+          "webFonts": "Web font files",
+          "autoplay": "Autoplay media",
+          "imageFormats": "Legacy-format heavy images",
+          "oversizedImages": "Oversized images",
+          "imageDimensions": "Images without dimensions",
+          "thirdParty": "Third-party origins"
+        },
+        "recs": {
+          "pageWeight": {
+            "title": "Heavy page ({{size}})",
+            "detail": "Compress images, drop unused scripts/styles and defer non-critical resources. A lighter page consumes less energy and bandwidth per visit (RGESN Frontend)."
+          },
+          "requests": {
+            "title": "{{count}} HTTP requests",
+            "detail": "Each request costs a round-trip and server work. Combine assets, lazy-load below-the-fold content and remove unused third-party scripts (RGESN Frontend)."
+          },
+          "domSize": {
+            "title": "Large DOM ({{count}} nodes)",
+            "detail": "A heavy DOM increases memory use and rendering energy on the visitor's device. Simplify the markup or paginate very long pages (RGESN Frontend)."
+          },
+          "lazyLoading": {
+            "title": "{{count}} below-the-fold images load eagerly",
+            "detail": "Add loading=\"lazy\" so off-screen images are only fetched if the visitor scrolls to them - avoids downloading data that is never seen (RGESN Frontend)."
+          },
+          "imageFormats": {
+            "title": "{{count}} heavy images in legacy formats",
+            "detail": "Serve WebP or AVIF instead of JPEG/PNG for a large size reduction at equal quality; let Jahia generate modern-format renditions (RGESN Contents)."
+          },
+          "oversizedImages": {
+            "title": "{{count}} images larger than displayed",
+            "detail": "The source file is much bigger than its rendered size. Upload resized variants or use responsive renditions so no wasted pixels are transferred (RGESN Contents)."
+          },
+          "imageDimensions": {
+            "title": "{{count}} images without width/height",
+            "detail": "Explicit dimensions avoid re-layouts (and the extra rendering work they cost) as images load (RGESN Contents)."
+          },
+          "webFonts": {
+            "title": "{{count}} web font files loaded",
+            "detail": "Each font file is an extra download. Prefer system fonts, limit weights/styles, and use WOFF2 only (RGESN Frontend)."
+          },
+          "autoplay": {
+            "title": "{{count}} media elements autoplay",
+            "detail": "Autoplaying video/audio consumes bandwidth and battery before any interaction. Require an explicit play action (RGESN UX/UI)."
+          },
+          "thirdParty": {
+            "title": "{{count}} third-party origins",
+            "detail": "Each external origin adds DNS/TLS connections, energy and privacy exposure. Self-host or remove non-essential third parties (RGESN Architecture)."
+          }
+        },
+        "checklist": {
+          "title": "Manual checklist (whole-service, not automatable)",
+          "intro": "These RGESN criteria are assessed at the service level and cannot be judged from a single page. Review them with the team responsible for the platform.",
+          "families": {
+            "strategy": "Strategy & governance",
+            "hosting": "Hosting",
+            "backend": "Backend & data",
+            "ux": "UX / features"
+          },
+          "items": {
+            "envTarget": {
+              "title": "Environmental targets are defined and owned",
+              "detail": "The service has documented eco-design objectives and a person accountable for them (RGESN Strategy)."
+            },
+            "reviewMissing": {
+              "title": "Environmental impact is measured and reviewed",
+              "detail": "Impact indicators are tracked over releases, not set once and forgotten (RGESN Strategy)."
+            },
+            "greenHost": {
+              "title": "Low-carbon hosting",
+              "detail": "The infrastructure runs on a provider with a documented low PUE and renewable-energy commitment (RGESN Hosting)."
+            },
+            "caching": {
+              "title": "Effective caching of static resources",
+              "detail": "Long-lived cache headers and a CDN avoid re-downloading unchanged assets on every visit (RGESN Hosting/Architecture)."
+            },
+            "apiEfficiency": {
+              "title": "APIs return only what is needed",
+              "detail": "Endpoints avoid over-fetching; payloads are paginated and scoped to the fields actually used (RGESN Backend)."
+            },
+            "pagination": {
+              "title": "Pagination over infinite scroll for large lists",
+              "detail": "Infinite scroll keeps loading data the visitor may never read; paginate or lazy-load on demand (RGESN Backend/UX)."
+            },
+            "featureNeed": {
+              "title": "Every feature earns its footprint",
+              "detail": "Features are justified against user need; unused ones are removed rather than shipped and maintained (RGESN UX)."
+            },
+            "noDarkPattern": {
+              "title": "No engagement dark patterns",
+              "detail": "Autoplay carousels, aggressive notifications and endless feeds drive needless traffic and energy - avoid them (RGESN UX)."
+            }
+          }
+        }
+      },
+      "copy": {
+        "action": "Copy",
+        "done": "Copied"
+      },
+      "ai": {
+        "checking": "Checking AI review availability…",
+        "notConfigured": "AI review is not configured on this server. A server administrator sets AI_PROVIDER, AI_MODEL and AI_API_KEY in:",
+        "intro": "Sends the page text and the audit findings to {{provider}} ({{model}}) and returns prioritized, editor-friendly recommendations. The API key stays on the server.",
+        "generate": "Generate AI review",
+        "regenerate": "Regenerate",
+        "generating": "Analyzing the page with AI… this takes a few seconds.",
+        "summary": "Overall assessment",
+        "error": "AI review failed",
+        "poweredBy": "Generated by {{provider}} · {{model}}",
+        "usage": "Tokens: {{input}} in / {{output}} out",
+        "truncated": "The answer was cut short by the AI_MAX_TOKENS limit - some recommendations may be missing. Ask an administrator to raise AI_MAX_TOKENS in the module configuration.",
+        "cost": "Estimated cost: ${{cost}}",
+        "disclaimer": "AI-generated suggestions: review before acting on them.",
+        "fix": "Suggested fix",
+        "categories": {
+          "content": "Content",
+          "seo": "SEO",
+          "accessibility": "Accessibility",
+          "performance": "Performance",
+          "ux": "UX",
+          "proofreading": "Proofreading",
+          "factuality": "Factuality",
+          "consistency": "Consistency",
+          "conversion": "Conversion",
+          "localization": "Localization",
+          "legal": "Legal",
+          "ecodesign": "Ecodesign"
+        }
+      },
+      "jahia": {
+        "summary": "Page summary",
+        "pageStatus": "Page publication status",
+        "scanned": "{{count}} content nodes analyzed",
+        "languages": "Site languages checked",
+        "unpublished": "Content not visible to visitors",
+        "untranslated": "Missing translations",
+        "rawKeys": "Raw translation keys visible on the page",
+        "placeholders": "Placeholder text",
+        "statuses": {
+          "PUBLISHED": "Published",
+          "MODIFIED": "Modified (unpublished changes)",
+          "NOT_PUBLISHED": "Never published",
+          "UNPUBLISHED": "Unpublished",
+          "MARKED_FOR_DELETION": "Marked for deletion",
+          "CONFLICT": "Conflict",
+          "LIVE_MODIFIED": "Modified in live",
+          "LIVE_ONLY": "Live only",
+          "MANDATORY_LANGUAGE_UNPUBLISHABLE": "Mandatory language missing",
+          "MANDATORY_LANGUAGE_VALID": "Mandatory language valid",
+          "DELETED": "Deleted"
+        },
+        "recs": {
+          "rawI18nKeys": {
+            "title": "{{count}} raw translation keys visible to visitors",
+            "detail": "Text like namespace:key.path means a resource bundle or locale JSON entry is missing: visitors see the technical key instead of the label. Usually a module i18n gap."
+          },
+          "unpublishedChanges": {
+            "title": "{{count}} content blocks not published",
+            "detail": "These nodes were modified or never published: visitors currently see an older version of this page, or nothing at all. Publish the page to align live with what you are editing."
+          },
+          "missingTranslations": {
+            "title": "{{count}} content blocks missing translations ({{languages}})",
+            "detail": "This content renders empty or falls back to another language for visitors browsing in those languages. Open each node in the editor and fill in the missing languages."
+          },
+          "placeholderText": {
+            "title": "{{count}} placeholder texts on the page",
+            "detail": "Lorem ipsum / TODO text is still visible. Replace it with final content before publishing."
+          },
+          "graphqlUnavailable": {
+            "title": "Repository checks could not run",
+            "detail": "The GraphQL query failed, so publication and translation checks were skipped. The on-page checks above remain valid."
+          }
+        }
+      },
+      "seo": {
+        "preview": "Social sharing preview",
+        "noPreview": "No title or og:title found - nothing to preview.",
+        "noOgImage": "No og:image - shared links will have no visual",
+        "tags": "Tag checklist",
+        "missing": "missing",
+        "chars": "{{count}} chars",
+        "defaultIndexable": "not set (indexable)",
+        "jsonLdValue": "{{count}} block(s), {{errors}} error(s)",
+        "hreflangValue": "{{count}} alternate language link(s)",
+        "imageAltValue": "{{missing}} of {{total}} images without alt",
+        "assist": {
+          "title": "AI suggestions",
+          "intro": "Ready-to-paste title, meta description, keyword and heading suggestions, written in the page language ({{language}}) by {{provider}} from what the page actually says. Copy them into the page's SEO properties or the heading content - nothing is changed automatically.",
+          "generate": "Suggest with AI",
+          "regenerate": "Regenerate suggestions",
+          "generating": "Writing suggestions… this takes a few seconds.",
+          "error": "AI suggestions failed",
+          "titles": "Title tag",
+          "descriptions": "Meta description",
+          "social": "Social sharing (Open Graph)",
+          "socialHint": "og:title and og:description for the sharing card on social networks and chat tools - fill them in the page's social/SEO properties.",
+          "keywords": "Keywords",
+          "keywordsHint": "Focus keyword (dark) and supporting terms to weave into headings and copy. Search engines ignore the meta keywords tag - use these to guide the writing, not as a tag.",
+          "focus": "Focus keyword",
+          "ctas": "Call-to-action labels",
+          "ctasHint": "Generic labels (\"Read more\", \"Click here\", \"Submit\") tell visitors and search engines nothing. Pick a specific label and set it on the link or button in Content Editor.",
+          "headings": "Heading rewrites",
+          "headingsHint": "Headings are page content: edit the heading component in Content Editor, not the SEO properties.",
+          "missingHeading": "No h1 on the page - proposed:"
+        },
+        "fields": {
+          "title": "Title",
+          "description": "Meta description",
+          "canonical": "Canonical URL",
+          "robots": "Robots directives",
+          "ogTitle": "og:title",
+          "ogDescription": "og:description",
+          "ogImage": "og:image",
+          "twitterCard": "twitter:card",
+          "jsonLd": "Structured data (JSON-LD)",
+          "lang": "HTML lang attribute",
+          "hreflang": "hreflang alternates",
+          "imageAlt": "Image alt texts"
+        },
+        "recs": {
+          "noTitle": {
+            "title": "The page has no title",
+            "detail": "The <title> is the strongest on-page SEO signal and the text shown in search results. Set one in the page's SEO properties."
+          },
+          "titleLength": {
+            "title": "Title is {{length}} characters",
+            "detail": "Aim for {{min}}-{{max}} characters: shorter wastes the space, longer gets truncated in search results."
+          },
+          "noDescription": {
+            "title": "No meta description",
+            "detail": "Search engines will pick an arbitrary text snippet. Write a 50-160 character summary that makes people want to click."
+          },
+          "descriptionLength": {
+            "title": "Meta description is {{length}} characters",
+            "detail": "Aim for {{min}}-{{max}} characters so the full text shows in search results."
+          },
+          "noindex": {
+            "title": "Page is excluded from search engines (noindex)",
+            "detail": "The robots meta tag contains noindex ({{content}}). If this page should be public, remove it - it will never appear in search results."
+          },
+          "nofollow": {
+            "title": "Links are not followed (nofollow)",
+            "detail": "The robots meta tag contains nofollow ({{content}}): search engines ignore every link on this page. Verify it is intentional."
+          },
+          "noCanonical": {
+            "title": "No canonical URL",
+            "detail": "A canonical link prevents duplicate-content issues when the page is reachable through several URLs (vanity URLs, parameters)."
+          },
+          "incompleteOg": {
+            "title": "Incomplete Open Graph tags",
+            "detail": "Without og:title and og:image, links shared on social networks and chat tools render as bare URLs. Fill in the page's social/SEO properties."
+          },
+          "invalidStructuredData": {
+            "title": "{{count}} invalid JSON-LD blocks",
+            "detail": "The structured data does not parse, so search engines ignore it. Validate the JSON-LD markup."
+          },
+          "noStructuredData": {
+            "title": "No structured data",
+            "detail": "JSON-LD (Article, Organization, BreadcrumbList…) enables rich results in search engines. Worth adding on key pages."
+          },
+          "noLang": {
+            "title": "Missing lang attribute on <html>",
+            "detail": "Screen readers and search engines cannot tell what language the page is in. The template should set <html lang>."
+          },
+          "langMismatch": {
+            "title": "Page declares lang=\"{{htmlLang}}\" but is audited in \"{{expected}}\"",
+            "detail": "A wrong lang attribute confuses search engines and screen reader pronunciation. Check the template's language handling."
+          },
+          "missingAlt": {
+            "title": "{{count}} images without alt attribute",
+            "detail": "Alt text is how search engines and screen readers understand images. Fill the alt field on each image in the content editor."
+          },
+          "genericAnchors": {
+            "title": "{{count}} generic link texts (\"click here\", \"read more\"…)",
+            "detail": "Descriptive link text helps SEO and screen reader users. Say where the link goes: \"Read the 2026 annual report\"."
+          }
+        }
+      },
+      "links": {
+        "summary": "Link summary",
+        "total": "Total links",
+        "internal": "Internal",
+        "external": "External",
+        "checked": "{{count}} verified",
+        "skipped": "{{count}} skipped (login/logout/actions)",
+        "truncated": "{{count}} not verified (limit reached)",
+        "externalNote": "external links are not verified (browser cross-origin restriction)",
+        "broken": "Broken links",
+        "statusError": "error",
+        "recs": {
+          "brokenLinks": {
+            "title": "{{count}} broken internal links",
+            "detail": "These links return an error for visitors. Fix or remove them - the list below shows each one with a highlight button."
+          },
+          "hardcodedUrls": {
+            "title": "{{count}} absolute URLs hardcoded to this host",
+            "detail": "Links written with the full http(s)://host break when the site moves environment or domain. Use internal page links instead."
+          },
+          "mixedContent": {
+            "title": "{{count}} http:// links on an https page",
+            "detail": "Browsers flag or block mixed content. Switch these URLs to https."
+          },
+          "blankNoopener": {
+            "title": "{{count}} target=\"_blank\" links without rel=\"noopener\"",
+            "detail": "Pages opened in a new tab get access to this page's window object. Add rel=\"noopener\" in the template or rich-text content."
+          }
+        }
+      },
+      "recs": {
+        "title": "Recommendations",
+        "none": "Nothing to improve in this category."
+      },
+      "a11y": {
+        "alt": {
+          "title": "AI alt text",
+          "intro": "{{count}} image(s) have no alt attribute. Suggest alternative text written in the page language ({{language}}) from the picture and its context, then paste it into the image's alt field in Content Editor. Purely decorative images are identified so you can give them an empty alt.",
+          "generate": "Suggest alt text",
+          "regenerate": "Regenerate alt text",
+          "generating": "Describing the images… this takes a few seconds.",
+          "error": "Alt text suggestions failed",
+          "decorative": "Decorative - use an empty alt",
+          "noPicture": "described from context only",
+          "noVision": "Note: {{provider}} does not process images - suggestions are inferred from file names and surrounding text only. Anthropic and OpenAI models see the actual picture.",
+          "noAnswer": "No suggestion returned for this image.",
+          "more": "{{count}} more image(s) without alt were not sent (8 per request) - fix these first, re-run the audit and suggest again."
+        },
+        "levels": {
+          "A": "WCAG A",
+          "AA": "WCAG AA",
+          "AAA": "WCAG AAA",
+          "BP": "Best practice"
+        },
+        "impacts": {
+          "critical": "Critical",
+          "serious": "Serious",
+          "moderate": "Moderate",
+          "minor": "Minor"
+        },
+        "passes": "{{count}} rules passed",
+        "score": {
+          "label": "automated rules passed",
+          "rules": "{{passed}}/{{total}} rules",
+          "violations": "{{count}} violation(s) · {{nodes}} elements",
+          "notApplicable": "No applicable rule"
+        },
+        "incomplete": "{{count}} to verify",
+        "noViolations": "No violations detected by automated checks.",
+        "highlight": "Highlight in preview",
+        "moreElements": "…and {{count}} more elements",
+        "machineNote": "Automated checks cover a subset of WCAG criteria. A clean result does not certify full compliance; the manual checklist below covers the rest.",
+        "engineInfo": "Engine: {{engine}} · {{rules}} rules executed · {{passes}} passed",
+        "needsReview": "To verify",
+        "incompleteTitle": "Automated checks needing human review",
+        "incompleteNote": "The engine suspects an issue here but cannot decide automatically - review each case.",
+        "checklist": {
+          "title": "Manual checklist (not automatable)",
+          "intro": "These WCAG criteria require human judgment - no tool can verify them. Review them once per page type or template.",
+          "items": {
+            "keyboard": {
+              "title": "Everything operable with the keyboard alone",
+              "detail": "Tab / Shift+Tab through the page: every menu, carousel, accordion and dialog must be reachable and usable, with no focus trap (WCAG 2.1.1, 2.1.2)."
+            },
+            "altQuality": {
+              "title": "Alt texts are meaningful",
+              "detail": "The tool checks that alt exists - only you can judge if it describes the image. Decorative images should have an empty alt (WCAG 1.1.1)."
+            },
+            "media": {
+              "title": "Videos have captions, audio has transcripts",
+              "detail": "And the captions are accurate, not just auto-generated noise (WCAG 1.2.1-1.2.3)."
+            },
+            "focusOrder": {
+              "title": "Focus and reading order match the visual order",
+              "detail": "Tab through the page: the focus must move in the order a sighted reader would scan it (WCAG 1.3.2, 2.4.3)."
+            },
+            "linkPurpose": {
+              "title": "Every link makes sense out of context",
+              "detail": "A screen reader user often lists all links: each label alone must say where it leads (WCAG 2.4.4)."
+            },
+            "zoom": {
+              "title": "Page usable at 200% zoom",
+              "detail": "Ctrl/Cmd + until 200%: no text loss, no overlapping content (WCAG 1.4.4)."
+            },
+            "reflow": {
+              "title": "Content reflows at 320 px width",
+              "detail": "Narrow the window (or use the mobile preview): no horizontal scrolling of the page body (WCAG 1.4.10)."
+            },
+            "focusVisible": {
+              "title": "Keyboard focus is always visible",
+              "detail": "While tabbing, you must always see where you are - no invisible focus states (WCAG 2.4.7)."
+            },
+            "formErrors": {
+              "title": "Form errors are explained and fixable",
+              "detail": "Errors are identified in text (not color alone) and suggest a correction (WCAG 3.3.1, 3.3.3)."
+            },
+            "consistency": {
+              "title": "Navigation and components consistent across pages",
+              "detail": "Menus, search, breadcrumbs appear in the same place and behave the same on every page (WCAG 3.2.3, 3.2.4)."
+            },
+            "readingLevel": {
+              "title": "Text understandable at lower-secondary reading level",
+              "detail": "Use the Readability tab as a proxy, then judge jargon and sentence complexity yourself (WCAG 3.1.5)."
+            },
+            "timing": {
+              "title": "No time limits, or they can be turned off",
+              "detail": "Sessions, carousels or forms must not expire without warning and control (WCAG 2.2.3)."
+            },
+            "targetSize": {
+              "title": "Touch targets at least 44×44 px",
+              "detail": "Buttons and links comfortably tappable on mobile, with spacing between them (WCAG 2.5.5)."
+            },
+            "contextHelp": {
+              "title": "Context-sensitive help available",
+              "detail": "Complex forms offer inline help or instructions where the user needs them (WCAG 3.3.5)."
+            }
+          }
+        }
+      },
+      "vitals": {
+        "labNote": "Lab measurement of this preview render. Values are directional and differ from real-user (field) data.",
+        "metrics": {
+          "lcp": "LCP",
+          "cls": "CLS",
+          "ttfb": "TTFB",
+          "dcl": "DOM ready",
+          "load": "Full load",
+          "inp": "INP"
+        },
+        "approx": "estimated",
+        "bands": {
+          "good": "Good",
+          "ni": "Needs improvement",
+          "poor": "Poor"
+        },
+        "inpNa": "n/a",
+        "diagnostics": "Diagnostics",
+        "requests": "Requests",
+        "weight": "Page weight",
+        "domNodes": "DOM nodes",
+        "images": "Images",
+        "missingDims": "{{count}} without width/height",
+        "oversized": "{{count}} oversized",
+        "largest": "Largest resources",
+        "recs": {
+          "slowLcp": {
+            "title": "Main content renders slowly",
+            "detail": "Compress or preload the hero image / largest block so visitors see the main content sooner."
+          },
+          "highCls": {
+            "title": "Layout shifts while loading",
+            "detail": "Reserve space for images, embeds and late-loading blocks so the page does not jump under the reader."
+          },
+          "slowTtfb": {
+            "title": "Slow server response (TTFB)",
+            "detail": "The HTML itself is slow to arrive: enable page caching or review server load before optimizing anything else."
+          },
+          "missingDims": {
+            "title": "{{count}} images without width/height attributes",
+            "detail": "Add width and height so the browser reserves the space up front - this is the most common cause of layout shifts."
+          },
+          "oversizedImages": {
+            "title": "{{count}} images heavier than needed",
+            "detail": "The source file is more than twice its displayed size. Upload resized variants or let Jahia serve smaller renditions."
+          },
+          "heavyPage": {
+            "title": "Heavy page ({{size}})",
+            "detail": "Compress images and remove unused scripts/styles to reduce total download weight, especially for mobile visitors."
+          },
+          "manyRequests": {
+            "title": "{{count}} network requests",
+            "detail": "Combine or drop resources and lazy-load below-the-fold content: each request adds latency."
+          },
+          "largeDom": {
+            "title": "Large DOM ({{count}} nodes)",
+            "detail": "Simplify the markup or split very long pages: a large DOM slows rendering and every interaction."
+          },
+          "heavyAssets": {
+            "title": "{{count}} very large files (e.g. {{name}})",
+            "detail": "Minify, compress or split these assets, or load them only where actually used."
+          }
+        }
+      },
+      "readability": {
+        "simplify": {
+          "title": "AI plain-language rewrites",
+          "intro": "The score penalizes long sentences ({{count}} over 25 words). Rewrite up to 6 of the hardest paragraph sentences in plain language ({{language}}) - same facts, shorter sentences, common words - then paste the rewrite over the original in Content Editor.",
+          "generate": "Rewrite the hardest sentences",
+          "regenerate": "Regenerate rewrites",
+          "generating": "Rewriting… this takes a few seconds.",
+          "error": "Plain-language rewrites failed",
+          "words": "{{count}} words",
+          "noAnswer": "No rewrite returned for this sentence.",
+          "more": "{{count}} more long sentence(s) were not sent (6 per request) - fix these first, re-run the audit and rewrite again."
+        },
+        "score": "Readability score",
+        "bands": {
+          "veryEasy": "Very easy",
+          "easy": "Easy",
+          "standard": "Standard",
+          "difficult": "Difficult",
+          "veryDifficult": "Very difficult"
+        },
+        "gradeLevel": "Grade level",
+        "readingTime": "Reading time",
+        "minutes": "min",
+        "textStats": "Text statistics",
+        "words": "Words",
+        "sentences": "Sentences",
+        "avgSentenceLength": "Avg. words per sentence",
+        "longSentences": "Long sentences (>25 words)",
+        "longSentencesHint": "consider splitting them",
+        "paragraphs": "Paragraphs",
+        "avgWordsPerParagraph": "avg. words",
+        "structure": "Structure",
+        "h1Count": "H1 headings",
+        "h1Hint": "a page should have exactly one H1",
+        "headingSkips": "Skipped heading levels",
+        "headingSkipsHint": "avoid jumping levels (e.g. H2 to H4)",
+        "noText": "Not enough text on this page to compute readability ({{count}} words found).",
+        "recs": {
+          "veryHardText": {
+            "title": "Text is very difficult to read (score {{score}})",
+            "detail": "Shorten sentences and prefer everyday words. Aim for a score above 50 for a general audience."
+          },
+          "hardText": {
+            "title": "Text is difficult to read (score {{score}})",
+            "detail": "Shorten the longest sentences and replace jargon: a score of 50-70 suits most website visitors."
+          },
+          "longSentences": {
+            "title": "{{count}} sentences longer than 25 words",
+            "detail": "Split them - one idea per sentence. Long sentences are the main driver of a poor readability score."
+          },
+          "longParagraphs": {
+            "title": "Dense paragraphs ({{count}} words on average)",
+            "detail": "Break paragraphs up: 40-60 words per paragraph reads comfortably on screen."
+          },
+          "h1Count": {
+            "title": "{{count}} H1 headings on the page",
+            "detail": "Use exactly one H1: it anchors the page for readers, screen readers and search engines."
+          },
+          "headingSkips": {
+            "title": "{{count}} skipped heading levels",
+            "detail": "Do not jump levels (e.g. H2 straight to H4): fix the hierarchy so the document outline stays meaningful."
+          },
+          "thinContent": {
+            "title": "Little text on the page ({{count}} words)",
+            "detail": "Pages under ~300 words inform and rank poorly. Consider expanding the content or merging it elsewhere."
+          }
+        }
+      },
+      "tabHelp": {
+        "accessibility": "Automated WCAG checks with axe-core: issues by severity, what to verify by hand, and alt text suggested by AI for images without one.",
+        "seo": "Title, meta description, indexing, canonical address, social sharing card, structured data and link texts, with wording suggested by AI.",
+        "vitals": "How fast the page loads and how stable it stays, measured in your browser, with what weighs it down.",
+        "readability": "How easy the text is to read in its language: score, long sentences and headings, with plainer rewrites suggested by AI.",
+        "ecodesign": "Eco-design checks from the French RGESN referential: page weight, requests, images, fonts, media and third parties.",
+        "links": "Broken internal links, addresses written in full, mixed content and links opening a new window without protection.",
+        "jahia": "Checks only Jahia can make: unpublished content on the page, missing translations, raw labels and placeholder text.",
+        "ai": "A review of the page text by the AI model configured on the server, with each finding and the exact wording to change."
+      }
+    },
+    "compliance": {
+      "action": {
+        "open": "Compliance scan"
+      },
+      "dialog": {
+        "title": "Compliance scan of this page",
+        "running": "Scanning the content of the page...",
+        "close": "Close",
+        "rescan": "Scan again",
+        "error": {
+          "title": "The scan did not run",
+          "message": "The page could not be scanned. Check that you can edit it, then scan again."
+        }
+      },
+      "status": {
+        "safe": "Compliant",
+        "issues": "Not compliant",
+        "noGlossary": "Not checked"
+      },
+      "summary": {
+        "safe": "No non-authorised term in the {{count}} content read ({{language}}).",
+        "safe_plural": "No non-authorised term in the {{count}} contents read ({{language}}).",
+        "safe_one": "No non-authorised term in the {{count}} content read ({{language}}).",
+        "safe_other": "No non-authorised term in the {{count}} contents read ({{language}}).",
+        "issues": "{{count}} use of a non-authorised term, in {{contents}} content(s) ({{language}}).",
+        "issues_plural": "{{count}} uses of non-authorised terms, in {{contents}} content(s) ({{language}}).",
+        "issues_one": "{{count}} use of a non-authorised term, in {{contents}} content(s) ({{language}}).",
+        "issues_other": "{{count}} uses of non-authorised terms, in {{contents}} content(s) ({{language}}).",
+        "noGlossary": "No glossary applies to {{language}}: nothing was checked."
+      },
+      "banner": {
+        "beforePublishing": {
+          "title": "Do not publish this page yet",
+          "message": "Replace or remove each term below before publishing. This version of the scan reports the terms only: it does not block publication."
+        },
+        "noGlossary": {
+          "title": "No glossary for {{language}}",
+          "message": "Create a Compliance glossary in the site's contents (jContent, Content folders), set its language to {{language}} and add its non-authorised terms."
+        },
+        "notFramed": {
+          "title": "Listings not included",
+          "message": "Content that listings and other components fetch from elsewhere is read only when the scan runs from Page Builder. Open the page in Page Builder to include it."
+        },
+        "truncated": {
+          "title": "Scan stopped at its limit",
+          "message": "The page holds more content or issues than one scan reads. Fix the issues listed, then scan again."
+        }
+      },
+      "glossaries": {
+        "applied": "Glossaries applied:",
+        "item": "{{title}} ({{count}} term)",
+        "item_plural": "{{title}} ({{count}} terms)",
+        "item_one": "{{title}} ({{count}} term)",
+        "item_other": "{{title}} ({{count}} terms)"
+      },
+      "origin": {
+        "reference": "Reused content",
+        "shared": "Shared content",
+        "referenceHint": "Shown on this page through the reference {{path}}. Editing it changes every page that reuses it; it is published on its own.",
+        "sharedHint": "Stored outside this page (a listing, for one) and shown on other pages too; it is published on its own.",
+        "sharedAreaHint": "Stored on the page {{path}} (header, footer) and shown on this page and others; it is published with that page."
+      },
+      "issue": {
+        "edit": "Edit",
+        "editLabel": "Edit {{name}}",
+        "term": "Term",
+        "reason": "Reason",
+        "alternative": "Write instead",
+        "listLabel": "Non-authorised terms found, by content",
+        "glossary": "Glossary"
+      },
+      "dashboard": {
+        "navLabel": "Compliance",
+        "title": "Site compliance",
+        "running": "Scanning every page and content item of the site...",
+        "exportCsv": "Export CSV",
+        "exportJson": "Export JSON",
+        "openPage": "Open in Page Builder",
+        "openPageLabel": "Open {{name}} in Page Builder",
+        "error": "The site could not be scanned. Check that you can open this site in jContent, then scan again.",
+        "truncated": "The site holds more content or issues than one scan reads: the report covers the first part of the site.",
+        "summary": {
+          "safe": "No non-authorised term on the pages and content items read ({{language}}).",
+          "read": "Pages read: {{pages}}. Contents read: {{contents}}.",
+          "issues": "{{count}} use of a non-authorised term, in {{locations}} page(s) or content item(s) ({{language}}).",
+          "issues_plural": "{{count}} uses of non-authorised terms, in {{locations}} page(s) or content item(s) ({{language}}).",
+          "issues_one": "{{count}} use of a non-authorised term, in {{locations}} page(s) or content item(s) ({{language}}).",
+          "issues_other": "{{count}} uses of non-authorised terms, in {{locations}} page(s) or content item(s) ({{language}})."
+        },
+        "terms": {
+          "title": "Terms found",
+          "term": "Term",
+          "reason": "Reason",
+          "uses": "Uses",
+          "locations": "Pages and items",
+          "empty": "No term found."
+        },
+        "locations": {
+          "title": "Pages and content items with issues",
+          "place": "Page or content item",
+          "type": "Type",
+          "issues": "Issues",
+          "actions": "Actions",
+          "empty": "No page or content item uses a non-authorised term.",
+          "count": "{{count}} issue",
+          "count_plural": "{{count}} issues",
+          "count_one": "{{count}} issue",
+          "count_other": "{{count}} issues"
+        },
+        "kind": {
+          "page": "Page",
+          "content": "Content item"
+        },
+        "pagination": {
+          "perPage": "Rows per page",
+          "of": "of"
+        },
+        "skipped": "{{count}} page(s) or content item(s) could not be read and are not in the report; the Jahia log names them."
+      }
+    },
+    "common": {
+      "ai": {
+        "generate": "Generate with AI",
+        "notConfigured": "AI is not configured on this server. A server administrator sets a provider, a model and a key in digital-factory-data/karaf/etc/org.jahia.community.contentgovernance.llm.cfg."
+      },
+      "sectionOff": {
+        "title": "Switched off for this site",
+        "message": "A site administrator switched this section off in Site Settings, Content governance."
+      }
+    },
+    "drawer": {
+      "action": "Content governance",
+      "title": "Content governance",
+      "close": "Close panel",
+      "sections": "Sections",
+      "section": {
+        "audit": "Page quality",
+        "geo": "GEO readiness",
+        "compliance": "Compliance"
+      },
+      "unavailable": {
+        "notPage": "The compliance scan reads a page and what it shows: open a page to use it.",
+        "noWrite": "The compliance scan is for people who may edit this page."
+      },
+      "nothingAvailable": "No section of Content governance can be used on this content.",
+      "sectionHelp": {
+        "audit": "Checks the page you are editing: accessibility, SEO, speed, readability, eco-design, links and Jahia content, with AI suggestions on demand.",
+        "geo": "Whether AI assistants and their crawlers can read and cite the published page: score, crawler access, site files, structured data and AI citations.",
+        "compliance": "Terms from the site glossaries that this page, and the content it shows, must not use in this language."
+      }
+    },
+    "settings": {
+      "navLabel": "Content governance",
+      "title": "Content governance",
+      "notEnabled": "Content Governance is not enabled on this site, or you are not a site administrator. Enable the module in Site Settings, Modules.",
+      "panelTab": {
+        "features": "Features",
+        "ai": "AI provider",
+        "botrank": "BotRank"
+      },
+      "save": "Save",
+      "readOnlyTitle": "Read only",
+      "readOnly": "Only a site administrator can change these settings.",
+      "errorTitle": "Not saved",
+      "error": "The settings could not be saved. Try again; if it persists, check that you are still a site administrator.",
+      "loadError": "The settings could not be read. Reload the page to try again.",
+      "savedTitle": "Saved",
+      "saved": "Editors see the change the next time they open the drawer.",
+      "intro": "Choose what editors of this site find in the Content governance drawer. A section switched off also switches its site dashboard off (the entry stays and says so), and the server refuses its calls. Tabs keep their own setting while their section is off.",
+      "sectionHelp": {
+        "audit": "Accessibility, SEO, Web Vitals, readability, eco-design, links and Jahia checks of the page, measured in the browser, with an AI review on demand.",
+        "geo": "Whether AI crawlers can read the page, the site files (robots.txt, llms.txt), structured data and AI citations from BotRank. Also the GEO readiness dashboard under Additional, SEO.",
+        "compliance": "Terms from the site glossaries that the page and what it shows may not use, per language. Also the Compliance dashboard under Additional."
+      },
+      "sectionSwitch": "{{section}} section",
+      "on": "On",
+      "off": "Off",
+      "needsAi": "Needs an AI provider",
+      "needsBotRank": "Needs a BotRank connection",
+      "ai": {
+        "title": "Model shared by the AI features",
+        "configured": "Configured",
+        "notConfigured": "Not configured",
+        "provider": "Provider",
+        "model": "Model",
+        "images": "Reads images (alt text)",
+        "yes": "Yes",
+        "no": "No",
+        "howTo": "Until a provider, a model and a key are set, every AI feature is shown greyed out and nothing leaves the server. Only a server administrator can set them.",
+        "file": "Configuration file, on the server:",
+        "uses": "Used by the AI review tab, the SEO, alt text and plain-language assists, and the written report of the GEO readiness dashboard. The key is never sent to the browser."
+      }
+    }
+  }
+}

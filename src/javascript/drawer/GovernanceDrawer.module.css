@@ -1,0 +1,83 @@
+.drawer {
+    /* The UA stylesheet gives <dialog> padding, a border, auto margins, fit-content sizing,
+       inset-inline-start: 0 and height: fit-content. Each is cleared: with left AND right AND width
+       set, LTR drops right, and the panel sits in the top left corner at its content's height. */
+    padding: 0;
+    margin: 0;
+    border: none;
+    color: inherit;
+    max-height: none;
+    position: fixed;
+    top: 0;
+    left: auto;
+    right: 0;
+    bottom: 0;
+    height: auto;
+    width: 60vw;
+    min-width: min(640px, 96vw);
+    max-width: min(960px, 96vw);
+    background: var(--color-light, #fff);
+    border-left: 1px solid var(--color-gray_light40, #dfe3e8);
+    box-shadow: -8px 0 24px -16px rgba(0, 0, 0, .35);
+    display: flex;
+    flex-direction: column;
+    z-index: 1300;
+    overflow: hidden;
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--moon-spacing-medium, 16px);
+    padding: var(--moon-spacing-medium, 16px) var(--moon-spacing-large, 20px) var(--moon-spacing-small, 8px);
+    flex-shrink: 0;
+}
+
+.headerText {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.path {
+    color: var(--color-gray, #5c6b7a);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Header has a fixed height in Moonstone layouts; here the bar scrolls sideways rather than
+   wrapping, so a narrow drawer never hides a section under the content. */
+.sectionBar {
+    flex-shrink: 0;
+    overflow-x: auto;
+    padding: 0 var(--moon-spacing-medium, 16px);
+    border-bottom: 1px solid var(--color-gray_light40, #dfe3e8);
+}
+
+.sectionTabs {
+    flex-wrap: nowrap;
+    width: max-content;
+}
+
+.section {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.section[hidden] {
+    display: none;
+}
+
+.empty {
+    padding: var(--moon-spacing-large, 20px);
+}
+
+/* A count passed as a TabItem icon sits 4 px from the label: every tab bar of the drawer (sections,
+   Page quality, GEO readiness) gives it room. */
+.drawer :global(.moonstone-tabItem) > :global(.moonstone-badge) {
+    margin-inline-end: var(--moon-spacing-small, 8px);
+}

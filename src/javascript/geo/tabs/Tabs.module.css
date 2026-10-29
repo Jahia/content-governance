@@ -1,0 +1,558 @@
+.verdict {
+    padding: 12px 14px;
+    border-radius: 5px;
+    font-size: 14px;
+    line-height: 1.45;
+    margin-bottom: 12px;
+}
+/*
+ * Darkened from the original tones, which passed AA but not the team's AAA
+ * floor of 7:1: .good was 5.56:1, .warn 5.40:1, .bad 5.69:1. New ratios on
+ * the same backgrounds: .good 7.33:1, .warn 7.58:1, .bad 7.13:1.
+ */
+.good { background: #dff0ea; color: #0b5643; }
+.warn { background: #fbefd9; color: #654700; }
+.bad  { background: #fae6e4; color: #8c2921; }
+
+.url { display: block; margin-bottom: 14px; word-break: break-all; }
+
+.marks { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.marks span {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+/*
+ * .on was #0086bf at 3.52:1 on this background - fails even AA. .off was
+ * #8a97a3 at 2.66:1. .plain was #5c6b7a at 4.87:1 - passes AA, not AAA.
+ * New ratios: .on 7.90:1, .off 8.45:1, .plain 7.37:1.
+ */
+.on    { background: #e1f1f9; color: #004d70; }
+.off   { background: #f0f2f5; color: #3d4750; text-decoration: line-through; }
+.plain { background: #f0f2f5; color: #44505a; }
+
+/* On white, with a rule rather than a fill: the only greys left are semantic. */
+.explain {
+    margin-top: 1.25rem;
+    padding: 0.1rem 0 0.1rem 0.9rem;
+    border-left: 2px solid var(--moon-color-gray_light, #dfe3e8);
+    font-size: 12.5px;
+    line-height: 1.6;
+    opacity: 0.85;
+    max-width: 74ch;
+}
+
+.sectionTitle { display: block; margin: 22px 0 10px; }
+.sectionTitle:first-child { margin-top: 0; }
+
+/* #5c6b7a was 5.47:1 on white, below the 7:1 AAA floor for this small monospace text; #44505a is 8.26:1. */
+.rule { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: #44505a; }
+
+.facts { margin: 4px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.7; }
+.facts li { color: #24343f; }
+
+/* Moonstone's Tab owns its own layout and hover states; only spacing is ours. */
+.tabs {
+    margin-bottom: 1rem;
+}
+
+.mismatch {
+    margin-top: 1rem;
+    padding: 0.1rem 0 0.1rem 0.9rem;
+    border-left: 2px solid var(--moon-color-warning, #e6a01e);
+    font-size: 12.5px;
+    line-height: 1.6;
+    max-width: 74ch;
+}
+
+/* Score tab */
+.scoreHeadline {
+    display: block;
+    font-size: 1.45rem;
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 0.5rem 0 0.4rem;
+}
+
+.scoreCount {
+    font-size: 0.95rem;
+    font-weight: 400;
+    opacity: 0.75;
+    margin-left: 0.6rem;
+}
+
+
+
+/* llms.txt generator */
+
+.genText {
+    width: 100%;
+    min-height: 16rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    padding: 0.6rem;
+    box-sizing: border-box;
+    border: 1px solid rgba(128, 128, 128, 0.4);
+    border-radius: 3px;
+    resize: vertical;
+}
+
+/* Diff */
+.diffSummary {
+    font-size: 0.82rem;
+    margin: 0.5rem 0 0.35rem;
+    opacity: 0.85;
+}
+
+.diff {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    border: 1px solid rgba(128, 128, 128, 0.35);
+    border-radius: 3px;
+    padding: 0.5rem;
+    max-height: 22rem;
+    overflow: auto;
+    margin: 0 0 0.75rem;
+}
+
+.diffadd {
+    display: block;
+    background: rgba(46, 160, 67, 0.16);
+    border-left: 3px solid rgba(46, 160, 67, 0.85);
+    padding-left: 0.35rem;
+}
+
+.diffdel {
+    display: block;
+    background: rgba(214, 64, 64, 0.14);
+    border-left: 3px solid rgba(214, 64, 64, 0.85);
+    padding-left: 0.35rem;
+    text-decoration: line-through;
+    text-decoration-color: rgba(214, 64, 64, 0.5);
+}
+
+.diffctx {
+    display: block;
+    opacity: 0.6;
+    padding-left: 0.35rem;
+    border-left: 3px solid transparent;
+}
+
+.diffGap {
+    display: block;
+    opacity: 0.45;
+    font-style: italic;
+    padding-left: 0.35rem;
+    border-left: 3px solid transparent;
+}
+
+/* Robots panel */
+
+/* Settings panels (dashboard) */
+.panel {
+    padding-top: 0.5rem;
+}
+
+.panelTitle {
+    display: block;
+    margin-bottom: 0.6rem;
+}
+
+.panelIntro {
+    display: block;
+    max-width: 68ch;
+    opacity: 0.85;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+.panelSub {
+    display: block;
+    margin: 0 0 0.9rem;
+}
+
+.panelRule {
+    display: block;
+    max-width: 74ch;
+    opacity: 0.7;
+    line-height: 1.6;
+    margin-top: 2rem;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1.5rem 0;
+    flex-wrap: wrap;
+}
+
+.mTable {
+    margin: 0.75rem 0 1rem;
+}
+
+.switchCell {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/*
+ * The score is a list, not a Table. Moonstone table rows are a fixed 48px
+ * (64px with hasMultipleLines) and the body cell scrolls its overflow, which
+ * clips a check's explanation. Explanatory text needs to wrap, so the score
+ * uses a list and keeps Moonstone for the atoms inside it.
+ */
+.checkList {
+    list-style: none;
+    margin: 0 0 1.5rem;
+    padding: 0;
+}
+
+.checkItem {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--moon-color-gray_light, #ebedf1);
+}
+
+.checkItem:last-child {
+    border-bottom: none;
+}
+
+.checkMark {
+    flex: 0 0 auto;
+    padding-top: 0.1rem;
+}
+
+.checkText {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.checkLabel {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.checkFix {
+    display: block;
+    margin-top: 0.3rem;
+    opacity: 0.75;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+
+.checkMeta {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.1rem;
+}
+
+.checkValue {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.8;
+}
+
+/*
+ * Crawler list. Same reason as the score list: Moonstone Table rows are a
+ * fixed height and wrap children in a Typography, which made the wrapping
+ * marks overlap the line above.
+ */
+.agentList {
+    list-style: none;
+    margin: 0 0 1.5rem;
+    padding: 0;
+}
+
+.agentItem {
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--moon-color-gray_light, #ebedf1);
+}
+
+.agentItem:last-child {
+    border-bottom: none;
+}
+
+.agentHead {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.agentName {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.agentMetrics {
+    margin-left: auto;
+    white-space: nowrap;
+    opacity: 0.75;
+}
+
+/* #8a6100 was 4.90:1 on this background - passes AA, not the 7:1 AAA floor. #654700 is 7.58:1. */
+.markWarn {
+    background: #fdf0d5;
+    color: #654700;
+}
+
+/* The marks now sit under the agent's head line rather than in a cell. */
+.agentItem .marks {
+    margin-top: 0.35rem;
+}
+
+/* Robots stance rows */
+.agentChips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.3rem;
+}
+
+.switchMoved {
+    display: inline-flex;
+    outline: 2px solid rgba(230, 160, 30, 0.9);
+    outline-offset: 3px;
+    border-radius: 12px;
+}
+
+
+/*
+ * No card. Jahia's settings panels are a single white ground, and boxing each
+ * section made the page feel cramped and busy. Separators carry the structure
+ * instead, which is what they are for.
+ */
+.panel {
+    padding: 0.5rem 0 3rem;
+}
+
+.cronRow {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    padding: 0.25rem 0;
+}
+
+.cronNote {
+    opacity: 0.6;
+    margin-left: 0.35rem;
+}
+
+/*
+ * Hardcoded, not var(--moon-color-accent_dark): that token resolves to
+ * #0072b1, 5.19:1 on white - AA passes, the team's 7:1 AAA floor does not.
+ * #004d70 is the same hue at 9.14:1.
+ */
+.pageLink {
+    color: #004d70;
+    text-decoration: none;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.pageLink:hover {
+    text-decoration: underline;
+}
+
+/* A finding the author cannot fix here. */
+.fromTemplate {
+    display: block;
+    margin-top: 0.35rem;
+    padding-left: 0.7rem;
+    border-left: 2px solid var(--moon-color-warning, #e6a01e);
+    line-height: 1.55;
+    opacity: 0.9;
+}
+
+/*
+ * Sitemap findings. Each kind is its own block with a heading, a reason and its
+ * own rows, because the four kinds call for four different actions and a single
+ * flat list made them read as one undifferentiated pile.
+ */
+.sitemapGroup {
+    margin-bottom: 1.75rem;
+}
+
+.sitemapGroup:last-child {
+    margin-bottom: 0;
+}
+
+.sitemapGroupHead {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.15rem;
+}
+
+/*
+ * Age distribution. A bar per bucket rather than a chart library: five numbers
+ * whose shape is the whole point, and a dependency that would need its own
+ * light and dark palette to say the same thing.
+ */
+.ageBar {
+    display: block;
+    height: 0.45rem;
+    min-width: 2px;
+    margin-top: 0.35rem;
+    border-radius: 2px;
+    background-color: var(--moon-color-accent_light, #c2d9ee);
+}
+
+/*
+ * Context under the page verdict: where this page stands rather than what is
+ * wrong with it. Quieter than the check list on purpose - these are facts an
+ * author reads once, not findings to work through.
+ */
+.contextList {
+    list-style: none;
+    margin: 0 0 1.25rem;
+    padding: 0.75rem 0 0;
+    border-top: 1px solid var(--moon-color-gray_light, #e7e9ec);
+    font-size: 0.8125rem;
+    line-height: 1.7;
+    opacity: 0.85;
+}
+
+/* The generated JSON-LD, which must stay readable and selectable. */
+.snippet {
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 0.9rem 1rem;
+    margin: 0 0 1.5rem;
+    border: 1px solid var(--moon-color-gray_light, #e7e9ec);
+    border-radius: 3px;
+    background-color: var(--moon-color-gray_light40, #f5f6f7);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.75rem;
+    line-height: 1.55;
+    white-space: pre;
+    user-select: text;
+}
+
+/* The "showing 1-10 of 12" line above a paged list: quiet, but before the rows. */
+.pagedCaption {
+    display: block;
+    margin: 0.1rem 0 0.35rem;
+    opacity: 0.75;
+    font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The age of an item that is past the threshold. A status colour, so it is
+ * paired with the date beside it and never carries the meaning alone.
+ */
+/*
+ * Hardcoded, not var(--moon-color-warning_dark, #8a6400): whichever of the
+ * two actually renders here measured 5.38:1 on white, short of the 7:1 AAA
+ * floor. #6b4e00 is 7.74:1.
+ */
+.checkStale {
+    color: #6b4e00;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- the written report --------------------------------------------------- */
+
+.reportMeta {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin: 0 0 1rem;
+}
+
+.reportSummary {
+    margin: 0 0 1.5rem;
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: #24343f;
+}
+
+.priorityList {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: priority;
+}
+
+.priority {
+    position: relative;
+    padding: 0.9rem 0 0.9rem 2.4rem;
+    border-bottom: 1px solid var(--moon-color-gray_light, #e7e9ec);
+    counter-increment: priority;
+}
+
+.priority:last-child {
+    border-bottom: 0;
+}
+
+/* The rank, as a quiet numeral in the margin: the order is the recommendation. */
+.priority::before {
+    content: counter(priority);
+    position: absolute;
+    left: 0.2rem;
+    top: 0.95rem;
+    width: 1.6rem;
+    text-align: right;
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+    /* Same failing token as Charts' --geo-ink3 (4.03:1 on white); same fix. */
+    color: #4d4d4d;
+}
+
+.priorityHead {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.15rem;
+}
+
+.priorityTitle {
+    font-weight: 600;
+}
+
+.priorityText {
+    margin: 0.5rem 0 0;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: #24343f;
+}
+
+.priorityPages {
+    margin: 0.5rem 0 0;
+    padding-left: 1.1rem;
+    font-size: 12.5px;
+    line-height: 1.7;
+}
+
+.roadmap {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
+}
+
+.roadmapCol {
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--moon-color-gray_light, #e7e9ec);
+    border-radius: 4px;
+}
+
+@media (max-width: 720px) {
+    .roadmap {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* The structured data panel's type suggestion: a caption and the button that applies it to the draft. */
+.suggestion { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 4px; }

@@ -1,0 +1,336 @@
+import React, {useCallback, useEffect, useState} from 'react';
+import PropTypes from 'prop-types';
+import {useGovernanceTranslation} from '../../common/i18n';
+import {Banner, Button, Chip, Loader, Switch, Typography} from '@jahia/moonstone';
+import {previewRobots, applyRobots} from '../api/siteFiles';
+import {runCrawlerCheck} from '../api/crawlerCheck';
+import {DiffView} from './DiffView';
+import {Actions, Card, Note, Panel, PanelHeader} from '../dashboard/Layout';
+import styles from './Tabs.module.css';
+import {fetchErrorHint} from '../util/fetchError';
+
+
+/**
+ * Per-crawler allow or block, merged into the site's existing robots.txt.
+ *
+ * The merge runs on the server, and this panel re-asks for it on every change
+ * rather than reproducing the rules in JavaScript. One implementation, so the
+ * diff on screen is always the file that would actually be written.
+ */
+/** What the server answered one crawler: served, refused with a status, or no answer at all. */
+const AccessChip = ({live, t}) => {
+    if (live.status === 200) {
+        return <Chip label={t('files.robots.control.served', {ms: live.ms})} color="success"/>;
+    }
+
+    if (live.status === null) {
+        return <Chip label={t('files.robots.control.noAnswer')} color="warning"/>;
+    }
+
+    return <Chip label={t('files.robots.control.refused', {status: live.status})} color="danger"/>;
+};
+
+AccessChip.propTypes = {live: PropTypes.object.isRequired, t: PropTypes.func.isRequired};
+
+export const RobotsControlPanel = ({path, language}) => {
+    const {t} = useGovernanceTranslation('geo');
+    const [preview, setPreview] = useState(null);
+    const [decisions, setDecisions] = useState({});
+    const [baseline, setBaseline] = useState({});
+    const [phase, setPhase] = useState('idle');
+    const [confirming, setConfirming] = useState(false);
+    const [error, setError] = useState(null);
+    const [access, setAccess] = useState(null);
+    const [accessPhase, setAccessPhase] = useState('idle');
+
+    const load = useCallback(async (wanted, first) => {
+        setPhase('loading');
+        setError(null);
+        try {
+            const p = await previewRobots({path, language, decisions: wanted || {}});
+            setPreview(p);
+            if (first) {
+                const seed = {};
+                (p.agents || []).forEach(a => {
+                    seed[a.token] = a.current;
+                });
+                setDecisions(seed);
+                setBaseline(seed);
+            }
+
+            setPhase('ready');
+        } catch (e) {
+            setError(t('files.robots.control.error'));
+            setPhase('idle');
+        }
+    }, [path, language, t]);
+
+    useEffect(() => {
+        load({}, true);
+    }, [load]);
+
+
+    const choose = useCallback((token, value) => {
+        const next = {...decisions, [token]: value};
+        setDecisions(next);
+        setConfirming(false);
+        // Only send what the editor actually moved. Sending every agent would
+        // name all fifteen in the file, which is not what they asked for.
+        const changed = {};
+        Object.keys(next).forEach(k => {
+            if (next[k] !== baseline[k]) {
+                changed[k] = next[k];
+            }
+        });
+        load(changed, false);
+    }, [decisions, baseline, load]);
+
+    /**
+     * What the server actually does, as opposed to what robots.txt says it
+     * should. Run against the site's home page as a representative sample,
+     * through the same endpoint the drawer uses so there is one implementation.
+     */
+    const checkAccess = useCallback(async () => {
+        if (!preview || !preview.homePath) {
+            return;
+        }
+
+        setAccessPhase('running');
+        try {
+            const r = await runCrawlerCheck({path: preview.homePath, language});
+            const byName = {};
+            (r.agents || []).forEach(a => {
+                byName[a.name] = a;
+            });
+            setAccess({url: r.url, byName});
+            setAccessPhase('done');
+        } catch (e) {
+            setAccessPhase('failed');
+        }
+    }, [preview, language]);
+
+    // Run once when the panel opens. The headline answer is "can crawlers read
+    // this site", and making someone press a button for it buries the point.
+    useEffect(() => {
+        if (preview && preview.homePath && accessPhase === 'idle') {
+            checkAccess();
+        }
+    }, [preview, accessPhase, checkAccess]);
+
+    const apply = useCallback(async () => {
+        if (!confirming) {
+            setConfirming(true);
+            return;
+        }
+
+        setPhase('applying');
+        try {
+            await applyRobots({path, language, content: preview.proposed});
+            setPhase('applied');
+            setConfirming(false);
+        } catch (e) {
+            setError(t('files.robots.control.error'));
+            setPhase('ready');
+            setConfirming(false);
+        }
+    }, [confirming, path, language, preview, t]);
+
+    if (!preview) {
+        return error ?
+            <Banner variant="danger" title={t('files.robots.control.errorTitle')}>{error}</Banner> :
+            <Loader size="big"/>;
+    }
+
+    return (
+        <Panel>
+            <PanelHeader title={t('files.robots.control.title')} intro={t('files.robots.control.intro')}/>
+
+            {error && <Banner variant="danger" title={t('files.robots.control.errorTitle')}>{error}</Banner>}
+            {!preview.mixinPresent && (
+                <Banner variant="info" title={t('files.robots.control.noMixinTitle')}>
+                    {t('files.robots.control.noMixin')}
+                </Banner>
+            )}
+            {preview.currentIsPlaceholder && (
+                <Banner variant="warning" title={t('files.robots.control.placeholderTitle')}>
+                    {t('files.robots.control.placeholder')}
+                </Banner>
+            )}
+
+            <Card>
+                <Actions>
+                    <Button
+                        size="default"
+                        variant="outlined"
+                        isDisabled={accessPhase === 'running' || !preview.homePath}
+                        label={accessPhase === 'running' ?
+                            t('files.robots.control.checkingAccess') :
+                            (access ? t('files.robots.control.recheckAccess') : t('files.robots.control.checkAccess'))}
+                        onClick={checkAccess}
+                    />
+                    <Typography variant="caption">
+                        {access ?
+                            t('files.robots.control.accessTested', {url: access.url}) :
+                            t('files.robots.control.accessExplain')}
+                    </Typography>
+                </Actions>
+
+                {(() => {
+                    // Refused by the server or disallowed by the file: either way the
+                    // assistant does not see you. Training crawlers are left out,
+                    // because refusing those is a normal and costless decision.
+                    const blocked = (preview.agents || []).filter(a => {
+                        if (a.purpose !== 'search') {
+                            return false;
+                        }
+
+                        const stance = decisions[a.token] || a.current;
+                        const live = access && access.byName[a.name];
+                        // A crawler the server could not reach (no status) is unknown, not blocked.
+                        return stance === 'block' || (live && live.status !== null && live.status !== 200);
+                    });
+                    if (blocked.length === 0) {
+                        return null;
+                    }
+
+                    return (
+                        <Banner
+                            variant="warning"
+                            title={t('files.robots.control.searchBlockedTitle', {count: blocked.length})}
+                        >
+                            {t('files.robots.control.searchBlocked', {names: blocked.map(a => a.name).join(', ')})}
+                        </Banner>
+                    );
+                })()}
+
+                {access && (() => {
+                    const bots = (preview.agents || []).map(a => access.byName[a.name]).filter(Boolean);
+                    const unreachable = bots.filter(b => b.status === null);
+                    const refused = bots.filter(b => b.status !== null && b.status !== 200).length;
+                    const mismatched = bots.filter(b => b.mismatch).length;
+                    if (unreachable.length > 0 && refused === 0) {
+                        // Nothing answered: the server could not reach the page, so this says nothing
+                        // about what the site does with these crawlers.
+                        return (
+                            <Banner
+                                variant="warning"
+                                title={t('files.robots.control.verdictUnreachable', {count: unreachable.length})}
+                            >
+                                {fetchErrorHint(t, unreachable[0].error)}
+                            </Banner>
+                        );
+                    }
+
+                    const title = refused > 0 ?
+                        t('files.robots.control.verdictRefused', {count: refused}) :
+                        t('files.robots.control.verdictServed', {count: bots.length});
+                    const agreement = mismatched > 0 ?
+                        t('files.robots.control.verdictMismatch', {count: mismatched}) :
+                        t('files.robots.control.verdictAgree');
+                    let tone = 'info';
+                    if (refused > 0) {
+                        tone = 'danger';
+                    } else if (mismatched > 0) {
+                        tone = 'warning';
+                    }
+
+                    return <Banner variant={tone} title={title}>{agreement}</Banner>;
+                })()}
+
+                {/*
+                  * A list, not a Table. A Moonstone Switch is a 38x20 box whose two
+                  * children are absolutely positioned, so it collapses to nothing
+                  * inside the Typography that TableCell wraps its children in: the
+                  * stance column rendered empty. Interactive controls do not belong
+                  * in those cells.
+                  */}
+                <ul className={styles.checkList}>
+                    {(preview.agents || []).map(a => {
+                        const value = decisions[a.token] || a.current;
+                        const moved = value !== baseline[a.token];
+                        const live = access && access.byName[a.name];
+                        return (
+                            <li key={a.token} className={styles.checkItem}>
+                                <span className={styles.checkText}>
+                                    <Typography variant="body" className={styles.checkLabel}>{a.name}</Typography>
+                                    <Typography variant="caption" className={styles.checkFix}>
+                                        {t(`files.robots.control.bot.${a.name}`, '')}
+                                    </Typography>
+                                    <span className={styles.agentChips}>
+                                        <Chip
+                                            label={t(`files.robots.control.purpose.${a.purpose || 'other'}`)}
+                                            color={a.purpose === 'search' ? 'accent' : 'default'}
+                                            variant="bright"
+                                        />
+                                        <Chip
+                                            label={a.named ?
+                                                t('files.robots.byName') :
+                                                t('files.robots.byWildcard')}
+                                            color={a.named ? 'accent' : 'default'}
+                                        />
+                                        {live && <AccessChip live={live} t={t}/>}
+                                        {live && live.mismatch && (
+                                            <Chip label={t(`crawler.mismatch.${live.mismatch}`)} color="warning"/>
+                                        )}
+                                    </span>
+                                </span>
+                                <span className={styles.checkMeta}>
+                                    <Typography variant="caption">
+                                        {value === 'allow' ?
+                                            t('files.robots.control.allow') :
+                                            t('files.robots.control.block')}
+                                    </Typography>
+                                    {/*
+                                      * Same Field/label gap as the scheduled-scan
+                                      * switch: nothing links the "allow"/"block"
+                                      * caption to this control, so it has no
+                                      * accessible name without one directly.
+                                      */}
+                                    <span className={moved ? styles.switchMoved : undefined}>
+                                        <Switch
+                                            checked={value === 'allow'}
+                                            isDisabled={phase === 'applying'}
+                                            aria-label={`${a.name} ${value === 'allow' ? t('files.robots.control.allow') : t('files.robots.control.block')}`}
+                                            onChange={(e, v, checked) => choose(a.token, checked ? 'allow' : 'block')}
+                                        />
+                                    </span>
+                                </span>
+                            </li>
+                        );
+                    })}
+                </ul>
+
+                <Note>{t('files.robots.control.rule')}</Note>
+            </Card>
+
+            {phase === 'applied' ? (
+                <Banner variant="info" title={t('files.robots.control.appliedTitle')}>
+                    {t('files.robots.control.applied')}
+                </Banner>
+            ) : (
+                <Card title={t('files.robots.control.changes')}>
+                    <DiffView before={preview.current} after={preview.proposed}/>
+                    <Actions>
+                        <Button
+                            size="big"
+                            color={confirming ? 'danger' : 'accent'}
+                            isDisabled={!preview.canWrite || !preview.changed || phase === 'applying'}
+                            label={confirming ?
+                                t('files.robots.control.confirm') :
+                                t('files.robots.control.apply')}
+                            onClick={apply}
+                        />
+                        {!preview.canWrite && (
+                            <Typography variant="caption">{t('files.robots.control.cannotWrite')}</Typography>
+                        )}
+                    </Actions>
+                </Card>
+            )}
+        </Panel>
+    );
+};
+
+RobotsControlPanel.propTypes = {
+    path: PropTypes.string.isRequired,
+    language: PropTypes.string.isRequired
+};

@@ -1,0 +1,463 @@
+# GEO backlog, Jahia-native
+
+> **Design record carried over from GEO Readiness.** This backlog was written for the GEO
+> Readiness module ([Jahia/geo-readiness](https://github.com/Jahia/geo-readiness)), which Content
+> Governance replaced in October 2026. "This module" below means GEO Readiness, now the GEO
+> readiness section of Content Governance; page-audit, named as the Jahia-side reference, is now its
+> Page quality section. Pull request links point at the GEO Readiness repository. For what the code
+> does today, read [`architecture.md`](architecture.md) and the two guides.
+
+Stories that need nothing from any external vendor. They exist because Jahia knows things a
+crawler cannot know, and can compute them at a scale a metered tool cannot afford.
+
+Numbering continues from the sixteen stories in the BotRank integration analysis, so the last
+one there was GEO-16, the crawler access check, which is built.
+
+## The placement rule
+
+**The dashboard owns the list and the ranking. The drawer owns the one-line verdict about this
+page.**
+
+An author standing on a page needs to know whether *this* page has a problem and what to do
+about it. They do not need a table of 400 other pages. A site manager needs the opposite.
+
+So most stories below have two halves. Read the "Drawer" line as strictly optional: if an author
+cannot act on it while looking at this page, it does not go there. When in doubt, leave it out of
+the drawer. The drawer gets crowded fast and a crowded drawer stops being read.
+
+Where the dashboard lives is settled in the internal analysis: **jContent > Additional > SEO**,
+beside the community `llms.txt manager` panel. It is where people already look for this, and a
+shipping module proves the placement works.
+
+## What Jahia has that no external tool has
+
+Worth keeping in front of us, because it is the reason this backlog is not just "another SEO
+plugin".
+
+- **No quota.** BotRank audits 5 or 25 pages. A background job can score 50,000.
+- **Unpublished and untranslated content.** A crawler sees what exists. Jahia sees what is
+  missing, which is usually the more useful half.
+- **Permissions and visibility conditions.** A crawler hitting a gated page sees a login form and
+  reports a cheerful 200. Jahia knows the page can never be read by anyone.
+- **The template that rendered the page.** So a finding can roll up from 500 pages to one fix.
+- **The content model.** Node types carry meaning that rendered HTML has lost.
+- **The link graph.** A crawler reports what it found. Jahia can report what nothing links to.
+
+---
+
+## GEO-17 · Score the whole site, not one page at a time
+
+**BUILT.** Quartz cron job, results on the site, dashboard tab with schedule and scope.
+
+**As a** site manager, **I want** every published page scored for AI readability on a schedule,
+**so that** I can see where the site is weak instead of discovering it one page at a time.
+
+This story also delivers the dashboard shell that the rest of the backlog hangs off.
+
+**Acceptance**
+- A `BackgroundJob` walks published pages per site and per language, guarded with
+  `isProcessingServer()` so it runs on one node only.
+- Results persist under `/sites/systemsite/contents/` so every editor sees the same numbers,
+  rather than each browser holding its own copy.
+- The dashboard shows: overall score, score by section, the worst pages, and movement since the
+  last run.
+- A page never scanned reads as "not scanned yet", never as zero.
+- The job is interruptible and reports progress. A first run on a large site takes a while and
+  silence reads as a hang.
+- Scan scope is configurable per site. Nobody should discover this job by watching their CPU.
+
+**Dashboard** owns all of it.
+**Drawer** shows one line: where this page ranks against the rest of the site. "3 citations" means
+nothing without a scale.
+
+**Effort** L. This is the plumbing story, so it costs more than it looks and everything after it
+costs less.
+
+**How it shipped.**
+
+*One fetch per page, not sixteen.* The drawer fetches as every crawler because comparing them is
+the point there. Site-wide that is 800,000 requests for a 50,000 page site and about fifteen
+hours. Once per page as a single AI crawler is roughly an hour. The cost is the thin-content
+ratio, which needs a second fetch to compare against; a page that only renders through JavaScript
+is still caught by the word-count check, so the ratio stays a drawer diagnostic. The one check
+that genuinely needs several agents is dropped from the site score rather than allowed to pass for
+free, which is why a site score is out of 17 and a page score out of 18. The panel states that
+difference and names the missing check, because the same page reading 15/17 in one place and 16/18
+in another looks like a defect until somebody explains it.
+
+*One scorer.* A scanned page is scored by building a report shaped exactly like the drawer's and
+running the same `GeoScore` over it. The two can therefore not drift apart.
+
+*Storage.* A hidden `nt:unstructured` node on the site, so no CND ships and nothing can fail to
+register. `jmix:nolive` keeps it unpublished. Aggregate plus the pages that failed something,
+never a row per page: measured at 2.7 KB for 13 pages, about 2 MB extrapolated to 10,000. The
+previous aggregate is kept so "movement since the last run" costs one extra property.
+
+*Schedule.* A Quartz cron trigger per site and language, validated before anything is stored, with
+the scope and an enable toggle in the dashboard. A running scan appears in the administration job
+list for free, and `isProcessingServer()` keeps a cluster from scanning the same site on every
+node.
+
+Not done: the template is recorded on every finding but nothing groups by it yet, which is GEO-18.
+Only the current language is scanned per run, so a multilingual site needs one schedule per
+language.
+
+---
+
+## GEO-18 · Roll findings up to the template
+
+**BUILT.** Ranked template list on the dashboard, per-finding attribution in the drawer.
+
+**As a** site manager, **I want** findings grouped by the template that produced them, **so that**
+I fix one template instead of editing four hundred pages.
+
+This is the story that makes the module feel like a platform feature rather than a page tool. No
+external product can do it, because none of them know which template rendered the page.
+
+**Acceptance**
+- Every finding records the template of its page.
+- The dashboard can group by template and show "this template affects N pages, M failing".
+- Templates are ranked by pages affected, so the biggest single fix is at the top.
+- A finding that genuinely belongs to one page's content is not attributed to its template.
+  Getting this wrong sends people to edit a template over somebody's typo.
+
+**Dashboard** owns it.
+**Drawer** shows one line when it applies: "this finding comes from the template, and 480 other
+pages share it". That stops an author trying to fix something they cannot fix, which is worth the
+space.
+
+**Effort** M, once GEO-17 exists.
+
+**How it shipped.** The scan already recorded a template per page, so this is a grouping plus two
+pieces of UI.
+
+The whole difficulty is the fourth acceptance criterion, and it is solved statistically rather than
+by guessing. A check is blamed on the template only when it fails on nearly every page that
+template renders, over at least three pages. Three pages failing out of four hundred is three
+authors; four hundred out of four hundred is the template. Anything between is left as a page
+finding, because a wrong accusation costs more than a missed roll-up: it sends somebody to edit a
+template over a colleague's typo.
+
+Proven on the test site, where one page carries both kinds at once. Its missing meta description
+fails on 6 of 10 pages using that template and stays the author's; its missing structured data
+fails on 10 of 10 and is named as the template's, with the count of pages a single fix would
+cover.
+
+The dashboard ranks templates by pages rendered, so the biggest single fix is first, and separates
+what the template is answerable for from what merely happens on some of its pages. The drawer adds
+one line under the affected check: which template it comes from, how many pages share it, and that
+fixing it there fixes all of them. Silent when no scan has run.
+
+---
+
+## GEO-19 · Content no AI can ever read
+
+**BUILT.** Scan in the settings panel, one critical check plus a banner in the drawer.
+
+**As a** site manager, **I want** to know which published pages are unreachable to a crawler
+because of permissions or visibility conditions, **so that** I stop counting them as content that
+works for us.
+
+A crawler hitting a gated page gets a login form and a 200. It reports success. Only Jahia knows
+the page is invisible.
+
+**Acceptance**
+- Lists published pages that a guest user cannot read: ACL restrictions, visibility conditions,
+  and time-based conditions that have expired.
+- Separates "gated on purpose", which is fine, from "gated by accident", which is not. The second
+  is the finding. A members area is not a defect.
+- Cross-checks against the crawler result: a page that returns 200 to a bot but is unreadable by
+  guest is serving a login page and calling it content.
+
+**Dashboard** owns the list.
+**Drawer** shows it prominently for this page, because it is absolute. No amount of editing makes
+a gated page citable, and an author needs to know before spending a week on it.
+
+**Effort** M. High signal for the cost, and it demonstrates well.
+
+**How it shipped.** `GuestVisibility` lists published pages with a system session, then reads each
+one again in a session owned by `guest`. Readability is asked, not reasoned about from ACLs.
+Classification is by position in the tree: closed inside an open section is the finding, closed
+inside a closed branch is a members area and is listed separately. An expired visibility condition
+is read generically off any condition carrying `j:end`, so a custom condition with the same
+property is handled and an unknown one is ignored rather than guessed at.
+
+Two things had to be learned the hard way and are now in GEO Readiness's `.agents/README.md`.
+`doExecuteWithSystemSessionAsUser` does not enforce ACLs, so the first version reported every page
+readable. And a `DENY` ace does not close a page against an inherited grant; breaking ACL
+inheritance does, which is what jContent's restrict-access uses. A fixture built on the deny would
+have proved nothing.
+
+Pages marked `noindex` are listed as well, read from the `jmix:noindex` mixin the community
+robots-noindex module sets, so it costs no fetch. They sit under "closed on purpose": the page
+will not be cited, but someone chose that, and a tool that calls a deliberate choice a defect gets
+ignored. The same signal now keeps those pages out of the generated `llms.txt`.
+
+Not done: the scan is synchronous and capped at 2000 pages, so a large site needs the background
+job from GEO-17 before this covers everything. The cross-check against the crawler result is
+implicit rather than explicit: the drawer shows both facts on the same tab, but nothing yet says
+"this page returns 200 to a bot and is unreadable by guest, so it is serving a login page".
+
+---
+
+## GEO-20 · AI readiness per language
+
+**BUILT.** Repository-read coverage plus the stored per-language scores, its own dashboard tab, one
+line in the drawer.
+
+**As the** owner of one market, **I want** readiness for my language, **so that** a global average
+stops hiding my market.
+
+The BotRank analysis found a brand at 100% on a French question and 0% on the Japanese
+equivalent. This computes the Jahia-side half of that from the repository, with no vendor.
+
+**Acceptance**
+- Per language: pages published, pages translated, pages missing, average score.
+- Names languages with no coverage rather than showing them as zero. Untracked and bad are
+  different things and must never look the same.
+- Comparison across the site's active languages, so a 100 versus 0 split is impossible to miss.
+
+**Dashboard** owns the comparison.
+**Drawer** shows one line: which of this site's languages this page exists in, and which it does
+not. That is directly actionable while editing.
+
+**Effort** M.
+
+**What was built, against that acceptance.** The second criterion is the one that shaped the code:
+a language nobody has scanned reports as **unmeasured**, never as zero, and is rendered as text
+rather than as a chip that could be mistaken for a low score. A zero in a comparison table reads as
+"this market is broken" when it means "nobody has looked", and the two call for opposite responses.
+The spread between best and worst is only emitted when at least two languages have actually been
+measured - one measured language has a spread of zero arithmetically, and printing that would claim
+the languages agree about a site where only one was ever examined.
+
+Coverage is a repository read and needs no scan: a node exists in a language when it carries that
+language's `j:translation_<lang>`, and the two workspaces separate *translated* from *published*.
+Counted over pages and content items alike, since on a site whose articles are content rather than
+pages the articles are most of what a market actually needs.
+
+---
+
+## GEO-21 · Sitemap against reality
+
+**BUILT.** Resolved during the site scan, section on the dashboard, one-line banner in the drawer.
+
+**As a** site manager, **I want** to know where the sitemap and the site disagree, **so that**
+crawlers are not being handed a stale map.
+
+Both sides are ours, so the comparison costs nothing and it catches real rot.
+
+**Acceptance**
+- Published pages missing from the sitemap.
+- Sitemap entries that 404, redirect, or carry `noindex`.
+- `lastmod` values that do not match the node's real modification date.
+- Works per language, since the sitemap module is language aware.
+
+**Dashboard** owns it.
+**Drawer** shows one line: whether this page is in the sitemap. Cheap, and occasionally the whole
+explanation for why a page is invisible.
+
+**What was built, against that acceptance.** Entries are resolved against the repository rather
+than fetched: 378 URLs would be 378 requests to learn what the repository already knows. So a
+sitemap entry that resolves to nothing published is reported as `unknown` rather than as a 404, and
+**redirects are not detected at all** - resolution cannot see them. The other three criteria are
+met, including per-language, which needed the published map built across every site language
+before the comparison stopped reporting 189 false positives on the French URLs.
+
+**Effort** S.
+
+---
+
+## GEO-22 · Pages nothing links to
+
+**BUILT.** Link graph from the rendered HTML of the scan, its own dashboard tab, one line in the
+drawer.
+
+**As a** content manager, **I want** published pages with no inbound internal link, **so that** I
+find the content crawlers never reach.
+
+A crawler reports what it found. It cannot report what it missed. Jahia can walk the link graph.
+
+**Acceptance**
+- Published pages with zero inbound internal links from other published pages.
+- Navigation links counted separately from in-content links. A page reachable only through a
+  mega-menu is weaker than one editors actually link to, and the distinction is worth showing.
+- Excludes pages deliberately outside navigation, such as campaign landing pages, when they are
+  in the sitemap. Being unlinked is only a problem when nothing else points at them either.
+
+**Dashboard** owns it.
+**Drawer** shows one line: how many pages link here. Zero is a finding an author can fix that
+afternoon.
+
+**Effort** M. The link graph is the work.
+
+**What was built, against that acceptance.** The graph is read from the **rendered HTML** of each
+page the scan already fetches, not from repository references. On the test site the main
+navigation holds no link nodes at all - it is built from the page tree - so a reference-only graph
+would have called every page in the menu an orphan. Reading the output means a menu, a listing, a
+rich text link and a configured button all count the same, and it costs no extra requests.
+Repository references are added on top, but only from nodes on pages the scan did *not* render:
+counting a reference that already appeared in the HTML added a footer menu entry to the content
+total and hid a nav-only page.
+
+Navigation and content are counted apart, by whether the anchor sits inside `<nav>` or `<footer>`.
+The third criterion is honoured by splitting the finding rather than suppressing it: a page nothing
+links to *and* the sitemap does not list is unreachable and reported as such; one that is unlinked
+but advertised in the sitemap, or reachable only through the menus, is reported as the weaker
+finding instead.
+
+Two limits worth knowing. Only the language the scan read is judged - the published map spans every
+language, and judging the rest reported all twelve French pages as weakly linked when they had
+simply not been fetched. And the site home page is never reported: every menu and every logo points
+at it, so it cannot be actioned.
+
+---
+
+## GEO-23 · Structured data from the content model
+
+**BUILT.** Mapping and coverage on their own dashboard tab, generated JSON-LD with a copy button in
+the drawer. Generates and shows; never writes into a page.
+
+**As a** content editor, **I want** correct schema.org output derived from the content type,
+**so that** I am not asking a language model to guess what my page is about.
+
+Every other tool infers schema from rendered text. We can derive it from the definition. That is
+both cheaper and more accurate, and it is a genuinely different approach.
+
+**Acceptance**
+- A mapping from node type to schema.org type, configurable, with sane defaults.
+- Property-level mapping for the obvious cases: name, description, image, dates, price.
+- Emits JSON-LD that passes validation, and says plainly when a required property has no source
+  in the content model rather than inventing one.
+- Never contradicts what is on the page. Structured data that disagrees with the visible content
+  is worse than none.
+
+**Dashboard** shows coverage: which content types are mapped, how many pages emit valid JSON-LD.
+**Drawer** shows this page's generated JSON-LD with a copy button, and what is missing.
+
+**Effort** L. Genuinely useful, and the most product-shaped item here.
+
+**What was built, against that acceptance.** Defaults exist only for Jahia's own types, where the
+answer is not a matter of opinion. A custom type is somebody's model, and reading intent out of its
+name - deciding `ns:estate` is a Product because of the word "estate" - is the same mistake as
+classifying evergreen content by type name, refused in GEO-24 for the same reason. Custom types
+start unmapped, are reported as unmapped, and are mapped by the person who defined them.
+
+Property sources are the other half, and there conventions *are* reliable: `title`, `description`,
+`image`, `date`, `price`, `address`, `phone`, `email` mean the same thing across almost every
+content model, so a candidate list per schema property finds them with nothing configured. On the
+test site that mapped all five types with no property configuration at all, including `price` into
+an `Offer` and a weak reference into a resolved image URL.
+
+The third criterion is the interesting one and it is met by *reporting*: a required property with no
+source is named, never filled from somewhere plausible. `ns:blogPost` has no author and
+`ns:estate` no currency, and both are said out loud rather than invented.
+
+The fourth - never contradict the page - is checked by comparing the generated name against the
+title the page actually rendered, allowing for the suffix a template adds, so "Fees" and
+"Fees | Example Site" agree while "Fees" and "Our pricing" do not.
+
+**Nothing is injected.** The drawer shows the snippet and a person places it, which is the same
+report-versus-write line the rest of the module draws, and it matters most here: structured data
+that disagrees with its page is worse than none, so a human confirms every snippet.
+
+---
+
+## GEO-24 · Where the site has gone stale
+
+**BUILT.** Repository query with its own dashboard tab and a configurable threshold. No drawer
+line, as the story asks.
+
+**As a** content manager, **I want** to see which sections have not been updated in a long time,
+**so that** I can plan a refresh before an engine decides we are out of date.
+
+Content freshness is one of BotRank's own 24 criteria. We can compute it for the whole tree
+instantly and they cannot.
+
+**Acceptance**
+- Age distribution of published content, by section and by content type.
+- Flags sections where nothing has changed beyond a configurable threshold.
+- Distinguishes evergreen content from time-sensitive content by type, so a legal notice does not
+  get flagged next to a news article.
+
+**Dashboard** owns it. **Drawer** shows nothing. An author editing a page already knows how old
+it is, and a date in the drawer would be noise.
+
+**Effort** S.
+
+**What was built, against that acceptance.** Age distribution in five buckets, plus the two
+breakdowns. The evergreen criterion is met by *grouping* rather than by classifying: nothing tries
+to decide which types are time-sensitive, because that would be a guess at somebody's content
+model. Each type is judged against its own list, which is what stops a legal notice being flagged
+next to a news article, and each group is flagged on its **newest** item rather than its oldest or
+its average - "nothing here has been touched in a year" is a fact somebody can act on, while "the
+oldest item is old" is true of every site that has ever existed.
+
+The threshold is a dropdown that recomputes rather than filtering a stored answer, and the choice
+is remembered so the scheduled run measures against the same line. The whole thing is a repository
+query, so it answers immediately and never waits for a scan.
+
+Measured per language, like the link graph and for the same reason: a translation carries its own
+modification date, and a French page left behind while the English one is maintained is exactly the
+finding worth having.
+
+---
+
+## GEO-25 · One page, several addresses
+
+**BUILT.** Repository query plus the canonical tags the scan already reads, its own dashboard tab,
+one line in the drawer.
+
+**As a** site manager, **I want** content reachable at several URLs without a canonical, **so
+that** engines stop splitting the signal across duplicates.
+
+Jahia owns the vanity URL service, so this is a repository query rather than a crawl.
+
+**Acceptance**
+- Pages with multiple vanity URLs and no canonical, or a canonical pointing somewhere unexpected.
+- Vanity URLs that no longer resolve.
+- Language mismatches: a vanity URL registered under the wrong language.
+
+**Dashboard** owns it.
+**Drawer** shows one line when this page has a conflict.
+
+**Effort** S.
+
+**What was built, against that acceptance.** Three findings, not four. There is deliberately no
+check for two pages claiming the same address: Jahia will not store one, and renames the second on
+save - a second `/blogs.html` became `/blogs-1.html` without comment, which is also where the `-1`
+suffixes on imported sites come from. A check that cannot fire is worse than none, because it
+implies somebody is watching a risk that does not exist.
+
+The language criterion turned out to be the same thing as the non-resolving one: a vanity URL filed
+under a language the site does not serve is exactly the URL that 404s. The test instance had nine
+of those under `de_DE` on a site serving `de`, every one a 404 while its `en` sibling answered 200.
+
+This story also uncovered a defect in the module itself, fixed here. `PublicUrls` returned the page
+tree path rather than the default vanity URL, and Jahia 301s the former to the latter. Every crawler
+fetch therefore got a redirect instead of a page: the page with a vanity URL scored 7 of 18 with
+"no text in the initial HTML", the sitemap comparison called it missing, and the link graph could
+not match the links pointing at it. Reading the default vanity from the repository fixed all three
+at once - the same page went back to 16 of 18.
+
+---
+
+## Suggested order
+
+1. ~~**GEO-19**, invisible content.~~ **Built.** Small, startling in a demo, needed no new
+   plumbing, exactly as predicted.
+2. ~~**GEO-17**~~ **built.** **GEO-18** is now the cheap half: every finding already records its
+   template, so the roll-up is a grouping and a UI rather than new plumbing.
+3. **GEO-21, GEO-22, GEO-25**, the cheap structural checks, once the job exists to run them.
+4. **GEO-20**, per-language, which pairs with the strongest story in the BotRank analysis.
+5. **GEO-23**, structured data, when there is appetite for something larger.
+
+GEO-24 is the smallest thing here and can be slipped in whenever.
+
+## Deliberately excluded
+
+- **Cache configuration analysis.** Real, but it belongs to an administrator, not an author.
+- **Workflow state.** Same reason.
+- **Anything already covered by page-audit.** Two scores for one page is worse than one.
+- **Writing to robots.txt or llms.txt from a scan.** Reporting is safe to run anywhere. Writing is
+  not, and the two must stay separate features with separate permissions.

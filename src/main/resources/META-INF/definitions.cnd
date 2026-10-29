@@ -1,0 +1,25 @@
+<jnt = 'http://www.jahia.org/jahia/nt/1.0'>
+<jmix = 'http://www.jahia.org/jahia/mix/1.0'>
+<mix = 'http://www.jcp.org/jcr/mix/1.0'>
+<ccs = 'http://www.jahia.org/community/content-compliance-scan/nt/1.0'>
+<ccsmix = 'http://www.jahia.org/community/content-compliance-scan/mix/1.0'>
+
+// Category of the "New content" menu for the module's types. Content folders accept
+// jmix:droppableContent, which is how a glossary gets created under /sites/<site>/contents.
+[ccsmix:complianceContent] > jmix:droppableContent mixin
+
+// A list of terms that may not be used in the content of one language of the site. The language list
+// (SiteLanguagesInitializer) offers every site language, live-active or not. The scan reads
+// every glossary under /sites/<site>/contents whose language is the language being scanned.
+[ccs:glossary] > jnt:content, mix:title, jmix:list, ccsmix:complianceContent orderable
+ - language (string, choicelist[complianceSiteLanguages]) mandatory nofulltext
+ - description (string, textarea)
+ + * (ccs:glossaryTerm)
+
+// One non-authorised term. Not droppable: terms are created inside a glossary only.
+// term is the primary item, so jContent shows the term as the node's name.
+[ccs:glossaryTerm] > jnt:content
+ - term (string) mandatory primary
+ - matchMode (string, choicelist[resourceBundle]) = 'word' autocreated mandatory < 'word', 'prefix', 'anywhere'
+ - reason (string, textarea)
+ - alternative (string)

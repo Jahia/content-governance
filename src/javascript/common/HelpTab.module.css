@@ -1,0 +1,4 @@
+/* The tooltip's anchor sits between the tab list and the tab: it keeps the tab's own size. */
+.helpTab {
+    display: inline-flex;
+}

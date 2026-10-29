@@ -1,0 +1,22 @@
+.box {
+    margin-top: var(--moon-spacing-large, 24px);
+    padding: var(--moon-spacing-medium, 16px);
+    border: 1px dashed var(--color-gray_light40, #dfe3e8);
+    border-radius: 4px;
+    opacity: .75;
+}
+
+.title {
+    margin: 0 0 var(--moon-spacing-small, 8px);
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--moon-spacing-small, 8px);
+}
+
+.hint {
+    color: var(--color-gray, #5c6b7a);
+}

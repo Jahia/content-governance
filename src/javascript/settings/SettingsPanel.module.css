@@ -1,0 +1,102 @@
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--moon-spacing-medium, 16px);
+    width: 100%;
+    min-width: 0;
+    contain: inline-size;
+}
+
+/* Paper + Paper adds a top margin that would double the gap above. */
+.content > .card {
+    margin-top: 0;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--moon-spacing-small, 8px);
+    padding: var(--moon-spacing-large, 24px);
+}
+
+.cardHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--moon-spacing-medium, 16px);
+}
+
+.switchLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--moon-spacing-small, 8px);
+    flex-shrink: 0;
+}
+
+.muted {
+    color: var(--color-gray, #5c6b7a);
+}
+
+.tabs {
+    list-style: none;
+    margin: var(--moon-spacing-small, 8px) 0 0;
+    padding: 0;
+    display: grid;
+    /* min(): a card narrower than one column gets one column of its own width, not a cut one. */
+    grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+    gap: var(--moon-spacing-small, 8px) var(--moon-spacing-large, 24px);
+}
+
+.tab {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--moon-spacing-small, 8px);
+    min-width: 0;
+}
+
+/* A switch keeps its size; the label stays on one line and a chip goes under it when needed. */
+.tab > :first-child {
+    flex-shrink: 0;
+}
+
+.tabLabel {
+    white-space: nowrap;
+}
+
+/* What the tab is for, on its own line under the switch and the label. */
+.tabHelp {
+    flex-basis: 100%;
+    color: var(--color-gray, #5c6b7a);
+}
+
+.facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--moon-spacing-nano, 4px) var(--moon-spacing-medium, 16px);
+    margin: 0;
+}
+
+.facts dt {
+    font-weight: 600;
+}
+
+.facts dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.code {
+    overflow-wrap: anywhere;
+    font-size: 12px;
+}
+
+.headerTabs {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.headerTabsInner {
+    flex-wrap: nowrap;
+    width: max-content;
+}

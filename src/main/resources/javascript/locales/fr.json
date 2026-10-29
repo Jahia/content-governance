@@ -1,0 +1,1842 @@
+{
+  "content-governance": {
+    "geo": {
+      "action": {
+        "open": "Lisibilité IA"
+      },
+      "drawer": {
+        "title": "Lisibilité IA",
+        "subtitle": "Les robots des IA peuvent-ils vraiment lire cette page ?",
+        "close": "Fermer",
+        "run": "Lancer le test",
+        "rerun": "Relancer",
+        "running": "Test en cours, une requête par robot…",
+        "lastRun": "Dernier test : {{date}}",
+        "url": "URL testée"
+      },
+      "crawler": {
+        "tab": "Accès des robots",
+        "verdict": {
+          "ok": "Tous les robots testés peuvent lire cette page.",
+          "blocked": "{{count}} robot est bloqué.",
+          "blocked_plural": "{{count}} robots sont bloqués.",
+          "thin": "Certains robots reçoivent beaucoup moins de texte qu'un navigateur. La page a sans doute besoin de JavaScript pour afficher son contenu.",
+          "unpublishedTitle": "Cette page n'est pas publiée",
+          "unpublished": "Cette page n'a jamais été publiée. Il n'y a donc pas encore d'URL publique à tester.",
+          "empty": "Même un navigateur ne reçoit presque aucun texte avant l'exécution du JavaScript ({{count}} mots). Les robots verront une page vide.",
+          "unreachable": "Le serveur n'a pas pu joindre la page pour {{count}} robot.",
+          "unreachable_plural": "Le serveur n'a pas pu joindre la page pour {{count}} robots."
+        },
+        "agent": "Robot",
+        "status": "Statut",
+        "time": "Temps",
+        "size": "Taille",
+        "words": "Mots",
+        "blocked": "Bloqué",
+        "reachable": "Accessible",
+        "initialHtml": "Ce que le robot reçoit avant l'exécution du JavaScript",
+        "h1": "Titre H1",
+        "metaDescription": "Méta-description",
+        "canonical": "URL canonique",
+        "links": "Liens",
+        "jsonLd": "Données structurées",
+        "present": "Présent",
+        "missing": "Absent",
+        "explain": {
+          "403": "Le serveur a refusé ce robot. C'est en général une règle de pare-feu ou d'anti-bot, pas un problème de contenu.",
+          "jsOnly": "Un navigateur voit beaucoup plus de texte que le robot. Le contenu arrive probablement via JavaScript, que les robots n'exécutent pas.",
+          "layer": "Couche à corriger",
+          "empty": "Le HTML initial est une coquille vide. Le contenu arrive via JavaScript, ou après une redirection côté client, et les robots n'exécutent ni l'un ni l'autre. La solution est le rendu côté serveur, pas robots.txt.",
+          "blockedButAllowed": "Votre robots.txt autorise {{count}} de ces robots, mais le serveur les a quand même refusés. Le blocage vient d'un pare-feu ou d'une protection anti-bot, pas de votre contenu ni de votre robots.txt. C'est une correction d'infrastructure.",
+          "reachableButDisallowed": "Votre robots.txt demande à {{count}} de ces robots de ne pas récupérer cette page. Ils peuvent y accéder, mais un robot respectueux ne la lira pas. Modifiez robots.txt si vous voulez qu’ils la lisent."
+        },
+        "metaRefresh": "Redirection côté client : la page demande au navigateur d'aller vers {{url}}. Les robots restent sur cette coquille vide.",
+        "robots": "robots.txt",
+        "wordCount": "{{count}} mot",
+        "wordCount_plural": "{{count}} mots",
+        "thinMark": "beaucoup moins de texte",
+        "noResponse": "pas de réponse",
+        "mismatch": {
+          "blockedButAllowed": "autorisé mais refusé",
+          "reachableButDisallowed": "interdit mais servi"
+        }
+      },
+      "error": {
+        "generic": "Le test n'a pas pu aboutir.",
+        "rateLimit": "Trop de tests en peu de temps. Réessayez dans quelques minutes.",
+        "notPublished": "Publiez d'abord cette page, puis lancez le test."
+      },
+      "files": {
+        "tab": "Fichiers du site",
+        "robots": {
+          "title": "robots.txt",
+          "absent": "Ce site n'a pas de robots.txt. Tous les robots sont autorisés partout par défaut. Cela fonctionne, mais personne ne l'a décidé.",
+          "noneNamed": "Aucun robot d'IA n'est nommé dans le robots.txt. Ils dépendent tous de la règle générique : ils sont autorisés par défaut, pas volontairement.",
+          "someNamed": "{{count}} robot d'IA est nommé explicitement dans le robots.txt.",
+          "someNamed_plural": "{{count}} robots d'IA sont nommés explicitement dans le robots.txt.",
+          "someDisallowed": "{{count}} d'entre eux ne peuvent pas récupérer cette page.",
+          "declared": "Déclaré",
+          "effective": "Pour cette page",
+          "rule": "Règle appliquée",
+          "byName": "Par son nom",
+          "byWildcard": "Générique",
+          "allowed": "Autorisé",
+          "disallowed": "Interdit",
+          "noRule": "Aucune règle ne correspond, donc autorisé",
+          "sitemaps": "{{count}} sitemap déclaré :",
+          "sitemaps_plural": "{{count}} sitemaps déclarés :",
+          "control": {
+            "title": "Contrôler les robots IA",
+            "intro": "Définit la position du site pour chaque robot dans robots.txt. Les groupes que vous ne modifiez pas restent intacts, commentaires et lignes Sitemap compris.",
+            "stance": "Position",
+            "allow": "Autoriser",
+            "block": "Bloquer",
+            "loading": "Lecture de robots.txt…",
+            "changes": "Ce qui va changer",
+            "apply": "Appliquer et publier",
+            "confirm": "Confirmer le remplacement",
+            "applied": "Enregistré et publié. Relancez la vérification pour le voir.",
+            "cannotWrite": "Vous n'avez pas les droits pour modifier les paramètres de ce site.",
+            "noMixin": "Ce site n'a pas encore de robots.txt. L'appliquer en créera un.",
+            "placeholder": "Ce qui est enregistré est le texte par défaut du module, pas un vrai fichier.",
+            "error": "Impossible de lire ou d'écrire robots.txt.",
+            "rule": "Bloquer remplace les règles du robot par un refus global. Autoriser ne fait que lever un refus global : un robot ayant des règles de chemin comme Disallow: /docs/ n'est pas touché, car les aplatir détruirait ce travail. Un robot partageant un groupe est déplacé dans son propre groupe pour que les autres conservent leurs règles.",
+            "allowed": "Autorisé",
+            "errorTitle": "robots.txt",
+            "noMixinTitle": "Pas encore de robots.txt",
+            "placeholderTitle": "Texte par défaut",
+            "appliedTitle": "Enregistré",
+            "checkAccess": "Vérifier ce que fait le serveur",
+            "recheckAccess": "Vérifier à nouveau",
+            "checkingAccess": "Requête pour chaque robot…",
+            "accessExplain": "robots.txt énonce une politique. Seule une requête montre si le serveur la respecte.",
+            "accessTested": "Testé sur {{url}}",
+            "served": "servi en {{ms}}ms",
+            "refused": "refusé, HTTP {{status}}",
+            "verdictServed": "Les {{count}} robots IA sont servis par ce site",
+            "verdictRefused": "{{count}} robot IA est refusé par le serveur",
+            "verdictRefused_plural": "{{count}} robots IA sont refusés par le serveur",
+            "verdictAgree": "robots.txt et le serveur sont d'accord pour chaque robot.",
+            "verdictMismatch": "{{count}} robot est traité différemment de ce qu'indique robots.txt. L'un des deux a tort.",
+            "verdictMismatch_plural": "{{count}} robots sont traités différemment de ce qu'indique robots.txt. L'un des deux a tort.",
+            "bot": {
+              "GPTBot": "Collecte des pages pour entraîner les modèles d'OpenAI. La bloquer n'empêche pas ChatGPT de vous citer.",
+              "OAI-SearchBot": "Construit l'index des résultats de recherche de ChatGPT. La bloquer vous retire de ces réponses.",
+              "ChatGPT-User": "Récupère une page quand quelqu'un interroge ChatGPT à son sujet. La bloquer empêche ChatGPT d'ouvrir vos pages à la demande.",
+              "ClaudeBot": "Collecte des pages pour entraîner les modèles d'Anthropic. La bloquer n'empêche pas Claude de vous citer.",
+              "Claude-SearchBot": "Construit l'index de recherche de Claude. La bloquer vous retire de ces réponses.",
+              "PerplexityBot": "Construit l'index de recherche de Perplexity. La bloquer vous retire de ses réponses.",
+              "Perplexity-User": "Récupère une page quand quelqu'un interroge Perplexity à son sujet.",
+              "Google-Extended": "Détermine si votre contenu entraîne Gemini et alimente ses réponses. Sans effet sur le classement dans Google Search.",
+              "GoogleOther": "Robot Google polyvalent utilisé par plusieurs équipes produit. Son usage exact n'est pas documenté.",
+              "Bingbot": "Construit l'index Bing, qui alimente aussi Microsoft Copilot. La bloquer vous retire des deux.",
+              "CCBot": "Collecte des pages pour Common Crawl, un jeu de données public sur lequel de nombreux modèles s'entraînent.",
+              "Bytespider": "Collecte des pages pour entraîner les modèles de ByteDance.",
+              "Amazonbot": "Explore le site pour les réponses d'Alexa et la recherche Amazon.",
+              "Applebot-Extended": "Détermine si votre contenu entraîne Apple Intelligence. Sans effet sur les résultats Siri ou Spotlight.",
+              "meta-externalagent": "Collecte des pages pour entraîner les modèles de Meta."
+            },
+            "purpose": {
+              "search": "Répond aux questions",
+              "training": "Entraîne les modèles",
+              "other": "Mixte ou non documenté"
+            },
+            "searchBlockedTitle": "{{count}} robot qui répond aux questions est bloqué",
+            "searchBlockedTitle_plural": "{{count}} robots qui répondent aux questions sont bloqués",
+            "searchBlocked": "Bloquer un robot qui construit les réponses vous retire des réponses de cet assistant. Bloquer un robot qui ne fait qu'entraîner les modèles, non. Vérifiez que c'est bien votre intention : {{names}}.",
+            "noAnswer": "pas de réponse",
+            "verdictUnreachable": "Le serveur n'a pas pu joindre la page pour {{count}} robot : on ne sait donc pas ce que le site en fait",
+            "verdictUnreachable_plural": "Le serveur n'a pas pu joindre la page pour {{count}} robots : on ne sait donc pas ce que le site en fait"
+          },
+          "unreachable": "Le robots.txt n'a pas pu être récupéré : on ne sait donc pas ce qu'il autorise. C'est un problème de connexion, pas un constat sur le fichier."
+        },
+        "llms": {
+          "title": "llms.txt",
+          "present": "Ce site publie un fichier llms.txt.",
+          "absent": "Pas de llms.txt à la racine du site (HTTP {{status}}). Les moteurs d'IA n'ont aucune carte de vos meilleurs contenus.",
+          "servedHtml": "Le site a renvoyé une page HTML pour /llms.txt au lieu d'un fichier texte. Cela revient à ne pas en avoir.",
+          "h1": "Titre",
+          "summary": "Ligne de résumé",
+          "sections": "Sections",
+          "links": "Liens",
+          "contentType": "Type de contenu",
+          "generate": {
+            "title": "Générer depuis l'arborescence",
+            "intro": "Construit le fichier à partir des pages publiées, de leurs titres et de leurs descriptions. Aucun modèle, aucun service externe : le même site produit toujours le même fichier.",
+            "button": "Générer",
+            "running": "Génération en cours…",
+            "stats": "{{links}} liens dans {{sections}} sections",
+            "generated": "Généré",
+            "current": "Actuellement enregistré",
+            "unchanged": "Identique à ce qui est déjà enregistré. Rien à appliquer.",
+            "differs": "Le contenu diffère de ce qui est enregistré. Relisez-le avant d'appliquer.",
+            "placeholder": "Ce qui est enregistré est le texte par défaut du module, pas un vrai fichier.",
+            "noMixin": "Le site n'a pas encore de llms.txt. L'appliquer en créera un.",
+            "cannotWrite": "Vous n'avez pas les droits pour modifier les paramètres de ce site.",
+            "apply": "Appliquer et publier",
+            "confirm": "Confirmer le remplacement",
+            "applied": "Enregistré et publié. Relancez la vérification pour le voir.",
+            "error": "La génération a échoué.",
+            "rule": "Les pages masquées de la navigation sont exclues, et aucune description n'est inventée. Modifiez le texte avant d'appliquer si vous voulez autre chose : ce que vous voyez est exactement ce qui sera écrit.",
+            "changes": "Ce qui va changer",
+            "errorTitle": "llms.txt",
+            "noMixinTitle": "Pas encore de llms.txt",
+            "placeholderTitle": "Texte par défaut",
+            "appliedTitle": "Enregistré"
+          },
+          "stale": {
+            "title": "llms.txt ne correspond plus à ce site",
+            "summary": "{{stale}} entrées sont obsolètes et {{missing}} pages ne sont pas listées. Régénérer le fichier ci-dessous le remettra en cohérence.",
+            "why": {
+              "addressChanged": "l'adresse a changé, celle-ci redirige désormais",
+              "noLongerListed": "ne fait plus partie de la liste générée",
+              "gone": "n'est plus publiée, ou aucun visiteur ne peut la lire",
+              "notListed": "publiée, mais absente du fichier"
+            }
+          },
+          "fresh": {
+            "title": "llms.txt est à jour",
+            "summary": "Les {{count}} entrées correspondent à ce que produirait une génération maintenant : régénérer ne changerait rien."
+          },
+          "unreachable": "Le llms.txt n'a pas pu être récupéré : on ne sait donc pas si le site en publie un. C'est un problème de connexion, pas un constat sur le fichier."
+        },
+        "llmsFull": {
+          "label": "llms-full.txt"
+        },
+        "editedInSettings": "robots.txt et llms.txt concernent tout le site. Modifiez-les dans Additionnel, SEO, Préparation GEO."
+      },
+      "score": {
+        "tab": "Score",
+        "headline": "{{passed}} vérifications réussies sur {{total}}",
+        "criticalFailed": "{{count}} problème critique",
+        "criticalFailed_plural": "{{count}} problèmes critiques",
+        "importantFailed": "{{count}} problème important",
+        "importantFailed_plural": "{{count}} problèmes importants",
+        "allGood": "Tout ce que nous pouvons vérifier d'ici est conforme.",
+        "observed": "Constaté",
+        "why": "Pourquoi c'est important",
+        "group": {
+          "access": "Le robot peut-il y accéder",
+          "content": "Ce qui arrive est-il exploitable",
+          "files": "Fichiers au niveau du site"
+        },
+        "severity": {
+          "critical": "Critique",
+          "important": "Important",
+          "advisory": "Recommandé"
+        },
+        "rubric": "Chaque vérification lit un fait déjà présent dans ce rapport. Être interdit dans robots.txt n'est pas compté comme un échec : refuser un robot est un choix légitime. Une divergence entre la politique et le serveur, si.",
+        "check": {
+          "reachable": {
+            "label": "Tous les robots IA reçoivent la page",
+            "fix": "Au moins un robot a été refusé. C'est en général une règle de pare-feu ou d'anti-bot, pas un problème de contenu."
+          },
+          "policyMatchesReality": {
+            "label": "robots.txt correspond au comportement du serveur",
+            "fix": "La politique et le serveur divergent pour au moins un robot. L'un des deux a tort, et le rapport indique lequel."
+          },
+          "noClientRedirect": {
+            "label": "Aucune redirection côté client",
+            "fix": "La page demande au navigateur d'aller ailleurs. Les robots ne suivent pas, donc ils ne lisent que cette coquille vide."
+          },
+          "namedInRobots": {
+            "label": "Robots IA nommés dans robots.txt",
+            "fix": "Aucun robot IA n'est nommé. Ils suivent le groupe générique, vous n'avez donc pas de politique explicite pour eux."
+          },
+          "contentInInitialHtml": {
+            "label": "Du vrai texte dans le HTML initial",
+            "fix": "La page ne renvoie presque aucun texte avant l'exécution du JavaScript. La solution est le rendu côté serveur, pas robots.txt."
+          },
+          "sameContentForCrawlers": {
+            "label": "Les robots reçoivent le même texte qu'un navigateur",
+            "fix": "Au moins un robot reçoit beaucoup moins de texte que le navigateur. Vérifiez ce que le serveur fait varier selon l'agent."
+          },
+          "title": {
+            "label": "Titre présent et de longueur exploitable",
+            "fix": "Un titre de moins de 10 ou plus de 70 caractères est soit peu informatif, soit tronqué partout où il est cité."
+          },
+          "singleH1": {
+            "label": "Exactement un H1",
+            "fix": "Aucun ou plusieurs H1 rendent le sujet principal de la page ambigu."
+          },
+          "headingOutline": {
+            "label": "Des sous-titres structurent la page",
+            "fix": "La recherche découpe les pages sur les titres. Une page sans H2 forme un bloc indifférencié."
+          },
+          "metaDescription": {
+            "label": "Meta description présente",
+            "fix": "Sans elle, le résumé affiché à côté d'une réponse est généré à partir du premier texte venu."
+          },
+          "canonical": {
+            "label": "URL canonique déclarée",
+            "fix": "Sans canonique, un même contenu accessible à plusieurs adresses est traité comme plusieurs pages."
+          },
+          "langDeclared": {
+            "label": "Langue de la page déclarée",
+            "fix": "L'attribut lang du html est absent, la langue doit donc être devinée. Sur un site multilingue, c'est un vrai risque."
+          },
+          "structuredData": {
+            "label": "Données structurées présentes",
+            "fix": "Aucun JSON-LD trouvé. Les types de schéma sont le moyen le plus direct d'indiquer le sujet de la page."
+          },
+          "freshness": {
+            "label": "Date de modification publiée",
+            "fix": "Aucune dateModified trouvée. Les assistants tiennent compte de la fraîcheur, une page sans date ne peut pas prouver qu'elle est à jour."
+          },
+          "imageAlt": {
+            "label": "Les images portent un texte alternatif",
+            "fix": "Certaines images n'ont pas de texte alternatif. Pour un robot qui ne lit que du texte, ces images n'existent pas."
+          },
+          "robotsPresent": {
+            "label": "robots.txt est servi",
+            "fix": "Pas de robots.txt. Tout est autorisé par défaut, ce qui est une décision que vous n'avez pas prise."
+          },
+          "llmsPresent": {
+            "label": "llms.txt est servi",
+            "fix": "Pas de llms.txt. C'est le seul fichier qui indique à un assistant quelles pages comptent et pourquoi."
+          },
+          "guestReadable": {
+            "label": "Un visiteur sans compte peut la lire",
+            "fix": "Un visiteur anonyme ne peut pas lire cette page, donc aucun robot ne le pourra. Certains serveurs renvoient un formulaire de connexion avec un code 200, ce qui ressemble à un succès. Vérifiez les restrictions d'accès de la page."
+          },
+          "fetched": {
+            "label": "Le serveur a pu récupérer la page",
+            "fix": "Le serveur n'a pas pu se connecter à la page pour au moins un robot. C'est un problème de connexion côté serveur, pas un refus du site, et les vérifications de ce qui arrive ne sont pas fiables tant qu'il n'est pas réglé."
+          }
+        },
+        "checkColumn": "Vérification",
+        "severityLabel": "Gravité",
+        "fromTemplate": "Provient du gabarit « {{template}} », qui produit {{count}} pages. Le corriger là les corrige toutes.",
+        "passed": "Réussi",
+        "failed": "Échoué"
+      },
+      "diff": {
+        "identical": "Aucun changement. Le fichier serait écrit tel qu'il est aujourd'hui.",
+        "summary": "{{added}} lignes ajoutées, {{removed}} supprimées",
+        "unchanged": "… {{count}} lignes inchangées"
+      },
+      "dashboard": {
+        "navLabel": "Préparation GEO",
+        "title": "Préparation GEO du site {{site}} - {{language}}",
+        "intro": "Les deux fichiers qui indiquent aux robots IA quoi faire de ce site : robots.txt énonce la politique, llms.txt indique quelles pages comptent et pourquoi. Ils concernent tout le site, ils se modifient donc ici et non depuis une page.",
+        "tab": {
+          "robots": "robots.txt",
+          "llms": "llms.txt",
+          "visibility": "Contenu invisible",
+          "score": "Score du site",
+          "sitemap": "Sitemap face à la réalité",
+          "links": "Liens internes",
+          "vanity": "Adresses",
+          "freshness": "Fraîcheur",
+          "languages": "Langues",
+          "schema": "Données structurées",
+          "report": "Rapport",
+          "citations-overview": "Vue d'ensemble",
+          "citations-ranking": "Classement",
+          "citations-pages": "Pages",
+          "citations-engines": "Moteurs"
+        },
+        "group": {
+          "overview": "Vue d'ensemble",
+          "reach": "Un robot peut-il y accéder",
+          "usable": "Ce qui arrive est-il exploitable",
+          "files": "Fichiers du site",
+          "citations": "Citations par les IA"
+        }
+      },
+      "visibility": {
+        "title": "Contenu qu'aucune IA ne peut lire",
+        "intro": "Pages publiées qu'un visiteur sans compte ne peut pas lire. Un robot à qui l'on sert un formulaire de connexion reçoit un code 200 et conclut au succès : seul le référentiel sait que ces pages sont invisibles.",
+        "scan": "Analyser le site",
+        "scanning": "Lecture de toutes les pages publiées…",
+        "rescan": "Relancer l'analyse",
+        "summary": "{{readable}} pages publiées sur {{scanned}} sont lisibles par un visiteur sans compte",
+        "noFindings": "Toutes les pages publiées sont lisibles sans compte.",
+        "truncated": "Seules les {{scanned}} premières pages ont été analysées. Les autres n'ont pas été examinées.",
+        "findingsTitle": "Probablement involontaire",
+        "deliberateTitle": "Fermé volontairement",
+        "deliberateIntro": "Pages situées dans une branche fermée dans son ensemble, ce qui correspond normalement à un espace membres et non à une erreur.",
+        "page": "Page",
+        "reason": "Raison",
+        "error": "L'analyse n'a pas pu aboutir.",
+        "errorTitle": "Échec de l'analyse",
+        "kind": {
+          "isolatedRestriction": "Fermée, dans une section ouverte",
+          "expiredCondition": "Une condition de visibilité s'est terminée le {{date}}",
+          "hiddenByCondition": "Masquée actuellement par une condition de visibilité",
+          "gatedBranch": "Dans une branche fermée",
+          "noindex": "Marquée noindex, elle ne sera pas citée"
+        },
+        "noindexTitle": "Cette page est marquée noindex",
+        "noindex": "Les moteurs et les robots IA sont priés de ne pas indexer cette page, elle ne sera donc pas citée. C'est souvent volontaire pour une page légale ou utilitaire. Si ce n'est pas le cas, le réglage se trouve sur la page elle-même.",
+        "gatedTitle": "Aucun visiteur ne peut lire cette page",
+        "gated": "Un visiteur sans compte ne peut pas ouvrir cette page, aucun robot IA ne le pourra donc jamais. Certains serveurs renvoient un formulaire de connexion avec un code 200, ce qui ressemble à un succès vu de l'extérieur. Le réglage se trouve dans les restrictions d'accès de la page."
+      },
+      "score17": {
+        "title": "Score du site",
+        "intro": "Chaque page publiée est évaluée, une requête par page, selon la planification que vous définissez. Le tiroir interroge seize robots pour les comparer ; le faire sur tout le site représenterait des centaines de milliers de requêtes, l'analyse n'interroge donc qu'un seul robot IA par page.",
+        "headline": "{{percent}} % des vérifications réussissent sur le site",
+        "up": "{{n}} points de plus qu'à la dernière analyse",
+        "down": "{{n}} points de moins qu'à la dernière analyse",
+        "counts": "{{scored}} pages évaluées · {{critical}} avec un échec critique · {{unreadable}} qu'aucun visiteur ne peut lire",
+        "runNow": "Analyser maintenant",
+        "scanning": "Analyse en cours…",
+        "runningTitle": "Analyse en cours",
+        "running": "{{done}} pages sur {{total}}",
+        "failedTitle": "La dernière analyse a échoué",
+        "failed": "L'exécution ne s'est pas terminée. Le détail est dans le journal du serveur.",
+        "lastRun": "Dernière analyse : {{date}}",
+        "nextRun": "Prochaine planifiée : {{date}}",
+        "bySection": "Par section",
+        "pages": "{{count}} page",
+        "pages_plural": "{{count}} pages",
+        "worstPages": "Pages avec des constats",
+        "template": "gabarit {{name}}",
+        "critical": "{{count}} critique",
+        "schedule": "Planification",
+        "scheduleHelp": "Une expression cron Quartz, dans le fuseau horaire du serveur. Laissez la portée vide pour analyser tout le site, ou indiquez un chemin pour n'analyser qu'une branche. Une analyse en cours apparaît dans la liste des tâches d'administration.",
+        "scopePlaceholder": "tout le site",
+        "enabled": "Planifiée",
+        "disabled": "Non planifiée",
+        "save": "Enregistrer la planification",
+        "badCron": "Quartz n'accepte pas cette expression cron. Rien n'a été enregistré.",
+        "rateLimit": "Trop d'analyses en peu de temps. Réessayez dans quelques minutes.",
+        "error": "Impossible de lire l'état de l'analyse.",
+        "errorTitle": "Score du site",
+        "truncatedTitle": "Toutes les pages n'ont pas été analysées",
+        "truncated": "L'analyse s'est arrêtée à {{pages}} pages. Réduisez la portée ou augmentez la limite.",
+        "enabledLabel": "Analyse planifiée",
+        "enabledHelp": "Désactivée, le site n'est analysé que si vous cliquez sur Analyser maintenant.",
+        "cronLabel": "Quand analyser",
+        "cronHelp": "S'exécute dans le fuseau horaire du serveur, pas celui de votre navigateur.",
+        "scopeLabel": "Quoi analyser",
+        "scopeHelp": "Laissez vide pour tout le site, ou choisissez une branche pour n'analyser que cette partie.",
+        "browse": "Parcourir…",
+        "openPage": "Ouvrir cette page dans jContent",
+        "whyFewer": "17 vérifications ici, 18 dans le tiroir de la page. Comparer ce que reçoit un robot à ce que reçoit un navigateur exige une seconde requête sur la même page : « {{check}} » n'est donc évalué que page par page. Les deux comptes signalent les mêmes échecs.",
+        "byTemplate": "Par gabarit",
+        "byTemplateHelp": "Une vérification n'est imputée au gabarit que si elle échoue sur presque toutes les pages qu'il produit. Trois pages en échec sur quatre cents, ce sont trois auteurs ; quatre cents sur quatre cents, c'est le gabarit.",
+        "oneFix": "{{count}} correction ici couvre toutes les pages",
+        "oneFix_plural": "{{count}} corrections ici couvrent toutes les pages",
+        "templateClean": "Rien ici n'est imputable au gabarit.",
+        "matrixHelp": "Une cellule par page et par vérification. Une colonne pleine de haut en bas vient du template, pas des rédacteurs.",
+        "pass": "réussit",
+        "failsOn": "{{check}} échoue sur {{count}} pages",
+        "rowsPerPage": "Pages par vue",
+        "of": "sur"
+      },
+      "cron": {
+        "every": "Chaque",
+        "at": "à",
+        "on": "le",
+        "onDay": "le jour",
+        "serverTime": "heure du serveur · {{cron}}",
+        "freq": {
+          "daily": "jour",
+          "weekly": "semaine",
+          "monthly": "mois"
+        },
+        "day": {
+          "monday": "lundi",
+          "tuesday": "mardi",
+          "wednesday": "mercredi",
+          "thursday": "jeudi",
+          "friday": "vendredi",
+          "saturday": "samedi",
+          "sunday": "dimanche"
+        },
+        "aria": {
+          "frequency": "Fréquence",
+          "dayOfWeek": "Jour de la semaine",
+          "dayOfMonth": "Jour du mois",
+          "hour": "Heure",
+          "minute": "Minute"
+        }
+      },
+      "sitemap": {
+        "title": "Le sitemap face à la réalité",
+        "agreesTitle": "Le sitemap correspond au site",
+        "agrees": "Les {{entries}} entrées correspondent toutes à du contenu publié, et rien de publié n'y manque.",
+        "andMore": "et {{count}} de plus",
+        "notListedTitle": "Cette page n'est pas dans le sitemap",
+        "notListed": "Le site publie un sitemap et cette page n'y figure pas : un robot n'a donc aucune raison de la chercher.",
+        "kind": {
+          "missing": "Publiée, mais absente du sitemap",
+          "unknown": "Dans le sitemap, mais rien de publié ne répond",
+          "staleDate": "La date du sitemap est fausse",
+          "noindexListed": "Listée dans le sitemap et marquée noindex",
+          "redirects": "Le sitemap indique une adresse qui redirige"
+        },
+        "why": {
+          "missing": "Un robot n'a aucune raison de les chercher.",
+          "unknown": "Du budget d'exploration dépensé sur des adresses qui ne mènent nulle part.",
+          "staleDate": "Annoncer une page plus ancienne qu'elle n'est dissuade les robots de la réexplorer. Affiché ainsi : annoncé puis réel.",
+          "noindexListed": "La carte dit d'indexer, la page dit de ne pas le faire. L'un des deux est une erreur.",
+          "redirects": "Ces pages ont une URL personnalisée, et le sitemap nomme encore l'adresse depuis laquelle Jahia redirige. Les robots passent par une redirection pour atteindre un contenu qui a une adresse directe, alors que les moteurs attendent l'URL finale dans un sitemap."
+        },
+        "counts": "{{entries}} entrées dans le sitemap · {{published}} pages et contenus publiés lisibles par un visiteur.",
+        "noindexListedTitle": "Cette page est dans le sitemap et marquée noindex",
+        "noindexListedPage": "Le sitemap demande aux robots d'indexer cette page et la page elle-même le leur interdit. L'un des deux est une erreur.",
+        "staleTitle": "La date du sitemap pour cette page est fausse",
+        "stalePage": "Le sitemap annonce {{detail}}. Un robot qui se fie à la date la plus ancienne n'a aucune raison de revenir chercher ce qui a changé.",
+        "intro": "Ce que dit le sitemap face à ce que le site publie réellement. Les entrées sont résolues dans le référentiel plutôt que téléchargées : cette comparaison ne coûte aucune requête et ne nécessite aucun scan du site. Le scan planifié la rafraîchit également.",
+        "checkNow": "VÉRIFIER",
+        "checking": "VÉRIFICATION…",
+        "lastCheck": "Dernière vérification : {{date}}",
+        "figureEntries": "Dans le sitemap",
+        "figurePublished": "Publiés",
+        "neverTitle": "Pas encore vérifié",
+        "never": "Lancez une vérification, ou attendez le prochain scan planifié du site, qui la rafraîchit aussi.",
+        "limits": "Les entrées sont rapprochées du contenu, non téléchargées : une redirection n'est donc pas détectée, une entrée qui redirige ailleurs est comptée comme résolue. Toutes les langues du site sont comparées et chaque constat indique l'URL concernée.",
+        "error": {
+          "failedTitle": "La vérification n'a pas pu être lancée",
+          "failed": "Le sitemap n'a pas pu être lu ou comparé. Le détail figure dans le journal du serveur.",
+          "rateTitle": "Trop de vérifications",
+          "rate": "Patientez un instant avant de relancer une vérification."
+        },
+        "absent": {
+          "noneTitle": "Aucun sitemap n'est servi",
+          "none": "Rien ne répond à {{url}} (HTTP {{status}}) : les robots ne reçoivent aucune carte de ce site. Le module Sitemap en publie un par site.",
+          "notSitemapTitle": "Cette adresse répond, mais pas avec un sitemap",
+          "notSitemap": "{{url}} renvoie HTTP {{status}}, mais la réponse n'est pas un sitemap - le plus souvent une page ou une page d'erreur servie avec un code de succès. Tant que cette adresse ne renvoie pas un vrai sitemap, les robots n'ont pas de carte exploitable et rien ne peut être comparé ici.",
+          "unreachableTitle": "Le sitemap n'a pas pu être atteint",
+          "unreachable": "{{url}} n'a pas pu être récupéré : l'existence d'un sitemap est donc inconnue. Il s'agit d'un problème de connexion, pas d'un constat sur votre contenu."
+        },
+        "fromScan": "D'après le scan du site du {{date}}.",
+        "unreachablePageTitle": "Le dernier scan du site n'a pas pu joindre le sitemap",
+        "unreachablePage": "{{url}} n'a pas pu être récupéré lors du scan du site du {{date}} : on ne sait donc pas si cette page figure dans le sitemap."
+      },
+      "links": {
+        "title": "Pages vers lesquelles rien ne pointe",
+        "intro": "Un robot peut dire ce qu'il a trouvé. Il ne peut pas dire ce qu'il a manqué, car il n'a jamais su que la page existait. Cette comparaison confronte tout ce qui est publié à tout ce que le site relie réellement, à partir du HTML rendu de chaque page lue lors du dernier scan.",
+        "counts": "{{pages}} pages publiées évaluées, sur {{read}} pages lues dans cette langue.",
+        "neverTitle": "Aucun scan pour l'instant",
+        "never": "Le graphe de liens est construit à partir du HTML rendu de chaque page : il provient donc d'un scan du site. Lancez-en un depuis l'onglet Score du site.",
+        "allLinkedTitle": "Chaque page est reliée depuis quelque part",
+        "allLinked": "Aucune page publiée dans cette langue n'est inatteignable, et aucune ne dépend uniquement des menus.",
+        "kind": {
+          "orphans": "Rien ne pointe ici, et le sitemap ne les liste pas",
+          "weak": "Atteignables, mais personne n'a choisi d'y faire un lien"
+        },
+        "why": {
+          "orphans": "Aucune page ne pointe vers elles et aucune entrée de sitemap ne les nomme. Rien ne les trouvera jamais.",
+          "weak": "Un robot peut les atteindre, mais seulement via un menu qui liste tout ou via le sitemap. Aucun rédacteur n'y a fait de lien, et les robots qui pondèrent les liens y voient un signal faible.",
+          "navOnly": "menu uniquement",
+          "sitemapOnly": "sitemap uniquement"
+        },
+        "limits": "Les liens sont lus dans le HTML rendu : un menu construit sur l'arborescence, une liste, un lien en texte riche et un bouton configuré comptent donc de la même façon. Un lien par page source : faire deux fois le lien depuis la même page reste une seule décision. Seule la langue de ce scan est évaluée, puisque seules ses pages ont été récupérées. Votre page d'accueil n'est jamais signalée.",
+        "orphanTitle": "Rien ne pointe vers cette page",
+        "orphanPage": "Aucune autre page publiée n'y fait de lien et le sitemap ne la liste pas : un robot n'a aucun moyen de la découvrir.",
+        "navOnlyTitle": "Seul le menu pointe vers cette page",
+        "navOnlyPage": "Elle figure dans la navigation de {{count}} pages, mais aucune page n'y fait de lien depuis son contenu. Les robots qui pondèrent les liens considèrent une entrée de menu comme un signal plus faible qu'un lien voulu par un rédacteur.",
+        "figure": {
+          "orphans": "Pages orphelines",
+          "weak": "Liens faibles"
+        }
+      },
+      "vanity": {
+        "title": "Une page, plusieurs adresses",
+        "intro": "Jahia gère lui-même le service d'URL personnalisées : chaque adresse à laquelle une page répond est donc une donnée du référentiel, et non quelque chose à découvrir en explorant le site. Voici cette liste, confrontée aux langues servies par le site et à l'adresse canonique déclarée par chaque page.",
+        "counts": "{{total}} URL personnalisées. Ce site sert : {{languages}}.",
+        "neverTitle": "Aucun scan pour l'instant",
+        "never": "La partie canonique de cette vérification lit les pages rendues : elle provient donc d'un scan du site. Lancez-en un depuis l'onglet Score du site.",
+        "noneTitle": "Ce site n'utilise aucune URL personnalisée",
+        "none": "Chaque page ne répond qu'à sa propre adresse : rien ici ne peut être dispersé entre des doublons.",
+        "agreesTitle": "Toutes les adresses sont cohérentes",
+        "agrees": "Les {{total}} URL personnalisées résolvent, aucune n'en concurrence une autre, et les pages indiquent quelle adresse fait foi.",
+        "kind": {
+          "unresolvable": "Enregistrées sous une langue que ce site ne sert pas",
+          "duplicates": "Une page, plusieurs adresses actives",
+          "canonical": "Rien n'indique quelle adresse fait foi"
+        },
+        "why": {
+          "unresolvable": "Elles ne peuvent pas résoudre. La langue sous laquelle elles sont enregistrées n'est pas publiée par ce site : l'adresse renvoie donc un 404 à tout le monde, y compris aux robots à qui on l'a annoncée.",
+          "duplicates": "Le même contenu répond à plusieurs adresses dans la même langue. Tout ce qui compte les liens a désormais deux endroits où porter le crédit.",
+          "canonical": "La page ne porte pas de balise canonique, ou en porte une qui pointe vers autre chose que sa propre adresse ou l'un de ses alias."
+        },
+        "tag": {
+          "duplicate": "une par défaut",
+          "noDefault": "aucune par défaut",
+          "missing": "pas de canonique",
+          "elsewhere": "pointe ailleurs"
+        },
+        "limits": "Les URL personnalisées inactives sont ignorées : en désactiver une est une décision, pas un défaut. Deux pages ne peuvent pas revendiquer la même adresse - Jahia renomme la seconde à l'enregistrement, d'où les suffixes -1 sur les sites importés - il n'y a donc volontairement aucune vérification à ce sujet. La partie canonique ne couvre que les pages récupérées lors du dernier scan.",
+        "page": {
+          "unresolvableTitle": "Cette page a une adresse qui ne peut pas fonctionner",
+          "unresolvable": "Une URL personnalisée est enregistrée sous la langue « {{detail}} », que ce site ne sert pas : cette adresse renvoie un 404 à tout le monde.",
+          "duplicateTitle": "Cette page répond à plusieurs adresses",
+          "duplicate": "Elle est accessible à {{detail}}. L'une est marquée par défaut, ce qui donne une indication aux moteurs, mais chaque lien vers l'autre disperse encore le signal.",
+          "noDefaultTitle": "Cette page répond à plusieurs adresses et aucune n'est celle par défaut",
+          "noDefault": "Elle est accessible à {{detail}}, et rien n'indique laquelle fait foi. Définissez-en une comme URL personnalisée par défaut.",
+          "missingTitle": "Cette page a des alias mais aucune balise canonique",
+          "missing": "Elle répond à plusieurs adresses et la page n'indique pas laquelle fait foi : les moteurs doivent deviner.",
+          "elsewhereTitle": "La balise canonique de cette page pointe vers un endroit inattendu",
+          "elsewhere": "La canonique désigne {{detail}}, qui n'est ni l'adresse propre de cette page ni l'une de ses URL personnalisées. Tout ce que cette page gagne est crédité ailleurs.",
+          "canonicalTitle": "La balise canonique de cette page est à vérifier",
+          "canonical": "La balise canonique ne désigne ni l'adresse propre de cette page ni l'un de ses alias."
+        },
+        "figure": {
+          "unresolvable": "Langue non servie",
+          "duplicates": "Adresses en double",
+          "canonical": "Sans canonique"
+        }
+      },
+      "freshness": {
+        "title": "Où le site a vieilli",
+        "intro": "L'âge réel de tout ce qu'un visiteur peut lire, pris dans le référentiel plutôt que dans les dates que les pages choisissent d'afficher. Regroupé plutôt que classé : des mentions légales et une annonce immobilière vieillissent pour des raisons différentes, et une simple liste du plus ancien au plus récent les mettrait côte à côte.",
+        "counts": "{{total}} contenus publiés datés, {{undated}} sans date de modification.",
+        "thresholdLabel": "Signaler un groupe quand rien n'y a changé depuis",
+        "threshold": {
+          "90": "3 mois",
+          "180": "6 mois",
+          "365": "un an",
+          "730": "deux ans"
+        },
+        "measuring": "mesure en cours…",
+        "neverTitle": "Rien n'a encore été mesuré",
+        "never": "Choisissez un seuil ci-dessus pour dater les contenus publiés. C'est une requête sur le référentiel : la réponse est immédiate.",
+        "bucket": {
+          "month": "Modifié le mois dernier",
+          "quarter": "Il y a 1 à 3 mois",
+          "halfYear": "Il y a 3 à 6 mois",
+          "year": "Il y a 6 mois à un an",
+          "older": "Il y a plus d'un an"
+        },
+        "byType": "Par type de contenu",
+        "byTypeHelp": "Depuis combien de temps plus rien de ce type n'a changé. Plus c'est long, plus c'est préoccupant, et cette distinction évite qu'une page légale soit signalée à côté d'un article d'actualité.",
+        "bySection": "Par section",
+        "bySectionHelp": "La même mesure, regroupée selon la façon dont le travail se répartit habituellement.",
+        "stale": "au-delà du seuil",
+        "days": "{{count}} jours",
+        "months": "{{count}} mois",
+        "limits": "Un groupe est signalé sur son contenu le plus récent, pas le plus ancien ni la moyenne : « rien n'a été touché ici » est actionnable, alors que « le plus ancien est ancien » est vrai de tous les sites. Les dates sont celles du référentiel : une page régénérée sans modification de contenu ne compte donc pas comme fraîche. Seule la langue affichée est mesurée, car une traduction porte ses propres dates.",
+        "items": "{{count}} contenus",
+        "whenTitle": "Quand le site a été modifié pour la dernière fois",
+        "bucketShort": {
+          "month": "Ce mois-ci",
+          "quarter": "1 à 3 mois",
+          "halfYear": "3 à 6 mois",
+          "year": "6 à 12 mois",
+          "older": "Plus d'un an"
+        },
+        "axisOlder": "plus ancien",
+        "axisRecent": "plus récent",
+        "untouched": "rien n'a changé ici depuis {{age}}",
+        "allTitle": "Toutes les pages, de la plus ancienne à la plus récente",
+        "allHelp": "La liste complète : les regroupements ci-dessus indiquent où chercher, celle-ci indique quelle page. Chaque ligne s'ouvre dans jContent.",
+        "noDate": "sans date",
+        "truncated": "Les listes longues sont coupées à {{count}} lignes ; les regroupements ci-dessus comptent toujours la totalité.",
+        "figure": {
+          "dated": "Contenus datés",
+          "undated": "Sans date de modification"
+        }
+      },
+      "languages": {
+        "title": "La préparation, langue par langue",
+        "intro": "Un chiffre unique pour tout le site masque le marché en difficulté. Voici la couverture et le score de chaque langue déclarée par le site, côte à côte, pour qu'une langue solide ne compense pas une langue faible.",
+        "counts": "{{total}} contenus publiés, {{count}} langues déclarées par ce site.",
+        "coverage": "{{published}} sur {{total}} publiés · {{percent}}% de couverture",
+        "missing": "{{count}} jamais traduits",
+        "pagesScored": "{{count}} pages évaluées",
+        "notMeasured": "non mesuré",
+        "unmeasuredTitle": "Certaines langues n'ont jamais été scannées",
+        "unmeasured": "{{count}} de ces langues n'a pas encore de score, ce qui n'est pas la même chose qu'un mauvais score. Un scan traite une langue à la fois : chacune a donc besoin de sa propre planification dans l'onglet Score du site.",
+        "spreadTitle": "Un marché est mesurablement en retard sur un autre",
+        "spread": "Il y a {{points}} points d'écart entre la meilleure et la moins bonne langue. Une moyenne sur le site l'aurait masqué : c'est exactement ainsi qu'un marché devient invisible pour les assistants alors que la marque paraît en bonne santé.",
+        "errorTitle": "La couverture linguistique n'a pas pu être lue",
+        "error": "Le référentiel n'a pas pu être interrogé sur les traductions. Le détail figure dans le journal du serveur.",
+        "limits": "La couverture compte les pages et contenus qui portent une traduction, que quelqu'un y ait écrit ou non : une traduction vide compte comme présente. Les scores proviennent du dernier scan effectué dans chaque langue : deux langues scannées à des semaines d'intervalle ne sont donc pas mesurées sur le même site.",
+        "pageMissingTitle": "Cette page n'existe pas dans toutes les langues",
+        "pageMissing": "Elle n'a pas de traduction en : {{languages}}. Les assistants qui répondent dans ces langues n'ont rien de cette page à citer.",
+        "pageUnpublishedTitle": "Une traduction de cette page n'est pas publiée",
+        "pageUnpublished": "Elle est traduite en {{languages}}, mais cette traduction n'a pas été publiée : aucun visiteur ni robot ne peut la voir.",
+        "series": {
+          "coverage": "Couverture traduite",
+          "score": "Score de préparation"
+        },
+        "figure": {
+          "published": "Contenus publiés",
+          "declared": "Langues",
+          "unmeasured": "Non mesurées",
+          "spread": "Écart entre langues",
+          "points": "{{points}} pts"
+        }
+      },
+      "schema": {
+        "tab": "Données structurées",
+        "none": "Aucune donnée structurée n'a été générée pour cette page.",
+        "headline": "schema.org {{type}}",
+        "complete": "tout ce qui est requis a une source dans le modèle de contenu",
+        "incomplete": "{{count}} propriétés requises n'ont aucune source",
+        "unmappedTitle": "Ce type de contenu n'est pas encore associé",
+        "unmapped": "Rien n'indique ce qu'est un {{nodeType}} au sens de schema.org : aucune donnée structurée ne peut en être dérivée.",
+        "unmappedHelp": "Associez-le dans l'onglet Données structurées du tableau de bord GEO. Rien n'est deviné ici : un type est ce que la personne qui l'a défini dit qu'il est.",
+        "conflictTitle": "Ceci contredirait la page",
+        "conflict": "Le {{property}} généré est « {{generated}} » alors que la page affiche « {{page}} ». Des données structurées en désaccord avec le contenu visible sont pires que pas de données du tout : corrigez l'un des deux avant de l'utiliser.",
+        "missingTitle": "Des propriétés requises n'ont aucune source",
+        "missing": "Le modèle de contenu n'a rien pour remplir : {{properties}}. Elles sont omises plutôt qu'inventées, car une valeur absente du contenu est une valeur que la page ne soutient pas.",
+        "copy": "COPIER LE SNIPPET",
+        "copied": "COPIÉ",
+        "sources": "D'où vient chaque valeur",
+        "limits": "Généré depuis le type de contenu, non écrit dans la page. Collez-le dans le template de ce type pour que chaque élément en bénéficie, plutôt que dans une seule page. Les valeurs sont lues dans le contenu publié de cette langue.",
+        "panel": {
+          "title": "Données structurées issues du modèle de contenu",
+          "intro": "Tous les autres outils déduisent le schema.org des mots présents sur la page. Le type de contenu dit déjà ce qu'est le contenu : on peut donc le dériver, ce qui est à la fois moins coûteux et plus exact. Associez chaque type une fois et tous ses éléments peuvent émettre un JSON-LD correct.",
+          "counts": "{{mapped}} des {{total}} contenus publiés ont un type associé, dont {{complete}} peuvent remplir tout ce que leur type schema.org exige.",
+          "items": "{{count}} contenus publiés",
+          "ready": "prêt",
+          "gaps": "{{count}} sans source",
+          "readyType": "chaque propriété requise a une source",
+          "noSource": "aucune source pour : {{properties}}",
+          "thin": "Recommandées mais indisponibles : {{properties}}. Valide sans elles, plus riche avec.",
+          "save": "ENREGISTRER",
+          "saving": "ENREGISTREMENT…",
+          "saved": "Association enregistrée.",
+          "errorTitle": "Le modèle de contenu n'a pas pu être lu",
+          "error": "Les types de nœuds n'ont pas pu être listés pour ce site. Le détail figure dans le journal du serveur.",
+          "limits": "Enregistrer une association la stocke. Cela n'écrit jamais dans une page ni dans un template : le tiroir affiche le snippet d'une page et une personne le place. « Volontairement aucun » marque un type qui ne doit pas émettre de données structurées, afin qu'il cesse d'être signalé comme non associé.",
+          "legend": {
+            "complete": "Peut émettre un JSON-LD complet",
+            "incomplete": "Associé, mais une propriété requise n'a pas de source",
+            "unmapped": "Non associé"
+          },
+          "suggested": "D'après les propriétés qu'il contient, {{type}} décrit mieux ce modèle.",
+          "useSuggested": "Utiliser {{type}}",
+          "figure": {
+            "complete": "JSON-LD complet",
+            "incomplete": "Source manquante",
+            "unmapped": "Non associé"
+          }
+        },
+        "mapping": {
+          "unmapped": "Non associé",
+          "none": "Volontairement aucun"
+        }
+      },
+      "context": {
+        "site": "Ce site est en moyenne à {{percent}}%",
+        "section": "la section {{section}} est en moyenne à {{percent}}%",
+        "links": "{{nav}} pages pointent ici depuis la navigation, {{content}} depuis le contenu",
+        "llms": {
+          "listed": "Présente dans llms.txt",
+          "wouldAdd": "Absente de llms.txt, mais une régénération l'ajouterait",
+          "notGenerated": "Absente de llms.txt, qui ne liste que les pages principales du site"
+        }
+      },
+      "paging": {
+        "rowsPerView": "Lignes par vue",
+        "of": "sur",
+        "showing": "Affichage de {{from}} à {{to}} sur {{total}}"
+      },
+      "report": {
+        "title": "Le rapport rédigé",
+        "intro": "Tout le reste de ce tableau de bord est mesuré, et le dit. Cet onglet demande à un modèle de lire ces mesures et d'écrire ce qu'elles signifient : où en est le site pour les robots d'IA, quoi corriger d'abord, qui peut le faire, et dans quel ordre. Il ne répond que sur demande, car chaque réponse est payante et prend du temps.",
+        "notConfiguredTitle": "Aucun fournisseur configuré",
+        "notConfigured": "Renseignez AI_PROVIDER, AI_MODEL et AI_API_KEY dans digital-factory-data/karaf/etc/org.jahia.community.contentgovernance.llm.cfg pour activer cet onglet. Rien ne quitte le serveur d'ici là.",
+        "provider": "Rédigé par {{provider}} · {{model}}",
+        "privacy": "Le fournisseur reçoit les mesures de ce site : scores, identifiants des contrôles en échec, chemins et titres des pages, décomptes. Jamais le corps des pages, jamais la clé.",
+        "generate": "Rédiger le rapport",
+        "regenerate": "Rédiger à nouveau",
+        "generating": "Rédaction…",
+        "generatingHint": "Lecture des mesures et rédaction. Cela peut prendre jusqu'à une minute.",
+        "neverTitle": "Pas encore de rapport",
+        "never": "Lancez d'abord une analyse du site pour qu'il y ait quelque chose à lire, puis demandez le rapport. Les panneaux sitemap, liens, fraîcheur et langues l'alimentent aussi.",
+        "errorTitle": "Le rapport n'a pas pu être rédigé",
+        "errorGeneric": "Le fournisseur n'a pas répondu.",
+        "rateLimited": "Trop de rapports demandés en dix minutes. La limite protège le budget ; réessayez un peu plus tard.",
+        "generatedAt": "Rédigé le {{date}}",
+        "otherLanguageTitle": "Rédigé dans une autre langue",
+        "otherLanguage": "Ce rapport a été rédigé en {{have}}. Votre interface est en {{want}} : rédigez-le à nouveau pour l'obtenir dans votre langue.",
+        "truncatedTitle": "Interrompu",
+        "truncated": "Le modèle a manqué de place avant la fin. La fin du rapport peut manquer ; augmenter AI_REPORT_MAX_TOKENS lui en donne davantage.",
+        "summary": "Où en est le site",
+        "compliance": "Conformité par domaine",
+        "priorities": "Quoi faire, dans l'ordre",
+        "quickWins": "Gains rapides",
+        "roadmap": "Feuille de route",
+        "why": "Pourquoi :",
+        "how": "Comment :",
+        "pages": "Pages concernées",
+        "none": "Rien à recommander : les mesures n'ont rien donné au modèle sur quoi agir.",
+        "usage": "{{input}} jetons en entrée, {{output}} en sortie",
+        "disclaimer": "Rédigé par un modèle à partir des mesures prises par ce module. Il hiérarchise et explique ; il ne mesure rien lui-même et peut se tromper. Vérifiez une recommandation dans le panneau qu'elle concerne avant d'agir.",
+        "verdict": {
+          "compliant": "Conforme GEO",
+          "partial": "Partiellement conforme",
+          "not_compliant": "Non conforme"
+        },
+        "status": {
+          "met": "Atteint",
+          "partial": "Partiel",
+          "missing": "Manquant"
+        },
+        "area": {
+          "reachability": "Un robot peut-il y accéder",
+          "content": "Ce qui arrive est-il exploitable",
+          "structured_data": "Données structurées",
+          "freshness": "Fraîcheur",
+          "languages": "Langues",
+          "site_files": "robots.txt et llms.txt",
+          "links": "Liens internes",
+          "addresses": "Adresses publiques"
+        },
+        "owner": {
+          "editor": "un contributeur peut le faire",
+          "developer": "nécessite un développeur",
+          "administrator": "nécessite un administrateur"
+        },
+        "effort": {
+          "low": "effort faible",
+          "medium": "effort moyen",
+          "high": "effort élevé"
+        },
+        "phase": {
+          "now": "Maintenant",
+          "next": "Ensuite",
+          "later": "Plus tard"
+        },
+        "export": {
+          "markdown": "Exporter en Markdown",
+          "json": "Exporter en JSON",
+          "title": "Rapport de préparation GEO pour {{site}}",
+          "generated": "Rédigé le {{date}}",
+          "area": "Domaine",
+          "status": "Statut",
+          "note": "Note",
+          "owner": "Responsable : {{owner}}",
+          "effort": "Effort : {{effort}}"
+        },
+        "notConfiguredTab": "Aucun fournisseur IA n'est configuré sur ce serveur."
+      },
+      "fetchError": {
+        "ConnectException": "Le serveur n'a pas pu ouvrir de connexion vers cette adresse ({{error}}). Un serveur Jahia Cloud, par exemple, ne peut pas joindre sa propre adresse publique : demandez à l'autoriser, ou réglez PUBLIC_BASE_URL sur une adresse que le serveur peut joindre.",
+        "SocketTimeoutException": "L'adresse n'a pas répondu à temps ({{error}}).",
+        "SSLHandshakeException": "Le Java du serveur ne fait pas confiance au certificat de cette adresse ({{error}}).",
+        "UnknownHostException": "Le serveur ne sait pas résoudre ce nom d'hôte ({{error}}).",
+        "other": "La récupération a échoué avec {{error}}."
+      },
+      "citations": {
+        "tab": "Citations IA",
+        "asOf": "Données BotRank au {{date}}.",
+        "asOfUnknown": "BotRank n'a encore compté aucune réponse d'IA.",
+        "syncedAt": "Synchronisé le {{date}}.",
+        "running": "Une synchronisation est en cours.",
+        "notSyncedTitle": "Pas encore synchronisé",
+        "notSynced": "Le site est connecté à BotRank, mais sa première synchronisation n'a pas eu lieu. Les chiffres apparaissent après la prochaine synchronisation quotidienne, ou après qu'un administrateur du site en a lancé une.",
+        "notPublishedTitle": "Cette page n'est pas publiée",
+        "notPublished": "Les réponses d'IA ne peuvent citer qu'une page publiée. Publiez-la : ses citations apparaîtront après la prochaine synchronisation.",
+        "neverTitle": "Pas encore citée",
+        "never": "Aucune réponse d'IA suivie pour ce site ne cite cette page. La page est peut-être récente, ou les questions suivies ne couvrent pas son sujet.",
+        "notRecentTitle": "Pas citée récemment",
+        "notRecent": "Des réponses d'IA ont cité cette page {{count}} fois par le passé, mais pas sur les 30 derniers jours.",
+        "notRecent_plural": "Des réponses d'IA ont cité cette page {{count}} fois par le passé, mais pas sur les 30 derniers jours.",
+        "verdict": "Citée {{count}} fois dans des réponses d'IA sur les 30 derniers jours",
+        "verdict_plural": "Citée {{count}} fois dans des réponses d'IA sur les 30 derniers jours",
+        "variationUp": "+{{count}} sur les 30 jours précédents",
+        "variationDown": "-{{count}} sur les 30 jours précédents",
+        "variationSame": "Comme les 30 jours précédents",
+        "variationNone": "Pas de comparaison",
+        "variationWithheld": "Aucune comparaison n'est affichée : aucune question suivie n'a tourné sur les 30 jours précédents.",
+        "rank": "Rang {{rank}} sur {{of}} pages citées du site.",
+        "everCitations": "{{count}} citations depuis le début du suivi.",
+        "severalUrls": "Citée sous {{count}} adresses de cette page, additionnées.",
+        "mapped": "Un administrateur du site a rattaché à la main une adresse citée à cette page.",
+        "detailsMissingTitle": "Détail indisponible",
+        "detailsMissing": "BotRank n'a pas répondu pour le détail de cette page lors de la dernière synchronisation. Le total est à jour ; le reste le sera à la prochaine synchronisation.",
+        "engines": "Moteurs d'IA qui la citent",
+        "history": "Citations par jour",
+        "historyNote": "Une barre par jour où les questions suivies ont tourné. Un jour sans barre n'a pas eu d'exécution. Lisez la tendance, pas un jour isolé : les réponses varient d'une exécution à l'autre.",
+        "prompts": "Questions qui la citent",
+        "tags": "Thèmes",
+        "tagsIntro": "Les sujets des questions suivies qui citent cette page, tels que BotRank les regroupe. C'est la lecture des moteurs d'IA, pas les tags posés dans Jahia.",
+        "coCited": "Pages citées dans les mêmes réponses",
+        "coCitedIntro": "Les autres pages citées par les mêmes réponses d'IA, souvent des concurrents.",
+        "coCitedRankOnly": "Position moyenne parmi les sources de ces réponses : {{theirs}} ; cette page n'y figure pas parmi les sources",
+        "coCitedTotal": "Citée {{count}} fois sur les 30 derniers jours, avec ou sans cette page",
+        "coCitedTotal_plural": "Citée {{count}} fois sur les 30 derniers jours, avec ou sans cette page",
+        "source": "Source : BotRank. Les textes et adresses ci-dessus viennent de réponses d'IA et sont affichés tels quels.",
+        "loadErrorTitle": "Les citations n'ont pas pu être chargées",
+        "loadError": "Réessayez plus tard. Si cela persiste, un administrateur du site peut vérifier la connexion BotRank dans les Paramètres du site, Gouvernance des contenus, BotRank.",
+        "surface": {
+          "chatgpt": "ChatGPT",
+          "perplexity": "Perplexity",
+          "gemini": "Gemini",
+          "mistral": "Mistral",
+          "aioverview": "Google AI Overview",
+          "aimode": "Google AI Mode",
+          "grok": "Grok",
+          "copilot": "Copilot",
+          "claude": "Claude"
+        },
+        "citationsUnit": "citation",
+        "citationsUnit_plural": "citations",
+        "shareOfPage": "{{percent}} % des citations de cette page",
+        "lastCited": "dernière citation le {{day}}",
+        "byEngine": "Par moteur IA",
+        "tagPrompts": "{{count}} question",
+        "tagPrompts_plural": "{{count}} questions",
+        "youRankHigher": "Votre page est mieux placée",
+        "theyRankHigher": "Mieux placée que la vôtre",
+        "aheadOf": "Placée avant votre page dans {{ahead}} sur {{count}} réponse partagée",
+        "aheadOf_plural": "Placée avant votre page dans {{ahead}} des {{count}} réponses partagées",
+        "showAll": "Afficher {{count}} page de plus",
+        "showAll_plural": "Afficher {{count}} pages de plus",
+        "showFewer": "Afficher moins",
+        "aheadUnit": "placée avant la vôtre",
+        "positionsLabel": "Position moyenne parmi les sources :",
+        "positionsYours": "la vôtre",
+        "notConfiguredTab": "Ce site n'est pas connecté à BotRank. Un administrateur du site le connecte dans les Paramètres du site, Gouvernance des contenus, BotRank."
+      },
+      "citationsSettings": {
+        "navLabel": "Citations IA (BotRank)",
+        "title": "Citations IA (BotRank)",
+        "intro": "Connectez ce site à un projet BotRank pour afficher, sur chaque page, si des réponses d'IA la citent. Jahia lit BotRank une fois par jour ; les contributeurs n'appellent jamais BotRank eux-mêmes.",
+        "notEnabled": "Content Governance n'est pas activé sur ce site, ou vous n'en êtes pas administrateur. Activez le module dans les Paramètres du site, Modules.",
+        "forbidden": "Il faut être administrateur de ce site.",
+        "error": "La requête a échoué.",
+        "errorTitle": "Un problème est survenu",
+        "noConnectionTitle": "Aucune connexion BotRank",
+        "noConnection": "Un administrateur du serveur ajoute un fichier par organisation BotRank dans karaf/etc, nommé org.jahia.se.modules.georeadiness.botrank-<id>.cfg, avec la clé d'API de l'organisation. Voir la documentation du module.",
+        "connection": "Connexion BotRank",
+        "connectionHelp": "L'organisation BotRank dont ce site lit les données.",
+        "connectionProblem": "Cette connexion n'est pas utilisable",
+        "choose": "Choisir",
+        "project": "Projet",
+        "projectHelp": "Le projet BotRank qui suit les questions sur ce site.",
+        "projectsErrorTitle": "Les projets n'ont pas pu être listés",
+        "hosts": "Hôtes du site",
+        "hostsHelp": "Les adresses où le site est servi, séparées par des virgules, {{max}} au plus. Le www. n'a pas d'importance. Nécessaire quand le nom de serveur est localhost, comme sur Jahia Cloud.",
+        "enabled": "Synchronisation quotidienne",
+        "enabledHelp": "Activée, Jahia lit BotRank chaque jour à cette heure, heure de Paris.",
+        "time": "Heure",
+        "timeHelp": "HH:mm, heure de Paris. 06:30 passe après les exécutions de nuit de BotRank.",
+        "save": "Enregistrer",
+        "saved": "Réglages enregistrés",
+        "syncNow": "Synchroniser maintenant",
+        "syncStarted": "Synchronisation lancée. Elle prend quelques minutes sur un gros site.",
+        "lastSync": "Dernière synchronisation",
+        "status": {
+          "idle": "En attente",
+          "running": "En cours",
+          "done": "Terminée",
+          "failed": "Échouée"
+        },
+        "syncedAt": "Dernière réussie : {{date}}",
+        "latestAnswerAt": "Dernière réponse d'IA comptée par BotRank : {{date}}",
+        "nextRun": "Prochaine synchronisation quotidienne : {{date}}",
+        "citedPages": "Pages citées : {{count}}",
+        "messageTitle": "Note de la dernière synchronisation",
+        "unresolved": "Adresses citées non rattachées à une page",
+        "unresolvedIntro": "Adresses de ce site citées par des réponses d'IA, mais qu'aucune page publiée, URL vanity ou rattachement ne reconnaît. Les anciennes adresses d'un site migré se retrouvent souvent ici. Rattachez-en une à une page, puis synchronisez.",
+        "unresolvedNone": "Chaque adresse citée du site correspond à une page.",
+        "citations": "{{count}} citations",
+        "map": "Rattacher à une page",
+        "mappings": "Adresses rattachées à la main",
+        "unmap": "Retirer",
+        "mappingsNote": "Un rattachement compte à partir de la prochaine synchronisation."
+      },
+      "siteCitations": {
+        "view": {
+          "overview": "Les citations IA en un coup d'œil",
+          "ranking": "La place du site",
+          "pages": "Les pages qui le portent",
+          "engines": "Moteurs et visibilité de la marque"
+        },
+        "viewIntro": {
+          "overview": "Comment les réponses des moteurs d'IA citent ce site, d'après la dernière synchronisation quotidienne avec BotRank : son rang parmi les sites cités, sa part de toutes les citations, et ce qu'il faut retenir.",
+          "ranking": "Les sites que citent les mêmes réponses d'IA, autour de celui-ci, et l'évolution jour par jour de la part des citations du site.",
+          "pages": "Les adresses du site que les réponses d'IA citent le plus, rattachées à leur page dans Jahia, et la répartition par hôte.",
+          "engines": "La fréquence à laquelle les réponses de chaque moteur mentionnent la marque, et le rythme auquel BotRank interroge chaque moteur."
+        },
+        "notConfiguredTitle": "Non connecté à BotRank",
+        "notConfigured": "Ce site n'est pas connecté à BotRank. Un administrateur du site le connecte dans les Paramètres du site, sous Gouvernance des contenus, BotRank.",
+        "notConfiguredAdmin": "Ce site n'est pas connecté à BotRank. Connectez-le dans les Paramètres du site, sous Gouvernance des contenus, BotRank : choisissez la connexion, le projet et les hôtes du site.",
+        "notSynced": "Le site est connecté à BotRank, mais aucune synchronisation n'a encore lu ses chiffres de site. Ils apparaissent après la prochaine synchronisation quotidienne, ou après qu'un administrateur du site en a lancé une.",
+        "metaAsOf": "Données au {{date}}",
+        "metaPeriod": "Du {{start}} au {{end}}, face aux 30 jours précédents",
+        "metaSynced": "Synchronisé le {{date}}",
+        "partialTitle": "Des chiffres manquent",
+        "partial": "{{count}} lecture des chiffres du site a échoué lors de la dernière synchronisation. Ce que BotRank a répondu est affiché ; la prochaine synchronisation réessaie.",
+        "partial_plural": "{{count}} lectures des chiffres du site ont échoué lors de la dernière synchronisation. Ce que BotRank a répondu est affiché ; la prochaine synchronisation réessaie.",
+        "domainScope": "BotRank compte tout le domaine enregistrable",
+        "domainNote": "Citations, part et rang sont les chiffres de BotRank pour tout le domaine enregistrable : ils incluent tout autre site servi sur un de ses sous-domaines.",
+        "notCitedTitle": "{{domain}} n'a jamais été cité",
+        "notCited": "Aucune réponse d'IA de ce projet BotRank n'a jamais cité {{domain}}.",
+        "rankLabel": "Rang",
+        "rankShort": "{{rank}}e",
+        "rankFirst": "1er",
+        "rankOf": "parmi les sites que citent les réponses",
+        "citations": "Citations",
+        "share": "Part des citations",
+        "citedPages": "Pages citées",
+        "last30": "dans les réponses d'IA, 30 derniers jours",
+        "citedPagesSub": "adresses du domaine",
+        "points": "{{value}} pt",
+        "takeaways": "À retenir",
+        "tk": {
+          "gap": "{{gap}} de part derrière {{domain}}, {{rank}}.",
+          "first": "Le site est le plus cité de tous les sites que citent ces réponses.",
+          "top3": "Les trois pages les plus citées portent {{share}} des citations du domaine.",
+          "unmatched": "{{count}} des {{total}} adresses les plus citées ne correspond à aucune page du site.",
+          "unmatched_plural": "{{count}} des {{total}} adresses les plus citées ne correspondent à aucune page du site.",
+          "unresolved": "{{count}} adresse citée ne correspond à aucune page du site.",
+          "unresolved_plural": "{{count}} adresses citées ne correspondent à aucune page du site.",
+          "bestDay": "Meilleur jour : le {{day}}, avec {{share}} de toutes les citations.",
+          "noComparison": "Pas encore de comparaison : BotRank n'a pas de 30 jours précédents comparables pour ce projet."
+        },
+        "visibility": "Visibilité de la marque",
+        "visibilityScore": "de la {{answers}} réponse analysée mentionne la marque.",
+        "visibilityScore_plural": "des {{answers}} réponses analysées mentionnent la marque.",
+        "visibilityNote": "Un contexte, pas le résultat du site : une réponse peut mentionner la marque sans citer aucune page du site.",
+        "leaderboard": "Rang de {{domain}} parmi les sites cités",
+        "leaderboardIntro": "Part de toutes les citations des réponses d'IA du projet, avec les sites juste au-dessus et en dessous.",
+        "thisSite": "Ce site",
+        "noRankingTitle": "Pas de classement",
+        "noRanking": "Aucun des domaines du site n'est cité par ce projet BotRank.",
+        "shareHistory": "Part des citations par jour",
+        "shareHistoryIntro": "Une barre par jour où le projet a reçu des réponses d'IA. Une barre vide est un jour où aucune réponse n'a cité de source.",
+        "statLast": "Dernier jour",
+        "statAverage": "Moyenne",
+        "statBest": "Meilleur",
+        "statLow": "Plus bas",
+        "noSource": "aucune réponse n'a cité de source",
+        "topPages": "Pages les plus citées",
+        "topPagesIntro": "L'adresse la plus citée des hôtes du site, sur les 30 derniers jours.",
+        "topPagesIntro_plural": "Les {{count}} adresses les plus citées des hôtes du site, sur les 30 derniers jours.",
+        "noTopPages": "Aucune page des hôtes du site n'a été citée sur la période.",
+        "unmatched": "Aucune page rattachée",
+        "unresolved": "{{count}} adresse citée ne correspond à aucune page du site. Un administrateur du site peut la rattacher à une page dans les Paramètres du site, sous Gouvernance des contenus, BotRank.",
+        "unresolved_plural": "{{count}} adresses citées ne correspondent à aucune page du site. Un administrateur du site peut les rattacher à des pages dans les Paramètres du site, sous Gouvernance des contenus, BotRank.",
+        "hosts": "Par hôte",
+        "host": "Hôte",
+        "approxShare": "Part, approchée",
+        "hostsNote": "Calculé ici à partir des pages citées de chaque hôte, puisque BotRank ne filtre par hôte que sa liste de pages. La part est estimée à partir des chiffres du domaine.",
+        "byEngine": "Visibilité de la marque par moteur",
+        "byMarket": "Visibilité de la marque par marché",
+        "oneMarket": "Un seul marché suivi : {{market}}, avec le score du projet, {{score}}.",
+        "engines": "Moteurs suivis par le projet",
+        "enginesIntro": "Le rythme auquel BotRank interroge à nouveau chaque moteur. Les nouveaux chiffres arrivent après le prochain passage et la prochaine synchronisation quotidienne.",
+        "intervalNone": "Pas de rafraîchissement automatique",
+        "intervalDays": "Chaque jour",
+        "intervalDays_plural": "Tous les {{count}} jours",
+        "intervalWeeks": "Chaque semaine",
+        "intervalWeeks_plural": "Toutes les {{count}} semaines",
+        "intervalHours": "Toutes les heures",
+        "intervalHours_plural": "Toutes les {{count}} heures",
+        "source": "Source : BotRank. Les domaines et adresses viennent de réponses d'IA et sont affichés tels quels."
+      },
+      "tabHelp": {
+        "score": "À quel point cette page est prête à être lue et citée par les assistants IA, d'après les contrôles qui comptent le plus.",
+        "crawler": "Si chaque robot d'IA peut récupérer cette page, et ce qui le bloque.",
+        "files": "Ce que les fichiers robots.txt et llms.txt du site disent aux robots d'IA.",
+        "schema": "Les données structurées (JSON-LD) qui disent aux assistants de quoi parle cette page, et ce qui manque.",
+        "citations": "À quelle fréquence les réponses des IA citent cette page, et pour quelles questions, d'après BotRank."
+      }
+    },
+    "audit": {
+      "action": {
+        "open": "Audit de page"
+      },
+      "drawer": {
+        "title": "Qualité de la page",
+        "close": "Fermer le panneau",
+        "rerun": "Relancer",
+        "export": "Exporter JSON",
+        "hidePreview": "Masquer l'aperçu",
+        "showPreview": "Afficher l'aperçu",
+        "lastAudit": "Dernier audit : {{date}}",
+        "stale": "La page a été modifiée depuis ce dernier audit : les résultats ci-dessous peuvent être obsolètes. Relancez l'audit quand vos corrections sont terminées.",
+        "preview": "Aperçu de la page",
+        "loading": "Chargement de l'aperçu…",
+        "analyzing": "Analyse de la page…",
+        "error": "L'analyse a échoué",
+        "staleTitle": "Page modifiée depuis cet audit"
+      },
+      "tabs": {
+        "accessibility": "Accessibilité",
+        "seo": "SEO",
+        "links": "Liens",
+        "jahia": "Jahia",
+        "ai": "Revue IA",
+        "vitals": "Web Vitals",
+        "readability": "Lisibilité",
+        "ecodesign": "Écoconception",
+        "badgeTooltip": "{{count}} points à corriger",
+        "aiNotConfigured": "Aucun fournisseur IA n'est configuré sur ce serveur."
+      },
+      "eco": {
+        "score": "Critères de page respectés",
+        "scoreHint": "contrôles RGESN au niveau page",
+        "weight": "Poids de la page",
+        "requests": "Requêtes",
+        "thirdPartyHint": "{{count}} origines tierces",
+        "disclaimer": "Contrôles au niveau de la page sur les familles Frontend/Contenus du RGESN 2024. Ce n'est pas un score de conformité RGESN : une évaluation complète couvre tout le service (hébergement, backend, gouvernance) ; voir la liste de vérification manuelle ci-dessous. Les mesures de ressources proviennent du rendu en espace d'édition et sont indicatives.",
+        "criteria": "Critères de page automatisés",
+        "families": {
+          "frontend": "Frontend",
+          "contents": "Contenus",
+          "ux": "UX/UI",
+          "architecture": "Architecture",
+          "strategy": "Stratégie",
+          "hosting": "Hébergement",
+          "backend": "Backend"
+        },
+        "checks": {
+          "pageWeight": "Poids de la page",
+          "requests": "Requêtes HTTP",
+          "domSize": "Nœuds DOM",
+          "lazyLoading": "Images hors écran sans chargement différé",
+          "webFonts": "Fichiers de polices web",
+          "autoplay": "Médias en lecture automatique",
+          "imageFormats": "Images lourdes en format ancien",
+          "oversizedImages": "Images surdimensionnées",
+          "imageDimensions": "Images sans dimensions",
+          "thirdParty": "Origines tierces"
+        },
+        "recs": {
+          "pageWeight": {
+            "title": "Page lourde ({{size}})",
+            "detail": "Compressez les images, supprimez les scripts/styles inutilisés et différez les ressources non critiques. Une page plus légère consomme moins d'énergie et de bande passante par visite (RGESN Frontend)."
+          },
+          "requests": {
+            "title": "{{count}} requêtes HTTP",
+            "detail": "Chaque requête coûte un aller-retour et du travail serveur. Regroupez les ressources, différez le bas de page et retirez les scripts tiers inutiles (RGESN Frontend)."
+          },
+          "domSize": {
+            "title": "DOM volumineux ({{count}} nœuds)",
+            "detail": "Un DOM lourd augmente la mémoire et l'énergie de rendu sur l'appareil du visiteur. Simplifiez le balisage ou paginez les pages très longues (RGESN Frontend)."
+          },
+          "lazyLoading": {
+            "title": "{{count}} images hors écran chargées immédiatement",
+            "detail": "Ajoutez loading=\"lazy\" pour ne charger les images hors écran que si le visiteur y défile - évite de télécharger des données jamais vues (RGESN Frontend)."
+          },
+          "imageFormats": {
+            "title": "{{count}} images lourdes en format ancien",
+            "detail": "Servez du WebP ou de l'AVIF plutôt que du JPEG/PNG pour une forte réduction de taille à qualité égale ; laissez Jahia générer des rendus en format moderne (RGESN Contenus)."
+          },
+          "oversizedImages": {
+            "title": "{{count}} images plus grandes qu'affichées",
+            "detail": "Le fichier source est bien plus gros que sa taille affichée. Chargez des variantes redimensionnées ou des rendus responsives pour ne transférer aucun pixel inutile (RGESN Contenus)."
+          },
+          "imageDimensions": {
+            "title": "{{count}} images sans width/height",
+            "detail": "Des dimensions explicites évitent les recalculs de mise en page (et l'énergie de rendu associée) au chargement des images (RGESN Contenus)."
+          },
+          "webFonts": {
+            "title": "{{count}} fichiers de polices web chargés",
+            "detail": "Chaque fichier de police est un téléchargement supplémentaire. Préférez les polices système, limitez les graisses/styles et n'utilisez que le WOFF2 (RGESN Frontend)."
+          },
+          "autoplay": {
+            "title": "{{count}} médias en lecture automatique",
+            "detail": "Les vidéos/audios en lecture automatique consomment bande passante et batterie avant toute interaction. Exigez une action de lecture explicite (RGESN UX/UI)."
+          },
+          "thirdParty": {
+            "title": "{{count}} origines tierces",
+            "detail": "Chaque origine externe ajoute des connexions DNS/TLS, de l'énergie et une exposition vie privée. Auto-hébergez ou retirez les tiers non essentiels (RGESN Architecture)."
+          }
+        },
+        "checklist": {
+          "title": "Liste de vérification manuelle (service entier, non automatisable)",
+          "intro": "Ces critères RGESN s'évaluent au niveau du service et ne peuvent pas être jugés depuis une seule page. Passez-les en revue avec l'équipe responsable de la plateforme.",
+          "families": {
+            "strategy": "Stratégie & gouvernance",
+            "hosting": "Hébergement",
+            "backend": "Backend & données",
+            "ux": "UX / fonctionnalités"
+          },
+          "items": {
+            "envTarget": {
+              "title": "Des objectifs environnementaux sont définis et pilotés",
+              "detail": "Le service a des objectifs d'écoconception documentés et un responsable qui en rend compte (RGESN Stratégie)."
+            },
+            "reviewMissing": {
+              "title": "L'impact environnemental est mesuré et suivi",
+              "detail": "Des indicateurs d'impact sont suivis au fil des versions, pas fixés une fois puis oubliés (RGESN Stratégie)."
+            },
+            "greenHost": {
+              "title": "Hébergement bas carbone",
+              "detail": "L'infrastructure tourne chez un hébergeur au PUE faible documenté et engagé sur les énergies renouvelables (RGESN Hébergement)."
+            },
+            "caching": {
+              "title": "Cache efficace des ressources statiques",
+              "detail": "Des en-têtes de cache longue durée et un CDN évitent de re-télécharger les ressources inchangées à chaque visite (RGESN Hébergement/Architecture)."
+            },
+            "apiEfficiency": {
+              "title": "Les API ne renvoient que le nécessaire",
+              "detail": "Les endpoints évitent la sur-récupération ; les charges utiles sont paginées et limitées aux champs réellement utilisés (RGESN Backend)."
+            },
+            "pagination": {
+              "title": "Pagination plutôt que défilement infini pour les longues listes",
+              "detail": "Le défilement infini charge sans cesse des données que le visiteur ne lira peut-être jamais ; paginez ou chargez à la demande (RGESN Backend/UX)."
+            },
+            "featureNeed": {
+              "title": "Chaque fonctionnalité justifie son empreinte",
+              "detail": "Les fonctionnalités sont justifiées par un besoin utilisateur ; les inutilisées sont retirées plutôt que livrées et maintenues (RGESN UX)."
+            },
+            "noDarkPattern": {
+              "title": "Pas de dark patterns d'engagement",
+              "detail": "Carrousels en lecture auto, notifications agressives et fils sans fin génèrent trafic et énergie inutiles - évitez-les (RGESN UX)."
+            }
+          }
+        }
+      },
+      "copy": {
+        "action": "Copier",
+        "done": "Copié"
+      },
+      "ai": {
+        "checking": "Vérification de la disponibilité de la revue IA…",
+        "notConfigured": "La revue IA n'est pas configurée sur ce serveur. Un administrateur du serveur renseigne AI_PROVIDER, AI_MODEL et AI_API_KEY dans :",
+        "intro": "Envoie le texte de la page et les résultats de l'audit à {{provider}} ({{model}}) et renvoie des recommandations priorisées pour les contributeurs. La clé API reste sur le serveur.",
+        "generate": "Générer la revue IA",
+        "regenerate": "Régénérer",
+        "generating": "Analyse de la page par l'IA… quelques secondes.",
+        "summary": "Évaluation globale",
+        "error": "La revue IA a échoué",
+        "poweredBy": "Généré par {{provider}} · {{model}}",
+        "usage": "Tokens : {{input}} entrée / {{output}} sortie",
+        "truncated": "La réponse a été coupée par la limite AI_MAX_TOKENS : certaines recommandations peuvent manquer. Demandez à un administrateur d'augmenter AI_MAX_TOKENS dans la configuration du module.",
+        "cost": "Coût estimé : {{cost}} $",
+        "disclaimer": "Suggestions générées par IA : à relire avant application.",
+        "fix": "Correction proposée",
+        "categories": {
+          "content": "Contenu",
+          "seo": "SEO",
+          "accessibility": "Accessibilité",
+          "performance": "Performance",
+          "ux": "UX",
+          "proofreading": "Orthographe",
+          "factuality": "Exactitude",
+          "consistency": "Cohérence",
+          "conversion": "Conversion",
+          "localization": "Localisation",
+          "legal": "Juridique",
+          "ecodesign": "Écoconception"
+        }
+      },
+      "jahia": {
+        "summary": "Synthèse de la page",
+        "pageStatus": "Statut de publication de la page",
+        "scanned": "{{count}} nœuds de contenu analysés",
+        "languages": "Langues du site vérifiées",
+        "unpublished": "Contenus non visibles des visiteurs",
+        "untranslated": "Traductions manquantes",
+        "rawKeys": "Clés de traduction brutes visibles sur la page",
+        "placeholders": "Textes de remplissage",
+        "statuses": {
+          "PUBLISHED": "Publié",
+          "MODIFIED": "Modifié (changements non publiés)",
+          "NOT_PUBLISHED": "Jamais publié",
+          "UNPUBLISHED": "Dépublié",
+          "MARKED_FOR_DELETION": "Marqué pour suppression",
+          "CONFLICT": "Conflit",
+          "LIVE_MODIFIED": "Modifié en live",
+          "LIVE_ONLY": "Live uniquement",
+          "MANDATORY_LANGUAGE_UNPUBLISHABLE": "Langue obligatoire manquante",
+          "MANDATORY_LANGUAGE_VALID": "Langue obligatoire valide",
+          "DELETED": "Supprimé"
+        },
+        "recs": {
+          "rawI18nKeys": {
+            "title": "{{count}} clés de traduction brutes visibles des visiteurs",
+            "detail": "Un texte comme namespace:key.path signifie qu'une entrée de resource bundle ou de JSON de locale manque : les visiteurs voient la clé technique au lieu du libellé. Généralement un oubli i18n du module."
+          },
+          "unpublishedChanges": {
+            "title": "{{count}} blocs de contenu non publiés",
+            "detail": "Ces nœuds ont été modifiés ou jamais publiés : les visiteurs voient actuellement une version plus ancienne de la page, ou rien du tout. Publiez la page pour aligner le live sur ce que vous éditez."
+          },
+          "missingTranslations": {
+            "title": "{{count}} blocs de contenu sans traduction ({{languages}})",
+            "detail": "Ce contenu s'affiche vide ou retombe sur une autre langue pour les visiteurs naviguant dans ces langues. Ouvrez chaque nœud dans l'éditeur et complétez les langues manquantes."
+          },
+          "placeholderText": {
+            "title": "{{count}} textes de remplissage sur la page",
+            "detail": "Du lorem ipsum / TODO est encore visible. Remplacez-le par le contenu final avant publication."
+          },
+          "graphqlUnavailable": {
+            "title": "Les vérifications du référentiel n'ont pas pu s'exécuter",
+            "detail": "La requête GraphQL a échoué : les contrôles de publication et de traduction ont été ignorés. Les contrôles sur la page restent valides."
+          }
+        }
+      },
+      "seo": {
+        "preview": "Aperçu de partage social",
+        "noPreview": "Aucun titre ni og:title trouvé : rien à prévisualiser.",
+        "noOgImage": "Pas d'og:image : les liens partagés n'auront pas de visuel",
+        "tags": "Liste des balises",
+        "missing": "absent",
+        "chars": "{{count}} caractères",
+        "defaultIndexable": "non défini (indexable)",
+        "jsonLdValue": "{{count}} bloc(s), {{errors}} erreur(s)",
+        "hreflangValue": "{{count}} lien(s) de langue alternative",
+        "imageAltValue": "{{missing}} images sur {{total}} sans alt",
+        "assist": {
+          "title": "Suggestions IA",
+          "intro": "Propositions de titre, meta description, mots-clés et titres de section prêtes à coller, rédigées dans la langue de la page ({{language}}) par {{provider}} à partir de ce que la page dit réellement. Copiez-les dans les propriétés SEO de la page ou dans le contenu des titres - rien n'est modifié automatiquement.",
+          "generate": "Suggérer avec l'IA",
+          "regenerate": "Regénérer les suggestions",
+          "generating": "Rédaction des suggestions… cela prend quelques secondes.",
+          "error": "Échec des suggestions IA",
+          "titles": "Balise title",
+          "descriptions": "Meta description",
+          "social": "Partage social (Open Graph)",
+          "socialHint": "og:title et og:description pour la carte de partage sur les réseaux sociaux et messageries - à renseigner dans les propriétés sociales/SEO de la page.",
+          "keywords": "Mots-clés",
+          "keywordsHint": "Mot-clé principal (foncé) et termes associés à intégrer dans les titres et le texte. Les moteurs ignorent la balise meta keywords : utilisez-les pour guider la rédaction, pas comme balise.",
+          "focus": "Mot-clé principal",
+          "ctas": "Libellés des appels à l'action",
+          "ctasHint": "Les libellés génériques (« En savoir plus », « Cliquez ici », « Envoyer ») n'apprennent rien aux visiteurs ni aux moteurs. Choisissez un libellé précis et appliquez-le au lien ou au bouton dans l'éditeur de contenu.",
+          "headings": "Réécriture des titres",
+          "headingsHint": "Les titres font partie du contenu : modifiez le composant de titre dans l'éditeur de contenu, pas les propriétés SEO.",
+          "missingHeading": "Pas de h1 sur la page - proposition :"
+        },
+        "fields": {
+          "title": "Titre",
+          "description": "Meta description",
+          "canonical": "URL canonique",
+          "robots": "Directives robots",
+          "ogTitle": "og:title",
+          "ogDescription": "og:description",
+          "ogImage": "og:image",
+          "twitterCard": "twitter:card",
+          "jsonLd": "Données structurées (JSON-LD)",
+          "lang": "Attribut lang du HTML",
+          "hreflang": "Alternatives hreflang",
+          "imageAlt": "Textes alt des images"
+        },
+        "recs": {
+          "noTitle": {
+            "title": "La page n'a pas de titre",
+            "detail": "La balise <title> est le signal SEO le plus fort et le texte affiché dans les résultats de recherche. Renseignez-la dans les propriétés SEO de la page."
+          },
+          "titleLength": {
+            "title": "Le titre fait {{length}} caractères",
+            "detail": "Visez {{min}} à {{max}} caractères : plus court gaspille l'espace, plus long est tronqué dans les résultats de recherche."
+          },
+          "noDescription": {
+            "title": "Pas de meta description",
+            "detail": "Les moteurs choisiront un extrait arbitraire. Rédigez un résumé de 50 à 160 caractères qui donne envie de cliquer."
+          },
+          "descriptionLength": {
+            "title": "La meta description fait {{length}} caractères",
+            "detail": "Visez {{min}} à {{max}} caractères pour que le texte s'affiche en entier dans les résultats."
+          },
+          "noindex": {
+            "title": "Page exclue des moteurs de recherche (noindex)",
+            "detail": "La balise robots contient noindex ({{content}}). Si cette page doit être publique, retirez-la : elle n'apparaîtra jamais dans les résultats."
+          },
+          "nofollow": {
+            "title": "Liens non suivis (nofollow)",
+            "detail": "La balise robots contient nofollow ({{content}}) : les moteurs ignorent tous les liens de cette page. Vérifiez que c'est volontaire."
+          },
+          "noCanonical": {
+            "title": "Pas d'URL canonique",
+            "detail": "Un lien canonical évite les problèmes de contenu dupliqué quand la page est accessible par plusieurs URL (URL de vanité, paramètres)."
+          },
+          "incompleteOg": {
+            "title": "Balises Open Graph incomplètes",
+            "detail": "Sans og:title et og:image, les liens partagés sur les réseaux sociaux et messageries s'affichent comme des URL brutes. Renseignez les propriétés sociales/SEO de la page."
+          },
+          "invalidStructuredData": {
+            "title": "{{count}} blocs JSON-LD invalides",
+            "detail": "Les données structurées ne se parsent pas : les moteurs les ignorent. Validez le balisage JSON-LD."
+          },
+          "noStructuredData": {
+            "title": "Pas de données structurées",
+            "detail": "Le JSON-LD (Article, Organization, BreadcrumbList…) permet les résultats enrichis dans les moteurs. Utile sur les pages clés."
+          },
+          "noLang": {
+            "title": "Attribut lang absent sur <html>",
+            "detail": "Les lecteurs d'écran et les moteurs ne peuvent pas déterminer la langue de la page. Le template doit définir <html lang>."
+          },
+          "langMismatch": {
+            "title": "La page déclare lang=\"{{htmlLang}}\" mais est auditée en \"{{expected}}\"",
+            "detail": "Un attribut lang erroné perturbe les moteurs et la prononciation des lecteurs d'écran. Vérifiez la gestion de langue du template."
+          },
+          "missingAlt": {
+            "title": "{{count}} images sans attribut alt",
+            "detail": "Le texte alt est ce que comprennent les moteurs et les lecteurs d'écran. Renseignez le champ alt de chaque image dans l'éditeur."
+          },
+          "genericAnchors": {
+            "title": "{{count}} libellés de lien génériques (« cliquez ici », « en savoir plus »…)",
+            "detail": "Un libellé descriptif aide le SEO et les utilisateurs de lecteurs d'écran. Dites où mène le lien : « Lire le rapport annuel 2026 »."
+          }
+        }
+      },
+      "links": {
+        "summary": "Synthèse des liens",
+        "total": "Liens au total",
+        "internal": "Internes",
+        "external": "Externes",
+        "checked": "{{count}} vérifiés",
+        "skipped": "{{count}} ignorés (login/logout/actions)",
+        "truncated": "{{count}} non vérifiés (limite atteinte)",
+        "externalNote": "les liens externes ne sont pas vérifiés (restriction cross-origin du navigateur)",
+        "broken": "Liens cassés",
+        "statusError": "erreur",
+        "recs": {
+          "brokenLinks": {
+            "title": "{{count}} liens internes cassés",
+            "detail": "Ces liens renvoient une erreur aux visiteurs. Corrigez-les ou supprimez-les : la liste ci-dessous les localise avec un bouton de surlignage."
+          },
+          "hardcodedUrls": {
+            "title": "{{count}} URL absolues codées en dur vers ce serveur",
+            "detail": "Les liens écrits avec le http(s)://hôte complet cassent au changement d'environnement ou de domaine. Utilisez des liens de page internes."
+          },
+          "mixedContent": {
+            "title": "{{count}} liens http:// sur une page https",
+            "detail": "Les navigateurs signalent ou bloquent le contenu mixte. Passez ces URL en https."
+          },
+          "blankNoopener": {
+            "title": "{{count}} liens target=\"_blank\" sans rel=\"noopener\"",
+            "detail": "Les pages ouvertes dans un nouvel onglet accèdent à l'objet window de cette page. Ajoutez rel=\"noopener\" dans le template ou le contenu riche."
+          }
+        }
+      },
+      "recs": {
+        "title": "Recommandations",
+        "none": "Rien à améliorer dans cette catégorie."
+      },
+      "a11y": {
+        "alt": {
+          "title": "Texte alternatif IA",
+          "intro": "{{count}} image(s) sans attribut alt. Propose un texte alternatif rédigé dans la langue de la page ({{language}}) à partir de l'image et de son contexte, à coller dans le champ alt de l'image dans l'éditeur de contenu. Les images purement décoratives sont identifiées pour leur donner un alt vide.",
+          "generate": "Suggérer les textes alternatifs",
+          "regenerate": "Regénérer les textes alternatifs",
+          "generating": "Description des images… cela prend quelques secondes.",
+          "error": "Échec des suggestions de texte alternatif",
+          "decorative": "Décorative - utiliser un alt vide",
+          "noPicture": "décrite d'après le contexte seulement",
+          "noVision": "Note : {{provider}} ne traite pas les images - les suggestions sont déduites du nom de fichier et du texte environnant uniquement. Les modèles Anthropic et OpenAI voient l'image réelle.",
+          "noAnswer": "Aucune suggestion renvoyée pour cette image.",
+          "more": "{{count}} autre(s) image(s) sans alt n'ont pas été envoyées (8 par requête) - corrigez celles-ci, relancez l'audit puis suggérez de nouveau."
+        },
+        "levels": {
+          "A": "WCAG A",
+          "AA": "WCAG AA",
+          "AAA": "WCAG AAA",
+          "BP": "Bonnes pratiques"
+        },
+        "impacts": {
+          "critical": "Critique",
+          "serious": "Sérieux",
+          "moderate": "Modéré",
+          "minor": "Mineur"
+        },
+        "passes": "{{count}} règles respectées",
+        "score": {
+          "label": "règles automatiques respectées",
+          "rules": "{{passed}}/{{total}} règles",
+          "violations": "{{count}} violation(s) · {{nodes}} éléments",
+          "notApplicable": "Aucune règle applicable"
+        },
+        "incomplete": "{{count}} à vérifier",
+        "noViolations": "Aucune violation détectée par les contrôles automatiques.",
+        "highlight": "Surligner dans l'aperçu",
+        "moreElements": "…et {{count}} éléments supplémentaires",
+        "machineNote": "Les contrôles automatiques couvrent une partie des critères WCAG. Un résultat sans violation ne certifie pas une conformité totale ; la liste de vérification manuelle ci-dessous couvre le reste.",
+        "engineInfo": "Moteur : {{engine}} · {{rules}} règles exécutées · {{passes}} conformes",
+        "needsReview": "À vérifier",
+        "incompleteTitle": "Contrôles automatiques nécessitant une revue humaine",
+        "incompleteNote": "Le moteur soupçonne un problème mais ne peut pas trancher automatiquement : examinez chaque cas.",
+        "checklist": {
+          "title": "Liste de vérification manuelle (non automatisable)",
+          "intro": "Ces critères WCAG demandent un jugement humain : aucun outil ne peut les vérifier. Passez-les en revue une fois par type de page ou de gabarit.",
+          "items": {
+            "keyboard": {
+              "title": "Tout est utilisable au clavier seul",
+              "detail": "Tab / Maj+Tab sur toute la page : chaque menu, carrousel, accordéon et dialogue doit être atteignable et utilisable, sans piège de focus (WCAG 2.1.1, 2.1.2)."
+            },
+            "altQuality": {
+              "title": "Les textes alt sont porteurs de sens",
+              "detail": "L'outil vérifie que l'alt existe ; vous seul pouvez juger s'il décrit l'image. Les images décoratives doivent avoir un alt vide (WCAG 1.1.1)."
+            },
+            "media": {
+              "title": "Les vidéos ont des sous-titres, l'audio une transcription",
+              "detail": "Et les sous-titres sont exacts, pas seulement générés automatiquement (WCAG 1.2.1-1.2.3)."
+            },
+            "focusOrder": {
+              "title": "L'ordre de focus et de lecture suit l'ordre visuel",
+              "detail": "Parcourez la page au Tab : le focus doit avancer dans l'ordre où un lecteur voyant balaie la page (WCAG 1.3.2, 2.4.3)."
+            },
+            "linkPurpose": {
+              "title": "Chaque lien est compréhensible hors contexte",
+              "detail": "Un utilisateur de lecteur d'écran liste souvent tous les liens : chaque libellé seul doit dire où il mène (WCAG 2.4.4)."
+            },
+            "zoom": {
+              "title": "Page utilisable à 200 % de zoom",
+              "detail": "Ctrl/Cmd + jusqu'à 200 % : aucune perte de texte, aucun chevauchement (WCAG 1.4.4)."
+            },
+            "reflow": {
+              "title": "Le contenu se réorganise à 320 px de large",
+              "detail": "Rétrécissez la fenêtre (ou utilisez l'aperçu mobile) : pas de défilement horizontal du corps de page (WCAG 1.4.10)."
+            },
+            "focusVisible": {
+              "title": "Le focus clavier est toujours visible",
+              "detail": "En tabulant, vous devez toujours voir où vous êtes : pas d'état de focus invisible (WCAG 2.4.7)."
+            },
+            "formErrors": {
+              "title": "Les erreurs de formulaire sont expliquées et corrigeables",
+              "detail": "Les erreurs sont signalées en texte (pas seulement par la couleur) et proposent une correction (WCAG 3.3.1, 3.3.3)."
+            },
+            "consistency": {
+              "title": "Navigation et composants cohérents entre les pages",
+              "detail": "Menus, recherche, fil d'Ariane apparaissent au même endroit et se comportent pareil sur chaque page (WCAG 3.2.3, 3.2.4)."
+            },
+            "readingLevel": {
+              "title": "Texte compréhensible au niveau collège",
+              "detail": "Utilisez l'onglet Lisibilité comme indicateur, puis jugez vous-même le jargon et la complexité des phrases (WCAG 3.1.5)."
+            },
+            "timing": {
+              "title": "Pas de limite de temps, ou désactivable",
+              "detail": "Sessions, carrousels ou formulaires ne doivent pas expirer sans avertissement ni contrôle (WCAG 2.2.3)."
+            },
+            "targetSize": {
+              "title": "Cibles tactiles d'au moins 44×44 px",
+              "detail": "Boutons et liens confortablement cliquables sur mobile, avec de l'espacement entre eux (WCAG 2.5.5)."
+            },
+            "contextHelp": {
+              "title": "Aide contextuelle disponible",
+              "detail": "Les formulaires complexes offrent une aide ou des instructions là où l'utilisateur en a besoin (WCAG 3.3.5)."
+            }
+          }
+        }
+      },
+      "vitals": {
+        "labNote": "Mesure en laboratoire de ce rendu d'aperçu. Les valeurs sont indicatives et diffèrent des données réelles des visiteurs.",
+        "metrics": {
+          "lcp": "LCP",
+          "cls": "CLS",
+          "ttfb": "TTFB",
+          "dcl": "DOM prêt",
+          "load": "Chargement complet",
+          "inp": "INP"
+        },
+        "approx": "estimation",
+        "bands": {
+          "good": "Bon",
+          "ni": "À améliorer",
+          "poor": "Faible"
+        },
+        "inpNa": "n/d",
+        "diagnostics": "Diagnostics",
+        "requests": "Requêtes",
+        "weight": "Poids de la page",
+        "domNodes": "Nœuds DOM",
+        "images": "Images",
+        "missingDims": "{{count}} sans width/height",
+        "oversized": "{{count}} surdimensionnées",
+        "largest": "Ressources les plus lourdes",
+        "recs": {
+          "slowLcp": {
+            "title": "Le contenu principal s'affiche lentement",
+            "detail": "Compressez ou préchargez l'image principale / le plus gros bloc pour que les visiteurs voient le contenu essentiel plus tôt."
+          },
+          "highCls": {
+            "title": "La mise en page bouge pendant le chargement",
+            "detail": "Réservez l'espace des images, embeds et blocs chargés tardivement pour que la page ne saute pas sous les yeux du lecteur."
+          },
+          "slowTtfb": {
+            "title": "Réponse serveur lente (TTFB)",
+            "detail": "Le HTML lui-même arrive lentement : activez le cache de page ou vérifiez la charge serveur avant toute autre optimisation."
+          },
+          "missingDims": {
+            "title": "{{count}} images sans attributs width/height",
+            "detail": "Ajoutez width et height pour que le navigateur réserve l'espace : c'est la première cause de sauts de mise en page."
+          },
+          "oversizedImages": {
+            "title": "{{count}} images plus lourdes que nécessaire",
+            "detail": "Le fichier source fait plus du double de sa taille affichée. Chargez des variantes redimensionnées ou laissez Jahia servir des rendus plus petits."
+          },
+          "heavyPage": {
+            "title": "Page lourde ({{size}})",
+            "detail": "Compressez les images et supprimez les scripts/styles inutilisés pour réduire le poids total, surtout pour les visiteurs mobiles."
+          },
+          "manyRequests": {
+            "title": "{{count}} requêtes réseau",
+            "detail": "Regroupez ou supprimez des ressources et chargez le bas de page à la demande : chaque requête ajoute de la latence."
+          },
+          "largeDom": {
+            "title": "DOM volumineux ({{count}} nœuds)",
+            "detail": "Simplifiez le balisage ou découpez les pages très longues : un DOM volumineux ralentit le rendu et chaque interaction."
+          },
+          "heavyAssets": {
+            "title": "{{count}} fichiers très lourds (ex. {{name}})",
+            "detail": "Minifiez, compressez ou découpez ces ressources, ou chargez-les uniquement là où elles servent."
+          }
+        }
+      },
+      "readability": {
+        "simplify": {
+          "title": "Réécritures en langage clair (IA)",
+          "intro": "Le score pénalise les phrases longues ({{count}} de plus de 25 mots). Réécrit jusqu'à 6 des phrases de paragraphe les plus difficiles en langage clair ({{language}}) - mêmes faits, phrases plus courtes, mots courants - à coller à la place de l'original dans l'éditeur de contenu.",
+          "generate": "Réécrire les phrases les plus difficiles",
+          "regenerate": "Regénérer les réécritures",
+          "generating": "Réécriture en cours… cela prend quelques secondes.",
+          "error": "Échec des réécritures en langage clair",
+          "words": "{{count}} mots",
+          "noAnswer": "Aucune réécriture renvoyée pour cette phrase.",
+          "more": "{{count}} autre(s) phrase(s) longue(s) n'ont pas été envoyées (6 par requête) - corrigez celles-ci, relancez l'audit puis réécrivez de nouveau."
+        },
+        "score": "Score de lisibilité",
+        "bands": {
+          "veryEasy": "Très facile",
+          "easy": "Facile",
+          "standard": "Standard",
+          "difficult": "Difficile",
+          "veryDifficult": "Très difficile"
+        },
+        "gradeLevel": "Niveau scolaire",
+        "readingTime": "Temps de lecture",
+        "minutes": "min",
+        "textStats": "Statistiques du texte",
+        "words": "Mots",
+        "sentences": "Phrases",
+        "avgSentenceLength": "Mots par phrase (moy.)",
+        "longSentences": "Phrases longues (>25 mots)",
+        "longSentencesHint": "envisagez de les découper",
+        "paragraphs": "Paragraphes",
+        "avgWordsPerParagraph": "mots en moy.",
+        "structure": "Structure",
+        "h1Count": "Titres H1",
+        "h1Hint": "une page doit avoir exactement un H1",
+        "headingSkips": "Niveaux de titre sautés",
+        "headingSkipsHint": "évitez de sauter des niveaux (ex. H2 vers H4)",
+        "noText": "Texte insuffisant sur cette page pour calculer la lisibilité ({{count}} mots trouvés).",
+        "recs": {
+          "veryHardText": {
+            "title": "Texte très difficile à lire (score {{score}})",
+            "detail": "Raccourcissez les phrases et privilégiez les mots courants. Visez un score supérieur à 50 pour un public généraliste."
+          },
+          "hardText": {
+            "title": "Texte difficile à lire (score {{score}})",
+            "detail": "Raccourcissez les phrases les plus longues et remplacez le jargon : un score de 50 à 70 convient à la plupart des visiteurs."
+          },
+          "longSentences": {
+            "title": "{{count}} phrases de plus de 25 mots",
+            "detail": "Découpez-les : une idée par phrase. Les phrases longues sont la première cause d'un mauvais score de lisibilité."
+          },
+          "longParagraphs": {
+            "title": "Paragraphes denses ({{count}} mots en moyenne)",
+            "detail": "Aérez le texte : 40 à 60 mots par paragraphe restent confortables à l'écran."
+          },
+          "h1Count": {
+            "title": "{{count}} titres H1 sur la page",
+            "detail": "Utilisez exactement un H1 : il structure la page pour les lecteurs, les lecteurs d'écran et les moteurs de recherche."
+          },
+          "headingSkips": {
+            "title": "{{count}} niveaux de titre sautés",
+            "detail": "Ne sautez pas de niveaux (ex. H2 directement vers H4) : corrigez la hiérarchie pour garder un plan de document cohérent."
+          },
+          "thinContent": {
+            "title": "Peu de texte sur la page ({{count}} mots)",
+            "detail": "Une page de moins de 300 mots informe mal et se référence mal. Étoffez le contenu ou fusionnez-le ailleurs."
+          }
+        }
+      },
+      "tabHelp": {
+        "accessibility": "Contrôles WCAG automatiques avec axe-core : problèmes par gravité, points à vérifier à la main et textes alternatifs proposés par l'IA pour les images qui n'en ont pas.",
+        "seo": "Titre, méta-description, indexation, adresse canonique, carte de partage sur les réseaux, données structurées et textes des liens, avec des formulations proposées par l'IA.",
+        "vitals": "La vitesse de chargement de la page et sa stabilité, mesurées dans votre navigateur, avec ce qui l'alourdit.",
+        "readability": "La facilité de lecture du texte dans sa langue : score, phrases longues et titres, avec des réécritures plus simples proposées par l'IA.",
+        "ecodesign": "Contrôles d'écoconception du référentiel RGESN : poids de la page, requêtes, images, polices, médias et services tiers.",
+        "links": "Liens internes cassés, adresses écrites en entier, contenu mixte et liens ouvrant une nouvelle fenêtre sans protection.",
+        "jahia": "Les contrôles que seul Jahia peut faire : contenus non publiés sur la page, traductions manquantes, libellés bruts et textes de remplissage.",
+        "ai": "Une revue du texte de la page par le modèle d'IA configuré sur le serveur, avec chaque remarque et la formulation exacte à changer."
+      }
+    },
+    "compliance": {
+      "action": {
+        "open": "Contrôle de conformité"
+      },
+      "dialog": {
+        "title": "Contrôle de conformité de la page",
+        "running": "Analyse du contenu de la page...",
+        "close": "Fermer",
+        "rescan": "Relancer le contrôle",
+        "error": {
+          "title": "Le contrôle n'a pas abouti",
+          "message": "La page n'a pas pu être analysée. Vérifiez que vous pouvez la modifier, puis relancez le contrôle."
+        }
+      },
+      "status": {
+        "safe": "Conforme",
+        "issues": "Non conforme",
+        "noGlossary": "Non contrôlée"
+      },
+      "summary": {
+        "safe": "Aucun terme non autorisé dans le {{count}} contenu lu ({{language}}).",
+        "safe_plural": "Aucun terme non autorisé dans les {{count}} contenus lus ({{language}}).",
+        "safe_one": "Aucun terme non autorisé dans le {{count}} contenu lu ({{language}}).",
+        "safe_other": "Aucun terme non autorisé dans les {{count}} contenus lus ({{language}}).",
+        "issues": "{{count}} occurrence d'un terme non autorisé, dans {{contents}} contenu(s) ({{language}}).",
+        "issues_plural": "{{count}} occurrences de termes non autorisés, dans {{contents}} contenu(s) ({{language}}).",
+        "issues_one": "{{count}} occurrence d'un terme non autorisé, dans {{contents}} contenu(s) ({{language}}).",
+        "issues_other": "{{count}} occurrences de termes non autorisés, dans {{contents}} contenu(s) ({{language}}).",
+        "noGlossary": "Aucun glossaire ne s'applique à la langue {{language}} : rien n'a été contrôlé."
+      },
+      "banner": {
+        "beforePublishing": {
+          "title": "Ne publiez pas encore cette page",
+          "message": "Remplacez ou supprimez chaque terme ci-dessous avant de publier. Cette version du contrôle signale les termes : elle ne bloque pas la publication."
+        },
+        "noGlossary": {
+          "title": "Aucun glossaire pour la langue {{language}}",
+          "message": "Créez un glossaire de conformité dans les contenus du site (jContent, Dossiers de contenu), choisissez la langue {{language}} et ajoutez-y les termes non autorisés."
+        },
+        "notFramed": {
+          "title": "Listes non incluses",
+          "message": "Les contenus que les listes et d'autres composants vont chercher ailleurs ne sont lus que lorsque le contrôle est lancé depuis Page Builder. Ouvrez la page dans Page Builder pour les inclure."
+        },
+        "truncated": {
+          "title": "Contrôle arrêté à sa limite",
+          "message": "La page contient plus de contenus ou d'occurrences qu'un contrôle n'en lit. Corrigez les occurrences listées, puis relancez le contrôle."
+        }
+      },
+      "glossaries": {
+        "applied": "Glossaires appliqués :",
+        "item": "{{title}} ({{count}} terme)",
+        "item_plural": "{{title}} ({{count}} termes)",
+        "item_one": "{{title}} ({{count}} terme)",
+        "item_other": "{{title}} ({{count}} termes)"
+      },
+      "origin": {
+        "reference": "Contenu réutilisé",
+        "shared": "Contenu partagé",
+        "referenceHint": "Affiché sur cette page par la référence {{path}}. Le modifier change toutes les pages qui le réutilisent ; il est publié séparément.",
+        "sharedHint": "Stocké hors de cette page (une liste, par exemple) et affiché sur d'autres pages ; il est publié séparément.",
+        "sharedAreaHint": "Stocké sur la page {{path}} (en-tête, pied de page) et affiché sur cette page et d'autres ; il est publié avec cette page."
+      },
+      "issue": {
+        "edit": "Modifier",
+        "editLabel": "Modifier {{name}}",
+        "term": "Terme",
+        "reason": "Motif",
+        "alternative": "Écrire plutôt",
+        "listLabel": "Termes non autorisés trouvés, par contenu",
+        "glossary": "Glossaire"
+      },
+      "dashboard": {
+        "navLabel": "Conformité",
+        "title": "Conformité du site",
+        "running": "Analyse de chaque page et de chaque contenu du site...",
+        "exportCsv": "Exporter en CSV",
+        "exportJson": "Exporter en JSON",
+        "openPage": "Ouvrir dans Page Builder",
+        "openPageLabel": "Ouvrir {{name}} dans Page Builder",
+        "error": "Le site n'a pas pu être analysé. Vérifiez que vous pouvez ouvrir ce site dans jContent, puis relancez le contrôle.",
+        "truncated": "Le site contient plus de contenus ou d'occurrences qu'un contrôle n'en lit : le rapport couvre la première partie du site.",
+        "summary": {
+          "safe": "Aucun terme non autorisé dans les pages et contenus lus ({{language}}).",
+          "read": "Pages lues : {{pages}}. Contenus lus : {{contents}}.",
+          "issues": "{{count}} occurrence d'un terme non autorisé, dans {{locations}} page(s) ou contenu(s) ({{language}}).",
+          "issues_plural": "{{count}} occurrences de termes non autorisés, dans {{locations}} page(s) ou contenu(s) ({{language}}).",
+          "issues_one": "{{count}} occurrence d'un terme non autorisé, dans {{locations}} page(s) ou contenu(s) ({{language}}).",
+          "issues_other": "{{count}} occurrences de termes non autorisés, dans {{locations}} page(s) ou contenu(s) ({{language}})."
+        },
+        "terms": {
+          "title": "Termes trouvés",
+          "term": "Terme",
+          "reason": "Motif",
+          "uses": "Occurrences",
+          "locations": "Pages et contenus",
+          "empty": "Aucun terme trouvé."
+        },
+        "locations": {
+          "title": "Pages et contenus concernés",
+          "place": "Page ou contenu",
+          "type": "Type",
+          "issues": "Occurrences",
+          "actions": "Actions",
+          "empty": "Aucune page ni aucun contenu n'emploie de terme non autorisé.",
+          "count": "{{count}} occurrence",
+          "count_plural": "{{count}} occurrences",
+          "count_one": "{{count}} occurrence",
+          "count_other": "{{count}} occurrences"
+        },
+        "kind": {
+          "page": "Page",
+          "content": "Contenu"
+        },
+        "pagination": {
+          "perPage": "Lignes par page",
+          "of": "sur"
+        },
+        "skipped": "{{count}} page(s) ou contenu(s) n'ont pas pu être lus et ne figurent pas dans le rapport ; le journal de Jahia les cite."
+      }
+    },
+    "common": {
+      "ai": {
+        "generate": "Générer avec l'IA",
+        "notConfigured": "L'IA n'est pas configurée sur ce serveur. Un administrateur du serveur renseigne un fournisseur, un modèle et une clé dans digital-factory-data/karaf/etc/org.jahia.community.contentgovernance.llm.cfg."
+      },
+      "sectionOff": {
+        "title": "Désactivé pour ce site",
+        "message": "Un administrateur du site a désactivé cette section dans les Paramètres du site, Gouvernance des contenus."
+      }
+    },
+    "drawer": {
+      "action": "Gouvernance des contenus",
+      "title": "Gouvernance des contenus",
+      "close": "Fermer le panneau",
+      "sections": "Sections",
+      "section": {
+        "audit": "Qualité de la page",
+        "geo": "Préparation GEO",
+        "compliance": "Conformité"
+      },
+      "unavailable": {
+        "notPage": "Le contrôle de conformité lit une page et ce qu'elle affiche : ouvrez une page pour l'utiliser.",
+        "noWrite": "Le contrôle de conformité est réservé aux personnes qui peuvent modifier cette page."
+      },
+      "nothingAvailable": "Aucune section de Gouvernance des contenus ne peut être utilisée sur ce contenu.",
+      "sectionHelp": {
+        "audit": "Contrôle la page que vous modifiez : accessibilité, SEO, vitesse, lisibilité, écoconception, liens et contenus Jahia, avec des suggestions de l'IA à la demande.",
+        "geo": "Si les assistants IA et leurs robots peuvent lire et citer la page publiée : score, accès des robots, fichiers du site, données structurées et citations par les IA.",
+        "compliance": "Les termes des glossaires du site que cette page, et les contenus qu'elle affiche, ne doivent pas employer dans cette langue."
+      }
+    },
+    "settings": {
+      "navLabel": "Gouvernance des contenus",
+      "title": "Gouvernance des contenus",
+      "notEnabled": "Content Governance n'est pas activé sur ce site, ou vous n'en êtes pas administrateur. Activez le module dans les Paramètres du site, Modules.",
+      "panelTab": {
+        "features": "Fonctionnalités",
+        "ai": "Fournisseur IA",
+        "botrank": "BotRank"
+      },
+      "save": "Enregistrer",
+      "readOnlyTitle": "Lecture seule",
+      "readOnly": "Seul un administrateur du site peut modifier ces réglages.",
+      "errorTitle": "Non enregistré",
+      "error": "Les réglages n'ont pas pu être enregistrés. Réessayez ; si cela persiste, vérifiez que vous êtes toujours administrateur du site.",
+      "loadError": "Les réglages n'ont pas pu être lus. Rechargez la page pour réessayer.",
+      "savedTitle": "Enregistré",
+      "saved": "Les contributeurs voient le changement à la prochaine ouverture du panneau.",
+      "intro": "Choisissez ce que les contributeurs de ce site trouvent dans le panneau Gouvernance des contenus. Une section désactivée désactive aussi son tableau de bord (l'entrée reste et l'indique), et le serveur refuse ses appels. Les onglets gardent leur réglage tant que leur section est désactivée.",
+      "sectionHelp": {
+        "audit": "Accessibilité, SEO, Web Vitals, lisibilité, écoconception, liens et contrôles Jahia de la page, mesurés dans le navigateur, avec une revue par l'IA à la demande.",
+        "geo": "Si les robots des IA peuvent lire la page, les fichiers du site (robots.txt, llms.txt), les données structurées et les citations par les IA issues de BotRank. Aussi le tableau de bord Préparation GEO, sous Supplémentaire, SEO.",
+        "compliance": "Les termes des glossaires du site que la page et ce qu'elle affiche ne doivent pas employer, par langue. Aussi le tableau de bord Conformité, sous Supplémentaire."
+      },
+      "sectionSwitch": "Section {{section}}",
+      "on": "Activée",
+      "off": "Désactivée",
+      "needsAi": "Nécessite un fournisseur IA",
+      "needsBotRank": "Nécessite une connexion BotRank",
+      "ai": {
+        "title": "Modèle partagé par les fonctionnalités d'IA",
+        "configured": "Configuré",
+        "notConfigured": "Non configuré",
+        "provider": "Fournisseur",
+        "model": "Modèle",
+        "images": "Lit les images (textes alternatifs)",
+        "yes": "Oui",
+        "no": "Non",
+        "howTo": "Tant qu'un fournisseur, un modèle et une clé ne sont pas renseignés, chaque fonctionnalité d'IA est grisée et rien ne quitte le serveur. Seul un administrateur du serveur peut les renseigner.",
+        "file": "Fichier de configuration, sur le serveur :",
+        "uses": "Utilisé par l'onglet Revue IA, les assistants SEO, textes alternatifs et langage clair, et le rapport rédigé du tableau de bord Préparation GEO. La clé n'est jamais envoyée au navigateur."
+      }
+    }
+  }
+}

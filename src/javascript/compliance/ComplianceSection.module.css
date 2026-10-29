@@ -1,0 +1,133 @@
+/* The modal is portaled to <body>: every token has a literal fallback. */
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--color-gray_light40, #dfe3e8);
+    flex-shrink: 0;
+}
+
+.body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--moon-spacing-medium, 16px);
+    min-width: 0;
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px 20px 24px;
+}
+
+/* The body is a fixed-height flex column that scrolls: without this its children shrink in height
+   instead, and Moonstone's Banner (a wrapping flex column) pushes its message into a second column
+   past the right edge. */
+.body > * {
+    flex-shrink: 0;
+}
+
+.loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--moon-spacing-medium, 16px);
+    padding: var(--moon-spacing-big, 32px) 0;
+}
+
+.summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--moon-spacing-small, 8px);
+}
+
+.glossaries {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--moon-spacing-small, 8px);
+}
+
+.groups,
+.issues {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.groups {
+    display: flex;
+    flex-direction: column;
+    gap: var(--moon-spacing-medium, 16px);
+}
+
+.group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--moon-spacing-small, 8px);
+    padding: var(--moon-spacing-medium, 16px);
+    border: 1px solid var(--moon-color-gray40, #dadee1);
+    border-radius: 4px;
+}
+
+.groupHeader {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--moon-spacing-small, 8px);
+}
+
+.groupTitle {
+    display: flex;
+    flex: 1 1 240px;
+    flex-direction: column;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.muted {
+    color: var(--moon-color-gray, #6b7780);
+}
+
+.issues {
+    display: flex;
+    flex-direction: column;
+    gap: var(--moon-spacing-small, 8px);
+}
+
+.issue {
+    display: flex;
+    flex-direction: column;
+    gap: var(--moon-spacing-nano, 4px);
+    padding-top: var(--moon-spacing-small, 8px);
+    border-top: 1px solid var(--moon-color-gray_light40, #eef0f1);
+}
+
+.excerpt {
+    overflow-wrap: anywhere;
+}
+
+.mark {
+    padding: 0 2px;
+    border-radius: 2px;
+    background: var(--moon-color-warning_plain20, #ffe8b3);
+    color: inherit;
+    font-weight: 600;
+}
+
+.details {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--moon-spacing-nano, 4px) var(--moon-spacing-small, 8px);
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.details dt {
+    font-weight: 600;
+}
+
+.details dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}

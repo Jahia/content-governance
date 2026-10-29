@@ -1,0 +1,9 @@
+{
+  "ink": "#22437d",
+  "out": "src/main/resources/icons",
+  "icons": {
+    "ccs:glossary": "book-a",
+    "ccs:glossaryTerm": "whole-word",
+    "ccsmix:complianceContent": "shield-check"
+  }
+}

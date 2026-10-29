@@ -1,0 +1,223 @@
+import React, {useCallback, useEffect, useState} from 'react';
+import PropTypes from 'prop-types';
+import {useGovernanceTranslation} from '../../common/i18n';
+import {Banner, Button, Chip, Loader, Typography} from '@jahia/moonstone';
+import {scanStatus, checkSitemap} from '../api/siteScore';
+import {jcontentUrl} from '../util/jcontentUrl';
+import {Paged} from '../util/Paged';
+import {Actions, Card, Figure, Figures, Meta, Note, Panel, PanelHeader} from '../dashboard/Layout';
+import styles from './Tabs.module.css';
+import {fetchErrorHint} from '../util/fetchError';
+
+// Enough rows to act on, few enough that one bad group cannot bury the rest.
+const GROUPS = ['redirects', 'missing', 'unknown', 'staleDate', 'noindexListed'];
+
+
+/**
+ * The sitemap against what the site actually publishes.
+ *
+ * Its own tab rather than a section of the score, because it is not a score:
+ * nothing here is a check a page passes or fails, and none of it changes the
+ * percentage. It also refreshes on its own - the comparison resolves entries
+ * against the repository instead of fetching them, so it costs no requests and
+ * has no reason to wait for a walk of every page.
+ */
+export const SitemapPanel = ({path, language}) => {
+    const {t} = useGovernanceTranslation('geo');
+    const [state, setState] = useState(null);
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState(null);
+
+    const load = useCallback(async () => {
+        try {
+            setState(await scanStatus({path, language}));
+        } catch (e) {
+            setError(e.code === 429 ? 'rate' : 'failed');
+        }
+    }, [path, language]);
+
+    useEffect(() => {
+        load();
+    }, [load]);
+
+    const check = useCallback(async () => {
+        setBusy(true);
+        setError(null);
+        try {
+            setState(await checkSitemap({path, language}));
+        } catch (e) {
+            setError(e.code === 429 ? 'rate' : 'failed');
+        } finally {
+            setBusy(false);
+        }
+    }, [path, language]);
+
+    if (!state) {
+        return <Loader size="big"/>;
+    }
+
+    const sitemap = state.sitemap;
+    const checkedAt = state.sitemapCheckedAt;
+    const missing = sitemap && sitemap.present ? (sitemap.missing || []).length : 0;
+
+    return (
+        <Panel>
+            <PanelHeader title={t('sitemap.title')} intro={t('sitemap.intro')}>
+                {checkedAt && (
+                    <Meta items={[{key: 'checked', text: t('sitemap.lastCheck', {date: new Date(checkedAt).toLocaleString()})}]}/>
+                )}
+            </PanelHeader>
+
+            <Card>
+                {sitemap && sitemap.present && (
+                    <>
+                        <Figures>
+                            <Figure label={t('sitemap.figureEntries')} value={sitemap.entries}/>
+                            <Figure label={t('sitemap.figurePublished')} value={sitemap.published}/>
+                            <Figure
+                                label={t('sitemap.kind.missing')}
+                                value={missing}
+                                tone={missing > 0 ? 'warn' : undefined}
+                            />
+                        </Figures>
+                        <Note>
+                            {t('sitemap.counts', {
+                                entries: sitemap.entries,
+                                published: sitemap.published
+                            })}
+                        </Note>
+                    </>
+                )}
+
+                <Actions>
+                    <Button
+                        size="big"
+                        color="accent"
+                        isDisabled={busy}
+                        label={busy ? t('sitemap.checking') : t('sitemap.checkNow')}
+                        onClick={check}
+                    />
+                </Actions>
+
+                {error && (
+                    <Banner variant="danger" title={t(`sitemap.error.${error}Title`)}>
+                        {t(`sitemap.error.${error}`)}
+                    </Banner>
+                )}
+
+                {/*
+                  * Never checked is not the same as nothing to report, and showing
+                  * an empty list for it would read as a clean bill of health.
+                  */}
+                {!sitemap && !error && (
+                    <Banner variant="info" title={t('sitemap.neverTitle')}>
+                        {t('sitemap.never')}
+                    </Banner>
+                )}
+            </Card>
+
+            {sitemap && !sitemap.present && (
+                /*
+                 * Three different situations, three different things to
+                 * do about them: nothing serves that address, something
+                 * does but it is not a sitemap, or it could not be
+                 * reached to find out. One shared "no sitemap" message
+                 * would send people to fix the wrong thing.
+                 */
+                <Banner
+                    variant={sitemap.reason === 'unreachable' ? 'danger' : 'warning'}
+                    title={t(`sitemap.absent.${sitemap.reason || 'none'}Title`)}
+                >
+                    {t(`sitemap.absent.${sitemap.reason || 'none'}`, {
+                        url: sitemap.url,
+                        status: sitemap.status === null ? '-' : sitemap.status
+                    })}
+                    {sitemap.reason === 'unreachable' && sitemap.error && ` ${fetchErrorHint(t, sitemap.error)}`}
+                </Banner>
+            )}
+
+            {sitemap && sitemap.present && (
+                <Card>
+                    {sitemap.agrees ? (
+                        <Banner variant="info" title={t('sitemap.agreesTitle')}>
+                            {t('sitemap.agrees', {entries: sitemap.entries})}
+                        </Banner>
+                    ) : (
+                        GROUPS
+                            .map(key => ({key, rows: sitemap[key] || []}))
+                            .filter(g => g.rows.length > 0)
+                            .map(g => (
+                                <div key={g.key} className={styles.sitemapGroup}>
+                                    <div className={styles.sitemapGroupHead}>
+                                        <Typography variant="body" className={styles.checkLabel}>
+                                            {t(`sitemap.kind.${g.key}`)}
+                                        </Typography>
+                                        <Chip label={String(g.rows.length)} color="warning"/>
+                                    </div>
+                                    <Typography variant="caption" className={styles.checkFix}>
+                                        {t(`sitemap.why.${g.key}`)}
+                                    </Typography>
+                                    <Paged rows={g.rows}>
+                                        {slice => (
+                                            <ul className={styles.checkList}>
+                                                {slice.map(r => (
+                                                    <li key={`${g.key}:${r.path}`} className={styles.checkItem}>
+                                                        <span className={styles.checkText}>
+                                                            {/*
+                                                              * An unknown entry resolves to nothing,
+                                                              * so there is no node to open: its URL
+                                                              * is the only fact there is.
+                                                              */}
+                                                            {r.jcrPath && jcontentUrl(r.jcrPath, language) ? (
+                                                                <a
+                                                                    className={styles.pageLink}
+                                                                    href={jcontentUrl(r.jcrPath, language)}
+                                                                    title={t('score17.openPage')}
+                                                                >
+                                                                    {r.title || r.path}
+                                                                </a>
+                                                            ) : (
+                                                                <Typography
+                                                                    variant="body"
+                                                                    className={styles.checkLabel}
+                                                                >
+                                                                    {r.title || r.path}
+                                                                </Typography>
+                                                            )}
+                                                            <Typography
+                                                                variant="caption"
+                                                                className={styles.checkFix}
+                                                            >
+                                                                {r.path}
+                                                            </Typography>
+                                                        </span>
+                                                        {r.detail && (
+                                                            <span className={styles.checkMeta}>
+                                                                <Typography
+                                                                    variant="caption"
+                                                                    className={styles.checkValue}
+                                                                >
+                                                                    {r.detail}
+                                                                </Typography>
+                                                            </span>
+                                                        )}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </Paged>
+                                </div>
+                            ))
+                    )}
+                    {/* How the comparison works, so only worth saying when one happened. */}
+                    <Note>{t('sitemap.limits')}</Note>
+                </Card>
+            )}
+        </Panel>
+    );
+};
+
+SitemapPanel.propTypes = {
+    path: PropTypes.string.isRequired,
+    language: PropTypes.string.isRequired
+};

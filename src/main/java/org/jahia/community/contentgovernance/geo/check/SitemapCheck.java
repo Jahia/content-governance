@@ -1,0 +1,374 @@
+package org.jahia.community.contentgovernance.geo.check;
+
+import org.jahia.community.contentgovernance.geo.util.Markup;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.jcr.RepositoryException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * GEO-21. Where the sitemap and the site disagree.
+ *
+ * Both sides are ours, so the comparison costs almost nothing and it catches
+ * real rot: a crawler handed a stale map wastes its budget on pages that are
+ * gone and never sees the ones that are new.
+ *
+ * **Entries are resolved against the repository, not fetched.** Checking a
+ * thousand-entry sitemap by requesting every URL is a crawl of your own site,
+ * and it is also less accurate: a soft 404 answers 200 and passes. Asking
+ * whether a URL corresponds to something published answers the same question
+ * definitively and for free. The cost is that a URL broken by infrastructure
+ * rather than by content looks fine here; the per-page check is where an actual
+ * fetch happens.
+ *
+ * The sitemap module lists pages *and* `jmix:mainResource` content, so both are
+ * collected. Comparing pages alone would report every article as an unknown
+ * entry.
+ */
+public final class SitemapCheck {
+
+    private static final Logger logger = LoggerFactory.getLogger(SitemapCheck.class);
+
+    /** Parsed rather than XML-parsed: no namespaces to fight, no XXE surface. */
+    /*
+     * The blocks are found by walking the file, for the reason Markup sets out:
+     * it is fetched from somewhere else. What is left reads one value out of
+     * one block, and says so in a way that has only one reading - an element's
+     * text cannot contain "<", where "<loc>\\s*(.*?)\\s*</loc>" leaves the engine
+     * to work out which of the three parts takes each space. Values are trimmed
+     * afterwards instead.
+     */
+    private static final Pattern LOC = Pattern.compile("(?is)<loc>([^<]{0,2000})</loc>");
+    private static final Pattern LASTMOD = Pattern.compile("(?is)<lastmod>([^<]{0,100})</lastmod>");
+
+    private static final int MAX_ENTRIES = 10_000;
+    private static final int MAX_REPORTED = 200;
+
+    private SitemapCheck() {
+    }
+
+    public static JSONObject check(String sitePath, String language, String baseUrl,
+            int timeoutMs, int maxBytes) throws RepositoryException {
+        JSONObject out = new JSONObject();
+        out.put("sitePath", sitePath);
+        out.put("language", language);
+
+        String base = baseUrl.replaceAll("/+$", "");
+        SiteFilesChecker.Fetched index = SiteFilesChecker.fetch(base + "/sitemap.xml", base, timeoutMs, maxBytes);
+        boolean answered = index.status != null && index.status == 200 && index.body != null;
+        // "200 and contains a tag" is not good enough. Anything answering that
+        // address with an HTML page - a proxy's catch-all, a vanity URL, a
+        // custom error page served as 200 - would pass that test, parse to zero
+        // entries, and make every published page look missing from the sitemap.
+        // It has to actually be a sitemap. Same false positive the llms.txt
+        // check already guards against.
+        boolean present = answered && looksLikeSitemap(index.body);
+        out.put("present", present);
+        out.put("status", index.status == null ? JSONObject.NULL : index.status);
+        out.put("url", base + "/sitemap.xml");
+
+        if (!present) {
+            absent(out, answered, index);
+            return out;
+        }
+
+        Map<String, String> entries = new LinkedHashMap<>();
+        collect(index.body, base, entries, timeoutMs, maxBytes, 0);
+        out.put("entries", entries.size());
+
+        Map<String, PublishedMap.Entry> published = PublishedMap.forSite(sitePath, base);
+        out.put("published", published.size());
+
+        compare(out, sitePath, entries, published);
+        return out;
+    }
+
+    /**
+     * Compares the listed entries (address to claimed date) with the published pages and writes the
+     * findings into {@code out}. Package-private for tests: the fetch and the repository read stay
+     * in {@link #check}.
+     */
+    static void compare(JSONObject out, String sitePath, Map<String, String> entries,
+            Map<String, PublishedMap.Entry> published) {
+        Findings f = new Findings();
+        pairRedirects(sitePath, entries, published, f);
+        missingPages(entries, published, f);
+        listedEntries(entries, published, f);
+
+        out.put("missing", f.missing);
+        out.put("unknown", f.unknown);
+        out.put("staleDate", f.staleDate);
+        out.put("noindexListed", f.noindexListed);
+        out.put("redirects", f.redirects);
+        out.put("agrees", f.missing.length() == 0 && f.unknown.length() == 0
+                && f.staleDate.length() == 0 && f.noindexListed.length() == 0
+                && f.redirects.length() == 0);
+    }
+
+    /** What a comparison of the sitemap with the published pages found, bounded per list. */
+    private static final class Findings {
+        final JSONArray missing = new JSONArray();
+        final JSONArray unknown = new JSONArray();
+        final JSONArray staleDate = new JSONArray();
+        final JSONArray noindexListed = new JSONArray();
+        final JSONArray redirects = new JSONArray();
+        /** The published address and the listed one of each redirect pair, reported once as the pair. */
+        final Set<String> pairedPrimary = new LinkedHashSet<>();
+        final Set<String> pairedAlt = new LinkedHashSet<>();
+    }
+
+    /**
+     * No usable sitemap. Not a defect in itself, but everything else is unanswerable, and the three
+     * ways of having no usable sitemap call for three different responses, so name which one this is.
+     */
+    private static void absent(JSONObject out, boolean answered, SiteFilesChecker.Fetched index) {
+        String reason = "none";
+        if (answered) {
+            reason = "notSitemap";
+        } else if (index.status == null) {
+            reason = "unreachable";
+        }
+        out.put("reason", reason);
+        if (index.status == null && index.error != null) {
+            // The exception's class only, never its message: it names the layer that
+            // failed (connection, timeout, certificate, name) and echoes nothing else.
+            out.put("error", index.error);
+        }
+    }
+
+    /**
+     * The sitemap module does not use vanity urls, so a page that has one is listed under the address
+     * Jahia redirects *from*. Left alone that reads as two unrelated findings - the real address
+     * missing, the listed one unknown - when it is one thing: the sitemap is handing crawlers a
+     * redirect instead of the page. Recognise the pair and report it once.
+     */
+    private static void pairRedirects(String sitePath, Map<String, String> entries,
+            Map<String, PublishedMap.Entry> published, Findings f) {
+        for (String listed : entries.keySet()) {
+            PublishedMap.Entry moved = PublishedMap.movedFrom(published, sitePath, listed);
+            // The node is published, at an address the sitemap does not list,
+            // while the sitemap lists one that redirects to it. One problem.
+            String now = moved == null ? null : unlistedAddressOf(moved, entries, published);
+            if (now == null) {
+                continue;
+            }
+            if (f.redirects.length() < MAX_REPORTED) {
+                f.redirects.put(row(moved, now, listed));
+            }
+            f.pairedPrimary.add(now);
+            f.pairedAlt.add(listed);
+        }
+    }
+
+    /** The published address of a node that the sitemap does not list, or null. */
+    private static String unlistedAddressOf(PublishedMap.Entry node, Map<String, String> entries,
+            Map<String, PublishedMap.Entry> published) {
+        for (Map.Entry<String, PublishedMap.Entry> p : published.entrySet()) {
+            if (p.getValue() == node && !entries.containsKey(p.getKey())) {
+                return p.getKey();
+            }
+        }
+        return null;
+    }
+
+    /** Published pages the sitemap does not list, redirect pairs excluded. */
+    private static void missingPages(Map<String, String> entries, Map<String, PublishedMap.Entry> published,
+            Findings f) {
+        for (Map.Entry<String, PublishedMap.Entry> p : published.entrySet()) {
+            if (!entries.containsKey(p.getKey()) && !f.pairedPrimary.contains(p.getKey())
+                    && f.missing.length() < MAX_REPORTED) {
+                f.missing.put(row(p.getValue(), p.getKey(), null));
+            }
+        }
+    }
+
+    /** What is wrong with the listed entries: unknown addresses, noindex pages, wrong dates. */
+    private static void listedEntries(Map<String, String> entries, Map<String, PublishedMap.Entry> published,
+            Findings f) {
+        for (Map.Entry<String, String> e : entries.entrySet()) {
+            PublishedMap.Entry node = published.get(e.getKey());
+            if (node == null) {
+                // A redirect pair is already reported, as the redirect it is.
+                if (!f.pairedAlt.contains(e.getKey()) && f.unknown.length() < MAX_REPORTED) {
+                    JSONObject r = new JSONObject();
+                    r.put("path", e.getKey());
+                    f.unknown.put(r);
+                }
+                continue;
+            }
+            if (node.noindex && f.noindexListed.length() < MAX_REPORTED) {
+                f.noindexListed.put(row(node, e.getKey(), null));
+            }
+            String claimed = e.getValue();
+            String actual = node.modifiedOn;
+            if (claimed != null && actual != null && !claimed.startsWith(actual)
+                    && f.staleDate.length() < MAX_REPORTED) {
+                f.staleDate.put(row(node, e.getKey(), claimed + " → " + actual));
+            }
+        }
+    }
+
+    /**
+     * Was this page found to be published and absent from the sitemap?
+     *
+     * Deliberately not "is it listed". Entry paths are not stored, because a
+     * large site's would dwarf everything else in the record, so the only
+     * question answerable from the stored scan is whether the page turned up in
+     * the missing list. Anything else is unknown, and unknown must not become a
+     * warning: a gated page is correctly absent from the sitemap and absent from
+     * the missing list too, and warning about it would be wrong twice.
+     */
+    public static boolean isMissing(JSONObject report, String jcrPath, String language) {
+        return find(report, "missing", jcrPath, language) != null;
+    }
+
+    /**
+     * The sitemap's `lastmod` for this page against its real modification date,
+     * as "claimed → actual", or null when they agree. A crawler that trusts a
+     * stale date has no reason to come back for content that did change.
+     */
+    public static String staleDetail(JSONObject report, String jcrPath, String language) {
+        JSONObject row = find(report, "staleDate", jcrPath, language);
+        return row == null ? null : row.optString("detail", null);
+    }
+
+    /**
+     * Whether the sitemap advertises this page while the page itself says
+     * `noindex`. Two of our own files contradicting each other, which is worth
+     * saying on the page it happens to.
+     */
+    public static boolean isNoindexListed(JSONObject report, String jcrPath, String language) {
+        return find(report, "noindexListed", jcrPath, language) != null;
+    }
+
+    /**
+     * The row for this node in one of the finding lists, or null.
+     *
+     * Matching is on path **and** language: the stored scan covers every
+     * language of the site, so the same node appears once per language and
+     * matching on path alone would show the French finding on the English page.
+     * A row with no language predates that field and matches on path alone, so
+     * a stored scan from an older run still answers rather than going silent.
+     */
+    private static JSONObject find(JSONObject report, String kind, String jcrPath, String language) {
+        if (report == null || !report.optBoolean("present", false) || jcrPath == null) {
+            return null;
+        }
+        JSONArray rows = report.optJSONArray(kind);
+        for (int i = 0; rows != null && i < rows.length(); i++) {
+            JSONObject row = rows.getJSONObject(i);
+            if (!jcrPath.equals(row.optString("jcrPath", null))) {
+                continue;
+            }
+            String rowLang = row.optString("language", null);
+            if (rowLang == null || rowLang.isEmpty() || rowLang.equals(language)) {
+                return row;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Whether the body is a sitemap at all, rather than whatever else happened
+     * to answer that address with a 200.
+     */
+    private static boolean looksLikeSitemap(String body) {
+        String head = body.length() > 4096 ? body.substring(0, 4096) : body;
+        return head.contains("<urlset") || head.contains("<sitemapindex");
+    }
+
+    /**
+     * Follows a sitemap index one level down. Depth is capped because a sitemap
+     * that points at itself should not become an infinite fetch.
+     */
+    private static void collect(String xml, String base, Map<String, String> into,
+            int timeoutMs, int maxBytes, int depth) {
+        boolean[] any = {false};
+        Markup.forEachElement(xml, "url", (tag, block, at) -> {
+            any[0] = true;
+            if (into.size() < MAX_ENTRIES) {
+                entry(block, into);
+            }
+        });
+        if (any[0] || depth >= 1) {
+            return;
+        }
+        follow(childrenOf(xml), base, into, timeoutMs, maxBytes, depth);
+    }
+
+    /** One `<url>` block: where it points, and when it says it last changed. */
+    private static void entry(String block, Map<String, String> into) {
+        Matcher loc = LOC.matcher(block);
+        if (!loc.find()) {
+            return;
+        }
+        Matcher mod = LASTMOD.matcher(block);
+        into.put(PublishedMap.pathOf(loc.group(1).trim()), mod.find() ? mod.group(1).trim() : null);
+    }
+
+    /** The sitemaps a sitemap index names. */
+    private static List<String> childrenOf(String xml) {
+        List<String> out = new ArrayList<>();
+        Markup.forEachElement(xml, "sitemap", (tag, block, at) -> {
+            Matcher loc = LOC.matcher(block);
+            if (loc.find()) {
+                out.add(loc.group(1).trim());
+            }
+        });
+        return out;
+    }
+
+    /**
+     * Reads each child in turn. The file naming them is fetched content, so
+     * only a child on the site's own origin is followed - FetchGuard is what
+     * decides that, in SiteFilesChecker.fetch.
+     */
+    private static void follow(List<String> children, String base, Map<String, String> into,
+            int timeoutMs, int maxBytes, int depth) {
+        for (String location : children) {
+            if (into.size() >= MAX_ENTRIES) {
+                return;
+            }
+            SiteFilesChecker.Fetched child = SiteFilesChecker.fetch(location, base, timeoutMs, maxBytes);
+            if (child.status != null && child.status == 200 && child.body != null) {
+                collect(child.body, base, into, timeoutMs, maxBytes, depth + 1);
+            }
+        }
+    }
+
+    /**
+     * Public path to node, for everything the sitemap could legitimately list.
+     *
+     * Two things this has to get right, both of which produced false positives
+     * on the first run.
+     *
+     * **Every language, not one.** A sitemap index covers the whole site, so
+     * checking English against English-only URLs reported all 189 French
+     * entries as unknown. The paths carry their own language prefix, so one map
+     * across every active language resolves them all.
+     *
+     * **As `guest`, not as system.** A page a visitor cannot open has no
+     * business in a sitemap, so its absence is correct. Building the map with a
+     * system session reported the one gated page on the test site as missing,
+     * which would have sent somebody to add it.
+     */
+    private static JSONObject row(PublishedMap.Entry node, String path, String detail) {
+        JSONObject o = new JSONObject();
+        o.put("path", path);
+        o.put("jcrPath", node.jcrPath);
+        o.put("title", node.title);
+        o.put("language", node.language);
+        o.put("detail", detail == null ? JSONObject.NULL : detail);
+        return o;
+    }
+}
