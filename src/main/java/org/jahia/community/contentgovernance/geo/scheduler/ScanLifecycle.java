@@ -75,6 +75,15 @@ public class ScanLifecycle {
     }
 
     private void restore() throws Exception {
+        // Its own step, so a site that cannot be done never keeps the schedules from coming back.
+        try {
+            int failed = ScanStore.protectAll();
+            if (failed > 0) {
+                logger.warn("{} site(s) kept their module state as it was; see the warnings above", failed);
+            }
+        } catch (Exception e) {
+            logger.warn("Could not go through the module state of the sites: {}", e.getMessage());
+        }
         List<ScanStore.Schedule> stored = ScanStore.schedules();
         for (ScanStore.Schedule s : stored) {
             if (!ScanScheduler.isValidCron(s.cron)) {

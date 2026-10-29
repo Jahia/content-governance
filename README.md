@@ -99,11 +99,16 @@ and says so.
 
 ### Moving from the three modules
 
-What carries over with nothing to do: GEO scans, schedules and BotRank bindings
-(`/sites/<key>/geo-readiness`), BotRank connection files (their old name is kept), compliance
-glossaries (`ccs:` types), and the results cached in each editor's browser are simply recomputed.
+What carries over with nothing to do: GEO scans and reports (`/sites/<key>/geo-readiness`), BotRank
+connection files (their old name is kept), compliance glossaries (`ccs:` types); the results cached in
+each editor's browser are simply recomputed.
 
-What does not: the AI settings. Page Quality Audit and GEO Readiness each had their own; copy the
+What a site administrator saves again once: the GEO scan schedule and the BotRank daily sync. The
+first time the module starts on a site's existing GEO data, it keeps their settings but switches both
+off, with a note on the dashboard and in **Site Settings > Content governance > BotRank**; saving them
+from there turns them back on.
+
+What does not carry over: the AI settings. Page Quality Audit and GEO Readiness each had their own; copy the
 provider, model and key into `org.jahia.community.contentgovernance.llm.cfg`, then delete the old
 files (`org.jahia.se.modules.pageaudit.cfg` and the `AI_*` keys of
 `org.jahia.se.modules.georeadiness.cfg`).
@@ -181,9 +186,12 @@ call to BotRank: a daily sync, on the processing server, stores the citations of
 | Site Settings > Content governance | `site-admin` on the site | always; the server checks every save |
 
 Switches in the browser only hide. Every servlet and GraphQL field checks the permission, the module
-on the site and the site's switches on the server. Scans read with the caller's own rights and never
-write; the only writes are the `robots.txt` and `llms.txt` editors (diff, then a confirming click)
-and the site settings.
+on the site and the site's switches on the server. The page checks and the compliance scans read with
+the caller's own rights and change no content; the only content writes are the `robots.txt` and
+`llms.txt` editors (diff, then a confirming click). The module keeps its own state (site settings, GEO
+scans, schedules and reports, BotRank binding) in nodes under each site that only the module reads and
+writes, after its own permission checks; GEO site scans and the BotRank sync run on the server and
+store their results there.
 
 ## What leaves the server
 

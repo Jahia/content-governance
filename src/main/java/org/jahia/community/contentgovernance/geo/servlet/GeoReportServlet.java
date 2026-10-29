@@ -10,7 +10,6 @@ import org.jahia.services.content.JCRSessionFactory;
 import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.usermanager.JahiaUser;
 import org.jahia.services.usermanager.JahiaUserManagerService;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -134,16 +133,9 @@ public class GeoReportServlet extends GeoServlet {
 
     /** What the caller asked for, or null once the refusal has been written. */
     private Ask read(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        String ctype = req.getContentType();
-        if (ctype == null || !ctype.toLowerCase(Locale.ROOT).contains("application/json")) {
-            deny(resp, HttpServletResponse.SC_BAD_REQUEST, "json required");
-            return null;
-        }
-        JSONObject body;
-        try {
-            body = new JSONObject(read(req.getInputStream(), MAX_BODY));
-        } catch (IOException | JSONException e) {
-            deny(resp, HttpServletResponse.SC_BAD_REQUEST, "malformed body");
+        // A same-origin call with exactly application/json, like every other endpoint of the module.
+        JSONObject body = jsonBody(req, resp, MAX_BODY);
+        if (body == null) {
             return null;
         }
 

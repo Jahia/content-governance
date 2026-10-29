@@ -60,7 +60,9 @@ it on, **When to scan** picks the frequency and time with dropdowns (server time
 takes the whole site or one branch, and **Save schedule** keeps it. A run fetches every published
 page once, so it takes a while and shows progress as it goes. It covers one language and stops at
 2000 pages, so a large site needs the schedule rather than the button. A running scan appears in
-the administration job list.
+the administration job list. After an upgrade from GEO Readiness the schedule is off, with a note
+saying so: the module switches it off the first time it starts on the site's existing data, and
+**Save schedule** turns it back on.
 
 The site score counts 17 checks where the drawer counts 18: comparing what a crawler receives with
 what a browser receives needs a second fetch of each page, so that check stays in the drawer. Both

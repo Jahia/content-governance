@@ -49,6 +49,16 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   validated.
 - Settings live on `/sites/<key>/content-governance` (`nt:unstructured` + `jmix:nolive`,
   `disabledFeatures`).
+- Module state nodes (`content-governance`, `geo-readiness` and its `botrank` child) do not inherit the
+  site's permissions (`settings/PrivateStore`): every read and write goes through a system session after
+  the module's own check. Never read or write them with the caller's session, and never trust a value
+  read from them more than the check that wrote it. Their `j:acl` child is not a language: loops over
+  the store's children filter with `SiteScope.isLanguage`. `ScanStore.protectAll` (called by both
+  lifecycles at start, first one wins) sets up nodes found without it and switches off the GEO
+  schedule and the BotRank sync they hold, with a note; a site administrator saves them again
+  (decision 2026-10-29).
+- Every GEO servlet's POST handler reads its body through `GeoServlet.jsonBody` / `isJsonRequest`
+  (exact `application/json`, same-site browser requests only); `AiReviewServlet` has its own checks.
 - Build with Maven **3.8** and Java 17 (`mise.toml`), always `clean install`.
 - `robots` and `llms` are optional dependencies (`=optional`): only the GEO robots.txt / llms.txt
   editor needs them.

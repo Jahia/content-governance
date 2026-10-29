@@ -173,6 +173,11 @@ public final class FetchGuard {
      * threading a service reference through all of them to read one string
      * would buy nothing. One volatile write per configuration change.
      */
+    /** The configured PUBLIC_BASE_URL, blank when none. */
+    public static String trustedBase() {
+        return trustedBase;
+    }
+
     public static void trustBase(String publicBaseUrl) {
         trustedBase = publicBaseUrl == null ? "" : publicBaseUrl.trim();
     }

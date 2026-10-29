@@ -2,6 +2,7 @@ package org.jahia.community.contentgovernance.geo.botrank;
 
 import org.jahia.community.contentgovernance.geo.check.ScanStore;
 import org.jahia.community.contentgovernance.geo.util.SiteScope;
+import org.jahia.community.contentgovernance.settings.PrivateStore;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
@@ -40,7 +41,7 @@ import java.util.List;
  */
 public final class CitationStore {
 
-    static final String NODE = "botrank";
+    public static final String NODE = "botrank";
     static final String PAGES = "pages";
 
     // Property names of the botrank node.
@@ -283,6 +284,23 @@ public final class CitationStore {
      * @param message a sentence for administrators
      * @throws RepositoryException on a repository failure
      */
+    /**
+     * Switches off the daily sync of a BotRank binding set up for the first time, with a note, so a
+     * site administrator saves the settings again. Called by {@link ScanStore#protectAll} inside its
+     * session, which it saves.
+     *
+     * @param node the {@code botrank} node of a site's store, from a system session
+     * @throws RepositoryException on a repository failure
+     */
+    public static void switchOffAfterSetUp(JCRNodeWrapper node) throws RepositoryException {
+        if (node.hasProperty(P_ENABLED) && node.getProperty(P_ENABLED).getBoolean()) {
+            node.setProperty(P_ENABLED, false);
+            node.setProperty(P_STATUS, STATUS_FAILED);
+            node.setProperty(P_MESSAGE, "the daily sync was switched off when the module was set up:"
+                    + " a site administrator saves the settings again to restart it");
+        }
+    }
+
     public static void disable(String sitePath, String message) throws RepositoryException {
         in(sitePath, (node, session) -> {
             node.setProperty(P_ENABLED, false);
@@ -422,6 +440,7 @@ public final class CitationStore {
                     if (!store.isNodeType("jmix:nolive")) {
                         store.addMixin("jmix:nolive");
                     }
+                    PrivateStore.protect(store);
                     JCRNodeWrapper node = store.hasNode(NODE) ? store.getNode(NODE)
                             : store.addNode(NODE, UNSTRUCTURED);
                     return work.run(node, session);

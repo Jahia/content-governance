@@ -3,11 +3,14 @@ package org.jahia.community.contentgovernance.geo.scheduler;
 import org.jahia.community.contentgovernance.geo.check.ScanInProgressException;
 import org.jahia.community.contentgovernance.geo.check.ScanStore;
 import org.jahia.community.contentgovernance.geo.check.SiteScorer;
+import org.jahia.community.contentgovernance.geo.util.PublicUrls;
 import org.jahia.community.contentgovernance.geo.util.SiteScope;
 import org.jahia.community.contentgovernance.settings.Features;
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
 import org.jahia.services.content.JCRCallback;
+import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRTemplate;
+import org.jahia.services.content.decorator.JCRSiteNode;
 import org.jahia.services.content.decorator.JCRUserNode;
 import org.jahia.services.usermanager.JahiaUserManagerService;
 import org.jahia.services.scheduler.BackgroundJob;
@@ -18,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
 import java.util.Locale;
 
 /**
@@ -64,8 +68,8 @@ public class SiteScanJob extends BackgroundJob {
         // again rather than trusting what was stored. A trigger nobody is
         // entitled to any more removes itself instead of running nightly.
         String userKey = data.getString(USER_KEY);
-        if (!stillPermitted(userKey, sitePath, language)) {
-            logger.warn("GEO scan of {} [{}] removed: {} no longer holds the permission",
+        if (!stillPermitted(userKey, sitePath, data.getString(SCOPE), language)) {
+            logger.warn("GEO scan of {} [{}] removed: {} no longer holds the permission on the site, or the scope does not resolve inside it",
                     sitePath, language, userKey);
             ScanScheduler.unschedule(sitePath, language);
             return;
@@ -81,7 +85,12 @@ public class SiteScanJob extends BackgroundJob {
 
         SiteScorer.Options opts = new SiteScorer.Options();
         opts.scope = data.getString(SCOPE);
-        opts.publicBaseUrl = data.getString(BASE_URL);
+        opts.publicBaseUrl = checkedBase(sitePath, data.getString(BASE_URL));
+        if (opts.publicBaseUrl == null) {
+            logger.warn("GEO scan of {} [{}] skipped: its base address is not one this site answers on;"
+                    + " save the schedule again from the dashboard", sitePath, language);
+            return;
+        }
         opts.fetchTimeoutMs = intOr(data, TIMEOUT_MS, 8000);
         opts.maxBodyBytes = intOr(data, MAX_BYTES, 1_500_000);
         opts.maxPages = intOr(data, MAX_PAGES, DEFAULT_MAX_PAGES);
@@ -107,10 +116,12 @@ public class SiteScanJob extends BackgroundJob {
 
     /**
      * True when the account that installed the schedule still holds the
-     * dashboard's permission on the site. An unknown account is refused: a
-     * trigger with no owner has nobody entitled to it.
+     * dashboard's permission on the site, and the scan's scope, if any, still
+     * resolves inside that site in the account's own session (the rule the scan
+     * servlet applies when the schedule is saved). An unknown account is
+     * refused: a trigger with no owner has nobody entitled to it.
      */
-    private static boolean stillPermitted(String userKey, String sitePath, String language) {
+    private static boolean stillPermitted(String userKey, String sitePath, String scope, String language) {
         if (userKey == null || userKey.isEmpty()) {
             return false;
         }
@@ -122,7 +133,13 @@ public class SiteScanJob extends BackgroundJob {
             return Boolean.TRUE.equals(JCRTemplate.getInstance().doExecute(owner.getJahiaUser(), "default",
                     Locale.forLanguageTag(language), (JCRCallback<Boolean>) session -> {
                         try {
-                            return session.getNode(sitePath).hasPermission(SiteScope.DASHBOARD.get(0));
+                            if (!session.getNode(sitePath).hasPermission(SiteScope.DASHBOARD.get(0))) {
+                                return false;
+                            }
+                            if (scope == null || scope.trim().isEmpty()) {
+                                return true;
+                            }
+                            return SiteScope.isWithin(sitePath, session.getNode(scope.trim()).getPath());
                         } catch (PathNotFoundException e) {
                             return false;
                         }
@@ -130,6 +147,25 @@ public class SiteScanJob extends BackgroundJob {
         } catch (Exception e) {
             logger.warn("Could not confirm the owner of the GEO scan of {}: {}", sitePath, e.getMessage());
             return false;
+        }
+    }
+
+    /** The base saved with the schedule when the site may use it ({@link PublicUrls#acceptsStoredBase}), else null. */
+    private static String checkedBase(String sitePath, String stored) {
+        if (stored == null || stored.trim().isEmpty()) {
+            // No base saved: the scan works the address out from the site itself.
+            return "";
+        }
+        try {
+            return JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, "default", null,
+                    (JCRCallback<String>) session -> {
+                        JCRNodeWrapper node = session.getNode(sitePath);
+                        return node instanceof JCRSiteNode site && PublicUrls.acceptsStoredBase(site, stored)
+                                ? stored.trim() : null;
+                    });
+        } catch (RepositoryException e) {
+            logger.warn("Could not read the site of the GEO scan {}: {}", sitePath, e.getMessage());
+            return null;
         }
     }
 

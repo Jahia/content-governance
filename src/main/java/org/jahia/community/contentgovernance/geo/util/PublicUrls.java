@@ -301,6 +301,44 @@ public final class PublicUrls {
         return req.isSecure() ? HTTPS : "http";
     }
 
+    /**
+     * True when {@code stored}, a base saved with a scheduled scan, is one a scan of this site can
+     * produce: the configured PUBLIC_BASE_URL, {@link #LOCAL_FALLBACK}, or an http(s) address on one
+     * of the site's own names. A scheduled run fetches from nowhere else.
+     *
+     * @param site   the site of the scan
+     * @param stored the base saved with the schedule
+     * @return whether the scheduled run may use it
+     */
+    public static boolean acceptsStoredBase(JCRSiteNode site, String stored) {
+        if (site == null || stored == null || stored.trim().isEmpty()) {
+            return false;
+        }
+        String base = withoutTrailingSlashes(stored.trim());
+        String configured = withoutTrailingSlashes(FetchGuard.trustedBase());
+        if (base.equals(LOCAL_FALLBACK) || (!configured.isEmpty() && base.equals(configured))) {
+            return true;
+        }
+        try {
+            java.net.URI uri = java.net.URI.create(base);
+            String scheme = uri.getScheme();
+            return ("http".equalsIgnoreCase(scheme) || HTTPS.equalsIgnoreCase(scheme))
+                    && uri.getUserInfo() == null
+                    && servedName(site, uri.getHost()) != null;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    /** {@code url} without the slashes it ends with. */
+    private static String withoutTrailingSlashes(String url) {
+        int end = url.length();
+        while (end > 0 && url.charAt(end - 1) == '/') {
+            end--;
+        }
+        return url.substring(0, end);
+    }
+
     /** True when {@code host} is one of the names this site answers to. */
     private static String servedName(JCRSiteNode site, String host) {
         if (host == null || host.isEmpty()) {
