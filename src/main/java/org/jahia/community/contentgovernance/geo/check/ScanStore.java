@@ -10,7 +10,6 @@ import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.content.JCRTemplate;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import javax.jcr.PathNotFoundException;
 import javax.jcr.NodeIterator;
 import java.util.List;
 import java.util.ArrayList;
@@ -40,6 +39,8 @@ public final class ScanStore {
     public static final String STORE_NODE = "geo-readiness";
 
     private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(ScanStore.class);
+    private static final String DEFAULT_WORKSPACE = "default";
+    private static final String SITES = "/sites";
 
     public static final String STATUS_IDLE = "idle";
     public static final String STATUS_RUNNING = "running";
@@ -195,31 +196,12 @@ public final class ScanStore {
      * @throws RepositoryException when the sites cannot be listed
      */
     public static synchronized int protectAll() throws RepositoryException {
-        Integer failed = JCRTemplate.getInstance().doExecuteWithSystemSession(null, "default",
+        Integer failed = JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, DEFAULT_WORKSPACE, null,
                 (JCRCallback<Integer>) session -> {
-                    if (!session.nodeExists("/sites")) {
-                        return 0;
-                    }
                     int errors = 0;
-                    NodeIterator it = session.getNode("/sites").getNodes();
-                    while (it.hasNext()) {
-                        JCRNodeWrapper site = (JCRNodeWrapper) it.nextNode();
-                        if (!site.isNodeType("jnt:virtualsite")) {
-                            continue;
-                        }
+                    for (JCRNodeWrapper site : sites(session)) {
                         try {
-                            boolean changed = false;
-                            if (site.hasNode(SiteFeatures.STORE_NODE)) {
-                                changed = PrivateStore.protect(site.getNode(SiteFeatures.STORE_NODE));
-                            }
-                            if (site.hasNode(STORE_NODE)) {
-                                JCRNodeWrapper store = site.getNode(STORE_NODE);
-                                if (PrivateStore.protect(store)) {
-                                    changed = true;
-                                    switchOffAfterSetUp(store);
-                                }
-                            }
-                            if (changed) {
+                            if (protectSite(site)) {
                                 session.save();
                             }
                         } catch (RepositoryException e) {
@@ -231,6 +213,38 @@ public final class ScanStore {
                     return errors;
                 });
         return failed == null ? 0 : failed;
+    }
+
+    /** Every site node of the instance, through {@code session}; empty when there is none. */
+    private static List<JCRNodeWrapper> sites(JCRSessionWrapper session) throws RepositoryException {
+        List<JCRNodeWrapper> out = new ArrayList<>();
+        if (!session.nodeExists(SITES)) {
+            return out;
+        }
+        NodeIterator it = session.getNode(SITES).getNodes();
+        while (it.hasNext()) {
+            JCRNodeWrapper site = (JCRNodeWrapper) it.nextNode();
+            if (site.isNodeType("jnt:virtualsite")) {
+                out.add(site);
+            }
+        }
+        return out;
+    }
+
+    /** Sets up the module state nodes of one site; true when something changed and needs saving. */
+    private static boolean protectSite(JCRNodeWrapper site) throws RepositoryException {
+        boolean changed = false;
+        if (site.hasNode(SiteFeatures.STORE_NODE)) {
+            changed = PrivateStore.protect(site.getNode(SiteFeatures.STORE_NODE));
+        }
+        if (site.hasNode(STORE_NODE)) {
+            JCRNodeWrapper store = site.getNode(STORE_NODE);
+            if (PrivateStore.protect(store)) {
+                changed = true;
+                switchOffAfterSetUp(store);
+            }
+        }
+        return changed;
     }
 
     /** Switches off the schedule and the BotRank sync of a store set up for the first time. */
@@ -261,42 +275,33 @@ public final class ScanStore {
      * module reinstalls them from when it starts.
      */
     public static List<Schedule> schedules() throws RepositoryException {
-        return JCRTemplate.getInstance().doExecuteWithSystemSession(null, "default",
+        return JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, DEFAULT_WORKSPACE, null,
                 (JCRCallback<List<Schedule>>) session -> {
                     List<Schedule> out = new ArrayList<>();
-                    JCRNodeWrapper sites;
-                    try {
-                        sites = session.getNode("/sites");
-                    } catch (PathNotFoundException e) {
-                        return out;
-                    }
-                    NodeIterator it = sites.getNodes();
-                    while (it.hasNext()) {
-                        JCRNodeWrapper site = (JCRNodeWrapper) it.nextNode();
-                        if (!site.isNodeType("jnt:virtualsite") || !site.hasNode(STORE_NODE)) {
-                            continue;
-                        }
-                        JCRNodeWrapper store = site.getNode(STORE_NODE);
-                        if (!bool(store, ENABLED, false)) {
-                            continue;
-                        }
-                        String cron = str(store, CRON, "");
-                        if (cron.isEmpty()) {
-                            continue;
-                        }
-                        NodeIterator langs = store.getNodes();
-                        while (langs.hasNext()) {
-                            JCRNodeWrapper lang = (JCRNodeWrapper) langs.nextNode();
-                            if (!SiteScope.isLanguage(lang.getName())) {
-                                continue;
-                            }
-                            out.add(new Schedule(site.getPath(), lang.getName(), cron,
-                                    str(store, SCOPE, ""), str(store, BASE_URL, ""),
-                                    str(store, USER_KEY, "")));
+                    for (JCRNodeWrapper site : sites(session)) {
+                        if (site.hasNode(STORE_NODE)) {
+                            addSchedules(site.getPath(), site.getNode(STORE_NODE), out);
                         }
                     }
                     return out;
                 });
+    }
+
+    /** The schedule of one store, one entry per language it scans, when it is on. */
+    private static void addSchedules(String sitePath, JCRNodeWrapper store, List<Schedule> out)
+            throws RepositoryException {
+        String cron = str(store, CRON, "");
+        if (!bool(store, ENABLED, false) || cron.isEmpty()) {
+            return;
+        }
+        NodeIterator langs = store.getNodes();
+        while (langs.hasNext()) {
+            JCRNodeWrapper lang = (JCRNodeWrapper) langs.nextNode();
+            if (SiteScope.isLanguage(lang.getName())) {
+                out.add(new Schedule(sitePath, lang.getName(), cron, str(store, SCOPE, ""), str(store, BASE_URL, ""),
+                        str(store, USER_KEY, "")));
+            }
+        }
     }
 
     /** Stores the written report beside the measurements it was written from. */
@@ -519,7 +524,7 @@ public final class ScanStore {
      * writing it are gated at the servlets.
      */
     private static <T> T inStore(String sitePath, StoreWork<T> work) throws RepositoryException {
-        return JCRTemplate.getInstance().doExecuteWithSystemSession(null, "default",
+        return JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, DEFAULT_WORKSPACE, null,
                 (JCRCallback<T>) session -> {
                     JCRNodeWrapper site = session.getNode(sitePath);
                     JCRNodeWrapper store = site.hasNode(STORE_NODE)

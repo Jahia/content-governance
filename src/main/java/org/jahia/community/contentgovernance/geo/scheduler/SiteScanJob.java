@@ -157,10 +157,10 @@ public class SiteScanJob extends BackgroundJob {
             return "";
         }
         try {
-            return JCRTemplate.getInstance().doExecuteWithSystemSession(null, "default",
+            return JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, "default", null,
                     (JCRCallback<String>) session -> {
                         JCRNodeWrapper node = session.getNode(sitePath);
-                        return node instanceof JCRSiteNode && PublicUrls.acceptsStoredBase((JCRSiteNode) node, stored)
+                        return node instanceof JCRSiteNode site && PublicUrls.acceptsStoredBase(site, stored)
                                 ? stored.trim() : null;
                     });
         } catch (RepositoryException e) {

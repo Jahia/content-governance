@@ -34,6 +34,6 @@ class SwitchOffAfterSetUpTest {
         JCRNodeWrapper node = mock(JCRNodeWrapper.class);
         when(node.hasProperty("brEnabled")).thenReturn(false);
         CitationStore.switchOffAfterSetUp(node);
-        verify(node, never()).setProperty(eq("brEnabled"), eq(false));
+        verify(node, never()).setProperty("brEnabled", false);
     }
 }

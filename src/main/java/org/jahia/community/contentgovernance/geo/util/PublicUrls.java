@@ -314,8 +314,8 @@ public final class PublicUrls {
         if (site == null || stored == null || stored.trim().isEmpty()) {
             return false;
         }
-        String base = stored.trim().replaceAll("/+$", "");
-        String configured = FetchGuard.trustedBase().replaceAll("/+$", "");
+        String base = withoutTrailingSlashes(stored.trim());
+        String configured = withoutTrailingSlashes(FetchGuard.trustedBase());
         if (base.equals(LOCAL_FALLBACK) || (!configured.isEmpty() && base.equals(configured))) {
             return true;
         }
@@ -328,6 +328,15 @@ public final class PublicUrls {
         } catch (IllegalArgumentException e) {
             return false;
         }
+    }
+
+    /** {@code url} without the slashes it ends with. */
+    private static String withoutTrailingSlashes(String url) {
+        int end = url.length();
+        while (end > 0 && url.charAt(end - 1) == '/') {
+            end--;
+        }
+        return url.substring(0, end);
     }
 
     /** True when {@code host} is one of the names this site answers to. */
