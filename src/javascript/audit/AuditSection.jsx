@@ -202,7 +202,7 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
         highlightedRef.current = null;
 
         const cached = runId === 0 ? loadCachedAudit(path, language) : null;
-        const cachedResults = cached && cached.results ? keepEnabled(cached.results, isOn) : null;
+        const cachedResults = cached?.results ? keepEnabled(cached.results, isOn) : null;
         setStale(false);
         if (cachedResults) {
             cacheHitRef.current = true;
