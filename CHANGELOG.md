@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+* Fixed glossaries missing from New content after an upgrade from Content Compliance Scan.
+
+* Fixed the Content governance entry of the site administration menu, which showed no icon.
+
 ## 1.0.0
 
 First release, replacing three modules: GEO Readiness (`geo-readiness` 1.6.0-SNAPSHOT), Page Quality
