@@ -354,6 +354,11 @@ baseUrl =
 A scan's optional scope has to name a node inside the site it was started from, and it is resolved
 before it is compared, so a relative path cannot leave the site it came from.
 
+The site scan reads every published page of the site, and the dashboard and the drawer's facts from
+the last scan show their paths and titles to anyone holding **publish** on the site, pages restricted
+to some members included: knowing what the site publishes is what the dashboard is for. The AI
+citations panels list only the pages the reader may read (decision 2026-10-29, as in GEO Readiness).
+
 ## Known gaps
 
 - **A Jahia Cloud node cannot fetch its own public URL.** Seen on 15 October 2026: the public URL
