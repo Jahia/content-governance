@@ -5,6 +5,7 @@ import org.jahia.registries.ServicesRegistry;
 import org.jahia.services.content.JCRStoreService;
 import org.jahia.services.content.nodetypes.ExtendedNodeType;
 import org.jahia.services.content.nodetypes.NodeTypeRegistry;
+import org.jahia.services.content.nodetypes.ParseException;
 import org.jahia.settings.SettingsBean;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -12,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.UrlResource;
 
+import javax.jcr.RepositoryException;
+import java.io.IOException;
 import java.net.URL;
 
 /**
@@ -80,7 +83,7 @@ public class GlossaryTypeOwner {
         return ServicesRegistry.getInstance().getJahiaTemplateManagerService().getAnyDeployedTemplatePackage(moduleId) != null;
     }
 
-    private void takeOver(String own) throws Exception {
+    private void takeOver(String own) throws IOException, ParseException, RepositoryException {
         // This bundle's class loader serves its own resources first.
         URL cnd = getClass().getClassLoader().getResource("META-INF/definitions.cnd");
         if (cnd == null) {
@@ -97,6 +100,7 @@ public class GlossaryTypeOwner {
             JCRStoreService.getInstance().undeployDefinitions(PREVIOUS_OWNER);
         }
         registry.flushLabels();
-        logger.info("Compliance glossary types taken over from {}: now registered to {}", PREVIOUS_OWNER, owner());
+        String now = owner();
+        logger.info("Compliance glossary types taken over from {}: now registered to {}", PREVIOUS_OWNER, now);
     }
 }
