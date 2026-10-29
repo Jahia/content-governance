@@ -79,6 +79,8 @@ public class AiReviewServlet extends HttpServlet {
     // under 1 MB in base64. Anything past this is refused before it is parsed.
     private static final int MAX_BODY_CHARS = 4 * 1024 * 1024;
     private static final String INVALID_REQUEST = "invalidRequest";
+    private static final String TASK_SIMPLIFY = "simplify";
+    private static final String TRUNCATED = "truncated";
     private final Map<String, Deque<Long>> callWindows = new ConcurrentHashMap<>();
 
     private static final String SYSTEM_PROMPT =
@@ -344,7 +346,7 @@ public class AiReviewServlet extends HttpServlet {
                 String content = buildAltContent(payload, images, llm.supportsImages());
                 return new Prompt(task, languagePrompt(ALT_TEXT_PROMPT, payload), content, images);
             }
-            case "simplify":
+            case TASK_SIMPLIFY:
                 return new Prompt(task, languagePrompt(SIMPLIFY_PROMPT, payload), buildSimplifyContent(payload),
                         new JSONArray());
             default:
@@ -358,7 +360,7 @@ public class AiReviewServlet extends HttpServlet {
                 return parseSeoAssist(rawAnswer);
             case "alt":
                 return parseAltText(rawAnswer).put("vision", prompt.images.length() > 0);
-            case "simplify":
+            case TASK_SIMPLIFY:
                 return parseSimplify(rawAnswer);
             default:
                 return parseReview(rawAnswer);
@@ -395,8 +397,8 @@ public class AiReviewServlet extends HttpServlet {
             JSONObject review = parse(prompt, rawAnswer);
             review.put("provider", llm.providerName());
             review.put("model", llm.model());
-            if (providerResult.optBoolean("truncated", false)) {
-                review.put("truncated", true);
+            if (providerResult.optBoolean(TRUNCATED, false)) {
+                review.put(TRUNCATED, true);
                 logger.warn("AI {} answer truncated by AI_MAX_TOKENS ({}); complete items were salvaged",
                         prompt.task, llm.maxTokens());
             }
@@ -667,7 +669,7 @@ public class AiReviewServlet extends HttpServlet {
 
         JSONObject result = new JSONObject();
         result.put("text", answer.text());
-        result.put("truncated", answer.truncated());
+        result.put(TRUNCATED, answer.truncated());
         result.put("inputTokens", answer.inputTokens());
         result.put("outputTokens", answer.outputTokens());
         return result;
@@ -942,7 +944,7 @@ public class AiReviewServlet extends HttpServlet {
             case "alt":
                 tab = "accessibility";
                 break;
-            case "simplify":
+            case TASK_SIMPLIFY:
                 tab = "readability";
                 break;
             default:
