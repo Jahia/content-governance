@@ -2,14 +2,6 @@
 
 ## 1.0.0
 
-* Switched-off tabs are not measured, a site using one section keeps its title, and AI refusals say why.
-
-* First release: one drawer for page quality, GEO readiness and compliance, replacing three modules.
-
-* Settings and scans are kept where only the module writes them; after an upgrade, schedules and syncs are saved again.
-
-## 1.0.0 (unreleased)
-
 First release, replacing three modules: GEO Readiness (`geo-readiness` 1.6.0-SNAPSHOT), Page Quality
 Audit (`page-audit` 1.7.0) and Content Compliance Scan (`content-compliance-scan` 1.0.1).
 
@@ -41,12 +33,17 @@ Audit (`page-audit` 1.7.0) and Content Compliance Scan (`content-compliance-scan
   compliance scan moved from a dialog into the drawer.
 * Servlets moved under `/modules/content-governance/` (`geo/*`, `audit/ai-review`).
 * `robots` and `llms` became optional dependencies: Page quality and Compliance work without them.
+* A tab switched off is not measured, cached, exported or sent to the AI review; a site that keeps
+  one section on still sees its title; refusals of the AI features say why, in the editor's language.
+* The module keeps its settings, GEO scans and BotRank binding in nodes only the module reads and
+  writes; scheduled scans fetch only from the site's own addresses.
 
 ### Kept
 
-* GEO scans, schedules and the BotRank binding (`/sites/<key>/geo-readiness`), BotRank connection
-  files (`org.jahia.se.modules.georeadiness.botrank-<id>.cfg`) and compliance glossaries (`ccs:`
-  types) are read where the old modules left them.
+* GEO scans and reports (`/sites/<key>/geo-readiness`), BotRank connection files
+  (`org.jahia.se.modules.georeadiness.botrank-<id>.cfg`) and compliance glossaries (`ccs:` types)
+  are read where the old modules left them. The GEO scan schedule and the BotRank daily sync keep
+  their settings but start switched off: a site administrator saves them once to turn them back on.
 * The GEO dashboard stays under Additional > SEO and the Compliance dashboard under Additional.
 
 ## Before 1.0.0: the three replaced modules
