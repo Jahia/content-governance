@@ -99,11 +99,16 @@ and says so.
 
 ### Moving from the three modules
 
-What carries over with nothing to do: GEO scans, schedules and BotRank bindings
-(`/sites/<key>/geo-readiness`), BotRank connection files (their old name is kept), compliance
-glossaries (`ccs:` types), and the results cached in each editor's browser are simply recomputed.
+What carries over with nothing to do: GEO scans and reports (`/sites/<key>/geo-readiness`), BotRank
+connection files (their old name is kept), compliance glossaries (`ccs:` types); the results cached in
+each editor's browser are simply recomputed.
 
-What does not: the AI settings. Page Quality Audit and GEO Readiness each had their own; copy the
+What a site administrator saves again once: the GEO scan schedule and the BotRank daily sync. The
+first time the module starts on a site's existing GEO data, it keeps their settings but switches both
+off, with a note on the dashboard and in **Site Settings > Content governance > BotRank**; saving them
+from there turns them back on.
+
+What does not carry over: the AI settings. Page Quality Audit and GEO Readiness each had their own; copy the
 provider, model and key into `org.jahia.community.contentgovernance.llm.cfg`, then delete the old
 files (`org.jahia.se.modules.pageaudit.cfg` and the `AI_*` keys of
 `org.jahia.se.modules.georeadiness.cfg`).

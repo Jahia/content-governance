@@ -45,6 +45,11 @@ public class CitationSyncJob extends BackgroundJob {
             logger.warn("BotRank sync job started without a site or before the module was ready");
             return;
         }
+        if (!CitationStore.settings(sitePath).enabled) {
+            // Switched off since the trigger was installed (settings saved, module set up).
+            CitationScheduler.unschedule(sitePath);
+            return;
+        }
         if (!CitationsAccess.moduleEnabled(sitePath)) {
             stop(sitePath, "the daily sync stopped: the GEO readiness module is no longer enabled on the site");
             return;

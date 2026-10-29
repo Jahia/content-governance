@@ -1,6 +1,7 @@
 package org.jahia.community.contentgovernance.geo.check;
 
 import org.jahia.services.content.JCRCallback;
+import org.jahia.community.contentgovernance.geo.botrank.CitationStore;
 import org.jahia.community.contentgovernance.geo.util.SiteScope;
 import org.jahia.community.contentgovernance.settings.PrivateStore;
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
@@ -184,13 +185,16 @@ public final class ScanStore {
 
     /**
      * Makes the module state nodes of every site private to the module ({@link PrivateStore}): the
-     * site settings and this store. Each site is saved on its own, so a site that fails is logged
-     * and the others are still done. Run once when the module starts, before the schedules are read.
+     * site settings and this store. A store set up here for the first time has its scan schedule and
+     * its BotRank daily sync switched off, with a note, so that a site administrator saves them again
+     * through the module. Each site is saved on its own, so a site that fails is logged and the others
+     * are still done. Run when the module starts, before any schedule is read; both lifecycles call
+     * it, and the first one does the work.
      *
      * @return the number of sites that could not be done
      * @throws RepositoryException when the sites cannot be listed
      */
-    public static int protectAll() throws RepositoryException {
+    public static synchronized int protectAll() throws RepositoryException {
         Integer failed = JCRTemplate.getInstance().doExecuteWithSystemSession(null, "default",
                 (JCRCallback<Integer>) session -> {
                     if (!session.nodeExists("/sites")) {
@@ -205,9 +209,14 @@ public final class ScanStore {
                         }
                         try {
                             boolean changed = false;
-                            for (String name : new String[]{SiteFeatures.STORE_NODE, STORE_NODE}) {
-                                if (site.hasNode(name)) {
-                                    changed |= PrivateStore.protect(site.getNode(name));
+                            if (site.hasNode(SiteFeatures.STORE_NODE)) {
+                                changed = PrivateStore.protect(site.getNode(SiteFeatures.STORE_NODE));
+                            }
+                            if (site.hasNode(STORE_NODE)) {
+                                JCRNodeWrapper store = site.getNode(STORE_NODE);
+                                if (PrivateStore.protect(store)) {
+                                    changed = true;
+                                    switchOffAfterSetUp(store);
                                 }
                             }
                             if (changed) {
@@ -222,6 +231,27 @@ public final class ScanStore {
                     return errors;
                 });
         return failed == null ? 0 : failed;
+    }
+
+    /** Switches off the schedule and the BotRank sync of a store set up for the first time. */
+    private static void switchOffAfterSetUp(JCRNodeWrapper store) throws RepositoryException {
+        if (bool(store, ENABLED, false)) {
+            store.setProperty(ENABLED, false);
+            NodeIterator langs = store.getNodes();
+            while (langs.hasNext()) {
+                JCRNodeWrapper lang = (JCRNodeWrapper) langs.nextNode();
+                if (SiteScope.isLanguage(lang.getName())) {
+                    lang.setProperty(MESSAGE, "The schedule was switched off when the module was set up:"
+                            + " a site administrator saves it again to turn it back on.");
+                }
+            }
+            LOGGER.info("GEO scan schedule of {} switched off at set-up; it is saved again from the dashboard",
+                    store.getParent().getPath());
+        }
+        if (store.hasNode(CitationStore.NODE)) {
+            CitationStore.switchOffAfterSetUp(
+                    store.getNode(CitationStore.NODE));
+        }
     }
 
     /**

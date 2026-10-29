@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.botrank;
 
+import org.jahia.community.contentgovernance.geo.check.ScanStore;
 import org.jahia.community.contentgovernance.geo.config.GeoReadinessConfigService;
 import org.jahia.community.contentgovernance.geo.util.PublicUrls;
 import org.jahia.settings.SettingsBean;
@@ -46,6 +47,9 @@ public class CitationLifecycle {
             if (!SettingsBean.getInstance().isProcessingServer()) {
                 return;
             }
+            // The module state is set up before anything is read from it (the first lifecycle to start
+            // does it, see ScanStore.protectAll).
+            ScanStore.protectAll();
             int n = 0;
             for (CitationStore.Scheduled s : CitationStore.scheduled()) {
                 CitationScheduler.scheduleDaily(s.sitePath, s.time, s.owner);

@@ -41,7 +41,7 @@ import java.util.List;
  */
 public final class CitationStore {
 
-    static final String NODE = "botrank";
+    public static final String NODE = "botrank";
     static final String PAGES = "pages";
 
     // Property names of the botrank node.
@@ -284,6 +284,23 @@ public final class CitationStore {
      * @param message a sentence for administrators
      * @throws RepositoryException on a repository failure
      */
+    /**
+     * Switches off the daily sync of a BotRank binding set up for the first time, with a note, so a
+     * site administrator saves the settings again. Called by {@link ScanStore#protectAll} inside its
+     * session, which it saves.
+     *
+     * @param node the {@code botrank} node of a site's store, from a system session
+     * @throws RepositoryException on a repository failure
+     */
+    public static void switchOffAfterSetUp(JCRNodeWrapper node) throws RepositoryException {
+        if (node.hasProperty(P_ENABLED) && node.getProperty(P_ENABLED).getBoolean()) {
+            node.setProperty(P_ENABLED, false);
+            node.setProperty(P_STATUS, STATUS_FAILED);
+            node.setProperty(P_MESSAGE, "the daily sync was switched off when the module was set up:"
+                    + " a site administrator saves the settings again to restart it");
+        }
+    }
+
     public static void disable(String sitePath, String message) throws RepositoryException {
         in(sitePath, (node, session) -> {
             node.setProperty(P_ENABLED, false);

@@ -66,6 +66,11 @@ how cited addresses are matched to pages, its limits) are in
 [`geo-readiness/dashboard-guide.md`](geo-readiness/dashboard-guide.md) and
 [`geo-readiness/architecture.md`](geo-readiness/architecture.md).
 
+After an upgrade from GEO Readiness, the daily sync is off and this tab says so: the module switches
+off, the first time it starts on a site's existing data, the syncs and scan schedules it finds. Check
+the settings and save them to turn the sync back on; the GEO scan schedule is saved again from the
+dashboard the same way.
+
 Binding a site spends the organisation's key, which is why only a site administrator can do it, and
 why a server administrator should list the sites of each connection (`sites`) on a shared instance.
 If the administrator who saved the binding loses `site-admin`, the sync stops at its next run and this
