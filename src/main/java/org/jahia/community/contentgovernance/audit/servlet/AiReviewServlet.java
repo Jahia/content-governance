@@ -30,12 +30,10 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * Server-side AI review endpoint for the Page quality section of the Content Governance drawer.
  *
- * GET  /modules/content-governance/audit/ai-review  -> {enabled, provider, model} (never the key)
  * POST /modules/content-governance/audit/ai-review  -> runs the AI review and returns
  *      {provider, model, summary, recommendations: [{severity, category, title, detail, wording}]}
  * POST with {"task": "seo"}            -> SEO assist: ready-to-use suggestions in the PAGE language
@@ -75,6 +73,9 @@ public class AiReviewServlet extends HttpServlet {
     // Per-user sliding-window rate limit: protects the shared provider quota / cost
     // from a single caller (AI_RATE_MAX_CALLS per 10 minutes per user).
     private static final long RATE_WINDOW_MS = 600_000L;
+    // The largest body a task sends is the alt text assist: 8 pictures of 512 px as JPEG, well
+    // under 1 MB in base64. Anything past this is refused before it is parsed.
+    private static final int MAX_BODY_CHARS = 4 * 1024 * 1024;
     private final Map<String, Deque<Long>> callWindows = new ConcurrentHashMap<>();
 
     private static final String SYSTEM_PROMPT =
@@ -250,7 +251,12 @@ public class AiReviewServlet extends HttpServlet {
 
         JSONObject payload;
         try {
-            payload = new JSONObject(req.getReader().lines().collect(Collectors.joining("\n")));
+            String body = readBody(req);
+            if (body == null) {
+                writeError(res, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, "invalidRequest", "Request body too large");
+                return;
+            }
+            payload = new JSONObject(body);
         } catch (Exception e) {
             writeError(res, HttpServletResponse.SC_BAD_REQUEST, "invalidRequest", "Invalid JSON payload");
             return;
@@ -941,8 +947,26 @@ public class AiReviewServlet extends HttpServlet {
         }
     }
 
+    /** The request body, or null when it is longer than {@link #MAX_BODY_CHARS}. */
+    private static String readBody(HttpServletRequest req) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        char[] buf = new char[8192];
+        java.io.Reader reader = req.getReader();
+        int n;
+        while ((n = reader.read(buf)) != -1) {
+            if (sb.length() + n > MAX_BODY_CHARS) {
+                return null;
+            }
+            sb.append(buf, 0, n);
+        }
+        return sb.toString();
+    }
+
     private void writeJson(HttpServletResponse res, int status, JSONObject json) throws IOException {
         res.setStatus(status);
+        // Per-user answers: never kept by a shared cache, never sniffed as another type.
+        res.setHeader("Cache-Control", "no-store, private");
+        res.setHeader("X-Content-Type-Options", "nosniff");
         res.setContentType("application/json;charset=UTF-8");
         res.getWriter().write(json.toString());
     }

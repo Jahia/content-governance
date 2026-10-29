@@ -253,8 +253,9 @@ Reporting is safe to run against anything. Writing is not. Keep the two visibly 
 
 ## Configuration
 
-Three files in `digital-factory-data/karaf/etc/`, each shipped with `# default configuration` as
-its first line, so a redeploy never overwrites them. Edits apply at once, with no redeploy.
+Files in `digital-factory-data/karaf/etc/`. The module ships the first two with `# default
+configuration` as their first line, so a redeploy never overwrites them; the BotRank files are added by
+a server administrator and never shipped. Edits apply at once, with no redeploy.
 
 ### `org.jahia.community.contentgovernance.geo.cfg`
 

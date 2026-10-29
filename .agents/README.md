@@ -60,7 +60,8 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 - `org.jahia.community.contentgovernance.geo.cfg`: crawler fetch settings of the GEO section.
 - `org.jahia.se.modules.georeadiness.botrank-<id>.cfg`: one per BotRank organisation (legacy PID).
 
-All three ship with `# default configuration` as first line, so a redeploy never overwrites them.
+The module ships the first two with `# default configuration` as first line, so a redeploy never
+overwrites them; BotRank files are created by a server administrator, never shipped.
 
 ## Verify
 

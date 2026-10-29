@@ -222,11 +222,12 @@ public class CrawlerCheckServlet extends GeoServlet {
     }
 
     /**
-     * True when the caller can open this node in the editing workspace.
+     * True when the caller can read this node in the editing workspace.
      *
      * The drawer opens on a node the caller has selected in jContent, so the
-     * floor is "edits this content", not "can read the published page". Reading
-     * it in default with their own session is what decides that.
+     * floor is "reads it where it is edited", not "can read the published
+     * page". Reading it in default with their own session is what decides that;
+     * the per-user rate limit bounds the fetches it causes.
      */
     private boolean mayEditNode(String path, String language, HttpServletResponse resp) throws IOException {
         try {
