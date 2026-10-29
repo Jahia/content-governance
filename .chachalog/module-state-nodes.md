@@ -3,4 +3,4 @@
 content-governance: major
 ---
 
-Changed the module to keep its settings, scans and BotRank binding where only the module reads and writes them.
+Site settings, GEO scans and the BotRank binding are kept where only the module reads and writes them.
