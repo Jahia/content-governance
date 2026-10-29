@@ -1,0 +1,96 @@
+# This workflow is triggered every time a change is pushed to an open pull request.
+# It is the gating CI for a Jahia module PR.
+# Composite actions come from https://github.com/Jahia/jahia-modules-action, pinned by
+# their major alias @v2 (a generated Git tag, re-pointed by every v2.x.y release).
+name: On Code Change (PR)
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+# Each job says what its token may do. The repository default is write (every action in a
+# job, and every dependency of those actions, able to push to main) and none of these jobs
+# needs that. A job-level block replaces the default rather than adding to it.
+jobs:
+  update-signature:
+    permissions:
+      contents: read
+      packages: read
+    name: Update module signature
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jahia/jahia-modules-action/update-signature@v2
+        with:
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+
+  static-analysis:
+    permissions:
+      contents: read
+      packages: read
+    name: Static Analysis (linting, vulns)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Jahia/jahia-modules-action/static-analysis@v2
+        with:
+          primary_release_branch: main
+          auditci_level: critical
+          # package.json declares no `lint` script and there is no tests/ folder yet, while
+          # the action runs `yarn run lint` whenever a package.json is present. Flip each to
+          # false once that folder has one.
+          skip_lint_modules: true
+          skip_lint_tests: true
+          skip_vulns_tests: true
+
+  build:
+    permissions:
+      contents: read
+      packages: read
+    name: Build Module
+    needs: update-signature
+    runs-on: ubuntu-latest
+    # Image with a warmed-up ~/.m2 so Maven does not download the world on every run.
+    # https://github.com/Jahia/jahia-docker-mvn-cache
+    container:
+      image: ghcr.io/jahia/jahia-docker-mvn-cache:17-jdk-noble-mvn-loaded
+      credentials:
+        username: ${{ secrets.GH_PACKAGES_USERNAME }}
+        password: ${{ secrets.GH_PACKAGES_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jahia/jahia-modules-action/build@v2
+        with:
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          mvn_settings_filepath: '.github/maven.settings.xml'
+
+  sonar-analysis:
+    permissions:
+      contents: read
+      packages: read
+    name: Sonar Analysis
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 is required: Sonar decides which lines are "new" from git blame, and a
+      # shallow clone makes every line of every changed file new, so a PR inherits all the
+      # findings of the files it touches and the zero-issue gate can never pass.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: jahia/jahia-modules-action/sonar-analysis@v2
+        with:
+          primary_release_branch: main
+          github_pr_id: ${{ github.event.number }}
+          sonar_url: ${{ secrets.SONAR_URL }}
+          sonar_token: ${{ secrets.SONAR_TOKEN }}
+          mvn_settings_filepath: '.github/maven.settings.xml'
+          # The action defaults to Java 11; sonar-maven-plugin 5.x needs a Java 17 runtime.
+          java_version: '17'
+
+  # No integration-tests job yet: the module has no tests/ Cypress suite. When it gets one, add
+  # the job GEO Readiness used (Jahia/jahia-modules-action/.github/workflows/
+  # reusable-integration-tests.yml@v2, module_id content-governance, jahia_image
+  # ghcr.io/jahia/jahia-ee-dev:8-SNAPSHOT, the default self-hosted instance_type, checks: write).

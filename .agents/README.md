@@ -69,6 +69,14 @@ All three ship with `# default configuration` as first line, so a redeploy never
   in Site Settings > Content governance and reopen the drawer; the GEO servlet answers 403 and the
   compliance query refuses once their section is off.
 
+## CI and releases
+
+Jahia's shared workflows in `.github/workflows/` (table in the root README, "CI and releases").
+Every PR carries a `.chachalog/` fragment, docs and CI changes included; `.version` stays `0.0.0`
+until 1.0.0 is released. Before releasing, read the README's release steps: the CI account may not
+have write access to this new repository, and the first release PR must fold the hand-written
+`1.0.0 (unreleased)` section of `CHANGELOG.md`. No integration-test job until a Cypress suite exists.
+
 ## Known leftovers (found while writing the docs, 2026-10-29)
 
 - A switched-off Page quality tab is hidden only: its analyzer still runs in the browser, and its
