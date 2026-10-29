@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0
+
+* Switched-off tabs are not measured, a site using one section keeps its title, and AI refusals say why.
+
+* First release: one drawer for page quality, GEO readiness and compliance, replacing three modules.
+
+* Settings and scans are kept where only the module writes them; after an upgrade, schedules and syncs are saved again.
+
 ## 1.0.0 (unreleased)
 
 First release, replacing three modules: GEO Readiness (`geo-readiness` 1.6.0-SNAPSHOT), Page Quality
@@ -7,39 +15,39 @@ Audit (`page-audit` 1.7.0) and Content Compliance Scan (`content-compliance-scan
 
 ### Added
 
-- One **Content governance** button in the page header, opening one drawer with three sections:
+* One **Content governance** button in the page header, opening one drawer with three sections:
   **Page quality** (accessibility, SEO, Web Vitals, readability, eco-design, links, Jahia checks,
   AI review), **GEO readiness** (score, crawler access, site files, structured data, AI citations)
   and **Compliance** (glossaries of non-authorised terms). Each section shows its issue count; a
   section keeps its results while the editor switches to another.
-- Every section and every tab of the drawer has a tooltip saying what it is for, followed by why it
+* Every section and every tab of the drawer has a tooltip saying what it is for, followed by why it
   is greyed out or what its count means; Site Settings shows the same text under each tab's switch.
-- **Site Settings > Content governance**, for site administrators: switch each section and each tab
+* **Site Settings > Content governance**, for site administrators: switch each section and each tab
   on or off per site (everything on by default); see the shared AI provider; connect the site to
   BotRank. A section switched off also switches its dashboard off (the entry stays and says
   so), and the server refuses its calls.
-- GraphQL `contentGovernance { siteSettings(siteKey) }` and
+* GraphQL `contentGovernance { siteSettings(siteKey) }` and
   `mutation { contentGovernance { saveSiteSettings(siteKey, disabled) } }` (site-admin).
 
 ### Changed
 
-- **One AI configuration** for every AI feature (page review, SEO, alt text and plain-language
+* **One AI configuration** for every AI feature (page review, SEO, alt text and plain-language
   assists, GEO written report): `org.jahia.community.contentgovernance.llm.cfg`. The page review now
   uses the same provider layer as the GEO report (OpenAI calls send `max_completion_tokens`). The
   cost of a review is shown only when the price is configured; there is no default price or model.
-- AI features are shown greyed out, with the reason, when no model is configured; the AI citations
+* AI features are shown greyed out, with the reason, when no model is configured; the AI citations
   tab is greyed out until the site is connected to BotRank.
-- Page quality now uses Moonstone throughout (buttons, tabs, badges, banners, loaders); the
+* Page quality now uses Moonstone throughout (buttons, tabs, badges, banners, loaders); the
   compliance scan moved from a dialog into the drawer.
-- Servlets moved under `/modules/content-governance/` (`geo/*`, `audit/ai-review`).
-- `robots` and `llms` became optional dependencies: Page quality and Compliance work without them.
+* Servlets moved under `/modules/content-governance/` (`geo/*`, `audit/ai-review`).
+* `robots` and `llms` became optional dependencies: Page quality and Compliance work without them.
 
 ### Kept
 
-- GEO scans, schedules and the BotRank binding (`/sites/<key>/geo-readiness`), BotRank connection
+* GEO scans, schedules and the BotRank binding (`/sites/<key>/geo-readiness`), BotRank connection
   files (`org.jahia.se.modules.georeadiness.botrank-<id>.cfg`) and compliance glossaries (`ccs:`
   types) are read where the old modules left them.
-- The GEO dashboard stays under Additional > SEO and the Compliance dashboard under Additional.
+* The GEO dashboard stays under Additional > SEO and the Compliance dashboard under Additional.
 
 ## Before 1.0.0: the three replaced modules
 
@@ -653,58 +661,58 @@ they address, in the page language, ready to copy.
 
 ##### Fixed
 
-- Japanese and Chinese: a *Whole word* or *Word starting with* term never matched inside a sentence,
+* Japanese and Chinese: a *Whole word* or *Word starting with* term never matched inside a sentence,
   since these languages write words without spaces. Letters of Han, Hiragana, Katakana, Thai, Lao,
   Khmer and Myanmar no longer extend a word, so 安全 is found in 安全なロック機能 and a prefix stops at
   the end of the term. A boundary is checked only where the term itself starts or ends with a word
   character, so 情報 is found in ユーザー情報 and 安全 in Jahia安全. Kana keep their voiced marks
   (ガ is not カ), decomposed kana match their composed form, compatibility ideographs their standard
   form, and fullwidth Latin letters and digits their plain forms.
-- A glossary's *Language* list offers every language of the site, also those not yet active on the
+* A glossary's *Language* list offers every language of the site, also those not yet active on the
   live site (Jahia's own site-language list showed the live-active ones only, so a glossary for a
   language being prepared could not be written or edited).
 
 ##### Changed
 
-- README: the install steps name the module manager's screens (upload, then Usage in sites).
+* README: the install steps name the module manager's screens (upload, then Usage in sites).
 
 #### 1.0.0 (2026-10-29)
 
 ##### Added
 
-- Page Builder action **Compliance scan**: scans the page being edited against the site's
+* Page Builder action **Compliance scan**: scans the page being edited against the site's
   glossaries of non-authorised terms for the language being edited, and lists each use with the
   field, the highlighted sentence, the reason and the suggested wording. Edit opens the content in
   Content Editor and the scan runs again when the editor closes. Informational: it does not block
   publication.
-- Page scan scope: the page and its content, content references, the header and footer stored on
+* Page scan scope: the page and its content, content references, the header and footer stored on
   the ancestor pages (read on the server, since locked chrome carries no marker in the edit frame),
   and the listing items the Page Builder frame shows.
-- Site dashboard in jContent (**Additional > Compliance**): the whole site in the language selected
+* Site dashboard in jContent (**Additional > Compliance**): the whole site in the language selected
   in jContent, terms ranked by use, pages and content items with their issues as expandable rows,
   Open in Page Builder and Edit, **Export CSV** (one row per issue, UTF-8 with BOM, formula-safe) and
   **Export JSON** (the whole report with the scan time). Each node counts once, where it is stored.
-- Content types `ccs:glossary` (one per language, under the site's contents) and
+* Content types `ccs:glossary` (one per language, under the site's contents) and
   `ccs:glossaryTerm` (term, match mode `word`/`prefix`/`anywhere`, reason, suggested wording), EN and
   FR labels and tooltips. Matching ignores case and accents, and phrases match across any white space.
-- Several glossaries per language: all apply, each issue names its glossary, and a term two
+* Several glossaries per language: all apply, each issue names its glossary, and a term two
   glossaries share is reported for each with its own reason.
-- Content-type icons (Lucide glyphs) for the glossary, the term and the Compliance category.
-- GraphQL `complianceScan { scanPage, scanSite }` and the exported `ComplianceScanService`.
-- Documentation: `docs/` guides for glossary maintainers, editors and dashboard users, the
+* Content-type icons (Lucide glyphs) for the glossary, the term and the Compliance category.
+* GraphQL `complianceScan { scanPage, scanSite }` and the exported `ComplianceScanService`.
+* Documentation: `docs/` guides for glossary maintainers, editors and dashboard users, the
   architecture, and the publication-blocking analysis.
 
 ##### Security
 
-- Both scans run with the caller's own session (default workspace, read-only, no system session).
+* Both scans run with the caller's own session (default workspace, read-only, no system session).
   `scanPage` needs `jcr:write` on the page, `scanSite` needs `jContentAccess` on the site, and both
   refuse guests and sites where the module is not enabled (directly or through a dependency); paths
   sent by the browser are restricted to the page's site, and one unreadable path or location is
   skipped instead of failing the scan. One request runs at most 5 page scans and 1 site scan, and
   rich text is read in linear time whatever its markup.
-- Requires jContent 3.7 or later (`Jahia-Depends: jcontent=[3.7,4)`).
+* Requires jContent 3.7 or later (`Jahia-Depends: jcontent=[3.7,4)`).
 
 ##### Fixed (before release)
 
-- The site dashboard could not scroll in jContent's Additional panel: its wrapper now fills the
+* The site dashboard could not scroll in jContent's Additional panel: its wrapper now fills the
   panel, so the report scrolls under a fixed header.
