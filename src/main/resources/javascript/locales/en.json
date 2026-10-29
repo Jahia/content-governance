@@ -933,7 +933,8 @@
         "map": "Match to a page",
         "mappings": "Addresses matched by hand",
         "unmap": "Remove",
-        "mappingsNote": "A mapping counts from the next sync."
+        "mappingsNote": "A mapping counts from the next sync.",
+        "switchedOff": "AI citations are switched off for this site. Switch the GEO readiness section and its AI citations tab back on in the Features tab; if the daily sync was on, turn it on again here afterwards."
       },
       "siteCitations": {
         "view": {
@@ -1034,11 +1035,7 @@
       }
     },
     "audit": {
-      "action": {
-        "open": "Page audit"
-      },
       "drawer": {
-        "title": "Page quality",
         "close": "Close panel",
         "rerun": "Re-run",
         "export": "Export JSON",
@@ -1185,8 +1182,6 @@
         "done": "Copied"
       },
       "ai": {
-        "checking": "Checking AI review availability…",
-        "notConfigured": "AI review is not configured on this server. A server administrator sets AI_PROVIDER, AI_MODEL and AI_API_KEY in:",
         "intro": "Sends the page text and the audit findings to {{provider}} ({{model}}) and returns prioritized, editor-friendly recommendations. The API key stays on the server.",
         "generate": "Generate AI review",
         "regenerate": "Regenerate",
@@ -1212,6 +1207,16 @@
           "localization": "Localization",
           "legal": "Legal",
           "ecodesign": "Ecodesign"
+        },
+        "errors": {
+          "unauthenticated": "Your session has ended. Sign in again, then retry.",
+          "crossOrigin": "The request was refused because it did not come from this Jahia. Reload the page, then retry.",
+          "noAccess": "You cannot read this page any more, so the AI cannot review it.",
+          "switchedOff": "A site administrator has switched this feature off for this site.",
+          "notConfigured": "No AI provider is configured on this server.",
+          "rateLimited": "You have reached the number of AI requests allowed in ten minutes. Retry a little later.",
+          "invalidRequest": "The request could not be read. Reload the page, then retry.",
+          "upstream": "The AI provider did not answer. Retry in a moment; if it persists, tell a server administrator."
         }
       },
       "jahia": {

@@ -9,15 +9,6 @@ import {moduleUrl} from '../../common/url';
 
 const ENDPOINT = moduleUrl('/audit/ai-review');
 
-export async function fetchAiStatus() {
-    const res = await fetch(ENDPOINT, {credentials: 'same-origin'});
-    if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-    }
-
-    return res.json();
-}
-
 export function extractPageText(frame) {
     const doc = frame && frame.contentDocument;
     if (!doc || !doc.body) {
@@ -122,7 +113,11 @@ async function postTask(payload) {
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-        throw new Error(data.error || `HTTP ${res.status}`);
+        // The server's code names the refusal (switched off, not configured, rate limited...),
+        // which the drawer shows in the editor's language.
+        const error = new Error(data.error || `HTTP ${res.status}`);
+        error.code = data.code || null;
+        throw error;
     }
 
     return data;
@@ -344,7 +339,7 @@ export async function requestAltAssist({language, path, results, frame, aiStatus
         language,
         uiLanguage: (window.contextJsParameters && window.contextJsParameters.uilang) || language,
         path,
-        title: results.seo && results.seo.title ? results.seo.title.text : '',
+        title: results.page ? results.page.title : '',
         images: items
     });
 
@@ -358,8 +353,8 @@ export function requestAiReview({language, path, results, frame}) {
         // language, falling back to the audited page language
         uiLanguage: (window.contextJsParameters && window.contextJsParameters.uilang) || language,
         path,
-        title: results.seo ? results.seo.title.text : '',
-        description: results.seo ? (results.seo.description.text || '') : '',
+        title: results.page ? results.page.title : '',
+        description: results.page ? results.page.description : '',
         findings: buildDigest(results),
         text: extractPageText(frame)
     };

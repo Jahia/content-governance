@@ -299,7 +299,7 @@ turns **Daily sync** off, when the site no longer enables the module, when the G
 or its **AI citations** tab is switched off, or when the administrator who saved the settings loses
 **site-admin**. The note from the last sync says why, and a site administrator turns **Daily sync**
 on and saves again to restart it. While the section or the **AI citations** tab is switched off,
-this tab cannot read the site's BotRank settings at all: switch them back on first.
+this tab cannot read the site's BotRank settings and says so: switch them back on first.
 
 ---
 

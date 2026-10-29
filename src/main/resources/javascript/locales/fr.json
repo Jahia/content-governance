@@ -933,7 +933,8 @@
         "map": "Rattacher à une page",
         "mappings": "Adresses rattachées à la main",
         "unmap": "Retirer",
-        "mappingsNote": "Un rattachement compte à partir de la prochaine synchronisation."
+        "mappingsNote": "Un rattachement compte à partir de la prochaine synchronisation.",
+        "switchedOff": "Les citations par les IA sont désactivées pour ce site. Réactivez la section Préparation GEO et son onglet Citations IA dans l'onglet Fonctionnalités ; si la synchronisation quotidienne était active, réactivez-la ensuite ici."
       },
       "siteCitations": {
         "view": {
@@ -1034,11 +1035,7 @@
       }
     },
     "audit": {
-      "action": {
-        "open": "Audit de page"
-      },
       "drawer": {
-        "title": "Qualité de la page",
         "close": "Fermer le panneau",
         "rerun": "Relancer",
         "export": "Exporter JSON",
@@ -1185,8 +1182,6 @@
         "done": "Copié"
       },
       "ai": {
-        "checking": "Vérification de la disponibilité de la revue IA…",
-        "notConfigured": "La revue IA n'est pas configurée sur ce serveur. Un administrateur du serveur renseigne AI_PROVIDER, AI_MODEL et AI_API_KEY dans :",
         "intro": "Envoie le texte de la page et les résultats de l'audit à {{provider}} ({{model}}) et renvoie des recommandations priorisées pour les contributeurs. La clé API reste sur le serveur.",
         "generate": "Générer la revue IA",
         "regenerate": "Régénérer",
@@ -1212,6 +1207,16 @@
           "localization": "Localisation",
           "legal": "Juridique",
           "ecodesign": "Écoconception"
+        },
+        "errors": {
+          "unauthenticated": "Votre session a expiré. Reconnectez-vous, puis réessayez.",
+          "crossOrigin": "La requête a été refusée car elle ne venait pas de ce Jahia. Rechargez la page, puis réessayez.",
+          "noAccess": "Vous ne pouvez plus lire cette page : l'IA ne peut donc pas la relire.",
+          "switchedOff": "Un administrateur du site a désactivé cette fonction pour ce site.",
+          "notConfigured": "Aucun fournisseur d'IA n'est configuré sur ce serveur.",
+          "rateLimited": "Vous avez atteint le nombre de requêtes d'IA autorisées en dix minutes. Réessayez un peu plus tard.",
+          "invalidRequest": "La requête n'a pas pu être lue. Rechargez la page, puis réessayez.",
+          "upstream": "Le fournisseur d'IA n'a pas répondu. Réessayez dans un instant ; si cela persiste, prévenez un administrateur du serveur."
         }
       },
       "jahia": {

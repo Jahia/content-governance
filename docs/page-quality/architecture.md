@@ -58,13 +58,17 @@ jContent / Page Builder header
   of this section is inside the dialog, so clicking it does not close the drawer.
 - `AuditSection` receives `isOn(tab)` for the `audit` section. `TAB_IDS` (`accessibility`, `seo`,
   `vitals`, `readability`, `ecodesign`, `links`, `jahia`, `ai`) is filtered by it. The `ai` tab is
-  kept but disabled while `settings.ai.configured` is false, wrapped in a span whose `title` is
-  `audit.tabs.aiNotConfigured`.
+  kept but disabled while `settings.ai.configured` is false; its tooltip (Moonstone `Tooltip`,
+  `common/HelpTab.jsx`) says what it is for, then `audit.tabs.aiNotConfigured`.
 
-The client-side switches only hide. The analyzers run whatever the switches say: a tab switched off
-is still measured, its results are still cached and exported, and its findings still feed the AI
-review digest. Only its tab and badge are hidden. The server enforces the switches on the AI endpoint
-only (see [Feature gates](#feature-gates)); the analyzers call no module endpoint.
+A tab switched off is not measured. Its analyzer does not run, and its result is not cached,
+exported or sent to the AI review (`keepEnabled` in `AuditSection.jsx`). Web Vitals still runs as the
+input of Ecodesign, and the SEO read (a DOM pass) always runs for the page facts the AI tasks need:
+`results.page` holds the title, the meta description and the number of images without alt, whatever
+the switches. Neither result is kept when its own tab is off. A cached audit that lacks a tab switched
+back on since is measured again; `CACHE_SCHEMA` 4 drops caches from before `results.page`.
+The analyzers call no module endpoint; the server enforces the switches on the AI endpoint (see
+[Feature gates](#feature-gates)).
 
 ## The preview frame
 
@@ -146,29 +150,28 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
 `AiReviewServlet`, a DS component registered as an `HttpServlet` with `alias=/content-governance/audit/ai-review`
 and `allow-api-token=true`, so it answers at `/modules/content-governance/audit/ai-review`.
 
-### GET
-
-Returns `{enabled, provider, model, vision}`, never the key, to a non-guest user (403 otherwise).
-The drawer does not call it: it reads the same facts from `contentGovernance.siteSettings.ai`.
-`fetchAiStatus()` in `aiReview.js` is no longer used.
+The endpoint answers `POST` only (405 otherwise). The drawer reads the provider, model and image
+support from `contentGovernance.siteSettings.ai`.
 
 ### POST: guards, in order
 
 | Check | Failure |
 |---|---|
-| Authenticated, not `guest` | 403 (`sendError`) |
-| `Content-Type` starts with `application/json` | 415 JSON error |
-| `Origin`, else `Referer`, has the request's host (`Host` header without port, else `getServerName()`); a request with neither header passes, as a non-browser caller | 403 (`sendError`) |
-| Body parses as JSON | 400 JSON error |
-| `path` is absolute, exists and has `jcr:read` for the caller's session | 403 (`sendError`) |
-| The site of the page enables the feature of the task (`SiteFeatures.isEnabled`) | 403 (`sendError`) |
-| Per-user rate limit: `AI_RATE_MAX_CALLS` per 10-minute sliding window | 429 JSON error |
-| `LlmConfigService.isEnabled()` | 503 JSON error "AI review is not configured" |
-| Provider call and parse | 502 JSON error "AI review temporarily unavailable"; detail and the first 500 characters of an unparseable answer are logged server-side only |
+| Authenticated, not `guest` | 403 `unauthenticated` |
+| `Content-Type` starts with `application/json` | 415 `invalidRequest` |
+| `Origin`, else `Referer`, has the request's host (`Host` header without port, else `getServerName()`); a request with neither header passes, as a non-browser caller | 403 `crossOrigin` |
+| Body is at most 4 194 304 characters | 413 `invalidRequest` |
+| Body parses as JSON | 400 `invalidRequest` |
+| `path` is absolute, exists and has `jcr:read` for the caller's session | 403 `noAccess` |
+| The site of the page enables the feature of the task (`SiteFeatures.isEnabled`) | 403 `switchedOff` |
+| `LlmConfigService.isEnabled()` | 503 `notConfigured` |
+| Per-user rate limit: `AI_RATE_MAX_CALLS` per 10-minute sliding window | 429 `rateLimited` |
+| Provider call and parse | 502 `upstream`; detail and the first 500 characters of an unparseable answer are logged server-side only |
 
-The rate-limit slot is taken before the 503 check and before the provider call, so refused and
-failed calls count. Errors sent with `sendError` have an HTML body: the client then shows
-`HTTP <status>` instead of a message (`postTask` falls back to it when the body is not JSON).
+Every refusal is JSON, `{"code": "...", "error": "<English message>"}`. The drawer shows the code in
+the editor's language (`audit.ai.errors.<code>`) and falls back to the message. The rate limit is
+counted after every refusal that costs nothing, so only a call that goes to the provider takes a
+slot (a provider failure included); it is kept in memory per node.
 
 This endpoint has no Jahia CSRF guard configuration: its CSRF protection is the JSON content type
 (which a cross-site form cannot send without a preflight the servlet never answers) and the
@@ -258,14 +261,5 @@ shared across cluster nodes.
 
 Facts from the merge that a maintainer may trip on:
 
-- `webVitals.js` filters self-injected resources with `/\/modules\/page-audit\//`, the old module's
-  path. It matches nothing now; it is harmless only because Web Vitals and Ecodesign run before axe
-  is injected and before the link checks. Keep that order, or fix the pattern to
-  `/modules/content-governance/`.
-- `fetchAiStatus()` and the servlet's `GET` are unused by the UI.
-- `AiTab` still renders `audit.ai.checking` when `status` is null, which never happens: the drawer
-  always builds `status` from the settings. `audit.ai.notConfigured` is not read at all; greyed-out
-  AI features use `common.ai.notConfigured` through `AiUnavailable`.
-- Locale keys `audit.action.open` ("Page audit") and `audit.drawer.title` are not read: the button
-  label is `drawer.action` and the section label `drawer.section.audit`.
-- Console messages still use the `[page-audit]` prefix.
+- Web Vitals runs before axe is injected and before the link checks, or their requests would count
+  in the page's own statistics; `webVitals.js` also filters `/modules/content-governance/`.

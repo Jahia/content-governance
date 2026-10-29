@@ -167,7 +167,7 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
                 <Button variant="ghost" icon={<Close/>} aria-label={t('close')} onClick={() => onClose()}/>
             </header>
 
-            {sections.length > 1 && (
+            {sections.length > 0 && (
                 <div className={styles.sectionBar}>
                     <Tab className={styles.sectionTabs} role="tablist" aria-label={t('sections')}>
                         {sections.map(section => (
@@ -201,7 +201,7 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
                 <div key={section.id}
                      id={`content-governance-panel-${section.id}`}
                      role="tabpanel"
-                     aria-labelledby={sections.length > 1 ? `content-governance-section-${section.id}` : 'content-governance-drawer-title'}
+                     aria-labelledby={`content-governance-section-${section.id}`}
                      className={styles.section}
                      hidden={active !== section.id}
                 >

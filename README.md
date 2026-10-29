@@ -271,6 +271,36 @@ curl -u root:<password> http://localhost:8080/modules/api/provisioning \
 `mvn clean install` runs the unit tests (477). `test-fixtures/` holds a local site and a BotRank stub
 for the GEO checks.
 
+## CI and releases
+
+GitHub Actions run Jahia's shared [jahia-modules-action](https://github.com/Jahia/jahia-modules-action)
+workflows:
+
+| Workflow | When | What |
+|---|---|---|
+| `on-code-change.yml` | every pull request | module signature, static analysis (dependency vulnerabilities), build with unit tests, SonarQube |
+| `on-merge.yml` | push to `main` | build, SBOM to Dependency-Track, SNAPSHOT to Nexus |
+| `schedule-sonar.yml` | Monday, Wednesday, Friday | full SonarQube analysis of `main` with OWASP Dependency-Check |
+| `chachalog-*.yml` | pull requests, push to `main` | checks the changelog fragment, opens the release pull request |
+| `on-release.yml` | a GitHub prerelease | Maven release, signature, Nexus promotion |
+
+There is no integration-test job yet: the module has no Cypress suite. Dependabot keeps axe-core and
+the other dependencies current, and holds back the majors that would break jContent (React 18, the
+Module Federation singletons, css-loader 7, the Jahia parent; reasons in `.github/dependabot.yml`).
+
+Every pull request carries a changelog fragment in `.chachalog/` (`.github/changelog-fragments.md`).
+To release:
+
+1. Merge the **chore: release content-governance @ vX.Y.Z** pull request the bot opens. The first
+   one, 1.0.0, also folds the hand-written `1.0.0 (unreleased)` section of `CHANGELOG.md` into the
+   section it adds.
+2. Create a prerelease on `main` tagged in Jahia's form, `X_Y_Z` (`1_0_0`), titled
+   `content-governance vX.Y.Z`, with the `CHANGELOG.md` section as notes.
+3. `on-release.yml` runs the release. It pushes as the org CI account, which needs write access to
+   this repository (a repository admin grants it). Without it the release fails at its first push and
+   is done by hand (AIStartupKit `jahia-release-and-ci.md`, "Manual release when the release workflow
+   cannot run").
+
 ## Licence
 
 MIT

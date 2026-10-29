@@ -9,12 +9,6 @@ import styles from './Tabs.module.css';
 export function AiTab({status, review, phase, error, onGenerate, onHighlightText}) {
     const {t} = useGovernanceTranslation('audit');
 
-    if (!status) {
-        return (
-            <div className={styles.note}>{t('ai.checking')}</div>
-        );
-    }
-
     if (!status.enabled) {
         return <AiUnavailable title={t('ai.summary')} actionLabel={t('ai.generate')}/>;
     }

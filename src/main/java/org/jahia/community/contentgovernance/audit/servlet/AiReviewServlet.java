@@ -12,6 +12,7 @@ import org.jahia.services.content.JCRSessionFactory;
 import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.usermanager.JahiaUser;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -23,6 +24,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.Reader;
 import java.net.URL;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -30,12 +32,10 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * Server-side AI review endpoint for the Page quality section of the Content Governance drawer.
  *
- * GET  /modules/content-governance/audit/ai-review  -> {enabled, provider, model} (never the key)
  * POST /modules/content-governance/audit/ai-review  -> runs the AI review and returns
  *      {provider, model, summary, recommendations: [{severity, category, title, detail, wording}]}
  * POST with {"task": "seo"}            -> SEO assist: ready-to-use suggestions in the PAGE language
@@ -75,6 +75,12 @@ public class AiReviewServlet extends HttpServlet {
     // Per-user sliding-window rate limit: protects the shared provider quota / cost
     // from a single caller (AI_RATE_MAX_CALLS per 10 minutes per user).
     private static final long RATE_WINDOW_MS = 600_000L;
+    // The largest body a task sends is the alt text assist: 8 pictures of 512 px as JPEG, well
+    // under 1 MB in base64. Anything past this is refused before it is parsed.
+    private static final int MAX_BODY_CHARS = 4 * 1024 * 1024;
+    private static final String INVALID_REQUEST = "invalidRequest";
+    private static final String TASK_SIMPLIFY = "simplify";
+    private static final String TRUNCATED = "truncated";
     private final Map<String, Deque<Long>> callWindows = new ConcurrentHashMap<>();
 
     private static final String SYSTEM_PROMPT =
@@ -228,150 +234,188 @@ public class AiReviewServlet extends HttpServlet {
     private LlmConfigService llm;
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse res) throws IOException {
-        if (isGuest()) {
-            res.sendError(HttpServletResponse.SC_FORBIDDEN, "Authentication required");
-            return;
+    protected void doPost(HttpServletRequest req, HttpServletResponse res) {
+        try {
+            handle(req, res);
+        } catch (IOException | RuntimeException e) {
+            // The client went away, or the response could not be written: nothing left to answer.
+            logger.debug("could not write the AI review response", e);
         }
-
-        JSONObject status = new JSONObject();
-        status.put("enabled", llm.isEnabled());
-        status.put("provider", llm.providerName());
-        status.put("model", llm.model());
-        status.put("vision", llm.supportsImages());
-        writeJson(res, HttpServletResponse.SC_OK, status);
     }
 
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse res) throws IOException {
+    /** The POST, as steps that each either refuse it (and answer) or let it through. */
+    private void handle(HttpServletRequest req, HttpServletResponse res) throws IOException {
         JahiaUser user = JCRSessionFactory.getInstance().getCurrentUser();
         if (user == null || "guest".equals(user.getUsername())) {
-            res.sendError(HttpServletResponse.SC_FORBIDDEN, "Authentication required");
+            writeError(res, HttpServletResponse.SC_FORBIDDEN, "unauthenticated", "Authentication required");
             return;
         }
+        JSONObject payload = acceptedPayload(req, res);
+        if (payload == null) {
+            return;
+        }
+        // Server-defined tasks share the endpoint and its guards; the client
+        // only picks which one, never the prompt.
+        String task = payload.optString("task", "review").toLowerCase();
+        if (allowed(res, user, payload, task)) {
+            run(res, payload, task);
+        }
+    }
 
+    /** The parsed body of a same-origin JSON call within the size cap, or null once refused. */
+    private JSONObject acceptedPayload(HttpServletRequest req, HttpServletResponse res) throws IOException {
         // CSRF hardening: require JSON (which forces a CORS preflight this endpoint
         // never answers) and reject cross-origin browser requests.
         String contentType = req.getContentType();
         if (contentType == null || !contentType.toLowerCase().startsWith("application/json")) {
-            writeError(res, HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE, "Content-Type must be application/json");
-            return;
+            writeError(res, HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE, INVALID_REQUEST, "Content-Type must be application/json");
+            return null;
         }
-
         if (!isSameOrigin(req)) {
-            res.sendError(HttpServletResponse.SC_FORBIDDEN, "Cross-origin request rejected");
-            return;
+            writeError(res, HttpServletResponse.SC_FORBIDDEN, "crossOrigin", "Cross-origin request rejected");
+            return null;
         }
-
-        JSONObject payload;
+        String body;
         try {
-            payload = new JSONObject(req.getReader().lines().collect(Collectors.joining("\n")));
-        } catch (Exception e) {
-            writeError(res, HttpServletResponse.SC_BAD_REQUEST, "Invalid JSON payload");
-            return;
+            body = readBody(req);
+        } catch (IOException e) {
+            writeError(res, HttpServletResponse.SC_BAD_REQUEST, INVALID_REQUEST, "Invalid JSON payload");
+            return null;
         }
+        if (body == null) {
+            writeError(res, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, INVALID_REQUEST, "Request body too large");
+            return null;
+        }
+        try {
+            return new JSONObject(body);
+        } catch (JSONException e) {
+            writeError(res, HttpServletResponse.SC_BAD_REQUEST, INVALID_REQUEST, "Invalid JSON payload");
+            return null;
+        }
+    }
 
+    /** True when the caller may run this task now; otherwise the refusal is written. */
+    private boolean allowed(HttpServletResponse res, JahiaUser user, JSONObject payload, String task) throws IOException {
+        String path = payload.optString("path", "");
         // Authorization: only run a review for a page the caller may actually read,
         // so the endpoint cannot be abused as an open LLM proxy by any authenticated principal.
-        if (!canRead(payload.optString("path", ""))) {
-            res.sendError(HttpServletResponse.SC_FORBIDDEN, "You must have read access to the audited page");
-            return;
+        if (!canRead(path)) {
+            writeError(res, HttpServletResponse.SC_FORBIDDEN, "noAccess", "You must have read access to the audited page");
+            return false;
         }
-
-        // Server-defined tasks share the endpoint and its guards; the client
-        // only picks which one, never the prompt.
-        String task = payload.optString("task", "review").toLowerCase();
-        if (!featureEnabled(payload.optString("path", ""), task)) {
-            res.sendError(HttpServletResponse.SC_FORBIDDEN, "This feature is switched off on the site");
-            return;
+        if (!featureEnabled(path, task)) {
+            writeError(res, HttpServletResponse.SC_FORBIDDEN, "switchedOff", "This feature is switched off on the site");
+            return false;
         }
-
-        if (isRateLimited(user.getUsername())) {
-            writeError(res, 429, "Too many AI review requests; please retry later");
-            return;
-        }
-
         if (!llm.isEnabled()) {
-            writeError(res, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "AI review is not configured");
-            return;
+            writeError(res, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "notConfigured", "AI review is not configured");
+            return false;
         }
+        // Counted last, once every refusal that costs nothing is behind: a call that reaches this
+        // point goes to the provider.
+        if (isRateLimited(user.getUsername())) {
+            writeError(res, 429, "rateLimited", "Too many AI review requests; please retry later");
+            return false;
+        }
+        return true;
+    }
 
-        String systemPrompt;
-        String userContent;
-        JSONArray images = new JSONArray();
+    /** The server-defined prompt of a task: never chosen by the client beyond the task name. */
+    private static final class Prompt {
+        final String task;
+        final String system;
+        final String user;
+        final JSONArray images;
+
+        Prompt(String task, String system, String user, JSONArray images) {
+            this.task = task;
+            this.system = system;
+            this.user = user;
+            this.images = images;
+        }
+    }
+
+    private Prompt promptFor(String task, JSONObject payload) {
         switch (task) {
             case "seo":
-                systemPrompt = languagePrompt(SEO_ASSIST_PROMPT, payload);
-                userContent = buildSeoAssistContent(payload);
-                break;
-            case "alt":
-                systemPrompt = languagePrompt(ALT_TEXT_PROMPT, payload);
-                userContent = buildAltContent(payload, images, llm.supportsImages());
-                break;
-            case "simplify":
-                systemPrompt = languagePrompt(SIMPLIFY_PROMPT, payload);
-                userContent = buildSimplifyContent(payload);
-                break;
+                return new Prompt(task, languagePrompt(SEO_ASSIST_PROMPT, payload), buildSeoAssistContent(payload),
+                        new JSONArray());
+            case "alt": {
+                // The pictures, when the provider reads them, are filled in while the content is built.
+                JSONArray images = new JSONArray();
+                String content = buildAltContent(payload, images, llm.supportsImages());
+                return new Prompt(task, languagePrompt(ALT_TEXT_PROMPT, payload), content, images);
+            }
+            case TASK_SIMPLIFY:
+                return new Prompt(task, languagePrompt(SIMPLIFY_PROMPT, payload), buildSimplifyContent(payload),
+                        new JSONArray());
             default:
-                task = "review";
-                systemPrompt = SYSTEM_PROMPT;
-                userContent = buildUserContent(payload);
+                return new Prompt("review", SYSTEM_PROMPT, buildUserContent(payload), new JSONArray());
         }
+    }
 
-        String provider = llm.providerName();
-        String model = llm.model();
+    private JSONObject parse(Prompt prompt, String rawAnswer) {
+        switch (prompt.task) {
+            case "seo":
+                return parseSeoAssist(rawAnswer);
+            case "alt":
+                return parseAltText(rawAnswer).put("vision", prompt.images.length() > 0);
+            case TASK_SIMPLIFY:
+                return parseSimplify(rawAnswer);
+            default:
+                return parseReview(rawAnswer);
+        }
+    }
 
+    /** Token counts of an answer, with its cost when the price is configured; null when unknown. */
+    private JSONObject usageOf(JSONObject providerResult) {
+        long inputTokens = providerResult.optLong("inputTokens", -1);
+        long outputTokens = providerResult.optLong("outputTokens", -1);
+        if (inputTokens < 0 || outputTokens < 0) {
+            return null;
+        }
+        JSONObject usage = new JSONObject();
+        usage.put("inputTokens", inputTokens);
+        usage.put("outputTokens", outputTokens);
+        // Rates are configured per million tokens (AI_COST_*_PER_MTOKENS); none set, no cost shown
+        if (llm.costInputPerMTokens() > 0 || llm.costOutputPerMTokens() > 0) {
+            double cost = (inputTokens / 1_000_000.0) * llm.costInputPerMTokens()
+                    + (outputTokens / 1_000_000.0) * llm.costOutputPerMTokens();
+            usage.put("cost", Math.round(cost * 10_000.0) / 10_000.0);
+            usage.put("currency", "USD");
+        }
+        return usage;
+    }
+
+    /** Calls the model with the task's prompt and answers with its validated result. */
+    private void run(HttpServletResponse res, JSONObject payload, String task) throws IOException {
+        Prompt prompt = promptFor(task, payload);
         String rawAnswer = null;
         try {
-            JSONObject providerResult = callProvider(systemPrompt, userContent, images);
+            JSONObject providerResult = callProvider(prompt.system, prompt.user, prompt.images);
             rawAnswer = providerResult.getString("text");
-            JSONObject review;
-            if ("seo".equals(task)) {
-                review = parseSeoAssist(rawAnswer);
-            } else if ("alt".equals(task)) {
-                review = parseAltText(rawAnswer);
-                review.put("vision", images.length() > 0);
-            } else if ("simplify".equals(task)) {
-                review = parseSimplify(rawAnswer);
-            } else {
-                review = parseReview(rawAnswer);
-            }
-
-            review.put("provider", provider);
-            review.put("model", model);
-            if (providerResult.optBoolean("truncated", false)) {
-                review.put("truncated", true);
+            JSONObject review = parse(prompt, rawAnswer);
+            review.put("provider", llm.providerName());
+            review.put("model", llm.model());
+            if (providerResult.optBoolean(TRUNCATED, false)) {
+                review.put(TRUNCATED, true);
                 logger.warn("AI {} answer truncated by AI_MAX_TOKENS ({}); complete items were salvaged",
-                        task, llm.maxTokens());
+                        prompt.task, llm.maxTokens());
             }
-
-            long inputTokens = providerResult.optLong("inputTokens", -1);
-            long outputTokens = providerResult.optLong("outputTokens", -1);
-            if (inputTokens >= 0 && outputTokens >= 0) {
-                JSONObject usage = new JSONObject();
-                usage.put("inputTokens", inputTokens);
-                usage.put("outputTokens", outputTokens);
-                // Rates are configured per million tokens (AI_COST_*_PER_MTOKENS); none set, no cost shown
-                if (llm.costInputPerMTokens() > 0 || llm.costOutputPerMTokens() > 0) {
-                    double cost = (inputTokens / 1_000_000.0) * llm.costInputPerMTokens()
-                            + (outputTokens / 1_000_000.0) * llm.costOutputPerMTokens();
-                    usage.put("cost", Math.round(cost * 10_000.0) / 10_000.0);
-                    usage.put("currency", "USD");
-                }
+            JSONObject usage = usageOf(providerResult);
+            if (usage != null) {
                 review.put("usage", usage);
             }
-
             writeJson(res, HttpServletResponse.SC_OK, review);
         } catch (Exception e) {
-            logger.error("AI {} failed", task, e);
+            logger.error("AI {} failed", prompt.task, e);
             if (rawAnswer != null) {
                 // Server-side only: the start of the unparseable answer is the one
                 // clue to a prompt/model mismatch (prose preamble, refusal, empty content)
                 logger.warn("Unparseable model answer ({} chars) starts with: {}", rawAnswer.length(),
                         rawAnswer.substring(0, Math.min(rawAnswer.length(), 500)).replaceAll("\\s+", " "));
             }
-
-            writeError(res, HttpServletResponse.SC_BAD_GATEWAY, "AI review temporarily unavailable");
+            writeError(res, HttpServletResponse.SC_BAD_GATEWAY, "upstream", "AI review temporarily unavailable");
         }
     }
 
@@ -625,7 +669,7 @@ public class AiReviewServlet extends HttpServlet {
 
         JSONObject result = new JSONObject();
         result.put("text", answer.text());
-        result.put("truncated", answer.truncated());
+        result.put(TRUNCATED, answer.truncated());
         result.put("inputTokens", answer.inputTokens());
         result.put("outputTokens", answer.outputTokens());
         return result;
@@ -900,7 +944,7 @@ public class AiReviewServlet extends HttpServlet {
             case "alt":
                 tab = "accessibility";
                 break;
-            case "simplify":
+            case TASK_SIMPLIFY:
                 tab = "readability";
                 break;
             default:
@@ -954,18 +998,32 @@ public class AiReviewServlet extends HttpServlet {
         }
     }
 
-    private boolean isGuest() {
-        JahiaUser user = JCRSessionFactory.getInstance().getCurrentUser();
-        return user == null || "guest".equals(user.getUsername());
+    /** The request body, or null when it is longer than {@link #MAX_BODY_CHARS}. */
+    private static String readBody(HttpServletRequest req) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        char[] buf = new char[8192];
+        Reader reader = req.getReader();
+        int n;
+        while ((n = reader.read(buf)) != -1) {
+            if (sb.length() + n > MAX_BODY_CHARS) {
+                return null;
+            }
+            sb.append(buf, 0, n);
+        }
+        return sb.toString();
     }
 
     private void writeJson(HttpServletResponse res, int status, JSONObject json) throws IOException {
         res.setStatus(status);
+        // Per-user answers: never kept by a shared cache, never sniffed as another type.
+        res.setHeader("Cache-Control", "no-store, private");
+        res.setHeader("X-Content-Type-Options", "nosniff");
         res.setContentType("application/json;charset=UTF-8");
         res.getWriter().write(json.toString());
     }
 
-    private void writeError(HttpServletResponse res, int status, String message) throws IOException {
-        writeJson(res, status, new JSONObject().put("error", message));
+    /** A refusal as JSON: a stable code the drawer translates, and an English message for logs and scripts. */
+    private void writeError(HttpServletResponse res, int status, String code, String message) throws IOException {
+        writeJson(res, status, new JSONObject().put("code", code).put("error", message));
     }
 }

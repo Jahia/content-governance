@@ -70,7 +70,8 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 - `org.jahia.community.contentgovernance.geo.cfg`: crawler fetch settings of the GEO section.
 - `org.jahia.se.modules.georeadiness.botrank-<id>.cfg`: one per BotRank organisation (legacy PID).
 
-All three ship with `# default configuration` as first line, so a redeploy never overwrites them.
+The module ships the first two with `# default configuration` as first line, so a redeploy never
+overwrites them; BotRank files are created by a server administrator, never shipped.
 
 ## Verify
 
@@ -79,20 +80,18 @@ All three ship with `# default configuration` as first line, so a redeploy never
   in Site Settings > Content governance and reopen the drawer; the GEO servlet answers 403 and the
   compliance query refuses once their section is off.
 
-## Known leftovers (found while writing the docs, 2026-10-29)
+## CI and releases
 
-- A switched-off Page quality tab is hidden only: its analyzer still runs in the browser, and its
-  results are still cached, exported to JSON and fed into the AI review digest. The server enforces
-  the switches only on the AI endpoint, per task.
-- `AiReviewServlet` answers its 403s with `sendError` (an HTML body): the drawer shows "HTTP 403"
-  without the reason.
-- The AI rate limit takes its slot before the "not configured" 503 and before the provider call, so
-  refused and failed calls count; it is in memory per node.
+Jahia's shared workflows in `.github/workflows/` (table in the root README, "CI and releases").
+Every PR carries a `.chachalog/` fragment, docs and CI changes included; `.version` stays `0.0.0`
+until 1.0.0 is released. Before releasing, read the README's release steps: the CI account may not
+have write access to this new repository, and the first release PR must fold the hand-written
+`1.0.0 (unreleased)` section of `CHANGELOG.md`. No integration-test job until a Cypress suite exists.
+
+## Known leftovers
+
 - `/modules/content-governance/*` servlets: CSRF control is the JSON content type plus an
   Origin/Referer host check; a request with neither header passes. Same as the three old modules.
 - Readability scores only English (Flesch) and French (Kandel-Moles); other languages get Flesch.
-- Unused labels: `audit.action.open`, `audit.drawer.title`, `audit.ai.notConfigured`; the
-  `audit.ai.checking` branch of `AiTab` is unreachable; `fetchAiStatus()` is dead code.
-- With the GEO section or the AI citations tab off, the BotRank tab of Site Settings gets a 403 and
-  says "You need to be a site administrator of this site."; once the sync stopped that way, an admin
-  also has to turn the daily sync back on.
+- Once AI citations or the GEO section were switched off, the daily BotRank sync stays off when they
+  come back: an admin turns it on again (the BotRank tab says so).

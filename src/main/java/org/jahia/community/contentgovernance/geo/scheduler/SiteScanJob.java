@@ -42,6 +42,8 @@ public class SiteScanJob extends BackgroundJob {
     public static final String TIMEOUT_MS = "geoTimeoutMs";
     public static final String MAX_BYTES = "geoMaxBytes";
     public static final String MAX_PAGES = "geoMaxPages";
+    /** Pages a site scan reads at most, by hand or on a schedule. */
+    public static final int DEFAULT_MAX_PAGES = 2000;
     /** Who asked for this schedule. Re-checked on every run. */
     public static final String USER_KEY = "geoUserKey";
 
@@ -91,7 +93,7 @@ public class SiteScanJob extends BackgroundJob {
         }
         opts.fetchTimeoutMs = intOr(data, TIMEOUT_MS, 8000);
         opts.maxBodyBytes = intOr(data, MAX_BYTES, 1_500_000);
-        opts.maxPages = intOr(data, MAX_PAGES, 10_000);
+        opts.maxPages = intOr(data, MAX_PAGES, DEFAULT_MAX_PAGES);
 
         long t0 = System.currentTimeMillis();
         try {

@@ -34,7 +34,7 @@ const CACHE_MAX_ENTRIES = 10;
 // Bump whenever the cached `results` shape changes (e.g. a new analyzer key),
 // so entries written by an older module version are ignored instead of
 // restored into UI that expects the new shape.
-const CACHE_SCHEMA = 3;
+const CACHE_SCHEMA = 4;
 
 const cacheKey = (path, language) => `${CACHE_PREFIX}${language}:${path}`;
 
@@ -97,6 +97,43 @@ function saveCachedAudit(path, language, entry) {
 
 /** The tabs of the section, in order; each id is also its feature id (`audit.<id>`). */
 const TAB_IDS = ['accessibility', 'seo', 'vitals', 'readability', 'ecodesign', 'links', 'jahia', 'ai'];
+
+/** The key of each measured tab in the results (the AI tab measures nothing). */
+const RESULT_KEYS = {
+    accessibility: 'a11y',
+    seo: 'seo',
+    vitals: 'vitals',
+    readability: 'readability',
+    ecodesign: 'ecodesign',
+    links: 'links',
+    jahia: 'jahia'
+};
+
+/**
+ * The results of the tabs the site keeps on, or null when one of them is missing (a tab switched
+ * back on since the audit was cached): a tab switched off is never shown, exported, nor sent to the
+ * AI review.
+ */
+function keepEnabled(results, isOn) {
+    const kept = {};
+    for (const [tab, key] of Object.entries(RESULT_KEYS)) {
+        if (isOn(tab)) {
+            if (!results[key]) {
+                return null;
+            }
+            kept[key] = results[key];
+        }
+    }
+    if (results.page) {
+        kept.page = results.page;
+    }
+    return kept;
+}
+
+/** Images without alt for the alt text assist, from the page facts kept with every audit. */
+function imagesWithoutAlt(results) {
+    return results.page ? results.page.imagesWithoutAlt : 0;
+}
 
 /**
  * The Page quality section of the drawer: the page rendered in a preview frame, measured by the
@@ -165,10 +202,11 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
         highlightedRef.current = null;
 
         const cached = runId === 0 ? loadCachedAudit(path, language) : null;
+        const cachedResults = cached?.results ? keepEnabled(cached.results, isOn) : null;
         setStale(false);
-        if (cached && cached.results) {
+        if (cachedResults) {
             cacheHitRef.current = true;
-            setResults(cached.results);
+            setResults(cachedResults);
             setAuditedAt(cached.timestamp || null);
             setAiReview(cached.aiReview || null);
             setAiPhase(cached.aiReview ? 'done' : 'idle');
@@ -207,7 +245,7 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
         setFrameVisible(false);
         const timer = setTimeout(() => setFrameVisible(true), 400);
         return () => clearTimeout(timer);
-    }, [runId, path, language, apolloClient]);
+    }, [runId, path, language, apolloClient, isOn]);
 
     const handleFrameLoad = useCallback(() => {
         if (cacheHitRef.current) {
@@ -235,16 +273,25 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
                 // before any analyzer sees the DOM.
                 removeToolingElements(frame.contentDocument);
 
+                // Only the tabs the site keeps on are measured. Eco-design reads the vitals
+                // measurement, so vitals run as its input; the SEO read is a cheap DOM pass that
+                // always runs, for the page facts the AI tasks need (title, description, images
+                // without alt). What is kept is those facts and the switched-on tabs only.
                 // Vitals first: axe injection and link checks would otherwise
                 // appear in the page's own resource statistics.
-                const vitals = await runWebVitals(frame);
-                const ecodesign = runEcodesign(frame, vitals);
-                const readability = runReadability(frame, language);
+                const vitals = isOn('vitals') || isOn('ecodesign') ? await runWebVitals(frame) : null;
+                const ecodesign = isOn('ecodesign') ? runEcodesign(frame, vitals) : null;
+                const readability = isOn('readability') ? runReadability(frame, language) : null;
                 const seo = runSeo(frame, language);
-                const a11y = await runAccessibility(frame);
-                const links = await runLinks(frame);
-                const jahia = await runJahiaHealth(frame, {client: apolloClient, path, language});
-                const newResults = {a11y, vitals, ecodesign, readability, seo, links, jahia};
+                const page = {
+                    title: seo.title ? seo.title.text : '',
+                    description: seo.description ? (seo.description.text || '') : '',
+                    imagesWithoutAlt: seo.imagesWithoutAlt || 0
+                };
+                const a11y = isOn('accessibility') ? await runAccessibility(frame) : null;
+                const links = isOn('links') ? await runLinks(frame) : null;
+                const jahia = isOn('jahia') ? await runJahiaHealth(frame, {client: apolloClient, path, language}) : null;
+                const newResults = {page, ...keepEnabled({a11y, vitals, ecodesign, readability, seo, links, jahia}, isOn)};
                 const timestamp = Date.now();
                 setResults(newResults);
                 setAuditedAt(timestamp);
@@ -256,7 +303,7 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
                 setStatus('error');
             }
         }, SETTLE_MS);
-    }, [language, path, apolloClient]);
+    }, [language, path, apolloClient, isOn]);
 
     const highlight = useCallback(selector => {
         const doc = frameRef.current && frameRef.current.contentDocument;
@@ -379,10 +426,10 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
             persistAi({[key]: answer});
         } catch (e) {
             console.error(`[content-governance] ${label} failed`, e);
-            setErr(e.message);
+            setErr(e.code ? t(`ai.errors.${e.code}`, {defaultValue: e.message}) : e.message);
             setPhase('error');
         }
-    }, [results, language, path, persistAi, aiStatus]);
+    }, [results, language, path, persistAi, aiStatus, t]);
 
     const generateAiReview = useCallback(() => runAiTask({
         request: requestAiReview, cacheKey: 'aiReview', label: 'AI review',
@@ -541,7 +588,7 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
                                 phase: altPhase,
                                 error: altError,
                                 language,
-                                count: results.seo ? results.seo.imagesWithoutAlt : 0,
+                                count: imagesWithoutAlt(results),
                                 onGenerate: generateAltAssist,
                                 onHighlight: highlight
                             }}
