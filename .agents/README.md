@@ -44,9 +44,9 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   the BotRank binding under `/sites/<key>/geo-readiness`, BotRank factory PID
   `org.jahia.se.modules.georeadiness.botrank-<id>`, CND namespaces `ccs`/`ccsmix`. The old modules
   must be uninstalled before this one is installed (same CND types, same GraphQL field). Jahia then
-  keeps the `ccs:` types under the old systemId and ignores ours: content works, labels and icons show
-  raw (tested 2026-10-29 on an instance migrated from 1.0.1: 159/159 identical issues). Re-registering types in use is not yet
-  validated.
+  keeps the `ccs:` types under the old systemId and ignores ours, which hides them from New content;
+  `compliance/service/internal/GlossaryTypeOwner` takes them over at start (1.1.0). Never take types
+  from a module that is still installed.
 - Settings live on `/sites/<key>/content-governance` (`nt:unstructured` + `jmix:nolive`,
   `disabledFeatures`).
 - Module state nodes (`content-governance`, `geo-readiness` and its `botrank` child) do not inherit the
