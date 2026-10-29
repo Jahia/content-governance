@@ -70,6 +70,14 @@ overwrites them; BotRank files are created by a server administrator, never ship
   in Site Settings > Content governance and reopen the drawer; the GEO servlet answers 403 and the
   compliance query refuses once their section is off.
 
+## CI and releases
+
+Jahia's shared workflows in `.github/workflows/` (table in the root README, "CI and releases").
+Every PR carries a `.chachalog/` fragment, docs and CI changes included; `.version` stays `0.0.0`
+until 1.0.0 is released. Before releasing, read the README's release steps: the CI account may not
+have write access to this new repository, and the first release PR must fold the hand-written
+`1.0.0 (unreleased)` section of `CHANGELOG.md`. No integration-test job until a Cypress suite exists.
+
 ## Known leftovers
 
 - `/modules/content-governance/*` servlets: CSRF control is the JSON content type plus an
