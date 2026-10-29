@@ -113,11 +113,12 @@ provider, model and key into `org.jahia.community.contentgovernance.llm.cfg`, th
 files (`org.jahia.se.modules.pageaudit.cfg` and the `AI_*` keys of
 `org.jahia.se.modules.georeadiness.cfg`).
 
-**Known migration gap (glossaries).** Jahia keeps the glossary types registered under the
-uninstalled Content Compliance Scan. On an instance that had it, glossaries keep working and are
-scanned exactly as before, but jContent and Content Editor show their type and field names raw
-(`glossary`, `language`) with a generic icon. A procedure to hand the types over to this module is
-being validated; fresh installs are not affected.
+**Glossary types on an instance that had Content Compliance Scan.** Jahia keeps the glossary types
+registered to the uninstalled module. From 1.1.0, Content Governance takes them over when it starts
+(same definitions, so existing glossaries stay valid; the log says "Compliance glossary types taken
+over"). With 1.0.0 they stayed with the old module: **New content** did not offer **Compliance
+glossary** and **Non-authorised term**, and their names showed untranslated; installing 1.1.0 fixes
+it. Fresh installs were never affected.
 
 ## Configuration
 
@@ -241,7 +242,6 @@ The main ones; each section's architecture page has the full list.
 - The GEO site scan reads one language per run and at most 2000 pages; a larger or multilingual
   site needs schedules.
 - AI answers can be wrong and cost money per call: they are never generated on their own.
-- The glossary types of an instance that had Content Compliance Scan show raw labels (above).
 
 ## Documentation
 

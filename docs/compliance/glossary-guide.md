@@ -92,10 +92,12 @@ Content Governance replaces the Content Compliance Scan module and keeps its glo
 are, with the same content types. Existing glossaries and terms carry over: nothing to export or
 recreate, and scans find exactly what they found before.
 
-On an instance where Content Compliance Scan was installed before, jContent and Content Editor show
-the glossary types and their fields by their technical names, with a generic icon instead of the
-book and word icons. This is a display gap only: creating, editing and scanning work as before. A
-fresh install of Content Governance is not affected. Why it happens: [`architecture.md`](architecture.md#migration-from-content-compliance-scan).
+From Content Governance 1.1.0, the glossary types are taken over when the module starts, and the
+upgrade needs nothing more. With 1.0.0, on an instance where Content Compliance Scan was installed
+before, **New content** did not offer **Compliance glossary** and **Non-authorised term**, and
+jContent showed the types and their fields by their technical names with a generic icon; existing
+glossaries kept working and scanning. Installing 1.1.0 fixes it. Why it happened:
+[`architecture.md`](architecture.md#migration-from-content-compliance-scan).
 
 What the technical names stand for:
 

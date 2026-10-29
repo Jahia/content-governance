@@ -216,17 +216,23 @@ behaviour change on the server is the gate: the old module checked that the site
 The old module must be uninstalled before Content Governance is installed: both declare the same
 types and the same GraphQL field.
 
-**Known gap: labels and icons on a migrated instance.** Jahia registers a node type under the module
+**The types change owner when the module starts.** Jahia registers a node type under the module
 that declared it first (its `systemId`), and keeps it there after that module is uninstalled while
 content uses it. On an instance that had Content Compliance Scan, the `ccs:` types therefore stay
 registered under `content-compliance-scan`, and the definitions in Content Governance's CND are
-ignored. Jahia looks up a type's labels and tooltips in the resource bundle, and its icon in the
-icons folder, of the module the type is registered under; that module is gone, so jContent and
-Content Editor show the technical names (`glossary`, `language`) and a generic icon. The content
-itself is untouched and the scan matches types by name, so scans find what they found before (an
-instance migrated from 1.0.1 returned the same 159 issues before and after). A fresh install
-registers the types under `content-governance` and is not affected. A procedure to hand types in use
-over to the new module is not validated yet. What authors see: [`glossary-guide.md`](glossary-guide.md#on-an-instance-that-had-content-compliance-scan).
+ignored (the log says "already defined with a different systemId"). Jahia looks up a type's labels,
+tooltips and icon in the module the type is registered under, and jContent offers a type in **New
+content** only when that module is enabled on the site; that module is gone, so with 1.0.0 the types
+were missing from **New content** and showed their technical names. The content itself is untouched
+and the scan matches types by name, so scans kept finding what they found before.
+
+From 1.1.0, `GlossaryTypeOwner` runs when the module starts. When the glossary type is registered to
+`content-compliance-scan` and that module is not installed, it unregisters that module's types from
+the registry, registers this bundle's CND under `content-governance`, and, on the processing server
+only, writes the new definitions (`JCRStoreService.deployDefinitions`) and then drops the old
+module's stored ones (`undeployDefinitions`, which by then unregisters no type in the repository).
+Every node of a cluster moves the types in its own registry. Same definitions, so existing nodes stay
+valid; checked on a local Jahia 8.2.3.2 through a full restart. What authors see: [`glossary-guide.md`](glossary-guide.md#on-an-instance-that-had-content-compliance-scan).
 
 ## Known gaps
 
