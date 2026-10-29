@@ -228,25 +228,10 @@ public class AiReviewServlet extends HttpServlet {
     private LlmConfigService llm;
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse res) throws IOException {
-        if (isGuest()) {
-            res.sendError(HttpServletResponse.SC_FORBIDDEN, "Authentication required");
-            return;
-        }
-
-        JSONObject status = new JSONObject();
-        status.put("enabled", llm.isEnabled());
-        status.put("provider", llm.providerName());
-        status.put("model", llm.model());
-        status.put("vision", llm.supportsImages());
-        writeJson(res, HttpServletResponse.SC_OK, status);
-    }
-
-    @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse res) throws IOException {
         JahiaUser user = JCRSessionFactory.getInstance().getCurrentUser();
         if (user == null || "guest".equals(user.getUsername())) {
-            res.sendError(HttpServletResponse.SC_FORBIDDEN, "Authentication required");
+            writeError(res, HttpServletResponse.SC_FORBIDDEN, "unauthenticated", "Authentication required");
             return;
         }
 
@@ -254,12 +239,12 @@ public class AiReviewServlet extends HttpServlet {
         // never answers) and reject cross-origin browser requests.
         String contentType = req.getContentType();
         if (contentType == null || !contentType.toLowerCase().startsWith("application/json")) {
-            writeError(res, HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE, "Content-Type must be application/json");
+            writeError(res, HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE, "invalidRequest", "Content-Type must be application/json");
             return;
         }
 
         if (!isSameOrigin(req)) {
-            res.sendError(HttpServletResponse.SC_FORBIDDEN, "Cross-origin request rejected");
+            writeError(res, HttpServletResponse.SC_FORBIDDEN, "crossOrigin", "Cross-origin request rejected");
             return;
         }
 
@@ -267,14 +252,14 @@ public class AiReviewServlet extends HttpServlet {
         try {
             payload = new JSONObject(req.getReader().lines().collect(Collectors.joining("\n")));
         } catch (Exception e) {
-            writeError(res, HttpServletResponse.SC_BAD_REQUEST, "Invalid JSON payload");
+            writeError(res, HttpServletResponse.SC_BAD_REQUEST, "invalidRequest", "Invalid JSON payload");
             return;
         }
 
         // Authorization: only run a review for a page the caller may actually read,
         // so the endpoint cannot be abused as an open LLM proxy by any authenticated principal.
         if (!canRead(payload.optString("path", ""))) {
-            res.sendError(HttpServletResponse.SC_FORBIDDEN, "You must have read access to the audited page");
+            writeError(res, HttpServletResponse.SC_FORBIDDEN, "noAccess", "You must have read access to the audited page");
             return;
         }
 
@@ -282,17 +267,19 @@ public class AiReviewServlet extends HttpServlet {
         // only picks which one, never the prompt.
         String task = payload.optString("task", "review").toLowerCase();
         if (!featureEnabled(payload.optString("path", ""), task)) {
-            res.sendError(HttpServletResponse.SC_FORBIDDEN, "This feature is switched off on the site");
-            return;
-        }
-
-        if (isRateLimited(user.getUsername())) {
-            writeError(res, 429, "Too many AI review requests; please retry later");
+            writeError(res, HttpServletResponse.SC_FORBIDDEN, "switchedOff", "This feature is switched off on the site");
             return;
         }
 
         if (!llm.isEnabled()) {
-            writeError(res, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "AI review is not configured");
+            writeError(res, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "notConfigured", "AI review is not configured");
+            return;
+        }
+
+        // Counted last, once every refusal that costs nothing is behind: a call that reaches this
+        // point goes to the provider.
+        if (isRateLimited(user.getUsername())) {
+            writeError(res, 429, "rateLimited", "Too many AI review requests; please retry later");
             return;
         }
 
@@ -371,7 +358,7 @@ public class AiReviewServlet extends HttpServlet {
                         rawAnswer.substring(0, Math.min(rawAnswer.length(), 500)).replaceAll("\\s+", " "));
             }
 
-            writeError(res, HttpServletResponse.SC_BAD_GATEWAY, "AI review temporarily unavailable");
+            writeError(res, HttpServletResponse.SC_BAD_GATEWAY, "upstream", "AI review temporarily unavailable");
         }
     }
 
@@ -954,18 +941,14 @@ public class AiReviewServlet extends HttpServlet {
         }
     }
 
-    private boolean isGuest() {
-        JahiaUser user = JCRSessionFactory.getInstance().getCurrentUser();
-        return user == null || "guest".equals(user.getUsername());
-    }
-
     private void writeJson(HttpServletResponse res, int status, JSONObject json) throws IOException {
         res.setStatus(status);
         res.setContentType("application/json;charset=UTF-8");
         res.getWriter().write(json.toString());
     }
 
-    private void writeError(HttpServletResponse res, int status, String message) throws IOException {
-        writeJson(res, status, new JSONObject().put("error", message));
+    /** A refusal as JSON: a stable code the drawer translates, and an English message for logs and scripts. */
+    private void writeError(HttpServletResponse res, int status, String code, String message) throws IOException {
+        writeJson(res, status, new JSONObject().put("code", code).put("error", message));
     }
 }

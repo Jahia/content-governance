@@ -321,9 +321,10 @@ fix the first ones, **Re-run**, then ask again.
 | No **Content governance** button | The module is not enabled on this site, every section is switched off, or the item is not a page or a content item with its own URL. | A site administrator. |
 | **Analysis failed** with "HTTP 404" | The page does not exist or does not render in this language. | Check the language; otherwise a developer. |
 | **Analysis failed** with "HTTP 500" or another error | The page fails to render. | A developer. |
-| "Too many AI review requests; please retry later" | You reached the limit of AI calls (30 per 10 minutes by default, failed calls included). | Wait a few minutes. |
-| "HTTP 403" under an AI error | The feature was switched off since the drawer opened, or you cannot read the page. | A site administrator. |
-| "AI review temporarily unavailable" | The provider failed or answered something unreadable. | Try again later; if it persists, a server administrator (server log). |
+| "You have reached the number of AI requests allowed in ten minutes. Retry a little later." | You reached the limit of AI calls (30 per 10 minutes by default; a call the provider failed counts, a refused one does not). | Wait a few minutes. |
+| "A site administrator has switched this feature off for this site." | The feature was switched off since the drawer opened. | A site administrator. |
+| "You cannot read this page any more, so the AI cannot review it." | Your rights on the page changed since the drawer opened. | The person who manages rights. |
+| "The AI provider did not answer. Retry in a moment; if it persists, tell a server administrator." | The provider failed or answered something unreadable. | Try again later; if it persists, a server administrator (server log). |
 | "The answer was cut short by the AI_MAX_TOKENS limit..." | The answer hit the output limit; complete items are kept. | A server administrator can raise `AI_MAX_TOKENS`. |
 
 ## Limits to keep in mind

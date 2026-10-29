@@ -8,8 +8,8 @@ answers that for the page you have open, and tells you which parts are yours to 
 Open a page in jContent or Page Builder. A content item that has its own address (a main resource,
 such as a blog post) works too. Press **Content governance** in the header. A drawer opens on the
 right with one tab per section the site uses: **Page quality**, **GEO readiness** and
-**Compliance**. Choose **GEO readiness**. When it is the only section switched on, there is no row
-of section tabs and the drawer opens straight on it.
+**Compliance**. Choose **GEO readiness**. When it is the only section switched on, the drawer opens
+on it, still under its **GEO readiness** tab.
 
 The **GEO readiness** tab carries a red number when the tabs inside it found problems: it is the
 total of their own numbers. Each tab, here and inside the section, has a tooltip saying what it is

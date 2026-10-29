@@ -9,15 +9,6 @@ import {moduleUrl} from '../../common/url';
 
 const ENDPOINT = moduleUrl('/audit/ai-review');
 
-export async function fetchAiStatus() {
-    const res = await fetch(ENDPOINT, {credentials: 'same-origin'});
-    if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-    }
-
-    return res.json();
-}
-
 export function extractPageText(frame) {
     const doc = frame && frame.contentDocument;
     if (!doc || !doc.body) {
@@ -122,7 +113,11 @@ async function postTask(payload) {
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-        throw new Error(data.error || `HTTP ${res.status}`);
+        // The server's code names the refusal (switched off, not configured, rate limited...),
+        // which the drawer shows in the editor's language.
+        const error = new Error(data.error || `HTTP ${res.status}`);
+        error.code = data.code || null;
+        throw error;
     }
 
     return data;

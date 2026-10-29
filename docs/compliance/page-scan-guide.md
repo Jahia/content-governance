@@ -11,7 +11,7 @@ informational: it tells you what to fix before publishing, it does not stop you 
 3. Click the **Compliance** tab. The scan runs the first time the section shows.
 
 The drawer opens on its first section the site uses, usually **Page quality**. When Compliance is
-the only section the site uses, the drawer has no tabs and opens straight on it.
+the only section the site uses, the drawer opens on it, still under its **Compliance** tab.
 
 Once the scan has run, the **Compliance** tab carries a red badge with the number of uses found (no
 badge when there are none). Switching to another section and back keeps the result. Closing the

@@ -69,20 +69,10 @@ All three ship with `# default configuration` as first line, so a redeploy never
   in Site Settings > Content governance and reopen the drawer; the GEO servlet answers 403 and the
   compliance query refuses once their section is off.
 
-## Known leftovers (found while writing the docs, 2026-10-29)
+## Known leftovers
 
-- A switched-off Page quality tab is hidden only: its analyzer still runs in the browser, and its
-  results are still cached, exported to JSON and fed into the AI review digest. The server enforces
-  the switches only on the AI endpoint, per task.
-- `AiReviewServlet` answers its 403s with `sendError` (an HTML body): the drawer shows "HTTP 403"
-  without the reason.
-- The AI rate limit takes its slot before the "not configured" 503 and before the provider call, so
-  refused and failed calls count; it is in memory per node.
 - `/modules/content-governance/*` servlets: CSRF control is the JSON content type plus an
   Origin/Referer host check; a request with neither header passes. Same as the three old modules.
 - Readability scores only English (Flesch) and French (Kandel-Moles); other languages get Flesch.
-- Unused labels: `audit.action.open`, `audit.drawer.title`, `audit.ai.notConfigured`; the
-  `audit.ai.checking` branch of `AiTab` is unreachable; `fetchAiStatus()` is dead code.
-- With the GEO section or the AI citations tab off, the BotRank tab of Site Settings gets a 403 and
-  says "You need to be a site administrator of this site."; once the sync stopped that way, an admin
-  also has to turn the daily sync back on.
+- Once AI citations or the GEO section were switched off, the daily BotRank sync stays off when they
+  come back: an admin turns it on again (the BotRank tab says so).

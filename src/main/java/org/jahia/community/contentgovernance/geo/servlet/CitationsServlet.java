@@ -284,7 +284,11 @@ public class CitationsServlet extends GeoServlet {
             return null;
         }
         if (!site.moduleEnabled) {
-            deny(resp, HttpServletResponse.SC_FORBIDDEN, "module not enabled on this site");
+            // Typed, so the settings screen can say the feature is switched off instead of
+            // blaming the caller's rights.
+            writeJson(resp, HttpServletResponse.SC_FORBIDDEN, new JSONObject()
+                    .put("error", "AI citations are switched off for this site")
+                    .put("type", "switchedOff"));
             return null;
         }
         return site;
