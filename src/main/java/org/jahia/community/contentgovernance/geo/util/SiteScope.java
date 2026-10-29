@@ -110,13 +110,20 @@ public final class SiteScope {
             return sitePath;
         }
         String resolved = session(language).getNode(scope.trim()).getPath();
-
-        // The trailing slash is required rather than decorative: without it
-        // /sites/abc passes as a node of /sites/ab.
-        if (!resolved.equals(sitePath) && !resolved.startsWith(sitePath + "/")) {
+        if (!isWithin(sitePath, resolved)) {
             throw new PathNotFoundException(resolved + " is outside " + sitePath);
         }
         return resolved;
+    }
+
+    /**
+     * True when {@code resolvedPath}, a path the repository returned, is the site or a node under it.
+     * The trailing slash is required rather than decorative: without it /sites/abc passes as a node
+     * of /sites/ab.
+     */
+    public static boolean isWithin(String sitePath, String resolvedPath) {
+        return sitePath != null && resolvedPath != null
+                && (resolvedPath.equals(sitePath) || resolvedPath.startsWith(sitePath + "/"));
     }
 
     private static JCRSessionWrapper session(String language) throws RepositoryException {

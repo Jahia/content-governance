@@ -22,12 +22,18 @@ public final class PrivateStore {
      *
      * @param node a module state node, from a system session
      * @return true when the node was changed, false when it was already private
-     * @throws RepositoryException on a repository failure
+     * @throws RepositoryException when the node could not be made private, or on a repository failure
      */
     public static boolean protect(JCRNodeWrapper node) throws RepositoryException {
         if (node.getAclInheritanceBreak()) {
             return false;
         }
-        return node.setAclInheritanceBreak(true);
+        node.setAclInheritanceBreak(true);
+        // Jahia logs and returns false rather than throwing when it cannot change the node: read
+        // the flag back so a failure never goes unnoticed.
+        if (!node.getAclInheritanceBreak()) {
+            throw new RepositoryException("could not make " + node.getPath() + " private to the module");
+        }
+        return true;
     }
 }

@@ -38,6 +38,8 @@ public final class ScanStore {
 
     public static final String STORE_NODE = "geo-readiness";
 
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(ScanStore.class);
+
     public static final String STATUS_IDLE = "idle";
     public static final String STATUS_RUNNING = "running";
     public static final String STATUS_DONE = "done";
@@ -181,6 +183,48 @@ public final class ScanStore {
     }
 
     /**
+     * Makes the module state nodes of every site private to the module ({@link PrivateStore}): the
+     * site settings and this store. Each site is saved on its own, so a site that fails is logged
+     * and the others are still done. Run once when the module starts, before the schedules are read.
+     *
+     * @return the number of sites that could not be done
+     * @throws RepositoryException when the sites cannot be listed
+     */
+    public static int protectAll() throws RepositoryException {
+        Integer failed = JCRTemplate.getInstance().doExecuteWithSystemSession(null, "default",
+                (JCRCallback<Integer>) session -> {
+                    if (!session.nodeExists("/sites")) {
+                        return 0;
+                    }
+                    int errors = 0;
+                    NodeIterator it = session.getNode("/sites").getNodes();
+                    while (it.hasNext()) {
+                        JCRNodeWrapper site = (JCRNodeWrapper) it.nextNode();
+                        if (!site.isNodeType("jnt:virtualsite")) {
+                            continue;
+                        }
+                        try {
+                            boolean changed = false;
+                            for (String name : new String[]{SiteFeatures.STORE_NODE, STORE_NODE}) {
+                                if (site.hasNode(name)) {
+                                    changed |= PrivateStore.protect(site.getNode(name));
+                                }
+                            }
+                            if (changed) {
+                                session.save();
+                            }
+                        } catch (RepositoryException e) {
+                            errors++;
+                            session.refresh(false);
+                            LOGGER.warn("Could not make the module state of {} private: {}", site.getPath(), e.getMessage());
+                        }
+                    }
+                    return errors;
+                });
+        return failed == null ? 0 : failed;
+    }
+
+    /**
      * Every enabled schedule on the instance, read from where it was stored.
      *
      * The triggers themselves do not survive the bundle, so this is what the
@@ -197,22 +241,12 @@ public final class ScanStore {
                         return out;
                     }
                     NodeIterator it = sites.getNodes();
-                    boolean changed = false;
                     while (it.hasNext()) {
                         JCRNodeWrapper site = (JCRNodeWrapper) it.nextNode();
-                        if (!site.isNodeType("jnt:virtualsite")) {
-                            continue;
-                        }
-                        // Read once at start: state nodes written before they were made
-                        // private are made private here, before anything is trusted.
-                        if (site.hasNode(SiteFeatures.STORE_NODE)) {
-                            changed |= PrivateStore.protect(site.getNode(SiteFeatures.STORE_NODE));
-                        }
-                        if (!site.hasNode(STORE_NODE)) {
+                        if (!site.isNodeType("jnt:virtualsite") || !site.hasNode(STORE_NODE)) {
                             continue;
                         }
                         JCRNodeWrapper store = site.getNode(STORE_NODE);
-                        changed |= PrivateStore.protect(store);
                         if (!bool(store, ENABLED, false)) {
                             continue;
                         }
@@ -230,9 +264,6 @@ public final class ScanStore {
                                     str(store, SCOPE, ""), str(store, BASE_URL, ""),
                                     str(store, USER_KEY, "")));
                         }
-                    }
-                    if (changed) {
-                        session.save();
                     }
                     return out;
                 });

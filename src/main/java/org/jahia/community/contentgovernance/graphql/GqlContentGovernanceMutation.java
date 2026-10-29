@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
-import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import java.util.List;
 
@@ -53,8 +52,6 @@ public class GqlContentGovernanceMutation {
         try {
             SiteFeatures.save(site.getPath(), disabled);
             return GqlSiteSettings.of(site, llm);
-        } catch (AccessDeniedException e) {
-            throw new DataFetchingException(SiteAccess.DENIED);
         } catch (RepositoryException e) {
             logger.warn("could not save the content governance settings of {}: {}", siteKey, e.toString());
             throw new DataFetchingException("The settings could not be saved");

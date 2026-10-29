@@ -158,7 +158,7 @@ public final class StructuredData {
         return forNodeIn(session, jcrPath, base, overrides, pageTitle);
     }
 
-    /** {@link #forNode} inside its live session. */
+    /** The JSON-LD of {@code jcrPath}, read through {@code session} (the caller's live session). */
     private static JSONObject forNodeIn(JCRSessionWrapper session, String jcrPath, String base, JSONObject overrides,
             String pageTitle) throws RepositoryException {
         JSONObject out = new JSONObject();
