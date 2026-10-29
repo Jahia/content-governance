@@ -2,6 +2,8 @@ package org.jahia.community.contentgovernance.geo.check;
 
 import org.jahia.services.content.JCRCallback;
 import org.jahia.community.contentgovernance.geo.util.SiteScope;
+import org.jahia.community.contentgovernance.settings.PrivateStore;
+import org.jahia.community.contentgovernance.settings.SiteFeatures;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.content.JCRTemplate;
@@ -195,12 +197,22 @@ public final class ScanStore {
                         return out;
                     }
                     NodeIterator it = sites.getNodes();
+                    boolean changed = false;
                     while (it.hasNext()) {
                         JCRNodeWrapper site = (JCRNodeWrapper) it.nextNode();
-                        if (!site.isNodeType("jnt:virtualsite") || !site.hasNode(STORE_NODE)) {
+                        if (!site.isNodeType("jnt:virtualsite")) {
+                            continue;
+                        }
+                        // Read once at start: state nodes written before they were made
+                        // private are made private here, before anything is trusted.
+                        if (site.hasNode(SiteFeatures.STORE_NODE)) {
+                            changed |= PrivateStore.protect(site.getNode(SiteFeatures.STORE_NODE));
+                        }
+                        if (!site.hasNode(STORE_NODE)) {
                             continue;
                         }
                         JCRNodeWrapper store = site.getNode(STORE_NODE);
+                        changed |= PrivateStore.protect(store);
                         if (!bool(store, ENABLED, false)) {
                             continue;
                         }
@@ -211,10 +223,16 @@ public final class ScanStore {
                         NodeIterator langs = store.getNodes();
                         while (langs.hasNext()) {
                             JCRNodeWrapper lang = (JCRNodeWrapper) langs.nextNode();
+                            if (!SiteScope.isLanguage(lang.getName())) {
+                                continue;
+                            }
                             out.add(new Schedule(site.getPath(), lang.getName(), cron,
                                     str(store, SCOPE, ""), str(store, BASE_URL, ""),
                                     str(store, USER_KEY, "")));
                         }
+                    }
+                    if (changed) {
+                        session.save();
                     }
                     return out;
                 });
@@ -436,7 +454,8 @@ public final class ScanStore {
     /**
      * The store is written with a system session on purpose. A scheduled job has
      * no user, and the numbers describe the whole site rather than anything the
-     * caller owns. Reading them is gated at the servlet instead.
+     * caller owns. The node is private to the module (PrivateStore): reading and
+     * writing it are gated at the servlets.
      */
     private static <T> T inStore(String sitePath, StoreWork<T> work) throws RepositoryException {
         return JCRTemplate.getInstance().doExecuteWithSystemSession(null, "default",
@@ -448,6 +467,7 @@ public final class ScanStore {
                     if (!store.isNodeType("jmix:nolive")) {
                         store.addMixin("jmix:nolive");
                     }
+                    PrivateStore.protect(store);
                     return work.run(store, session);
                 });
     }

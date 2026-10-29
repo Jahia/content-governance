@@ -2,6 +2,7 @@ package org.jahia.community.contentgovernance.geo.botrank;
 
 import org.jahia.community.contentgovernance.geo.check.ScanStore;
 import org.jahia.community.contentgovernance.geo.util.SiteScope;
+import org.jahia.community.contentgovernance.settings.PrivateStore;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
@@ -422,6 +423,7 @@ public final class CitationStore {
                     if (!store.isNodeType("jmix:nolive")) {
                         store.addMixin("jmix:nolive");
                     }
+                    PrivateStore.protect(store);
                     JCRNodeWrapper node = store.hasNode(NODE) ? store.getNode(NODE)
                             : store.addNode(NODE, UNSTRUCTURED);
                     return work.run(node, session);

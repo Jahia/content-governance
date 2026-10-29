@@ -50,7 +50,7 @@ public class GqlSiteSettings {
         boolean enabled = SiteFeatures.moduleEnabled(site);
         Set<String> off;
         try {
-            off = SiteFeatures.read(site);
+            off = SiteFeatures.disabled(site.getPath());
         } catch (RepositoryException e) {
             throw new DataFetchingException("The settings could not be read");
         }

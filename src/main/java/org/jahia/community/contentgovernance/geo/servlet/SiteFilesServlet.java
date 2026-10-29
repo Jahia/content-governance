@@ -103,17 +103,9 @@ public class SiteFilesServlet extends GeoServlet {
             deny(resp, HttpServletResponse.SC_UNAUTHORIZED, "authentication required");
             return;
         }
-        String ctype = req.getContentType();
-        if (ctype == null || !ctype.toLowerCase(Locale.ROOT).contains("application/json")) {
-            deny(resp, HttpServletResponse.SC_BAD_REQUEST, "json required");
-            return;
-        }
-
-        JSONObject body;
-        try {
-            body = new JSONObject(read(req.getInputStream(), MAX_CONTENT));
-        } catch (Exception e) {
-            deny(resp, HttpServletResponse.SC_BAD_REQUEST, "malformed body");
+        // A same-origin call with exactly application/json, like every other endpoint of the module.
+        JSONObject body = jsonBody(req, resp, MAX_CONTENT);
+        if (body == null) {
             return;
         }
 

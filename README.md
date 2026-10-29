@@ -181,9 +181,12 @@ call to BotRank: a daily sync, on the processing server, stores the citations of
 | Site Settings > Content governance | `site-admin` on the site | always; the server checks every save |
 
 Switches in the browser only hide. Every servlet and GraphQL field checks the permission, the module
-on the site and the site's switches on the server. Scans read with the caller's own rights and never
-write; the only writes are the `robots.txt` and `llms.txt` editors (diff, then a confirming click)
-and the site settings.
+on the site and the site's switches on the server. The page checks and the compliance scans read with
+the caller's own rights and change no content; the only content writes are the `robots.txt` and
+`llms.txt` editors (diff, then a confirming click). The module keeps its own state (site settings, GEO
+scans, schedules and reports, BotRank binding) in nodes under each site that only the module reads and
+writes, after its own permission checks; GEO site scans and the BotRank sync run on the server and
+store their results there.
 
 ## What leaves the server
 

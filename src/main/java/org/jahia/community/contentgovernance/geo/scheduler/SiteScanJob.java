@@ -62,8 +62,8 @@ public class SiteScanJob extends BackgroundJob {
         // again rather than trusting what was stored. A trigger nobody is
         // entitled to any more removes itself instead of running nightly.
         String userKey = data.getString(USER_KEY);
-        if (!stillPermitted(userKey, sitePath, language)) {
-            logger.warn("GEO scan of {} [{}] removed: {} no longer holds the permission",
+        if (!stillPermitted(userKey, sitePath, data.getString(SCOPE), language)) {
+            logger.warn("GEO scan of {} [{}] removed: {} no longer holds the permission, or its scope is outside the site",
                     sitePath, language, userKey);
             ScanScheduler.unschedule(sitePath, language);
             return;
@@ -105,10 +105,12 @@ public class SiteScanJob extends BackgroundJob {
 
     /**
      * True when the account that installed the schedule still holds the
-     * dashboard's permission on the site. An unknown account is refused: a
-     * trigger with no owner has nobody entitled to it.
+     * dashboard's permission on the site, and the scan's scope, if any, still
+     * resolves inside that site in the account's own session (the rule the scan
+     * servlet applies when the schedule is saved). An unknown account is
+     * refused: a trigger with no owner has nobody entitled to it.
      */
-    private static boolean stillPermitted(String userKey, String sitePath, String language) {
+    private static boolean stillPermitted(String userKey, String sitePath, String scope, String language) {
         if (userKey == null || userKey.isEmpty()) {
             return false;
         }
@@ -120,7 +122,15 @@ public class SiteScanJob extends BackgroundJob {
             return Boolean.TRUE.equals(JCRTemplate.getInstance().doExecute(owner.getJahiaUser(), "default",
                     Locale.forLanguageTag(language), (JCRCallback<Boolean>) session -> {
                         try {
-                            return session.getNode(sitePath).hasPermission(SiteScope.DASHBOARD.get(0));
+                            if (!session.getNode(sitePath).hasPermission(SiteScope.DASHBOARD.get(0))) {
+                                return false;
+                            }
+                            if (scope == null || scope.trim().isEmpty()) {
+                                return true;
+                            }
+                            // The trailing slash keeps /sites/ab from matching /sites/abc.
+                            String resolved = session.getNode(scope.trim()).getPath();
+                            return resolved.equals(sitePath) || resolved.startsWith(sitePath + "/");
                         } catch (PathNotFoundException e) {
                             return false;
                         }

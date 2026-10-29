@@ -734,7 +734,7 @@ public class CrawlerCheckServlet extends GeoServlet {
                 ? ScanStore.read(sitePath, language).optJSONObject("schemaMap") : null;
         String base = org.jahia.community.contentgovernance.geo.util.PublicUrls
                 .base(node, req, config.getPublicBaseUrl());
-        return StructuredData.forNode(path, language, base, overrides, pageTitle);
+        return StructuredData.forNode(live, path, base, overrides, pageTitle);
     }
 
     /**

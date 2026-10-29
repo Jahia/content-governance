@@ -1,7 +1,6 @@
 package org.jahia.community.contentgovernance.settings;
 
 import org.jahia.services.content.JCRNodeWrapper;
-import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.content.JCRTemplate;
 import org.jahia.services.content.decorator.JCRSiteNode;
 import org.slf4j.Logger;
@@ -36,7 +35,7 @@ public final class SiteFeatures {
     public static final String MODULE = "content-governance";
     /** The permission on the site that the settings screen and the save require. */
     public static final String SETTINGS_PERMISSION = "site-admin";
-    static final String STORE_NODE = "content-governance";
+    public static final String STORE_NODE = "content-governance";
     static final String DISABLED = "disabledFeatures";
     private static final String EDIT_WORKSPACE = "default";
 
@@ -106,30 +105,50 @@ public final class SiteFeatures {
     }
 
     /**
-     * Stores the ids a site switches off, through the caller's session in the default workspace.
+     * The ids a site switched off, read with a system session: the settings node is private to the
+     * module ({@link PrivateStore}).
      *
-     * @param site     the site node, from the caller's own session
+     * @param sitePath {@code /sites/<key>}, of a site the caller already resolved in their own session
+     * @return the ids, empty when the site was never configured or is missing
+     * @throws RepositoryException on a repository failure
+     */
+    public static Set<String> disabled(String sitePath) throws RepositoryException {
+        Set<String> out = JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, EDIT_WORKSPACE, null,
+                session -> session.nodeExists(sitePath) ? read(session.getNode(sitePath)) : Collections.<String>emptySet());
+        return out == null ? Collections.emptySet() : out;
+    }
+
+    /**
+     * Stores the ids a site switches off. The caller checks {@link #SETTINGS_PERMISSION} on the site
+     * first; the write itself goes through a system session, since the settings node is private to the
+     * module ({@link PrivateStore}).
+     *
+     * @param sitePath {@code /sites/<key>}, of a site the caller resolved and was allowed to configure
      * @param disabled the ids to switch off; unknown ids are dropped
      * @return the ids stored
-     * @throws javax.jcr.AccessDeniedException when the caller may not write on the site
+     * @throws RepositoryException on a repository failure
      */
-    public static List<String> save(JCRSiteNode site, Collection<String> disabled) throws RepositoryException {
+    public static List<String> save(String sitePath, Collection<String> disabled) throws RepositoryException {
         List<String> ids = new ArrayList<>();
         for (String id : disabled) {
             if (Features.isKnown(id) && !ids.contains(id)) {
                 ids.add(id);
             }
         }
-        JCRSessionWrapper session = site.getSession();
-        JCRNodeWrapper store;
-        if (site.hasNode(STORE_NODE)) {
-            store = site.getNode(STORE_NODE);
-        } else {
-            store = site.addNode(STORE_NODE, "nt:unstructured");
-            store.addMixin("jmix:nolive");
-        }
-        store.setProperty(DISABLED, ids.toArray(new String[0]));
-        session.save();
+        JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, EDIT_WORKSPACE, null, session -> {
+            JCRNodeWrapper site = session.getNode(sitePath);
+            JCRNodeWrapper store;
+            if (site.hasNode(STORE_NODE)) {
+                store = site.getNode(STORE_NODE);
+            } else {
+                store = site.addNode(STORE_NODE, "nt:unstructured");
+                store.addMixin("jmix:nolive");
+            }
+            PrivateStore.protect(store);
+            store.setProperty(DISABLED, ids.toArray(new String[0]));
+            session.save();
+            return null;
+        });
         return ids;
     }
 }

@@ -51,7 +51,7 @@ public class GqlContentGovernanceMutation {
             throw new DataFetchingException(SiteAccess.DENIED);
         }
         try {
-            SiteFeatures.save(site, disabled);
+            SiteFeatures.save(site.getPath(), disabled);
             return GqlSiteSettings.of(site, llm);
         } catch (AccessDeniedException e) {
             throw new DataFetchingException(SiteAccess.DENIED);

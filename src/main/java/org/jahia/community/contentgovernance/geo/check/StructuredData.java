@@ -1,21 +1,17 @@
 package org.jahia.community.contentgovernance.geo.check;
 
 import org.jahia.community.contentgovernance.geo.util.PublicUrls;
-import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
-import org.jahia.services.content.JCRTemplate;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.NodeIterator;
 import javax.jcr.Property;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-import javax.jcr.query.Query;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedHashMap;
@@ -52,7 +48,6 @@ public final class StructuredData {
 
     private static final Logger logger = LoggerFactory.getLogger(StructuredData.class);
 
-    private static final int MAX_NODES = 10_000;
     private static final String TYPE = "@type";
     private static final String MAPPED = "mapped";
     private static final String OPENING_HOURS = "openingHours";
@@ -156,11 +151,11 @@ public final class StructuredData {
      * emitted: the story's last criterion is that structured data must never
      * contradict the page, and this is the only place that can be checked.
      */
-    public static JSONObject forNode(String jcrPath, String language, String base, JSONObject overrides,
+    public static JSONObject forNode(JCRSessionWrapper session, String jcrPath, String base, JSONObject overrides,
             String pageTitle) throws RepositoryException {
-        return JCRTemplate.getInstance().doExecuteWithSystemSession(null, "live",
-                Locale.forLanguageTag(language),
-                (JCRCallback<JSONObject>) session -> forNodeIn(session, jcrPath, base, overrides, pageTitle));
+        // The caller's own live session: the snippet, and every node it references, is
+        // built from what the caller may read.
+        return forNodeIn(session, jcrPath, base, overrides, pageTitle);
     }
 
     /** {@link #forNode} inside its live session. */
@@ -570,22 +565,4 @@ public final class StructuredData {
         return out;
     }
 
-    /** Every published node type in the site, for the mapping interface. */
-    public static Set<String> nodeTypesOf(String sitePath) throws RepositoryException {
-        return JCRTemplate.getInstance().doExecuteWithSystemSession(null, "live",
-                (JCRCallback<Set<String>>) session -> {
-                    Set<String> out = new LinkedHashSet<>();
-                    for (String type : new String[]{"jnt:page", "jmix:mainResource"}) {
-                        String sql = "select * from [" + type + "] as n where isdescendantnode(n, '"
-                                + sitePath.replace("'", "''") + "')";
-                        Query q = session.getWorkspace().getQueryManager().createQuery(sql, Query.JCR_SQL2);
-                        q.setLimit(MAX_NODES);
-                        NodeIterator it = q.execute().getNodes();
-                        while (it.hasNext()) {
-                            out.add(((JCRNodeWrapper) it.nextNode()).getPrimaryNodeTypeName());
-                        }
-                    }
-                    return out;
-                });
-    }
 }
