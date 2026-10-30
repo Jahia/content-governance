@@ -136,19 +136,31 @@ public final class SiteFeatures {
             }
         }
         JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, EDIT_WORKSPACE, null, session -> {
-            JCRNodeWrapper site = session.getNode(sitePath);
-            JCRNodeWrapper store;
-            if (site.hasNode(STORE_NODE)) {
-                store = site.getNode(STORE_NODE);
-            } else {
-                store = site.addNode(STORE_NODE, "nt:unstructured");
-                store.addMixin("jmix:nolive");
-            }
-            PrivateStore.protect(store);
+            JCRNodeWrapper store = storeNode(session.getNode(sitePath));
             store.setProperty(DISABLED, ids.toArray(new String[0]));
             session.save();
             return null;
         });
         return ids;
+    }
+
+    /**
+     * The module's settings node of a site, created and made private on first use. Call it with a
+     * system session: the node is private to the module ({@link PrivateStore}).
+     *
+     * @param site the site node
+     * @return the settings node, not yet saved when it was just created
+     * @throws RepositoryException on a repository failure
+     */
+    public static JCRNodeWrapper storeNode(JCRNodeWrapper site) throws RepositoryException {
+        JCRNodeWrapper store;
+        if (site.hasNode(STORE_NODE)) {
+            store = site.getNode(STORE_NODE);
+        } else {
+            store = site.addNode(STORE_NODE, "nt:unstructured");
+            store.addMixin("jmix:nolive");
+        }
+        PrivateStore.protect(store);
+        return store;
     }
 }

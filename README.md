@@ -97,8 +97,9 @@ and says so.
    **Usage in sites**, enable it on each site.
 3. Open **Administration > Sites > (site) > Content governance** to choose the sections and tabs.
 4. For the AI features, a server administrator fills in the shared model (below).
-5. For compliance, create a **Compliance glossary** per language under the site's `contents`, in
-   jContent's **Content Folders**.
+5. For compliance, enabling the module on a site creates **Content Folders > Compliance glossaries**
+   with an example glossary in the site's default language and one example term. Add a
+   **Compliance glossary** per language there, or anywhere under the site's `contents`.
 
 ### Moving from the three modules
 
