@@ -1019,6 +1019,12 @@
         "files": "Ce que les fichiers robots.txt et llms.txt du site disent aux robots d'IA.",
         "schema": "Les données structurées (JSON-LD) qui disent aux assistants de quoi parle cette page, et ce qui manque.",
         "citations": "À quelle fréquence les réponses des IA citent cette page, et pour quelles questions, d'après BotRank."
+      },
+      "export": {
+        "csv": "Exporter en CSV",
+        "json": "Exporter en JSON",
+        "error": "La dernière analyse du site n'a pas pu être lue : rien n'a été exporté.",
+        "freshnessStale": "Non mis à jour depuis {{days}} jours ou plus"
       }
     },
     "audit": {

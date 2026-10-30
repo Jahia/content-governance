@@ -26,6 +26,26 @@ green, amber or red only when the tab itself judges them.
 - **It is read-only except in one place.** Only the `robots.txt` panel writes anything; it shows
   the exact change first and needs a second click. `llms.txt` is shown read only.
 
+## Exporting the findings
+
+**Export CSV** and **Export JSON**, at the top right, download what the last site scan found, so
+the findings can go to a spreadsheet, a ticket or another tool. Both read the scan when you click,
+so a scan run from the **Site score** tab since the page opened is the one you get. They stay
+greyed out until the site has been scanned in this language.
+
+- **CSV**: one row per finding, with these columns: `area` (`score`, `sitemap`, `links`,
+  `addresses`, `llms`, `freshness`), `finding` (the check or kind, as a code that is the same in
+  every language), `findingLabel` (its name in your interface language), `severity` (score checks
+  only), `title`, `jcrPath`, `url` and `detail`. The file opens in a spreadsheet with its accents
+  intact, and a cell that would start a formula is prefixed with a quote.
+- **JSON**: the whole stored scan as the server returns it, with the site key and the time the scan
+  finished (`producedAt`).
+
+The files are named `geo-readiness-<site>-<language>-<date of the scan>`. The panels that answer
+when you open them (invisible content, languages, structured data, AI citations) are not part of
+the scan and are not in the files; the written report has its own **Export as Markdown** and
+**Export as JSON**.
+
 ## Who sees it
 
 The entry appears on sites that enable Content Governance, for people who hold the **publish**

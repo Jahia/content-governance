@@ -1,9 +1,9 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import PropTypes from 'prop-types';
 import {useSelector} from 'react-redux';
 import {useGovernanceTranslation} from '../../common/i18n';
 import {useSiteInfo} from '@jahia/data-helper';
-import {Header, LayoutContent, Tab, TabItem} from '@jahia/moonstone';
+import {Button, Download, Header, LayoutContent, Tab, TabItem} from '@jahia/moonstone';
 import {RobotsControlPanel} from '../tabs/RobotsControlPanel';
 import {LlmsPanel} from '../tabs/LlmsPanel';
 import {VisibilityPanel} from '../tabs/VisibilityPanel';
@@ -17,6 +17,8 @@ import {SchemaPanel} from '../tabs/SchemaPanel';
 import {ReportPanel} from '../tabs/ReportPanel';
 import {CITATION_VIEWS, SiteCitationsPanel} from '../tabs/SiteCitationsPanel';
 import {fetchReportStatus} from '../api/geoReport';
+import {scanStatus} from '../api/siteScore';
+import {exportCsv, exportJson} from './exportScan';
 import {languageLabel} from '../util/languageFlag';
 import styles from './GeoDashboard.module.css';
 
@@ -59,6 +61,8 @@ export const GeoDashboard = ({isOn}) => {
     const [group, setGroup] = useState(GROUPS[0].id);
     const [tab, setTab] = useState(GROUPS[0].tabs[0]);
     const [reportEnabled, setReportEnabled] = useState(false);
+    const [hasScan, setHasScan] = useState(false);
+    const [exporting, setExporting] = useState(false);
 
     // The written report needs a configured provider. The answer never carries
     // the key, only whether there is one.
@@ -79,6 +83,39 @@ export const GeoDashboard = ({isOn}) => {
             alive = false;
         };
     }, [siteKey, language]);
+
+    // The exports are built from the last site scan, which the panels each read a part of.
+    useEffect(() => {
+        if (!siteKey) {
+            return undefined;
+        }
+        let alive = true;
+        scanStatus({path: `/sites/${siteKey}`, language})
+            .then(s => alive && setHasScan(Boolean(s?.run)))
+            .catch(() => alive && setHasScan(false));
+        return () => {
+            alive = false;
+        };
+    }, [siteKey, language]);
+
+    // Read again at click time: a scan started from the Site score tab since the page opened is
+    // the one exported.
+    const exportScan = useCallback(async format => {
+        setExporting(true);
+        try {
+            const scan = await scanStatus({path: `/sites/${siteKey}`, language});
+            if (format === 'csv') {
+                exportCsv(siteKey, scan, t);
+            } else {
+                exportJson(siteKey, scan);
+            }
+        } catch (e) {
+            console.error('[content-governance] GEO export failed', e);
+            globalThis.jahia?.toastDispatcher?.add({message: t('export.error'), variant: 'error'});
+        } finally {
+            setExporting(false);
+        }
+    }, [siteKey, language, t]);
 
     const groups = useMemo(() => GROUPS.filter(g => g.id !== 'citations' || isOn('citations')), [isOn]);
 
@@ -114,6 +151,12 @@ export const GeoDashboard = ({isOn}) => {
             header={
                 <Header
                     title={t('dashboard.title', {site: siteInfo.displayName, language: label})}
+                    mainActions={[
+                        <Button key="csv" variant="outlined" size="big" icon={<Download/>} label={t('export.csv')}
+                                isDisabled={!hasScan || exporting} onClick={() => exportScan('csv')}/>,
+                        <Button key="json" variant="outlined" size="big" icon={<Download/>} label={t('export.json')}
+                                isDisabled={!hasScan || exporting} onClick={() => exportScan('json')}/>
+                    ]}
                     toolbarLeft={
                         <Tab>
                             {groups.map(g => (
