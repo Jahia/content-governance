@@ -9,12 +9,22 @@
  * The plain `moonstone-layoutContent` class is emitted alongside the hashed
  * module class, so it is safe to match globally.
  */
+/* Never wider than the panel: without it a long row pushed the page and its header buttons off screen. */
+.layout {
+    width: 100%;
+    min-width: 0;
+    contain: inline-size;
+}
+
 .layout :global(.moonstone-layoutContent) {
     background-color: var(--moon-color-light, #fff);
 }
 
+/* The full width of the panel, as jContent's own screens: a cap left the right of wide windows empty. */
 .content {
-    max-width: 64rem;
+    width: 100%;
+    min-width: 0;
+    contain: inline-size;
     padding: 0.5rem 0 4rem;
 }
 
@@ -37,4 +47,15 @@
 .subTabs {
     margin: 0 0 1.75rem;
     border-bottom: 1px solid var(--moon-color-gray_light, #e7e9ec);
+}
+
+/* Header has a fixed height: wrapped group tabs fell under the content and could not be clicked. */
+.headerTabs {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.headerTabsInner {
+    flex-wrap: nowrap;
+    width: max-content;
 }

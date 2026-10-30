@@ -158,21 +158,23 @@ export const GeoDashboard = ({isOn}) => {
                                 isDisabled={!hasScan || exporting} onClick={() => exportScan('json')}/>
                     ]}
                     toolbarLeft={
-                        <Tab>
-                            {groups.map(g => (
-                                <TabItem
-                                    key={g.id}
-                                    id={`geo-dash-group-${g.id}`}
-                                    aria-controls={`geo-dash-panel-${g.tabs[0]}`}
-                                    label={t(`dashboard.group.${g.id}`)}
-                                    isSelected={group === g.id}
-                                    onClick={() => {
-                                        setGroup(g.id);
-                                        setTab(g.tabs[0]);
-                                    }}
-                                />
-                            ))}
-                        </Tab>
+                        <div className={styles.headerTabs}>
+                            <Tab className={styles.headerTabsInner}>
+                                {groups.map(g => (
+                                    <TabItem
+                                        key={g.id}
+                                        id={`geo-dash-group-${g.id}`}
+                                        aria-controls={`geo-dash-panel-${g.tabs[0]}`}
+                                        label={t(`dashboard.group.${g.id}`)}
+                                        isSelected={group === g.id}
+                                        onClick={() => {
+                                            setGroup(g.id);
+                                            setTab(g.tabs[0]);
+                                        }}
+                                    />
+                                ))}
+                            </Tab>
+                        </div>
                     }
                 />
             }

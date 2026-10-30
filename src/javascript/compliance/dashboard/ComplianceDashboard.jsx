@@ -42,7 +42,7 @@ const editInContentEditor = (uuid, site, language) => {
 /** Page Builder URL of a page: the jContent pages route, under the context path. */
 const pageBuilderUrl = (path, siteKey, language) => {
     const relative = path.slice(`/sites/${siteKey}`.length).split('/').map(encodeURIComponent).join('/');
-    return `${window.contextJsParameters?.contextPath || ''}/jahia/jcontent/${siteKey}/${language}/pages${relative}`;
+    return `${globalThis.contextJsParameters?.contextPath || ''}/jahia/jcontent/${siteKey}/${language}/pages${relative}`;
 };
 
 const Excerpt = ({issue}) => (

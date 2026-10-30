@@ -1,6 +1,7 @@
 /**
  * jContent's own address for a node, so a finding is one click from the thing it
- * is about. `/sites/<key>/home/buy` becomes `/jahia/jcontent/<key>/<lang>/pages/home/buy`.
+ * is about. `/sites/<key>/home/buy` becomes `/jahia/jcontent/<key>/<lang>/pages/home/buy`, under
+ * Jahia's context path when it has one.
  *
  * Content under `/contents` lives in a different jContent section to pages, and
  * sending a content node to the pages section produces a link that resolves to
@@ -19,5 +20,5 @@ export function jcontentUrl(path, language) {
         'content-folders' :
         'pages';
 
-    return `/jahia/jcontent/${m[1]}/${language}/${section}${m[2] || ''}`;
+    return `${globalThis.contextJsParameters?.contextPath || ''}/jahia/jcontent/${m[1]}/${language}/${section}${m[2] || ''}`;
 }
