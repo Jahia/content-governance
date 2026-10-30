@@ -73,7 +73,6 @@ import java.util.regex.Pattern;
         service = {HttpServlet.class, Servlet.class},
         property = {
                 "alias=/content-governance/geo/crawler-check",
-                "allow-api-token=true",
                 "service.description=GEO readiness per-page crawler check",
                 "service.vendor=Jahia Solutions Group SA"
         },

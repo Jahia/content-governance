@@ -59,6 +59,9 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   (decision 2026-10-29).
 - Every GEO servlet's POST handler reads its body through `GeoServlet.jsonBody` / `isJsonRequest`
   (exact `application/json`, same-site browser requests only); `AiReviewServlet` has its own checks.
+- Every servlet is under Jahia's CSRF guard (`org.jahia.modules.jahiacsrfguard-content-governance.cfg`,
+  no first-line marker on purpose). Every call from the UI goes through `common/guardedFetch.js`,
+  never a bare `fetch`; the servlets take no API token (decision 2026-10-30, browser only).
 - Build with Maven **3.8** and Java 17 (`mise.toml`), always `clean install`.
 - `robots` and `llms` are optional dependencies (`=optional`): only the GEO robots.txt editor and the
   read-only llms.txt tab need them. llms.txt is written in the `llms` module, never here.
@@ -90,8 +93,6 @@ have write access to this new repository, and the first release PR must fold the
 
 ## Known leftovers
 
-- `/modules/content-governance/*` servlets: CSRF control is the JSON content type plus an
-  Origin/Referer host check; a request with neither header passes. Same as the three old modules.
 - Readability scores only English (Flesch) and French (Kandel-Moles); other languages get Flesch.
 - Once AI citations or the GEO section were switched off, the daily BotRank sync stays off when they
   come back: an admin turns it on again (the BotRank tab says so).

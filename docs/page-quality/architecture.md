@@ -147,8 +147,8 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
 
 ## The AI endpoint
 
-`AiReviewServlet`, a DS component registered as an `HttpServlet` with `alias=/content-governance/audit/ai-review`
-and `allow-api-token=true`, so it answers at `/modules/content-governance/audit/ai-review`.
+`AiReviewServlet`, a DS component registered as an `HttpServlet` with `alias=/content-governance/audit/ai-review`,
+so it answers at `/modules/content-governance/audit/ai-review`.
 
 The endpoint answers `POST` only (405 otherwise). The drawer reads the provider, model and image
 support from `contentGovernance.siteSettings.ai`.
@@ -180,9 +180,9 @@ the editor's language (`audit.ai.errors.<code>`) and falls back to the message. 
 counted after every refusal that costs nothing, so only a call that goes to the provider takes a
 slot (a provider failure included); it is kept in memory per node.
 
-This endpoint has no Jahia CSRF guard configuration: its CSRF protection is the JSON content type
-(which a cross-site form cannot send without a preflight the servlet never answers) and the
-Origin/Referer host check. The host check compares the host only, not the scheme or the port.
+The endpoint is under Jahia's CSRF guard, like every servlet of the module (see
+[the GEO architecture](../geo-readiness/architecture.md), "Jahia's CSRF guard"): the drawer sends the
+guard's token. The JSON content type and the Origin/Referer host check stay as a second check.
 
 ### Tasks
 

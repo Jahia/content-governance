@@ -50,7 +50,6 @@ import java.util.Set;
         service = {HttpServlet.class, Servlet.class},
         property = {
                 "alias=/content-governance/geo/site-scan",
-                "allow-api-token=true",
                 "service.description=GEO readiness site scans",
                 "service.vendor=Jahia Solutions Group SA"
         },

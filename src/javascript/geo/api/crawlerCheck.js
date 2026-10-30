@@ -1,4 +1,5 @@
 import {moduleUrl} from '../../common/url';
+import {guardedFetch} from '../../common/guardedFetch';
 
 const ENDPOINT = moduleUrl('/geo/crawler-check');
 
@@ -10,7 +11,7 @@ const ENDPOINT = moduleUrl('/geo/crawler-check');
  * meaningless anyway: a logged-in browser is not what a crawler is.
  */
 export async function runCrawlerCheck({path, language}) {
-    const res = await fetch(ENDPOINT, {
+    const res = await guardedFetch(ENDPOINT, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
@@ -47,7 +48,7 @@ export async function runCrawlerCheck({path, language}) {
 export async function getStatus({path, language}) {
     try {
         const query = `?path=${encodeURIComponent(path)}&language=${encodeURIComponent(language)}`;
-        const res = await fetch(ENDPOINT + query, {credentials: 'same-origin'});
+        const res = await guardedFetch(ENDPOINT + query, {credentials: 'same-origin'});
         return res.ok ? res.json() : {enabled: false};
     } catch (e) {
         return {enabled: false};

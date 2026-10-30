@@ -1,4 +1,5 @@
 import {moduleUrl} from '../../common/url';
+import {guardedFetch} from '../../common/guardedFetch';
 // Prefixed once with the context path, so the module also works when Jahia is not served at the root.
 const endpoint = () => moduleUrl('/geo/citations');
 
@@ -12,7 +13,7 @@ function fail(res, body) {
 /** What the last sync stored for one page. Never calls BotRank. */
 export async function fetchPageCitations({path, language}) {
     const q = new URLSearchParams({path, language});
-    const res = await fetch(`${endpoint()}?${q}`, {
+    const res = await guardedFetch(`${endpoint()}?${q}`, {
         credentials: 'same-origin',
         headers: {'X-Requested-With': 'XMLHttpRequest'}
     });
@@ -26,7 +27,7 @@ export async function fetchPageCitations({path, language}) {
 
 /** A settings action: status, projects, save, syncNow, map, unmap. Requires site-admin. */
 export async function citationSettings(action, payload) {
-    const res = await fetch(endpoint(), {
+    const res = await guardedFetch(endpoint(), {
         method: 'POST',
         credentials: 'same-origin',
         headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
@@ -43,7 +44,7 @@ export async function citationSettings(action, payload) {
 /** Screen B: what the last sync stored for the whole site. Never calls BotRank. */
 export async function fetchSiteCitations({path, language}) {
     const q = new URLSearchParams({scope: 'site', path, language});
-    const res = await fetch(`${endpoint()}?${q}`, {
+    const res = await guardedFetch(`${endpoint()}?${q}`, {
         credentials: 'same-origin',
         headers: {'X-Requested-With': 'XMLHttpRequest'}
     });
