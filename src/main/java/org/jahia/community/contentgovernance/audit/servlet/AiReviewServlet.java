@@ -418,7 +418,7 @@ public class AiReviewServlet extends HttpServlet {
             writeJson(res, HttpServletResponse.SC_OK, review);
         } catch (Exception e) {
             logger.error("AI {} failed", prompt.task, e);
-            rawAnswer = lastAnswer.length() > 0 ? lastAnswer.toString() : null;
+            rawAnswer = lastAnswer.isEmpty() ? null : lastAnswer.toString();
             if (rawAnswer != null) {
                 // Server-side only: the start of the unparseable answer is the one
                 // clue to a prompt/model mismatch (prose preamble, refusal, empty content)
