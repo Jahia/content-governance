@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.2.0
+
+### Changed
+
+* GEO readiness: llms.txt is written in the `llms` module's own **Llms.txt** screen (Additional >
+  SEO), no longer generated here. The **llms.txt** tab shows the published file, read only, with an
+  **Edit in Llms.txt** button, and says when the `llms` module is not enabled on the site.
+* The llms.txt check lists the links of the file to the site whose page moved or is no longer
+  published. A page the file does not list is the author's choice and is no longer reported; the
+  drawer says whether the page is listed.
+* The AI output budget (`AI_MAX_TOKENS`) defaults to 6000.
+
+### Fixed
+
+* The AI review and assists work with any chat model, OpenAI reasoning models included, and with
+  models that wrap or skip the JSON.
+* On a server where several sites share a host name, the llms.txt check read another site's file.
+
 ## 1.1.0
 
 ### Fixed
