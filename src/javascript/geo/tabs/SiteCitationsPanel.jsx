@@ -299,7 +299,6 @@ const Pages = ({data, language, f, t}) => {
     const top = site.topPages || [];
     const hosts = site.hosts || [];
     const most = Math.max(1, ...top.map(p => p.citations));
-    const base = globalThis.contextJsParameters?.contextPath || '';
     // A change on every row says nothing when BotRank has no comparable period for any of them.
     const anyChange = top.some(p => p.variation !== null && p.variation !== undefined);
 
@@ -318,7 +317,7 @@ const Pages = ({data, language, f, t}) => {
                                     <span className={own.pageMain}>
                                         <span className={own.pageTitle}>
                                             {href ? (
-                                                <a className={styles.pageLink} href={`${base}${href}`}>{p.title || p.jcrPath}</a>
+                                                <a className={styles.pageLink} href={href}>{p.title || p.jcrPath}</a>
                                             ) : (
                                                 <span className={own.unmatched}>{t('siteCitations.unmatched')}</span>
                                             )}
