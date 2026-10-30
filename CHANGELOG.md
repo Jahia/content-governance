@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.3.0
+
+### Added
+
+* GEO readiness dashboard: **Export CSV** (one row per finding of the last site scan) and
+  **Export JSON** (the whole stored scan) in the header, like the Compliance dashboard.
+* Enabling the module on a site that has no glossary creates **Content Folders > Compliance
+  glossaries**, which only offers glossaries, with an example glossary in the site's default
+  language and one example term. It is created once per site.
+
+### Changed
+
+* The module's servlets go through Jahia's CSRF guard, and the drawer, the dashboards and the
+  settings send its token. They answer browser sessions only: **calls with an API token are no
+  longer accepted.**
+* Light tooltips (white, rounded, dark grey text) on the drawer's sections and tabs.
+* Build and test tooling: webpack-cli 7, babel-loader 10, style-loader 4, clean-webpack-plugin 4,
+  rimraf 6, JUnit 6, Mockito 5.24, frontend-maven-plugin 2.0.2.
+
+### Fixed
+
+* French labels of the content types (Compliance glossary, Non-authorised term) showed garbled
+  accents in jContent.
+* GEO readiness dashboard: uses the full width of a wide window, stays within a narrow one (no
+  sideways scroll, header buttons visible) and keeps its group tabs on one row; the BotRank
+  settings tab uses the full width too.
+* Links to pages in jContent work when Jahia runs under a context path.
+
 ## 1.2.0
 
 ### Changed
