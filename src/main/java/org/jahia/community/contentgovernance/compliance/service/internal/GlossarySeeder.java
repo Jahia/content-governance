@@ -41,6 +41,7 @@ public class GlossarySeeder extends DefaultEventListener {
     private static final String INSTALLED_MODULES = "j:installedModules";
     private static final String EDIT_WORKSPACE = "default";
     private static final String TITLE = "jcr:title";
+    private static final String CONTENTS = "/contents";
     private static final String CONTRIBUTE_MODE = "jmix:contributeMode";
     private static final String BUNDLE = "resources.content-governance";
     private static final Logger logger = LoggerFactory.getLogger(GlossarySeeder.class);
@@ -112,7 +113,7 @@ public class GlossarySeeder extends DefaultEventListener {
 
     /** The site's default language when it should be seeded now, else null (flagging a site that has glossaries). */
     private static String toSeed(JCRSessionWrapper session, String sitePath) throws RepositoryException {
-        if (!session.nodeExists(sitePath + "/contents")
+        if (!session.nodeExists(sitePath + CONTENTS)
                 || !(session.getNode(sitePath) instanceof JCRSiteNode site) || !SiteFeatures.moduleEnabled(site)) {
             return null;
         }
@@ -129,7 +130,7 @@ public class GlossarySeeder extends DefaultEventListener {
     }
 
     private static boolean hasGlossary(JCRSessionWrapper session, String sitePath) throws RepositoryException {
-        String root = (sitePath + "/contents").replace("'", "''");
+        String root = (sitePath + CONTENTS).replace("'", "''");
         Query query = session.getWorkspace().getQueryManager().createQuery("SELECT * FROM [" + GlossaryReader.GLOSSARY_TYPE
                 + "] AS g WHERE ISDESCENDANTNODE(g, '" + root + "')", Query.JCR_SQL2);
         query.setLimit(1);
@@ -144,7 +145,7 @@ public class GlossarySeeder extends DefaultEventListener {
 
     private static void create(JCRSessionWrapper session, String sitePath, String language) throws RepositoryException {
         ResourceBundle text = seedText(language);
-        JCRNodeWrapper contents = session.getNode(sitePath + "/contents");
+        JCRNodeWrapper contents = session.getNode(sitePath + CONTENTS);
         JCRNodeWrapper folder = contents.hasNode(FOLDER) ? contents.getNode(FOLDER) : contents.addNode(FOLDER, "jnt:contentFolder");
         if (!folder.hasProperty(TITLE)) {
             folder.setProperty(TITLE, text.getString("seed.folder"));
