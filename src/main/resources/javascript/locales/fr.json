@@ -160,50 +160,38 @@
           "sections": "Sections",
           "links": "Liens",
           "contentType": "Type de contenu",
-          "generate": {
-            "title": "Générer depuis l'arborescence",
-            "intro": "Construit le fichier à partir des pages publiées, de leurs titres et de leurs descriptions. Aucun modèle, aucun service externe : le même site produit toujours le même fichier.",
-            "button": "Générer",
-            "running": "Génération en cours…",
-            "stats": "{{links}} liens dans {{sections}} sections",
-            "generated": "Généré",
-            "current": "Actuellement enregistré",
-            "unchanged": "Identique à ce qui est déjà enregistré. Rien à appliquer.",
-            "differs": "Le contenu diffère de ce qui est enregistré. Relisez-le avant d'appliquer.",
-            "placeholder": "Ce qui est enregistré est le texte par défaut du module, pas un vrai fichier.",
-            "noMixin": "Le site n'a pas encore de llms.txt. L'appliquer en créera un.",
-            "cannotWrite": "Vous n'avez pas les droits pour modifier les paramètres de ce site.",
-            "apply": "Appliquer et publier",
-            "confirm": "Confirmer le remplacement",
-            "applied": "Enregistré et publié. Relancez la vérification pour le voir.",
-            "error": "La génération a échoué.",
-            "rule": "Les pages masquées de la navigation sont exclues, et aucune description n'est inventée. Modifiez le texte avant d'appliquer si vous voulez autre chose : ce que vous voyez est exactement ce qui sera écrit.",
-            "changes": "Ce qui va changer",
-            "errorTitle": "llms.txt",
-            "noMixinTitle": "Pas encore de llms.txt",
-            "placeholderTitle": "Texte par défaut",
-            "appliedTitle": "Enregistré"
-          },
           "stale": {
-            "title": "llms.txt ne correspond plus à ce site",
-            "summary": "{{stale}} entrées sont obsolètes et {{missing}} pages ne sont pas listées. Régénérer le fichier ci-dessous le remettra en cohérence.",
+            "title": "llms.txt pointe vers des pages déplacées ou retirées",
+            "summary": "{{count}} liens du fichier ne mènent plus à une page publiée. Corrigez-les dans Additionnel, SEO, Llms.txt.",
             "why": {
               "addressChanged": "l'adresse a changé, celle-ci redirige désormais",
-              "noLongerListed": "ne fait plus partie de la liste générée",
-              "gone": "n'est plus publiée, ou aucun visiteur ne peut la lire",
-              "notListed": "publiée, mais absente du fichier"
+              "gone": "n'est plus publiée, ou aucun visiteur ne peut la lire"
             }
           },
           "fresh": {
-            "title": "llms.txt est à jour",
-            "summary": "Les {{count}} entrées correspondent à ce que produirait une génération maintenant : régénérer ne changerait rien."
+            "title": "Les liens de llms.txt sont à jour",
+            "summary": "Les {{count}} liens vers ce site mènent tous à une page publiée."
           },
-          "unreachable": "Le llms.txt n'a pas pu être récupéré : on ne sait donc pas si le site en publie un. C'est un problème de connexion, pas un constat sur le fichier."
+          "unreachable": "Le llms.txt n'a pas pu être récupéré : on ne sait donc pas si le site en publie un. C'est un problème de connexion, pas un constat sur le fichier.",
+          "view": {
+            "title": "llms.txt",
+            "intro": "Le llms.txt publié par ce site, tel que le module llms le sert. Il se rédige dans l'écran de ce module ; cet onglet l'affiche et vérifie que chacun de ses liens mène encore à une page publiée.",
+            "published": "Fichier publié",
+            "edit": "Modifier dans Llms.txt",
+            "empty": "Le module llms est activé mais aucun llms.txt n'est encore publié. Rédigez-le dans Additionnel, SEO, Llms.txt, puis publiez.",
+            "emptyTitle": "Pas encore de llms.txt",
+            "placeholder": "Le contenu publié est le texte provisoire du module llms, pas un vrai fichier. Rédigez-le dans Additionnel, SEO, Llms.txt.",
+            "placeholderTitle": "Texte provisoire",
+            "moduleOff": "Le llms.txt est rédigé et servi par le module llms, qui n'est pas activé sur ce site. Installez-le et activez-le sur le site pour en publier un.",
+            "moduleOffTitle": "Module llms non activé",
+            "error": "Le llms.txt publié n'a pas pu être lu.",
+            "errorTitle": "llms.txt"
+          }
         },
         "llmsFull": {
           "label": "llms-full.txt"
         },
-        "editedInSettings": "robots.txt et llms.txt concernent tout le site. Modifiez-les dans Additionnel, SEO, Préparation GEO."
+        "editedInSettings": "robots.txt et llms.txt concernent tout le site. robots.txt se modifie dans Additionnel, SEO, Préparation GEO ; llms.txt dans Additionnel, SEO, Llms.txt."
       },
       "score": {
         "tab": "Score",
@@ -318,7 +306,7 @@
       "dashboard": {
         "navLabel": "Préparation GEO",
         "title": "Préparation GEO du site {{site}} - {{language}}",
-        "intro": "Les deux fichiers qui indiquent aux robots IA quoi faire de ce site : robots.txt énonce la politique, llms.txt indique quelles pages comptent et pourquoi. Ils concernent tout le site, ils se modifient donc ici et non depuis une page.",
+        "intro": "robots.txt fixe la politique des robots d'IA et se modifie ici. llms.txt indique quelles pages comptent et pourquoi : il se rédige dans le module llms et s'affiche ici en lecture seule. Les deux concernent tout le site, pas une page.",
         "tab": {
           "robots": "robots.txt",
           "llms": "llms.txt",
@@ -719,8 +707,7 @@
         "links": "{{nav}} pages pointent ici depuis la navigation, {{content}} depuis le contenu",
         "llms": {
           "listed": "Présente dans llms.txt",
-          "wouldAdd": "Absente de llms.txt, mais une régénération l'ajouterait",
-          "notGenerated": "Absente de llms.txt, qui ne liste que les pages principales du site"
+          "notListed": "Absente de llms.txt"
         }
       },
       "paging": {

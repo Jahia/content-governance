@@ -160,50 +160,38 @@
           "sections": "Sections",
           "links": "Links",
           "contentType": "Content type",
-          "generate": {
-            "title": "Generate from the page tree",
-            "intro": "Builds the file from published pages, their titles and their descriptions. No model, no external service: the same site always produces the same file.",
-            "button": "Generate",
-            "running": "Generating…",
-            "stats": "{{links}} links in {{sections}} sections",
-            "generated": "Generated",
-            "current": "Currently stored",
-            "unchanged": "Identical to what is already stored. Nothing to apply.",
-            "differs": "This differs from what is stored. Review it before applying.",
-            "placeholder": "What is stored is the module's placeholder, not a real file.",
-            "noMixin": "The site has no llms.txt yet. Applying will create one.",
-            "cannotWrite": "You do not have permission to change this site's settings.",
-            "apply": "Apply and publish",
-            "confirm": "Confirm overwrite",
-            "applied": "Written and published. Run the check again to see it.",
-            "error": "The generator could not run.",
-            "rule": "Pages hidden from the navigation are left out, and descriptions are never invented. Edit the text before applying if you want something different: what you see is exactly what gets written.",
-            "changes": "What would change",
-            "errorTitle": "llms.txt",
-            "noMixinTitle": "No llms.txt yet",
-            "placeholderTitle": "Placeholder only",
-            "appliedTitle": "Saved"
-          },
           "stale": {
-            "title": "llms.txt no longer matches this site",
-            "summary": "{{stale}} entries are out of date and {{missing}} pages are not listed. Regenerating below will bring it back in line.",
+            "title": "llms.txt links to pages that moved or were removed",
+            "summary": "{{count}} links of the file no longer lead to a published page. Fix them in Additional, SEO, Llms.txt.",
             "why": {
               "addressChanged": "the address changed, this one now redirects",
-              "noLongerListed": "no longer part of the generated list",
-              "gone": "no longer published, or no visitor can read it",
-              "notListed": "published, but missing from the file"
+              "gone": "no longer published, or no visitor can read it"
             }
           },
           "fresh": {
-            "title": "llms.txt is up to date",
-            "summary": "All {{count}} entries match what generating would produce right now, so regenerating would change nothing."
+            "title": "llms.txt links are up to date",
+            "summary": "All {{count}} links to this site lead to a published page."
           },
-          "unreachable": "llms.txt could not be fetched, so whether the site publishes one is unknown. This is a connection problem, not a finding about the file."
+          "unreachable": "llms.txt could not be fetched, so whether the site publishes one is unknown. This is a connection problem, not a finding about the file.",
+          "view": {
+            "title": "llms.txt",
+            "intro": "The llms.txt this site publishes, as the llms module serves it. It is written in that module's own screen; this tab shows it and checks that each of its links still leads to a published page.",
+            "published": "Published file",
+            "edit": "Edit in Llms.txt",
+            "empty": "The llms module is enabled but no llms.txt is published yet. Write it in Additional, SEO, Llms.txt, then publish.",
+            "emptyTitle": "No llms.txt yet",
+            "placeholder": "What is published is the llms module's placeholder, not a real file. Write it in Additional, SEO, Llms.txt.",
+            "placeholderTitle": "Placeholder only",
+            "moduleOff": "llms.txt is written and served by the llms module, which is not enabled on this site. Install it and enable it on the site to publish one.",
+            "moduleOffTitle": "llms module not enabled",
+            "error": "The published llms.txt could not be read.",
+            "errorTitle": "llms.txt"
+          }
         },
         "llmsFull": {
           "label": "llms-full.txt"
         },
-        "editedInSettings": "robots.txt and llms.txt belong to the whole site. Edit them under Additional, SEO, GEO readiness."
+        "editedInSettings": "robots.txt and llms.txt belong to the whole site. robots.txt is edited under Additional, SEO, GEO readiness; llms.txt under Additional, SEO, Llms.txt."
       },
       "score": {
         "tab": "Score",
@@ -318,7 +306,7 @@
       "dashboard": {
         "navLabel": "GEO readiness",
         "title": "GEO readiness for site {{site}} - {{language}}",
-        "intro": "The two files that tell AI crawlers what to do with this site: robots.txt states the policy, llms.txt says which pages matter and why. Both belong to the whole site, so they are edited here rather than from a page.",
+        "intro": "robots.txt states the policy for AI crawlers and is edited here. llms.txt says which pages matter and why: it is written in the llms module and shown here read only. Both belong to the whole site, not to a page.",
         "tab": {
           "robots": "robots.txt",
           "llms": "llms.txt",
@@ -719,8 +707,7 @@
         "links": "{{nav}} pages link here from navigation, {{content}} from page content",
         "llms": {
           "listed": "Listed in llms.txt",
-          "wouldAdd": "Not in llms.txt, but regenerating it would add this page",
-          "notGenerated": "Not in llms.txt, which lists only the site's main pages"
+          "notListed": "Not listed in llms.txt"
         }
       },
       "paging": {

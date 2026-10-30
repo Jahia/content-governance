@@ -4,6 +4,7 @@ import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.content.JCRTemplate;
+import org.jahia.community.contentgovernance.geo.util.LlmsFile;
 import org.jahia.community.contentgovernance.geo.util.PublicUrls;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -376,38 +377,29 @@ public final class SiteScorer {
         }
 
         /**
-         * Is the published llms.txt still about this site? Compared against what
-         * regenerating would produce now, using the copy the site files check
-         * already fetched, so it costs one generation and no request.
+         * Do the links of the published llms.txt still lead to published pages? Read from the site's
+         * live {@code j:llms}, the file the llms module serves for this site and the one the dashboard
+         * shows; the copy fetched over HTTP only when the site stores none. On a server where several
+         * sites share a host name, the HTTP fetch returns another site's file.
          */
         private void storeLlms() {
             try {
-                JSONObject llmsJson = siteFiles.optJSONObject("llms");
-                String servedLlms = llmsJson == null ? null : llmsJson.optString("rawBody", null);
-                String regenerated = GuestVisibility.inGuestSession(language, this::generateLlms);
-                ScanStore.saveLlms(sitePath, language, LlmsFreshness.check(servedLlms, regenerated,
-                        PublishedMap.forSite(sitePath, siteBase), sitePath));
+                String llms = storedLlms();
+                if (llms == null) {
+                    JSONObject llmsJson = siteFiles.optJSONObject("llms");
+                    llms = llmsJson == null ? null : llmsJson.optString("rawBody", null);
+                }
+                ScanStore.saveLlms(sitePath, language, LlmsFreshness.check(llms,
+                        PublishedMap.forSite(sitePath, siteBase), sitePath, siteBase));
             } catch (Exception e) {
                 logger.debug("llms.txt freshness failed for {}", sitePath, e);
             }
         }
 
-        /**
-         * What llms.txt would say if it were regenerated now, as the guest sees
-         * the site.
-         *
-         * The rethrow is not decoration: the callback may only raise
-         * RepositoryException, so anything else has to be wrapped to get out.
-         */
-        private String generateLlms(JCRSessionWrapper guest) throws RepositoryException {
-            try {
-                return LlmsGenerator.generate(guest.getNode(sitePath), language,
-                        n -> PublicUrls.forNode(n, opts.publicBaseUrl));
-            } catch (RepositoryException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new RepositoryException(e);
-            }
+        private String storedLlms() throws RepositoryException {
+            return JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, "live",
+                    Locale.forLanguageTag(language),
+                    (JCRCallback<String>) session -> LlmsFile.of(session.getNode(sitePath)));
         }
 
         /**

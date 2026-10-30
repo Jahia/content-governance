@@ -6,13 +6,9 @@ import styles from './Tabs.module.css';
 
 const GROUPS = ['access', 'content', 'files'];
 
-/** What llms.txt says about this page: listed, would be listed, or no file yet. */
+/** Whether the site's llms.txt lists this page. Not being listed is the author's choice. */
 function llmsKey(llms) {
-    if (llms.listed) {
-        return 'context.llms.listed';
-    }
-
-    return llms.wouldAdd ? 'context.llms.wouldAdd' : 'context.llms.notGenerated';
+    return llms.listed ? 'context.llms.listed' : 'context.llms.notListed';
 }
 
 /**

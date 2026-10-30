@@ -5,7 +5,7 @@ import {useGovernanceTranslation} from '../../common/i18n';
 import {useSiteInfo} from '@jahia/data-helper';
 import {Header, LayoutContent, Tab, TabItem} from '@jahia/moonstone';
 import {RobotsControlPanel} from '../tabs/RobotsControlPanel';
-import {LlmsGeneratorPanel} from '../tabs/LlmsGeneratorPanel';
+import {LlmsPanel} from '../tabs/LlmsPanel';
 import {VisibilityPanel} from '../tabs/VisibilityPanel';
 import {SiteScorePanel} from '../tabs/SiteScorePanel';
 import {SitemapPanel} from '../tabs/SitemapPanel';
@@ -44,9 +44,9 @@ const GROUPS = [
  * GEO section switched on; the citations group follows the Citations tab switch.
  *
  * The drawer answers a question about one page. robots.txt and llms.txt are
- * properties of the whole site, so editing them from a page drawer was the
- * wrong scope: whichever page you had open, you were changing the same two
- * files. They live here instead, and the drawer only reports on them.
+ * properties of the whole site, so they are shown here, and the drawer only reports
+ * on them. robots.txt is edited here; llms.txt is written in the llms module's own
+ * screen and shown read only.
  *
  * Laid out like the other settings panels: LayoutContent with a Header whose
  * title names the site and the language, and the two files on their own tabs.
@@ -194,7 +194,7 @@ export const GeoDashboard = ({isOn}) => {
                     {tab === 'freshness' && <FreshnessPanel path={sitePath} language={language}/>}
                     {tab === 'schema' && <SchemaPanel path={sitePath} language={language}/>}
                     {tab === 'robots' && <RobotsControlPanel path={sitePath} language={language}/>}
-                    {tab === 'llms' && <LlmsGeneratorPanel path={sitePath} language={language}/>}
+                    {tab === 'llms' && <LlmsPanel path={sitePath} siteKey={siteKey} language={language}/>}
                     {tab === 'visibility' && <VisibilityPanel path={sitePath} language={language}/>}
                     {tab.startsWith('citations-') && (
                         <SiteCitationsPanel path={sitePath} language={language} view={tab.slice('citations-'.length)}/>

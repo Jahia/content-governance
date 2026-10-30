@@ -20,11 +20,8 @@ async function call(body) {
     return res.json();
 }
 
-/** Generates the file and returns it next to what is stored. Writes nothing. */
-export const previewLlms = ({path, language}) => call({action: 'previewLlms', path, language});
-
-/** Writes exactly `content`. Only ever called after the editor has seen it. */
-export const applyLlms = ({path, language, content}) => call({action: 'applyLlms', path, language, content});
+/** The llms.txt the llms module publishes for the site, read from live. Writes nothing. */
+export const readLlms = ({path, language}) => call({action: 'readLlms', path, language});
 
 /** Merges the decisions server-side and returns current + proposed. Writes nothing. */
 export const previewRobots = ({path, language, decisions}) =>

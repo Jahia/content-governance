@@ -15,39 +15,35 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Characterisation tests for {@link LlmsFreshness#check}.
+ * Tests for {@link LlmsFreshness#check}: each link of the served llms.txt is checked against the
+ * published pages of the site.
  *
- * These exist to freeze what check does TODAY, not to argue that it is right.
- * check is at cognitive complexity 19 and about to be decomposed. A real bug
- * was already found downstream of this exact method: GeoReport read "stale" as
- * a boolean and "outdated" as an array - the reverse of what this class
- * actually produces - so every report ever generated silently said the file
- * was never stale. That is only catchable by asserting the JSON *type* of each
- * key, not just its value, so every test below does both.
- *
- * sitePath used throughout: "/sites/mysite".
+ * GeoReport once read "stale" as a boolean and "outdated" as an array - the reverse of what this
+ * class produces - so every report said the file was never stale. That is only catchable by
+ * asserting the JSON *type* of each key, not just its value, so the tests below do both.
  */
 class LlmsFreshnessTest {
 
     private static final String SITE = "/sites/mysite";
-
-    // ---------------------------------------------------------------- helpers
+    private static final String BASE = "https://www.mysite.example";
 
     private static PublishedMap.Entry entry(String jcrPath) {
         return new PublishedMap.Entry(jcrPath, "Some Title", "2024-01-01", 0L, "jnt:page", false, true, "en");
     }
 
-    private static Map<String, PublishedMap.Entry> published(String key, PublishedMap.Entry value) {
+    private static Map<String, PublishedMap.Entry> published(String... paths) {
         Map<String, PublishedMap.Entry> map = new LinkedHashMap<>();
-        map.put(key, value);
+        for (String path : paths) {
+            map.put(path, entry(SITE + path.replace(".html", "")));
+        }
         return map;
     }
 
-    private static String link(String title, String path) {
-        return "- [" + title + "](" + path + ")\n";
+    private static String link(String title, String url) {
+        return "- [" + title + "](" + url + ")\n";
     }
 
-    /** Builds `count` distinct links, e.g. link(0)..link(count-1), all under distinct paths. */
+    /** Builds `count` distinct links under distinct paths. */
     private static String links(int count, String prefix) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < count; i++) {
@@ -56,321 +52,161 @@ class LlmsFreshnessTest {
         return sb.toString();
     }
 
-    // ------------------------------------------------------- absent / empty inputs
-
     @Nested
-    @DisplayName("served or generated missing short-circuits before any comparison")
-    class AbsentOrEmptyInputs {
+    @DisplayName("no file, or nothing to compare with")
+    class AbsentInputs {
 
         @ParameterizedTest(name = "served = [{0}]")
         @NullAndEmptySource
         @ValueSource(strings = {"   ", "\t", "\n", " \n\t "})
         @DisplayName("present is false and outdated is false, no other keys are emitted")
         void servedMissingOrBlank_reportsNotPresent(String served) {
-            // A factory method referenced by name would read as dead code to any
-            // analysis that does not follow the @MethodSource string, so the cases
-            // are given inline instead. Broader than the three it replaces, too.
-            JSONObject out = LlmsFreshness.check(served, link("Home", "/index.html"), null, SITE);
+            JSONObject out = LlmsFreshness.check(served, published("/index.html"), SITE, BASE);
 
             assertThat(out.get("present")).isInstanceOf(Boolean.class);
             assertThat(out.getBoolean("present")).isFalse();
             assertThat(out.get("outdated")).isInstanceOf(Boolean.class);
             assertThat(out.getBoolean("outdated")).isFalse();
-
             assertThat(out.has("listed")).isFalse();
-            assertThat(out.has("current")).isFalse();
             assertThat(out.has("stale")).isFalse();
-            assertThat(out.has("missing")).isFalse();
             assertThat(out.has("listedPaths")).isFalse();
         }
 
         @Test
-        @DisplayName("served present but generated is null: present true, outdated false, no other keys")
-        void generatedNull_reportsPresentButNotOutdated() {
-            JSONObject out = LlmsFreshness.check(link("Home", "/index.html"), null, null, SITE);
+        @DisplayName("no published map: present, not outdated, nothing judged")
+        void nullPublished_judgesNothing() {
+            JSONObject out = LlmsFreshness.check(link("Home", "/index.html"), null, SITE, BASE);
 
-            assertThat(out.get("present")).isInstanceOf(Boolean.class);
             assertThat(out.getBoolean("present")).isTrue();
-            assertThat(out.get("outdated")).isInstanceOf(Boolean.class);
             assertThat(out.getBoolean("outdated")).isFalse();
-            assertThat(out.has("listed")).isFalse();
             assertThat(out.has("stale")).isFalse();
-        }
-
-        @Test
-        @DisplayName("served present but generated is the empty string: present true, outdated false, no other keys")
-        void generatedEmptyString_reportsPresentButNotOutdated() {
-            JSONObject out = LlmsFreshness.check(link("Home", "/index.html"), "", null, SITE);
-
-            assertThat(out.getBoolean("present")).isTrue();
-            assertThat(out.getBoolean("outdated")).isFalse();
-            assertThat(out.has("listed")).isFalse();
-        }
-
-        /**
-         * WAS SUSPECT, NOW FIXED. The two emptiness guards disagreed: served used
-         * trim(), generated did not. A generated body of nothing but whitespace
-         * therefore counted as content, the link scan found nothing in it, and
-         * every page llms.txt lists came back stale with why="gone" - the
-         * loudest answer the report has, for what is really "we could not
-         * generate anything". Both sides trim now, so it takes the same early
-         * return as a null or empty one.
-         */
-        @Test
-        @DisplayName("a whitespace-only generated body is absent, exactly as an empty one is")
-        void generatedWhitespaceOnly_isTreatedAsAbsent() {
-            String served = link("Home", "/index.html");
-
-            JSONObject out = LlmsFreshness.check(served, "   ", null, SITE);
-
-            assertThat(out.getBoolean("present")).isTrue();
-            assertThat(out.getBoolean("outdated")).isFalse();
-            // The early return emits only these two keys, which a reader depends on.
-            assertThat(out.has("current")).isFalse();
-            assertThat(out.has("stale")).isFalse();
-            assertThat(out.has("listed")).isFalse();
         }
     }
 
-    // ------------------------------------------------------------------ fresh case
-
     @Nested
-    @DisplayName("served identical to what regenerating would produce")
+    @DisplayName("every link leads to a published page")
     class FreshCase {
 
         @Test
-        @DisplayName("same links in both: not outdated, empty stale/missing arrays, matching counts")
-        void identicalContent_isNotOutdated() {
+        @DisplayName("not outdated, empty stale array, listed count and paths")
+        void allLinksPublished_isNotOutdated() {
             String body = link("Home", "/index.html") + link("About", "/about.html");
 
-            JSONObject out = LlmsFreshness.check(body, body, null, SITE);
-
-            assertThat(out.get("present")).isInstanceOf(Boolean.class);
-            assertThat(out.getBoolean("present")).isTrue();
+            JSONObject out = LlmsFreshness.check(body, published("/index.html", "/about.html"), SITE, BASE);
 
             assertThat(out.get("listed")).isInstanceOf(Integer.class);
             assertThat(out.getInt("listed")).isEqualTo(2);
-            assertThat(out.get("current")).isInstanceOf(Integer.class);
-            assertThat(out.getInt("current")).isEqualTo(2);
-
             assertThat(out.get("stale")).isInstanceOf(JSONArray.class);
             assertThat(out.getJSONArray("stale").length()).isZero();
-            assertThat(out.get("missing")).isInstanceOf(JSONArray.class);
-            assertThat(out.getJSONArray("missing").length()).isZero();
-
-            assertThat(out.get("listedPaths")).isInstanceOf(JSONArray.class);
-            JSONArray listedPaths = out.getJSONArray("listedPaths");
-            assertThat(listedPaths.length()).isEqualTo(2);
-            assertThat(listedPaths.getString(0)).isEqualTo("/index.html");
-            assertThat(listedPaths.getString(1)).isEqualTo("/about.html");
-
             assertThat(out.get("outdated")).isInstanceOf(Boolean.class);
             assertThat(out.getBoolean("outdated")).isFalse();
+            JSONArray listedPaths = out.getJSONArray("listedPaths");
+            assertThat(listedPaths.getString(0)).isEqualTo("/index.html");
+            assertThat(listedPaths.getString(1)).isEqualTo("/about.html");
         }
-    }
-
-    // --------------------------------------------------- whitespace / line endings
-
-    @Nested
-    @DisplayName("formatting differences between served and generated")
-    class WhitespaceAndLineEndings {
 
         @Test
-        @DisplayName("CRLF line endings and extra indentation/trailing text do not create false staleness")
-        void crlfAndIndentationDifferences_areNotReportedAsStale() {
-            String served = "  -   [Home](/index.html)  trailing text\r\n"
-                    + "  -  [About](/about.html)\r\n";
-            String generated = "- [Home](/index.html) different trailing text\n"
-                    + "- [About](/about.html)\n";
+        @DisplayName("a published page the file does not list is the author's choice, not a finding")
+        void unlistedPublishedPage_isNotReported() {
+            String body = link("Home", "/index.html");
 
-            JSONObject out = LlmsFreshness.check(served, generated, null, SITE);
+            JSONObject out = LlmsFreshness.check(body, published("/index.html", "/other.html"), SITE, BASE);
+
+            assertThat(out.getBoolean("outdated")).isFalse();
+            assertThat(out.has("missing")).isFalse();
+        }
+
+        @Test
+        @DisplayName("CRLF line endings, indentation and trailing text are read the same")
+        void crlfAndIndentation_areRead() {
+            String served = "  -   [Home](/index.html)  trailing text\r\n  -  [About](/about.html)\r\n";
+
+            JSONObject out = LlmsFreshness.check(served, published("/index.html", "/about.html"), SITE, BASE);
 
             assertThat(out.getInt("listed")).isEqualTo(2);
-            assertThat(out.getInt("current")).isEqualTo(2);
-            assertThat(out.getJSONArray("stale").length()).isZero();
-            assertThat(out.getJSONArray("missing").length()).isZero();
             assertThat(out.getBoolean("outdated")).isFalse();
         }
 
         @Test
-        @DisplayName("only the URL path is compared: differing host/scheme is normalised away")
-        void differentHostSameLinkPath_isNotReportedAsStale() {
-            String served = link("Home", "https://old-domain.example/index.html");
-            String generated = link("Home", "https://new-domain.example/index.html");
+        @DisplayName("an absolute link to the site's own host is compared by its path")
+        void absoluteLinkToSite_isComparedByPath() {
+            JSONObject out = LlmsFreshness.check(link("Home", BASE + "/index.html"), published("/index.html"),
+                    SITE, BASE);
 
-            JSONObject out = LlmsFreshness.check(served, generated, null, SITE);
-
-            assertThat(out.getJSONArray("stale").length()).isZero();
-            assertThat(out.getJSONArray("missing").length()).isZero();
+            assertThat(out.getInt("listed")).isEqualTo(1);
             assertThat(out.getBoolean("outdated")).isFalse();
             assertThat(out.getJSONArray("listedPaths").getString(0)).isEqualTo("/index.html");
         }
     }
 
-    // ------------------------------------------------------------------ stale pages
-
     @Nested
-    @DisplayName("pages listed in served that the generator would no longer produce")
-    class StalePages {
+    @DisplayName("links to other sites")
+    class OtherHosts {
 
         @Test
-        @DisplayName("stale path that is a direct key in published: why is noLongerListed")
-        void stalePathStillPublished_reportsNoLongerListed() {
-            String served = link("Old Page", "/old-page.html");
-            // generated must not be null/empty to reach the comparison branch,
-            // so give it at least one unrelated link.
-            String generated = link("Home", "/index.html");
+        @DisplayName("a link to another host is neither counted nor judged")
+        void linkToAnotherHost_isIgnored() {
+            String body = link("Home", "/index.html") + link("Partner", "https://partner.example/page.html");
 
-            Map<String, PublishedMap.Entry> pub = published("/old-page.html", entry(SITE + "/old-page"));
+            JSONObject out = LlmsFreshness.check(body, published("/index.html"), SITE, BASE);
 
-            JSONObject out = LlmsFreshness.check(served, generated, pub, SITE);
-
-            JSONArray stale = out.getJSONArray("stale");
-            assertThat(stale.length()).isEqualTo(1);
-            JSONObject e = stale.getJSONObject(0);
-            assertThat(e.get("path")).isInstanceOf(String.class);
-            assertThat(e.getString("path")).isEqualTo("/old-page.html");
-            assertThat(e.getString("title")).isEqualTo("Old Page");
-            assertThat(e.getString("why")).isEqualTo("noLongerListed");
+            assertThat(out.getInt("listed")).isEqualTo(1);
+            assertThat(out.getBoolean("outdated")).isFalse();
         }
 
         @Test
-        @DisplayName("stale path not in published directly, but its node is published at a vanity url: why is addressChanged")
-        void stalePathMovedToVanityUrl_reportsAddressChanged() {
-            String served = link("Old Page", "/en/old-page.html");
-            String generated = link("Home", "/index.html");
+        @DisplayName("without a known site host, absolute links are judged like relative ones")
+        void unknownSiteHost_judgesAbsoluteLinks() {
+            JSONObject out = LlmsFreshness.check(link("Ghost", "https://any.example/ghost.html"),
+                    published("/index.html"), SITE, null);
 
-            // The node behind /en/old-page.html is now published as /en/new-page.html,
-            // i.e. its jcrPath resolves from the old address once .html and the
-            // language prefix are stripped.
-            Map<String, PublishedMap.Entry> pub =
-                    published("/en/new-page.html", entry(SITE + "/old-page"));
-
-            JSONObject out = LlmsFreshness.check(served, generated, pub, SITE);
-
-            JSONArray stale = out.getJSONArray("stale");
-            assertThat(stale.length()).isEqualTo(1);
-            assertThat(stale.getJSONObject(0).getString("why")).isEqualTo("addressChanged");
-        }
-
-        @Test
-        @DisplayName("stale path with no published trace at all: why is gone")
-        void stalePathNotPublishedAnywhere_reportsGone() {
-            String served = link("Ghost Page", "/ghost.html");
-            String generated = link("Home", "/index.html");
-
-            JSONObject out = LlmsFreshness.check(served, generated, new LinkedHashMap<>(), SITE);
-
-            JSONArray stale = out.getJSONArray("stale");
-            assertThat(stale.length()).isEqualTo(1);
-            assertThat(stale.getJSONObject(0).getString("why")).isEqualTo("gone");
-        }
-
-        @Test
-        @DisplayName("null published map: stale reason falls back to gone, no NPE")
-        void nullPublishedMap_reportsGoneWithoutError() {
-            String served = link("Ghost Page", "/ghost.html");
-            String generated = link("Home", "/index.html");
-
-            JSONObject out = LlmsFreshness.check(served, generated, null, SITE);
-
-            JSONArray stale = out.getJSONArray("stale");
-            assertThat(stale.length()).isEqualTo(1);
-            assertThat(stale.getJSONObject(0).getString("why")).isEqualTo("gone");
-        }
-
-        @Test
-        @DisplayName("empty published map behaves the same as null for the gone reason")
-        void emptyPublishedMap_reportsGone() {
-            String served = link("Ghost Page", "/ghost.html");
-            String generated = link("Home", "/index.html");
-
-            JSONObject out = LlmsFreshness.check(served, generated, new LinkedHashMap<>(), SITE);
-
+            assertThat(out.getInt("listed")).isEqualTo(1);
             assertThat(out.getJSONArray("stale").getJSONObject(0).getString("why")).isEqualTo("gone");
         }
     }
 
-    // ---------------------------------------------------------------- missing pages
-
     @Nested
-    @DisplayName("published pages missing from served")
-    class MissingPages {
+    @DisplayName("links that no published page answers")
+    class StaleLinks {
 
         @Test
-        @DisplayName("a link only the generator would produce is reported under missing, not stale")
-        void generatorOnlyLink_isReportedAsMissing() {
-            String served = link("Home", "/index.html");
-            String generated = link("Home", "/index.html") + link("New Page", "/new-page.html");
+        @DisplayName("the page now answers at another address: why is addressChanged")
+        void linkToMovedPage_reportsAddressChanged() {
+            // The node behind /en/old-page.html is now published as /en/new-page.html.
+            Map<String, PublishedMap.Entry> pub = new LinkedHashMap<>();
+            pub.put("/en/new-page.html", entry(SITE + "/old-page"));
 
-            JSONObject out = LlmsFreshness.check(served, generated, null, SITE);
+            JSONObject out = LlmsFreshness.check(link("Old Page", "/en/old-page.html"), pub, SITE, BASE);
 
-            assertThat(out.getJSONArray("stale").length()).isZero();
-            JSONArray missing = out.getJSONArray("missing");
-            assertThat(missing.length()).isEqualTo(1);
-            JSONObject m = missing.getJSONObject(0);
-            assertThat(m.get("path")).isInstanceOf(String.class);
-            assertThat(m.getString("path")).isEqualTo("/new-page.html");
-            assertThat(m.getString("title")).isEqualTo("New Page");
+            JSONArray stale = out.getJSONArray("stale");
+            assertThat(stale.length()).isEqualTo(1);
+            JSONObject e = stale.getJSONObject(0);
+            assertThat(e.getString("path")).isEqualTo("/en/old-page.html");
+            assertThat(e.getString("title")).isEqualTo("Old Page");
+            assertThat(e.getString("why")).isEqualTo("addressChanged");
             assertThat(out.getBoolean("outdated")).isTrue();
         }
 
-        /**
-         * SUSPECT (LlmsFreshness.java:97-104): the `missing` computation never
-         * reads `published` at all - it is a pure diff between `listed` and
-         * `current`. A page that is genuinely unpublished (absent from
-         * `published`) but still emitted by the generator today would still show
-         * up here as "missing" with no way to distinguish it from a legitimately
-         * published-but-unlisted page. This test simply pins that `published` is
-         * not consulted for this array.
-         */
         @Test
-        @DisplayName("SUSPECT: missing is computed without consulting published at all")
-        void missingComputation_ignoresPublishedMap() {
-            String served = link("Home", "/index.html");
-            String generated = link("Home", "/index.html") + link("Untracked", "/untracked.html");
+        @DisplayName("no published trace at all: why is gone")
+        void linkToUnpublishedPage_reportsGone() {
+            JSONObject out = LlmsFreshness.check(link("Ghost Page", "/ghost.html"), new LinkedHashMap<>(), SITE,
+                    BASE);
 
-            // published map does not even contain the untracked page's node.
-            JSONObject out = LlmsFreshness.check(served, generated, new LinkedHashMap<>(), SITE);
-
-            JSONArray missing = out.getJSONArray("missing");
-            assertThat(missing.length()).isEqualTo(1);
-            assertThat(missing.getJSONObject(0).getString("path")).isEqualTo("/untracked.html");
+            JSONArray stale = out.getJSONArray("stale");
+            assertThat(stale.length()).isEqualTo(1);
+            assertThat(stale.getJSONObject(0).getString("why")).isEqualTo("gone");
         }
     }
 
-    // ------------------------------------------------------------------ empty published
-
     @Nested
-    @DisplayName("empty published map overall")
-    class EmptyPublishedMap {
+    @DisplayName("the 100-item cap")
+    class Cap {
 
         @Test
-        @DisplayName("fresh content with an empty published map: still not outdated")
-        void emptyPublishedMap_doesNotAffectFreshContent() {
-            String body = link("Home", "/index.html");
-
-            JSONObject out = LlmsFreshness.check(body, body, new LinkedHashMap<>(), SITE);
-
-            assertThat(out.getBoolean("outdated")).isFalse();
-            assertThat(out.getJSONArray("stale").length()).isZero();
-            assertThat(out.getJSONArray("missing").length()).isZero();
-        }
-    }
-
-    // ------------------------------------------------------------------ ordering & cap
-
-    @Nested
-    @DisplayName("ordering and the 100-item cap on stale/missing")
-    class OrderingAndCap {
-
-        @Test
-        @DisplayName("101 stale links: stale array is capped at 100, keeping the first 100 in document order")
+        @DisplayName("101 stale links: stale is capped at 100, in document order")
         void staleArray_isCappedAt100InDocumentOrder() {
-            String served = links(101, "stale");
-            String generated = link("Home", "/index.html"); // unrelated, keeps generated non-empty
-
-            JSONObject out = LlmsFreshness.check(served, generated, null, SITE);
+            JSONObject out = LlmsFreshness.check(links(101, "stale"), new LinkedHashMap<>(), SITE, BASE);
 
             JSONArray stale = out.getJSONArray("stale");
             assertThat(stale.length()).isEqualTo(100);
@@ -379,107 +215,49 @@ class LlmsFreshnessTest {
         }
 
         @Test
-        @DisplayName("101 missing links: missing array is capped at 100, keeping the first 100 in document order")
-        void missingArray_isCappedAt100InDocumentOrder() {
-            String served = link("Home", "/index.html"); // unrelated, keeps served non-empty
-            String generated = links(101, "missing");
-
-            JSONObject out = LlmsFreshness.check(served, generated, null, SITE);
-
-            JSONArray missing = out.getJSONArray("missing");
-            assertThat(missing.length()).isEqualTo(100);
-            assertThat(missing.getJSONObject(0).getString("path")).isEqualTo("/missing-0.html");
-            assertThat(missing.getJSONObject(99).getString("path")).isEqualTo("/missing-99.html");
-        }
-
-        /**
-         * WAS SUSPECT, NOW FIXED. listedPaths was the one array with no cap. It
-         * relied on the generator's own link budget to stay small, which says
-         * nothing about the SERVED file - that one is written by whoever wrote
-         * it, so a file listing ten thousand paths put all ten thousand into
-         * every report, every scan.
-         */
-        @Test
-        @DisplayName("listedPaths is capped like stale and missing are")
+        @DisplayName("listedPaths is capped, the count is not")
         void listedPaths_isCapped() {
-            String served = links(150, "page");
+            JSONObject out = LlmsFreshness.check(links(150, "page"), new LinkedHashMap<>(), SITE, BASE);
 
-            JSONObject out = LlmsFreshness.check(served, served, null, SITE);
-
-            // The COUNT still reports the truth; only the listing is cut.
             assertThat(out.getInt("listed")).isEqualTo(150);
             JSONArray listedPaths = out.getJSONArray("listedPaths");
             assertThat(listedPaths.length()).isEqualTo(100);
-            assertThat(listedPaths.getString(0)).isEqualTo("/page-0.html");
             assertThat(listedPaths.getString(99)).isEqualTo("/page-99.html");
         }
     }
-
-    // ---------------------------------------------------------------- listingFor
 
     @Nested
     @DisplayName("listingFor: reading a report produced by check")
     class ListingFor {
 
         @Test
-        @DisplayName("null report returns null")
-        void nullReport_returnsNull() {
+        @DisplayName("null report, or no file, returns null")
+        void noReport_returnsNull() {
             assertThat(LlmsFreshness.listingFor(null, "/index.html")).isNull();
-        }
-
-        @Test
-        @DisplayName("report where present is false returns null regardless of path")
-        void reportNotPresent_returnsNull() {
-            JSONObject report = LlmsFreshness.check(null, null, null, SITE);
+            JSONObject report = LlmsFreshness.check(null, null, SITE, BASE);
             assertThat(LlmsFreshness.listingFor(report, "/index.html")).isNull();
         }
 
         @Test
         @DisplayName("null path returns null even for a present report")
         void nullPath_returnsNull() {
-            String body = link("Home", "/index.html");
-            JSONObject report = LlmsFreshness.check(body, body, null, SITE);
+            JSONObject report = LlmsFreshness.check(link("Home", "/index.html"), published("/index.html"), SITE, BASE);
             assertThat(LlmsFreshness.listingFor(report, null)).isNull();
         }
 
         @Test
-        @DisplayName("a listed path: listed=true, no wouldAdd key")
-        void listedPath_reportsListedTrue() {
-            String body = link("Home", "/index.html");
-            JSONObject report = LlmsFreshness.check(body, body, null, SITE);
+        @DisplayName("listed=true for a listed path, false otherwise, and nothing else")
+        void listedFlag_only() {
+            JSONObject report = LlmsFreshness.check(link("Home", "/index.html"), published("/index.html"), SITE, BASE);
 
-            JSONObject result = LlmsFreshness.listingFor(report, "/index.html");
-            assertThat(result).isNotNull();
-            assertThat(result.get("listed")).isInstanceOf(Boolean.class);
-            assertThat(result.getBoolean("listed")).isTrue();
-            assertThat(result.has("wouldAdd")).isFalse();
-        }
+            JSONObject listed = LlmsFreshness.listingFor(report, "/index.html");
+            assertThat(listed.get("listed")).isInstanceOf(Boolean.class);
+            assertThat(listed.getBoolean("listed")).isTrue();
+            assertThat(listed.length()).isEqualTo(1);
 
-        @Test
-        @DisplayName("a path the generator would add: listed=false, wouldAdd=true")
-        void missingPath_reportsWouldAddTrue() {
-            String served = link("Home", "/index.html");
-            String generated = link("Home", "/index.html") + link("New", "/new.html");
-            JSONObject report = LlmsFreshness.check(served, generated, null, SITE);
-
-            JSONObject result = LlmsFreshness.listingFor(report, "/new.html");
-            assertThat(result).isNotNull();
-            assertThat(result.get("listed")).isInstanceOf(Boolean.class);
-            assertThat(result.getBoolean("listed")).isFalse();
-            assertThat(result.get("wouldAdd")).isInstanceOf(Boolean.class);
-            assertThat(result.getBoolean("wouldAdd")).isTrue();
-        }
-
-        @Test
-        @DisplayName("a path neither listed nor added: listed=false, wouldAdd=false")
-        void unrelatedPath_reportsNeitherListedNorWouldAdd() {
-            String body = link("Home", "/index.html");
-            JSONObject report = LlmsFreshness.check(body, body, null, SITE);
-
-            JSONObject result = LlmsFreshness.listingFor(report, "/somewhere-else.html");
-            assertThat(result).isNotNull();
-            assertThat(result.getBoolean("listed")).isFalse();
-            assertThat(result.getBoolean("wouldAdd")).isFalse();
+            JSONObject other = LlmsFreshness.listingFor(report, "/elsewhere.html");
+            assertThat(other.getBoolean("listed")).isFalse();
+            assertThat(other.length()).isEqualTo(1);
         }
     }
 }
