@@ -255,23 +255,19 @@ is never reported.
 
 ## Is llms.txt still about this site
 
-`llms.txt` is generated once and then served unchanged, so it goes out of date silently: nothing
-fails, nothing returns an error, an assistant is simply handed a map of a site that has moved on.
-That happened on the test site the moment a vanity URL was added - the file kept pointing at
-`/home/agencies.html`, which now redirects, with no signal anywhere.
+`llms.txt` is written in the `llms` module and then served unchanged, so it goes out of date
+silently: nothing fails, nothing returns an error, an assistant is simply handed links to a site
+that has moved on. That happened on the test site the moment a vanity URL was added - the file kept
+pointing at `/home/agencies.html`, which now redirects, with no signal anywhere.
 
-It is compared against **the generator**, not against a second set of rules. Asking "which pages
-belong in it" a different way would be a second implementation to keep in step, and the two would
-drift. The served file is diffed against what regenerating would produce right now, which makes the
-finding exactly as trustworthy as the button offered to fix it: if they differ, regenerating changes
-something; if they agree, it would not.
+Each link of the served file to this site (relative, or on the site's own host) is checked against
+the published pages. Which pages the file lists is the author's choice, so a page it leaves out is
+not a finding, and links to other sites are not judged.
 
 | Finding | Means |
 |---|---|
 | `addressChanged` | The listed address now redirects - usually a vanity URL added after the file was written. |
-| `noLongerListed` | Still published, but no longer part of what the generator produces. |
 | `gone` | Unpublished, or no visitor can read it. |
-| not listed | Published and in the current generation, but absent from the file. |
 
 Deliberately **not tied to the readiness score**. Regenerating this file does not move the score -
 the score is about crawler access and what arrives in the HTML - so prompting for it there would
@@ -408,8 +404,7 @@ point is not information:
 
 - the site average and the page's own **section** average, so "16 of 18" can be read
 - how many pages link here, from navigation and from content separately
-- whether the page is in **llms.txt** - and if not, whether regenerating would add it or the
-  generator deliberately does not include it
+- whether the page is listed in **llms.txt**
 
 Freshness is deliberately absent: an author editing a page already knows how old it is.
 

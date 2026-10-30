@@ -60,8 +60,8 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 - Every GEO servlet's POST handler reads its body through `GeoServlet.jsonBody` / `isJsonRequest`
   (exact `application/json`, same-site browser requests only); `AiReviewServlet` has its own checks.
 - Build with Maven **3.8** and Java 17 (`mise.toml`), always `clean install`.
-- `robots` and `llms` are optional dependencies (`=optional`): only the GEO robots.txt / llms.txt
-  editor needs them.
+- `robots` and `llms` are optional dependencies (`=optional`): only the GEO robots.txt editor and the
+  read-only llms.txt tab need them. llms.txt is written in the `llms` module, never here.
 
 ## Configuration
 

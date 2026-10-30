@@ -30,9 +30,9 @@
 
     <properties>
         <!-- jcontent hosts the drawer and the dashboards; graphql-dxm-provider serves the settings and
-             compliance queries. robots and llms own the mixins the GEO robots.txt and llms.txt editor
-             writes: optional, so Page quality and Compliance never need them; without them that
-             editor answers an error and every other check works. -->
+             compliance queries. robots owns the mixin the GEO robots.txt editor writes, llms the file
+             the GEO llms.txt tab shows read only: optional, so Page quality and Compliance never need
+             them; without them those tabs say why and every other check works. -->
         <jahia-depends>default,jcontent=[3.7,4),graphql-dxm-provider,robots=optional,llms=optional</jahia-depends>
         <jahia-module-type>module</jahia-module-type>
         <yarn.arguments>build:production</yarn.arguments>

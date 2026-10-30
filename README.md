@@ -56,8 +56,8 @@ it shows, and lists each term found with its reason and the suggested wording.
 They stay in jContent's **Additional** accordion:
 
 - **SEO > GEO readiness**: site score, reach, invisible content, sitemap against reality, internal
-  links, addresses, freshness, languages, structured data, the `robots.txt` and `llms.txt` editors,
-  AI citations, and a written report by AI. Scans can be scheduled.
+  links, addresses, freshness, languages, structured data, the `robots.txt` editor, the published
+  `llms.txt` (read only, written in the `llms` module's own **Llms.txt** screen), AI citations, and a written report by AI. Scans can be scheduled.
 - **Compliance**: the whole-site scan, with **Export CSV** and **Export JSON**.
 
 A section switched off for a site switches its dashboard off too: the entry stays in **Additional**
@@ -80,8 +80,9 @@ and says so.
 
 - Jahia 8.2 (tested on 8.2.3.2) with jContent 3.7 or later (`jcontent=[3.7,4)`; UI tested on 3.7.1,
   API also on 3.8.0) and graphql-dxm-provider. React 18 and Moonstone 2.20 come from jContent.
-- Optional: the `robots` and `llms` modules, for the GEO `robots.txt` and `llms.txt` editors. Without
-  them the rest of the module works and those editors say why they cannot.
+- Optional: the `robots` module, for the GEO `robots.txt` editor, and the `llms` module, which writes
+  and serves `llms.txt` (Content Governance shows it read only and checks its links). Without them
+  the rest of the module works and those tabs say why they cannot.
 - Optional: an Anthropic, OpenAI or DeepSeek API key, for the AI features.
 - Optional: a BotRank organisation API key, for AI citations.
 
@@ -188,8 +189,8 @@ call to BotRank: a daily sync, on the processing server, stores the citations of
 
 Switches in the browser only hide. Every servlet and GraphQL field checks the permission, the module
 on the site and the site's switches on the server. The page checks and the compliance scans read with
-the caller's own rights and change no content; the only content writes are the `robots.txt` and
-`llms.txt` editors (diff, then a confirming click). The module keeps its own state (site settings, GEO
+the caller's own rights and change no content; the only content write is the `robots.txt` editor
+(diff, then a confirming click). The module keeps its own state (site settings, GEO
 scans, schedules and reports, BotRank binding) in nodes under each site that only the module reads and
 writes, after its own permission checks; GEO site scans and the BotRank sync run on the server and
 store their results there.

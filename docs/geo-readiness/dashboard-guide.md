@@ -23,8 +23,8 @@ green, amber or red only when the tab itself judges them.
 - **It covers one language at a time.** The language in the title is the one being measured. A
   second language needs its own scan, and a language nobody has scanned reports as *not measured*,
   which is not the same as scoring badly.
-- **It is read-only except in two places.** Only the `robots.txt` and `llms.txt` panels write
-  anything, both show the exact change first, and both need a second click.
+- **It is read-only except in one place.** Only the `robots.txt` panel writes anything; it shows
+  the exact change first and needs a second click. `llms.txt` is shown read only.
 
 ## Who sees it
 
@@ -193,18 +193,18 @@ If the site has no robots.txt yet, applying creates one. If you lack permission,
 instead of failing silently. Writing needs the `robots` module on the server; without it the panel
 reports that robots.txt could not be read or written.
 
-### llms.txt - writes to the site
+### llms.txt - read only
 
-**Generate** builds the file from the published page tree. No model is involved and nothing
-external is called, so the same site produces the same file every time.
+The `llms.txt` this site publishes, as the `llms` module serves it from the live workspace. It is
+written in that module's own screen: **Edit in Llms.txt** opens **Additional > SEO > Llms.txt**.
+Which pages the file lists is the author's choice, so nothing here proposes pages to add.
 
-Pages a visitor cannot read, and pages marked to be ignored, are left out automatically. The panel
-tells you whether the stored file is still current or has gone stale against what the site now
-contains.
+What the tab checks, from the last scan, is that each link of the file to this site still leads to
+a published page. A link whose page moved (its old address now redirects) or that is no longer
+published is listed with the reason. Links to other sites are not judged.
 
-Same safety as robots.txt: you see the exact difference first, and what gets written is exactly
-what is on screen, so hand edits made before applying survive. Writing needs the `llms` module on
-the server.
+When the `llms` module is not enabled on the site, the tab says so; when it is enabled but nothing
+has been written yet, or only its placeholder is published, the tab says that too.
 
 ## AI citations
 

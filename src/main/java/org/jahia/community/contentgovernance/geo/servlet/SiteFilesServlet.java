@@ -2,17 +2,19 @@ package org.jahia.community.contentgovernance.geo.servlet;
 
 import org.jahia.community.contentgovernance.geo.check.AiCrawlers;
 import org.jahia.community.contentgovernance.geo.check.GuestVisibility;
-import org.jahia.community.contentgovernance.geo.check.LlmsGenerator;
 import org.jahia.community.contentgovernance.geo.check.RobotsEditor;
 import org.jahia.community.contentgovernance.geo.check.RobotsRules;
 import org.jahia.community.contentgovernance.geo.check.SiteFilesChecker;
 import org.jahia.community.contentgovernance.geo.config.GeoReadinessConfigService;
 import org.jahia.community.contentgovernance.geo.util.PublicUrls;
+import org.jahia.community.contentgovernance.geo.util.LlmsFile;
+import org.jahia.community.contentgovernance.geo.util.SitePages;
 import org.jahia.community.contentgovernance.geo.util.SiteScope;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRPublicationService;
 import org.jahia.services.content.JCRSessionFactory;
 import org.jahia.services.content.JCRSessionWrapper;
+import org.jahia.services.content.decorator.JCRSiteNode;
 import org.jahia.services.usermanager.JahiaUser;
 import org.jahia.services.usermanager.JahiaUserManagerService;
 import org.json.JSONArray;
@@ -49,15 +51,14 @@ import java.util.Map;
  * we will not quietly regenerate over the top.
  *
  * POST /modules/content-governance/geo/site-files
- *   {"action":"previewLlms","path":"/sites/x/home","language":"en"}
- *   {"action":"applyLlms","path":"/sites/x/home","content":"# ..."}
+ *   {"action":"readLlms","path":"/sites/x/home","language":"en"}
  */
 @Component(
         service = {HttpServlet.class, Servlet.class},
         property = {
                 "alias=/content-governance/geo/site-files",
                 "allow-api-token=true",
-                "service.description=GEO readiness robots.txt and llms.txt editing",
+                "service.description=GEO readiness robots.txt editing and llms.txt reading",
                 "service.vendor=Jahia Solutions Group SA"
         },
         immediate = true)
@@ -65,10 +66,7 @@ public class SiteFilesServlet extends GeoServlet {
 
     private static final Logger logger = LoggerFactory.getLogger(SiteFilesServlet.class);
 
-    private static final String LLMS_MIXIN = "jmix:llms";
-    private static final String LLMS_PROP = "j:llms";
-    /** The community llms module ships this as the autocreated default. It is not a real file. */
-    private static final String LLMS_DEFAULT = "# Title";
+    private static final String LLMS_MODULE = "llms";
     private static final String ROBOTS_MIXIN = "jmix:robots";
     private static final String ROBOTS_PROP = "j:robots";
     /** The community robots module ships this as the autocreated default. */
@@ -134,12 +132,8 @@ public class SiteFilesServlet extends GeoServlet {
             }
 
             switch (action) {
-                case "previewLlms":
-                    writeJson(resp, HttpServletResponse.SC_OK, previewLlms(path, language, req, resp));
-                    return;
-                case "applyLlms":
-                    writeJson(resp, HttpServletResponse.SC_OK, applySiteFile(path, language,
-                            body.optString("content", ""), LLMS_MIXIN, LLMS_PROP));
+                case "readLlms":
+                    writeJson(resp, HttpServletResponse.SC_OK, readLlms(path, language));
                     return;
                 case "previewRobots":
                     writeJson(resp, HttpServletResponse.SC_OK,
@@ -166,49 +160,23 @@ public class SiteFilesServlet extends GeoServlet {
     }
 
     /**
-     * Generate from LIVE, because llms.txt describes the public site. A page an
-     * editor can see but a visitor cannot has no business being advertised.
+     * The llms.txt the site serves, read where the llms module serves it from: the site's
+     * {@code j:llms} in the live workspace. Read only: the file is written in the llms module's
+     * own screen (Additional, SEO, Llms.txt).
      */
-    private JSONObject previewLlms(String path, String language, HttpServletRequest req, HttpServletResponse resp)
-            throws Exception {
-        JSONObject out = new JSONObject();
+    private JSONObject readLlms(String path, String language) throws Exception {
         JCRSessionWrapper live = JCRSessionFactory.getInstance()
                 .getCurrentUserSession("live", Locale.forLanguageTag(language));
-        JCRNodeWrapper node = live.getNode(path);
-        JCRNodeWrapper site = node.getResolveSite();
-        String sitePath = site.getPath();
+        JCRNodeWrapper liveSite = live.getNode(path).getResolveSite();
+        String content = LlmsFile.of(liveSite);
 
-        // Generated from a guest session, so a page the caller can see but a
-        // visitor cannot is never advertised. The alternative, checking each
-        // page as we go, would answer the same question more slowly and give
-        // the walk two sources of truth.
-        String generated = GuestVisibility.inGuestSession(language, guest -> {
-            try {
-                return LlmsGenerator.generate(guest.getNode(sitePath), language,
-                        n -> PublicUrls.forNode(n, req, resp, config.getPublicBaseUrl()));
-            } catch (javax.jcr.RepositoryException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new javax.jcr.RepositoryException(e);
-            }
-        });
-
-        // What is stored today, read from the editing workspace: that is what an
-        // apply would overwrite, and it may differ from what live currently serves.
-        JCRSessionWrapper edit = JCRSessionFactory.getInstance()
-                .getCurrentUserSession("default", Locale.forLanguageTag(language));
-        JCRNodeWrapper editSite = edit.getNode(site.getPath());
-        String current = editSite.hasProperty(LLMS_PROP) ? editSite.getProperty(LLMS_PROP).getString() : null;
-
-        out.put("siteKey", site.getName());
-        out.put("sitePath", site.getPath());
-        out.put("generated", generated);
-        out.put("current", current == null ? JSONObject.NULL : current);
-        out.put("mixinPresent", editSite.isNodeType(LLMS_MIXIN));
+        JSONObject out = new JSONObject();
+        out.put("siteKey", liveSite.getName());
+        out.put("moduleEnabled", liveSite instanceof JCRSiteNode site
+                && site.getInstalledModulesWithAllDependencies().contains(LLMS_MODULE));
+        out.put("content", content == null ? JSONObject.NULL : content);
         // An autocreated "# Title" is the module's placeholder, not a published file.
-        out.put("currentIsPlaceholder", current != null && LLMS_DEFAULT.equals(current.trim()));
-        out.put("unchanged", current != null && current.equals(generated));
-        out.put("canWrite", editSite.hasPermission("jcr:modifyProperties"));
+        out.put("placeholder", content != null && LlmsFile.PLACEHOLDER.equals(content.trim()));
         return out;
     }
 
@@ -252,7 +220,7 @@ public class SiteFilesServlet extends GeoServlet {
 
         // The panel runs the crawler check against one representative page to show
         // what the server actually does, beside what robots.txt says it should.
-        JCRNodeWrapper home = LlmsGenerator.homeOf(site);
+        JCRNodeWrapper home = SitePages.homeOf(site);
 
         JSONObject out = new JSONObject();
         out.put("siteKey", site.getName());

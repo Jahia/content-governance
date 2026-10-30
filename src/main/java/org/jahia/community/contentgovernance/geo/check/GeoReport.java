@@ -356,8 +356,7 @@ public final class GeoReport {
         // changed since" on every report ever produced, whatever the scan found.
         sb.append("served: ").append(llms.optBoolean("present")).append("  listed pages: ")
                 .append(llms.optInt("listed")).append("  stale: ").append(llms.optBoolean("outdated")).append('\n');
-        counted(sb, "published pages the file does not mention", llms.optJSONArray(MISSING), PATH);
-        counted(sb, "listed pages that changed since", llms.optJSONArray("stale"), PATH);
+        counted(sb, "listed links that no longer lead to a published page", llms.optJSONArray("stale"), PATH);
     }
 
     private static void appendFreshness(StringBuilder sb, JSONObject fresh) {

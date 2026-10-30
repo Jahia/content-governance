@@ -74,7 +74,6 @@ in GEO Readiness). Front end under `src/javascript/geo/`.
 | `RobotsRules` | A robots.txt parser: longest match wins, `Allow` beats `Disallow` on a tie, `*` and `$` honoured, consecutive `User-agent` lines share a group. |
 | `RobotsEditor` | Merges allow/block decisions into an existing file without disturbing anything it was not asked about. |
 | `SiteFilesChecker` | Fetches and describes `robots.txt`, `llms.txt` and `llms-full.txt`. |
-| `LlmsGenerator` | Builds an `llms.txt` from the published page tree. Deterministic, no model call. |
 | `GuestVisibility` | Which published pages a visitor with no account cannot read, and why. |
 | `SiteScorer` | The site walk: list, fetch once, score, aggregate. |
 | `TemplateRollup` | Groups findings by template and decides which are the template's fault. |
@@ -84,7 +83,7 @@ in GEO Readiness). Front end under `src/javascript/geo/`.
 | `StructuredData` | Generates JSON-LD per node and coverage per site; reports gaps and contradictions rather than filling them. |
 | `Languages` | Translation coverage per language, joined to the per-language scores; unmeasured kept distinct from zero. |
 | `Freshness` | Ages everything published, bucketed and grouped by type and section, against a configurable threshold. |
-| `LlmsFreshness` | Whether the served llms.txt still matches what generating would produce. |
+| `LlmsFreshness` | Which links of the served llms.txt no longer lead to a published page of the site. |
 | `VanityUrls` | Every address a page answers on, checked against the site's languages and the canonical tag. |
 | `SitemapCheck` | Resolves every `sitemap.xml` entry back to a node and compares it with what is actually published, as guest, across every site language. |
 | `ScanStore` | Reads and writes the scan on the site node. |
@@ -102,7 +101,7 @@ check, crawler list, public base URL. It holds no AI key any more: the report us
 | Path | Role |
 |---|---|
 | `GeoSection.jsx` | The drawer section: the **Run check** button, the banners above the tabs, and the tabs **Score**, **Crawler access**, **Site files**, **Structured data** and **AI citations**, each filtered by its switch. The last result is cached in the browser's local storage per page and language. **AI citations** loads on its own and is greyed out while the site has no BotRank binding. |
-| `tabs/` | One component per drawer tab (`ScoreTab`, `CrawlerTab`, `SiteFilesTab`, `SchemaTab`, `CitationsTab`) and per dashboard panel (`SiteScorePanel`, `ReportPanel`, `VisibilityPanel`, `LinksPanel`, `VanityPanel`, `SchemaPanel`, `LanguagesPanel`, `FreshnessPanel`, `SitemapPanel`, `RobotsControlPanel`, `LlmsGeneratorPanel`, `SiteCitationsPanel`), plus `CronBuilder` and `DiffView`. |
+| `tabs/` | One component per drawer tab (`ScoreTab`, `CrawlerTab`, `SiteFilesTab`, `SchemaTab`, `CitationsTab`) and per dashboard panel (`SiteScorePanel`, `ReportPanel`, `VisibilityPanel`, `LinksPanel`, `VanityPanel`, `SchemaPanel`, `LanguagesPanel`, `FreshnessPanel`, `SitemapPanel`, `RobotsControlPanel`, `LlmsPanel`, `SiteCitationsPanel`), plus `CronBuilder` and `DiffView`. |
 | `dashboard/GeoDashboard.jsx` | The Additional > SEO screen: five groups of tabs (overview, reach, usable, files, AI citations), one panel per tab. The **Report** tab is always listed and greyed out while the shared model is not configured; the AI citations group shows only while `geo.citations` is on. |
 | `dashboard/Layout.jsx` | The one layout every dashboard panel uses: `Panel`, `PanelHeader` (title and intro, `Meta` pills for dates), `Card` per section, `Figures`/`Figure` for key numbers with a tone, `Ring` and `Hero` for the figure a panel leads with, `Actions`, `Note`, `Source`. A panel places no Separator and no heading Typography of its own. |
 | `dashboard/Layout.module.css` | The type scale (page title 20/28, intro 14/1.6, hero 18/26, card title 16/22, card intro 13/1.55, body 14/1.55, notes 12.5/1.55, figures 32), card and figure styles, tones good/warn/bad/accent on the module's AAA colours. Moonstone body and caption paragraphs inside a panel follow the same scale. |
@@ -119,7 +118,7 @@ check, crawler list, public base URL. It holds no AI key any more: the report us
 |---|---|---|
 | `/content-governance/geo/crawler-check` | One page | No |
 | `/content-governance/geo/site-scan` | One site | Only the scan record |
-| `/content-governance/geo/site-files` | One site | **Yes**, robots.txt and llms.txt |
+| `/content-governance/geo/site-files` | One site | **Yes**, robots.txt (llms.txt is read only) |
 | `/content-governance/geo/report` | One site | Only the stored report |
 | `/content-governance/geo/citations` | One page (GET), one site (GET `scope=site`, POST) | Settings, mappings and the sync record |
 
@@ -247,7 +246,9 @@ The two files are owned by the `robots` and `llms` modules, which add `jmix:robo
 to the site node. Content Governance declares both as optional dependencies
 (`robots=optional,llms=optional`): the module starts without them, Page quality and Compliance never
 need them, and every GEO check still fetches `/robots.txt` and `/llms.txt` over HTTP. Only writing
-from the dashboard fails, with an error, while the module that owns the file is missing.
+robots.txt from the dashboard fails, with an error, while the `robots` module is missing. `llms.txt`
+is never written here: the dashboard reads `j:llms` from the live site node and links to the `llms`
+module's own screen.
 
 Reporting is safe to run against anything. Writing is not. Keep the two visibly apart.
 
@@ -347,7 +348,7 @@ baseUrl =
 | Drawer section | can read the page in the editing workspace (anyone who can select it in jContent) | the site enables the module and keeps the GEO section on |
 | Drawer facts from the last scan, context lines | **publish** on the site | as above |
 | Drawer **AI citations** tab | can read the page | `geo.citations` on; greyed out until the site is bound to BotRank |
-| Dashboard, robots.txt and llms.txt editors | **publish** on the site | the GEO section is on (otherwise *Switched off for this site*) |
+| Dashboard, robots.txt editor, llms.txt view | **publish** on the site | the GEO section is on (otherwise *Switched off for this site*) |
 | Dashboard **AI citations** group | **publish** on the site | `geo.citations` on |
 | Site Settings > Content governance, BotRank tab included | **site-admin** on the site, on the route and on every call: binding a site to a connection spends the customer's organisation key | always listed; the BotRank tab cannot read the site's settings while the GEO section or `geo.citations` is off |
 
