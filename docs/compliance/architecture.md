@@ -21,7 +21,7 @@ Java, under `org.jahia.community.contentgovernance.compliance`:
 | `model` (exported) | Records of the reports: `ComplianceReport`, `SiteComplianceReport`, `ComplianceIssue`, `LocationReport`, `TermUsage`, `Glossary`, `GlossaryTerm`, enums |
 | `service.spi` (exported) | `ComplianceScanService`: `scan(page, uiLocale, renderedPaths)` and `scanSite(site, uiLocale)` |
 | `choicelist` | `SiteLanguagesInitializer`: `choicelist[complianceSiteLanguages]`, every language of the site (Jahia's `siteLanguage` offers the live-active ones only) |
-| `service.internal` | `ComplianceScanServiceImpl` (tree walk), `GlossaryReader`, `TermMatcher` and `FoldedText` (matching), `PlainText` (rich text to text), `Excerpt` |
+| `service.internal` | `ComplianceScanServiceImpl` (tree walk), `GlossaryReader`, `TermMatcher` and `FoldedText` (matching), `PlainText` (rich text to text), `Excerpt`, `GlossarySeeder` (a JCR listener on `j:installedModules`: when a site enables the module and has no glossary, creates `contents/compliance-glossaries`, restricted to glossaries with `jmix:contributeMode`, with one glossary in the default language and one example term from the resource bundle, once per site: flag `glossarySeeded` on the settings node) |
 | `graphql` | `GqlComplianceScan` (`scanPage`, `scanSite`) and the `Gql*` views; schema names are prefixed (`ComplianceIssue`, `ComplianceScanStatus`...) |
 
 Shared with the other sections:

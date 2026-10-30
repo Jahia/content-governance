@@ -12,6 +12,16 @@ Both need the Content Governance module enabled on the site and the Compliance s
 **Site Settings > Content governance** (it is on by default). A site that switches the section off
 keeps its glossaries; nothing reads them until the section is on again.
 
+## The example glossary
+
+When Content Governance is enabled on a site that has no glossary yet, it creates one to start from:
+**Content Folders > Compliance glossaries** (`contents/compliance-glossaries`), holding a glossary in
+the site's default language with one example term ("click here" in English, "cliquez ici" in
+French; English text for a language the module has no translation for). The folder only offers
+**Compliance glossary**, and a glossary only offers **Non-authorised term**. The example is not
+published (scans read glossaries in the edit workspace). Rename it, add your terms and delete the
+example term: it is created once per site, so it does not come back.
+
 ## Create a glossary
 
 1. In jContent, open **Content Folders** and pick a folder under the site's `contents` (any folder,
