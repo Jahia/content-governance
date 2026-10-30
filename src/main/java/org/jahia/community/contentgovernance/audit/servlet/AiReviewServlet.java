@@ -81,9 +81,14 @@ public class AiReviewServlet extends HttpServlet {
     private static final String INVALID_REQUEST = "invalidRequest";
     private static final String TASK_SIMPLIFY = "simplify";
     private static final String TRUNCATED = "truncated";
+    private static final String INPUT_TOKENS = "inputTokens";
+    private static final String OUTPUT_TOKENS = "outputTokens";
     /** Appended to the user message when an answer was not the JSON object asked for. */
-    private static final String CORRECTION = "\n\nYOUR PREVIOUS ANSWER WAS NOT A VALID JSON OBJECT. Answer again with"
-            + " the JSON object only: no prose before or after it, no code fence.";
+    private static final String CORRECTION = """
+
+
+            YOUR PREVIOUS ANSWER WAS NOT A VALID JSON OBJECT. Answer again with the JSON object only: \
+            no prose before or after it, no code fence.""";
     private final Map<String, Deque<Long>> callWindows = new ConcurrentHashMap<>();
 
     private static final String SYSTEM_PROMPT =
@@ -372,14 +377,14 @@ public class AiReviewServlet extends HttpServlet {
 
     /** Token counts of an answer, with its cost when the price is configured; null when unknown. */
     private JSONObject usageOf(JSONObject providerResult) {
-        long inputTokens = providerResult.optLong("inputTokens", -1);
-        long outputTokens = providerResult.optLong("outputTokens", -1);
+        long inputTokens = providerResult.optLong(INPUT_TOKENS, -1);
+        long outputTokens = providerResult.optLong(OUTPUT_TOKENS, -1);
         if (inputTokens < 0 || outputTokens < 0) {
             return null;
         }
         JSONObject usage = new JSONObject();
-        usage.put("inputTokens", inputTokens);
-        usage.put("outputTokens", outputTokens);
+        usage.put(INPUT_TOKENS, inputTokens);
+        usage.put(OUTPUT_TOKENS, outputTokens);
         // Rates are configured per million tokens (AI_COST_*_PER_MTOKENS); none set, no cost shown
         if (llm.costInputPerMTokens() > 0 || llm.costOutputPerMTokens() > 0) {
             double cost = (inputTokens / 1_000_000.0) * llm.costInputPerMTokens()
@@ -393,21 +398,12 @@ public class AiReviewServlet extends HttpServlet {
     /** Calls the model with the task's prompt and answers with its validated result. */
     private void run(HttpServletResponse res, JSONObject payload, String task) throws IOException {
         Prompt prompt = promptFor(task, payload);
+        StringBuilder lastAnswer = new StringBuilder();
         String rawAnswer = null;
         try {
-            JSONObject providerResult = callProvider(prompt.system, prompt.user, prompt.images);
-            rawAnswer = providerResult.getString("text");
-            JSONObject review;
-            try {
-                review = parse(prompt, rawAnswer);
-            } catch (IllegalStateException notJson) {
-                // Some models wrap the object in prose or ignore the format once: ask once more, saying why.
-                logger.info("AI {} answer was not JSON ({} chars); asking again once", prompt.task, rawAnswer.length());
-                JSONObject retry = callProvider(prompt.system, prompt.user + CORRECTION, prompt.images);
-                rawAnswer = retry.getString("text");
-                review = parse(prompt, rawAnswer);
-                providerResult = addUsage(providerResult, retry);
-            }
+            Answer answer = answer(prompt, lastAnswer);
+            JSONObject review = answer.review();
+            JSONObject providerResult = answer.result();
             review.put("provider", llm.providerName());
             review.put("model", llm.model());
             if (providerResult.optBoolean(TRUNCATED, false)) {
@@ -422,6 +418,7 @@ public class AiReviewServlet extends HttpServlet {
             writeJson(res, HttpServletResponse.SC_OK, review);
         } catch (Exception e) {
             logger.error("AI {} failed", prompt.task, e);
+            rawAnswer = lastAnswer.length() > 0 ? lastAnswer.toString() : null;
             if (rawAnswer != null) {
                 // Server-side only: the start of the unparseable answer is the one
                 // clue to a prompt/model mismatch (prose preamble, refusal, empty content)
@@ -436,10 +433,36 @@ public class AiReviewServlet extends HttpServlet {
         }
     }
 
+    /** A validated answer and the provider result it came from (token counts of every call included). */
+    private record Answer(JSONObject review, JSONObject result) {
+    }
+
+    /**
+     * Calls the model and parses its answer; an answer that is not the JSON asked for is asked for once
+     * more, with a correction. {@code lastAnswer} holds the last raw text, for the log when parsing fails.
+     */
+    private Answer answer(Prompt prompt, StringBuilder lastAnswer) throws IOException {
+        JSONObject first = callProvider(prompt.system, prompt.user, prompt.images);
+        String text = first.getString("text");
+        lastAnswer.setLength(0);
+        lastAnswer.append(text);
+        try {
+            return new Answer(parse(prompt, text), first);
+        } catch (IllegalStateException notJson) {
+            // Some models wrap the object in prose or ignore the format once: ask once more, saying why.
+            logger.info("AI {} answer was not JSON ({} chars); asking again once", prompt.task, text.length());
+        }
+        JSONObject retry = callProvider(prompt.system, prompt.user + CORRECTION, prompt.images);
+        String retried = retry.getString("text");
+        lastAnswer.setLength(0);
+        lastAnswer.append(retried);
+        return new Answer(parse(prompt, retried), addUsage(first, retry));
+    }
+
     /** The token counts of two calls added up, so the cost shown covers the retry too. */
     private static JSONObject addUsage(JSONObject first, JSONObject second) {
         JSONObject sum = new JSONObject(second.toMap());
-        for (String key : new String[]{"inputTokens", "outputTokens"}) {
+        for (String key : new String[]{INPUT_TOKENS, OUTPUT_TOKENS}) {
             long a = first.optLong(key, -1);
             long b = second.optLong(key, -1);
             sum.put(key, a < 0 || b < 0 ? -1 : a + b);
@@ -699,8 +722,8 @@ public class AiReviewServlet extends HttpServlet {
         JSONObject result = new JSONObject();
         result.put("text", answer.text());
         result.put(TRUNCATED, answer.truncated());
-        result.put("inputTokens", answer.inputTokens());
-        result.put("outputTokens", answer.outputTokens());
+        result.put(INPUT_TOKENS, answer.inputTokens());
+        result.put(OUTPUT_TOKENS, answer.outputTokens());
         return result;
     }
 
