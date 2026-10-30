@@ -51,15 +51,14 @@ import java.util.regex.Pattern;
  * </table>
  *
  * <p>Both refuse guests (401), a site that does not enable the module (403) and a node the caller
- * cannot read (403). The POST routes require {@code application/json}, which is the CSRF control of
- * every servlet of this module (see {@link GeoServlet}); {@code projects} and {@code syncNow}, the two
+ * cannot read (403). The POST routes require {@code application/json}, a second check behind Jahia's
+ * CSRF guard (see {@link GeoServlet}); {@code projects} and {@code syncNow}, the two
  * that reach BotRank, are rate-limited per user. Answers never contain the API key: a connection is
  * shown by id, label and problem only.</p>
  */
 @Component(service = {HttpServlet.class, Servlet.class},
         property = {
                 "alias=/content-governance/geo/citations",
-                "allow-api-token=true",
                 "service.description=GEO readiness - BotRank citations",
                 "service.vendor=Jahia Solutions Group SA"
         },

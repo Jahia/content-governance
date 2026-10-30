@@ -42,7 +42,6 @@ import java.util.Locale;
         service = {HttpServlet.class, Servlet.class},
         property = {
                 "alias=/content-governance/geo/report",
-                "allow-api-token=true",
                 "service.description=GEO readiness written report",
                 "service.vendor=Jahia Solutions Group SA"
         },

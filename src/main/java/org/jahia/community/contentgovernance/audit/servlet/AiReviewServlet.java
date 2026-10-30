@@ -51,7 +51,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component(
         service = {HttpServlet.class, Servlet.class},
-        property = {"alias=/content-governance/audit/ai-review", "allow-api-token=true"},
+        property = {"alias=/content-governance/audit/ai-review"},
         immediate = true)
 public class AiReviewServlet extends HttpServlet {
 

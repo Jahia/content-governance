@@ -1,4 +1,5 @@
 import {moduleUrl} from '../../common/url';
+import {guardedFetch} from '../../common/guardedFetch';
 
 const ENDPOINT = moduleUrl('/geo/report');
 
@@ -20,7 +21,7 @@ const ENDPOINT = moduleUrl('/geo/report');
  */
 export async function fetchReportStatus({path, language}) {
     const query = `?path=${encodeURIComponent(path)}&language=${encodeURIComponent(language)}`;
-    const res = await fetch(ENDPOINT + query, {credentials: 'same-origin'});
+    const res = await guardedFetch(ENDPOINT + query, {credentials: 'same-origin'});
     if (!res.ok) {
         const err = new Error('report');
         err.code = res.status;
@@ -31,7 +32,7 @@ export async function fetchReportStatus({path, language}) {
 }
 
 async function post(body) {
-    const res = await fetch(ENDPOINT, {
+    const res = await guardedFetch(ENDPOINT, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {

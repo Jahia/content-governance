@@ -6,6 +6,7 @@
  */
 
 import {moduleUrl} from '../../common/url';
+import {guardedFetch} from '../../common/guardedFetch';
 
 const ENDPOINT = moduleUrl('/audit/ai-review');
 
@@ -104,7 +105,7 @@ export function extractHeadings(frame, max = 20) {
 }
 
 async function postTask(payload) {
-    const res = await fetch(ENDPOINT, {
+    const res = await guardedFetch(ENDPOINT, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {'Content-Type': 'application/json'},

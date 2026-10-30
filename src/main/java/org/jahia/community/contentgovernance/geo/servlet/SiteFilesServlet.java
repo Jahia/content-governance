@@ -58,7 +58,6 @@ import java.util.Map;
         service = {HttpServlet.class, Servlet.class},
         property = {
                 "alias=/content-governance/geo/site-files",
-                "allow-api-token=true",
                 "service.description=GEO readiness robots.txt editing and llms.txt reading",
                 "service.vendor=Jahia Solutions Group SA"
         },

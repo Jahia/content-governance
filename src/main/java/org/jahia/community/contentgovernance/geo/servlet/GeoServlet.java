@@ -157,8 +157,8 @@ public abstract class GeoServlet extends HttpServlet {
      * True when the browser says the request comes from another site: a
      * {@code Sec-Fetch-Site} other than same-origin or none, or an {@code Origin}
      * whose host differs from the {@code Host} the browser addressed. A request with
-     * neither header is not a browser's cross-site request (curl, a script with an
-     * API token) and is let through to the other checks.
+     * neither header is not a browser's cross-site request (curl, a script) and is
+     * let through to the other checks.
      */
     static boolean isCrossSite(HttpServletRequest req) {
         String site = req.getHeader("Sec-Fetch-Site");

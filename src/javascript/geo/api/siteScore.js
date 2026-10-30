@@ -1,9 +1,10 @@
 import {moduleUrl} from '../../common/url';
+import {guardedFetch} from '../../common/guardedFetch';
 
 const ENDPOINT = moduleUrl('/geo/site-scan');
 
 async function call(body) {
-    const res = await fetch(ENDPOINT, {
+    const res = await guardedFetch(ENDPOINT, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},

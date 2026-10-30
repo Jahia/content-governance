@@ -1,4 +1,5 @@
 import {moduleUrl} from '../../common/url';
+import {guardedFetch} from '../../common/guardedFetch';
 
 const ENDPOINT = moduleUrl('/geo/site-scan');
 
@@ -7,7 +8,7 @@ const ENDPOINT = moduleUrl('/geo/site-scan');
  * Read-only: this endpoint never writes.
  */
 export async function guestVisibility({path, language}) {
-    const res = await fetch(ENDPOINT, {
+    const res = await guardedFetch(ENDPOINT, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {

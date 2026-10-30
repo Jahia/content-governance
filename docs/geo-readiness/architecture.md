@@ -409,10 +409,13 @@ citations panels list only the pages the reader may read (decision 2026-10-29, a
   a site with one host; a run still going is never taken for dead and doubled.
 - **A cited address mapped by hand counts in the language the settings screen was showing**, and a
   mapping takes effect at the next sync.
-- **The module's GEO servlets are not under Jahia's CSRF guard.** Their control is an exact
-  `application/json` media type plus the refusal of any request the browser marks as coming from
-  another site (`Sec-Fetch-Site`, or an `Origin` other than the host). Clients without a browser
-  (curl, scripts with an API token) are not affected.
+- **Jahia's CSRF guard.** Every servlet of the module (`/modules/content-governance/geo/*` and
+  `/audit/*`) is under the guard (`org.jahia.modules.jahiacsrfguard-content-governance.cfg`, owned by
+  the module, replaced on every deploy). The drawer, the dashboards and the settings send the guard's
+  token through `common/guardedFetch.js`, which reads it from `/modules/CsrfServlet`, keeps the
+  per-address token the guard answers with, and after a refusal reloads the tokens once and retries.
+  The servlets answer browser sessions only: they take no API token, and a call signed in another
+  way without the token is refused. The JSON content type and same-site checks stay as a second check.
 - **A BotRank sync stops** when the site disables the module, switches off the GEO section or its
   AI citations tab, or when the administrator who saved the BotRank settings loses site-admin. The
   sync turns itself off and records why; a site administrator turns it on and saves the settings
