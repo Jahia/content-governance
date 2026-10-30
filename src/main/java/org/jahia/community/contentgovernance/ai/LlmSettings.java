@@ -12,13 +12,29 @@ public final class LlmSettings {
     private final String baseUrl;
     private final String model;
     private final int maxTokens;
+    private final boolean jsonAnswer;
 
     public LlmSettings(String provider, String apiKey, String baseUrl, String model, int maxTokens) {
+        this(provider, apiKey, baseUrl, model, maxTokens, false);
+    }
+
+    private LlmSettings(String provider, String apiKey, String baseUrl, String model, int maxTokens, boolean jsonAnswer) {
         this.provider = provider;
         this.apiKey = apiKey;
         this.baseUrl = trimTrailingSlashes(baseUrl);
         this.model = model;
         this.maxTokens = maxTokens;
+        this.jsonAnswer = jsonAnswer;
+    }
+
+    /** The same settings for a call whose answer must be one JSON object. */
+    public LlmSettings withJsonAnswer() {
+        return new LlmSettings(provider, apiKey, baseUrl, model, maxTokens, true);
+    }
+
+    /** Whether the answer must be one JSON object: providers that can ask for it do. */
+    public boolean jsonAnswer() {
+        return jsonAnswer;
     }
 
     /** Trailing slashes removed by walking the end, so no pattern can backtrack over a long url. */

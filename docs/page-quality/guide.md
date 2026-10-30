@@ -324,6 +324,7 @@ fix the first ones, **Re-run**, then ask again.
 | "You have reached the number of AI requests allowed in ten minutes. Retry a little later." | You reached the limit of AI calls (30 per 10 minutes by default; a call the provider failed counts, a refused one does not). | Wait a few minutes. |
 | "A site administrator has switched this feature off for this site." | The feature was switched off since the drawer opened. | A site administrator. |
 | "You cannot read this page any more, so the AI cannot review it." | Your rights on the page changed since the drawer opened. | The person who manages rights. |
+| "The AI model used its whole output budget before answering. A server administrator raises AI_MAX_TOKENS in the module's AI configuration." | A reasoning model spent its budget before writing the answer. | A server administrator. |
 | "The AI provider did not answer. Retry in a moment; if it persists, tell a server administrator." | The provider failed or answered something unreadable. | Try again later; if it persists, a server administrator (server log). |
 | "The answer was cut short by the AI_MAX_TOKENS limit..." | The answer hit the output limit; complete items are kept. | A server administrator can raise `AI_MAX_TOKENS`. |
 

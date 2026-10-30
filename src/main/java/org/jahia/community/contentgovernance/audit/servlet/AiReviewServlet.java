@@ -81,6 +81,9 @@ public class AiReviewServlet extends HttpServlet {
     private static final String INVALID_REQUEST = "invalidRequest";
     private static final String TASK_SIMPLIFY = "simplify";
     private static final String TRUNCATED = "truncated";
+    /** Appended to the user message when an answer was not the JSON object asked for. */
+    private static final String CORRECTION = "\n\nYOUR PREVIOUS ANSWER WAS NOT A VALID JSON OBJECT. Answer again with"
+            + " the JSON object only: no prose before or after it, no code fence.";
     private final Map<String, Deque<Long>> callWindows = new ConcurrentHashMap<>();
 
     private static final String SYSTEM_PROMPT =
@@ -394,7 +397,17 @@ public class AiReviewServlet extends HttpServlet {
         try {
             JSONObject providerResult = callProvider(prompt.system, prompt.user, prompt.images);
             rawAnswer = providerResult.getString("text");
-            JSONObject review = parse(prompt, rawAnswer);
+            JSONObject review;
+            try {
+                review = parse(prompt, rawAnswer);
+            } catch (IllegalStateException notJson) {
+                // Some models wrap the object in prose or ignore the format once: ask once more, saying why.
+                logger.info("AI {} answer was not JSON ({} chars); asking again once", prompt.task, rawAnswer.length());
+                JSONObject retry = callProvider(prompt.system, prompt.user + CORRECTION, prompt.images);
+                rawAnswer = retry.getString("text");
+                review = parse(prompt, rawAnswer);
+                providerResult = addUsage(providerResult, retry);
+            }
             review.put("provider", llm.providerName());
             review.put("model", llm.model());
             if (providerResult.optBoolean(TRUNCATED, false)) {
@@ -415,8 +428,23 @@ public class AiReviewServlet extends HttpServlet {
                 logger.warn("Unparseable model answer ({} chars) starts with: {}", rawAnswer.length(),
                         rawAnswer.substring(0, Math.min(rawAnswer.length(), 500)).replaceAll("\\s+", " "));
             }
-            writeError(res, HttpServletResponse.SC_BAD_GATEWAY, "upstream", "AI review temporarily unavailable");
+            if (e.getMessage() != null && e.getMessage().startsWith(Completion.EMPTY_BUDGET)) {
+                writeError(res, HttpServletResponse.SC_BAD_GATEWAY, "budget", Completion.EMPTY_BUDGET);
+            } else {
+                writeError(res, HttpServletResponse.SC_BAD_GATEWAY, "upstream", "AI review temporarily unavailable");
+            }
         }
+    }
+
+    /** The token counts of two calls added up, so the cost shown covers the retry too. */
+    private static JSONObject addUsage(JSONObject first, JSONObject second) {
+        JSONObject sum = new JSONObject(second.toMap());
+        for (String key : new String[]{"inputTokens", "outputTokens"}) {
+            long a = first.optLong(key, -1);
+            long b = second.optLong(key, -1);
+            sum.put(key, a < 0 || b < 0 ? -1 : a + b);
+        }
+        return sum;
     }
 
     private String buildUserContent(JSONObject payload) {
@@ -661,7 +689,8 @@ public class AiReviewServlet extends HttpServlet {
 
         Completion answer;
         try {
-            answer = provider.complete(llm.withAppendix(basePrompt), userContent, pictures, llm.settings(llm.maxTokens()));
+            answer = provider.complete(llm.withAppendix(basePrompt), userContent, pictures,
+                    llm.settings(llm.maxTokens()).withJsonAnswer());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("interrupted while waiting for the provider", e);
