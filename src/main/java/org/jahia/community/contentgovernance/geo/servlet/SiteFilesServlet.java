@@ -6,8 +6,8 @@ import org.jahia.community.contentgovernance.geo.check.RobotsEditor;
 import org.jahia.community.contentgovernance.geo.check.RobotsRules;
 import org.jahia.community.contentgovernance.geo.check.SiteFilesChecker;
 import org.jahia.community.contentgovernance.geo.config.GeoReadinessConfigService;
-import org.jahia.community.contentgovernance.geo.util.PublicUrls;
 import org.jahia.community.contentgovernance.geo.util.LlmsFile;
+import org.jahia.community.contentgovernance.geo.util.PublicUrls;
 import org.jahia.community.contentgovernance.geo.util.SitePages;
 import org.jahia.community.contentgovernance.geo.util.SiteScope;
 import org.jahia.services.content.JCRNodeWrapper;
@@ -25,6 +25,7 @@ import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.RepositoryException;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -164,7 +165,7 @@ public class SiteFilesServlet extends GeoServlet {
      * {@code j:llms} in the live workspace. Read only: the file is written in the llms module's
      * own screen (Additional, SEO, Llms.txt).
      */
-    private JSONObject readLlms(String path, String language) throws Exception {
+    private JSONObject readLlms(String path, String language) throws RepositoryException {
         JCRSessionWrapper live = JCRSessionFactory.getInstance()
                 .getCurrentUserSession("live", Locale.forLanguageTag(language));
         JCRNodeWrapper liveSite = live.getNode(path).getResolveSite();

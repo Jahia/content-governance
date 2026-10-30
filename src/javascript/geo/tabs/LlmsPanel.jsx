@@ -34,7 +34,7 @@ export const LlmsPanel = ({path, siteKey, language}) => {
     }, [path, language]);
 
     const editorUrl = `${globalThis.contextJsParameters?.contextPath || ''}/jahia/jcontent/${siteKey}/${language}/apps/siteSettingsSeo/llms`;
-    const stats = file && file.content ? countOf(file.content) : null;
+    const stats = file?.content ? countOf(file.content) : null;
 
     return (
         <Panel>
@@ -49,13 +49,13 @@ export const LlmsPanel = ({path, siteKey, language}) => {
                 </Banner>
             )}
 
-            {file && file.moduleEnabled && (
+            {file?.moduleEnabled && (
                 <>
                     {/*
                       * A stale llms.txt fails silently: nothing errors, an assistant is just handed
                       * links to pages that moved or were removed. The last scan names them.
                       */}
-                    {freshness && freshness.outdated && (
+                    {freshness?.outdated && (
                         <Banner variant="warning" title={t('files.llms.stale.title')}>
                             {t('files.llms.stale.summary', {count: (freshness.stale || []).length})}
                             <ul className={styles.checkList}>
@@ -71,7 +71,7 @@ export const LlmsPanel = ({path, siteKey, language}) => {
                             </ul>
                         </Banner>
                     )}
-                    {freshness && freshness.present && !freshness.outdated && (
+                    {freshness?.present && !freshness.outdated && (
                         <Banner variant="info" title={t('files.llms.fresh.title')}>
                             {t('files.llms.fresh.summary', {count: freshness.listed})}
                         </Banner>
@@ -123,9 +123,10 @@ export const LlmsPanel = ({path, siteKey, language}) => {
 
 /** Counted from the published text so the figures always match what is shown. */
 function countOf(md) {
+    const lines = md.split('\n').map(line => line.trimStart());
     return {
-        links: (md.match(/^\s*- \[/gm) || []).length,
-        sections: (md.match(/^## /gm) || []).length
+        links: lines.filter(line => line.startsWith('- [')).length,
+        sections: lines.filter(line => line.startsWith('## ')).length
     };
 }
 

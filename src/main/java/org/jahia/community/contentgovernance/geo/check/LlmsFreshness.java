@@ -106,16 +106,20 @@ public final class LlmsFreshness {
             if (stale.length() >= MAX_REPORTED) {
                 break;
             }
-            if (published.get(path) != null) {
-                continue;
+            if (published.get(path) == null) {
+                stale.put(staleEntry(path, e.getValue(), published, sitePath));
             }
-            JSONObject r = new JSONObject();
-            r.put(PATH, path);
-            r.put(TITLE, e.getValue());
-            r.put("why", PublishedMap.movedFrom(published, sitePath, path) != null ? "addressChanged" : "gone");
-            stale.put(r);
         }
         return stale;
+    }
+
+    private static JSONObject staleEntry(String path, String title, Map<String, PublishedMap.Entry> published,
+            String sitePath) {
+        JSONObject r = new JSONObject();
+        r.put(PATH, path);
+        r.put(TITLE, title);
+        r.put("why", PublishedMap.movedFrom(published, sitePath, path) != null ? "addressChanged" : "gone");
+        return r;
     }
 
     /**
