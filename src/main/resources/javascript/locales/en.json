@@ -1019,6 +1019,12 @@
         "files": "What the site's robots.txt and llms.txt files say to AI crawlers.",
         "schema": "The structured data (JSON-LD) that tells assistants what this page is about, and what is missing.",
         "citations": "How often AI answers cite this page, and for which questions, from BotRank."
+      },
+      "export": {
+        "csv": "Export CSV",
+        "json": "Export JSON",
+        "error": "The last site scan could not be read, so nothing was exported.",
+        "freshnessStale": "Not updated for {{days}} days or more"
       }
     },
     "audit": {

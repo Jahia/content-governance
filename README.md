@@ -57,7 +57,9 @@ They stay in jContent's **Additional** accordion:
 
 - **SEO > GEO readiness**: site score, reach, invisible content, sitemap against reality, internal
   links, addresses, freshness, languages, structured data, the `robots.txt` editor, the published
-  `llms.txt` (read only, written in the `llms` module's own **Llms.txt** screen), AI citations, and a written report by AI. Scans can be scheduled.
+  `llms.txt` (read only, written in the `llms` module's own **Llms.txt** screen), AI citations, and
+  a written report by AI. Scans can be scheduled; **Export CSV** and **Export JSON** download what
+  the last scan found.
 - **Compliance**: the whole-site scan, with **Export CSV** and **Export JSON**.
 
 A section switched off for a site switches its dashboard off too: the entry stays in **Additional**
