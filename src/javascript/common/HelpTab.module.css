@@ -2,3 +2,17 @@
 .helpTab {
     display: inline-flex;
 }
+
+/* A light card instead of Moonstone's dark tooltip, for these tooltips only. */
+.helpTab :global(.moonstone-tooltip_label) {
+    padding: var(--moon-spacing-small) calc(var(--moon-spacing-small) * 1.5);
+    color: var(--moon-color-gray_dark);
+    border: 1px solid var(--moon-color-gray_light);
+    border-radius: calc(var(--moon-radius) * 3);
+    background-color: var(--moon-color-white);
+    box-shadow: 0 1px 4px var(--moon-color-gray_light60);
+}
+
+.helpTab :global(.moonstone-tooltip_arrow) {
+    fill: var(--moon-color-white);
+}
