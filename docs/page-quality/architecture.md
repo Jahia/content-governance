@@ -241,7 +241,7 @@ operator's values):
 | `AI_MODEL` | empty | the provider's model id |
 | `AI_API_KEY` | empty | server-side only |
 | `AI_BASE_URL` | the provider's API | a proxy or compatible gateway; trailing slashes removed |
-| `AI_MAX_TOKENS` | 4096 (min 256) | output budget of a page task |
+| `AI_MAX_TOKENS` | 6000 (min 256) | output budget of a page task; reasoning models spend part of it before answering |
 | `AI_RATE_MAX_CALLS` | 30 (min 1) | page tasks per user per 10 minutes |
 | `AI_COST_INPUT_PER_MTOKENS`, `AI_COST_OUTPUT_PER_MTOKENS` | empty | USD per million tokens; no cost shown when both are empty |
 | `AI_PROMPT_APPENDIX` | empty | instructions appended to every prompt, of every site |

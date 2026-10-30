@@ -137,7 +137,7 @@ nothing leaves the server.
 | `AI_MODEL` | empty | The provider's model id |
 | `AI_API_KEY` | empty | Used on the server only, never sent to the browser or logged |
 | `AI_BASE_URL` | empty | The provider's API base, for a proxy or a compatible gateway |
-| `AI_MAX_TOKENS` | `4096` | Output budget of a page review or assist; a full review needs 3000 to 4000 |
+| `AI_MAX_TOKENS` | `6000` | Output budget of a page review or assist; a full review needs 3000 to 4000, and a reasoning model spends part of it thinking first |
 | `AI_REPORT_MAX_TOKENS` | `6000` | Output budget of a GEO site report |
 | `AI_RATE_MAX_CALLS` | `30` | Page calls allowed per user per ten minutes |
 | `AI_REPORT_RATE_MAX_CALLS` | `5` | GEO reports allowed per user per ten minutes |
