@@ -1216,7 +1216,8 @@
           "notConfigured": "No AI provider is configured on this server.",
           "rateLimited": "You have reached the number of AI requests allowed in ten minutes. Retry a little later.",
           "invalidRequest": "The request could not be read. Reload the page, then retry.",
-          "upstream": "The AI provider did not answer. Retry in a moment; if it persists, tell a server administrator."
+          "upstream": "The AI provider did not answer. Retry in a moment; if it persists, tell a server administrator.",
+          "budget": "The AI model used its whole output budget before answering. A server administrator raises AI_MAX_TOKENS in the module's AI configuration."
         }
       },
       "jahia": {

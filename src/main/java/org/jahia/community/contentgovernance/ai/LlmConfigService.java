@@ -131,7 +131,7 @@ public class LlmConfigService {
                     str(p, "AI_MODEL"),
                     str(p, "AI_API_KEY"),
                     str(p, "AI_BASE_URL"),
-                    Math.max(256, intVal(p, "AI_MAX_TOKENS", 4096)),
+                    Math.max(256, intVal(p, "AI_MAX_TOKENS", 6000)),
                     Math.max(256, intVal(p, "AI_REPORT_MAX_TOKENS", 6000)),
                     Math.max(1, intVal(p, "AI_RATE_MAX_CALLS", 30)),
                     Math.max(1, intVal(p, "AI_REPORT_RATE_MAX_CALLS", 5)),

@@ -64,7 +64,7 @@ class LlmConfigServiceTest {
     @Test
     void costIsUnknownUntilConfiguredAndBadNumbersFallBack() {
         LlmConfigService s = configured(Map.of("AI_MAX_TOKENS", "lots", "AI_COST_INPUT_PER_MTOKENS", "3.5"));
-        assertThat(s.maxTokens()).isEqualTo(4096);
+        assertThat(s.maxTokens()).isEqualTo(6000);
         assertThat(s.costInputPerMTokens()).isEqualTo(3.5);
         assertThat(s.costOutputPerMTokens()).isZero();
     }

@@ -54,9 +54,13 @@ public final class AnthropicProvider implements LlmProvider {
                 }
             }
         }
+        boolean cut = "max_tokens".equals(response.optString("stop_reason"));
+        if (text.toString().trim().isEmpty() && cut) {
+            throw new IOException(Completion.EMPTY_BUDGET);
+        }
         JSONObject usage = response.optJSONObject("usage");
         return new Completion(text.toString(),
-                "max_tokens".equals(response.optString("stop_reason")),
+                cut,
                 usage == null ? -1 : usage.optLong("input_tokens", -1),
                 usage == null ? -1 : usage.optLong("output_tokens", -1));
     }

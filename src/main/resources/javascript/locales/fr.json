@@ -1216,7 +1216,8 @@
           "notConfigured": "Aucun fournisseur d'IA n'est configuré sur ce serveur.",
           "rateLimited": "Vous avez atteint le nombre de requêtes d'IA autorisées en dix minutes. Réessayez un peu plus tard.",
           "invalidRequest": "La requête n'a pas pu être lue. Rechargez la page, puis réessayez.",
-          "upstream": "Le fournisseur d'IA n'a pas répondu. Réessayez dans un instant ; si cela persiste, prévenez un administrateur du serveur."
+          "upstream": "Le fournisseur d'IA n'a pas répondu. Réessayez dans un instant ; si cela persiste, prévenez un administrateur du serveur.",
+          "budget": "Le modèle d'IA a épuisé son budget de réponse avant de répondre. Un administrateur du serveur augmente AI_MAX_TOKENS dans la configuration IA du module."
         }
       },
       "jahia": {

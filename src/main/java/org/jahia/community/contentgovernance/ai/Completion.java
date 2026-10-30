@@ -6,6 +6,10 @@ package org.jahia.community.contentgovernance.ai;
  */
 public final class Completion {
 
+    /** Why a call returned nothing: the output budget was spent before any answer. */
+    public static final String EMPTY_BUDGET = "the model used its whole output budget before answering (reasoning"
+            + " models spend it on hidden reasoning); raise the output budget in the module's AI configuration";
+
     private final String text;
     private final boolean truncated;
     private final long inputTokens;

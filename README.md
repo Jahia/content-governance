@@ -137,7 +137,7 @@ nothing leaves the server.
 | `AI_MODEL` | empty | The provider's model id |
 | `AI_API_KEY` | empty | Used on the server only, never sent to the browser or logged |
 | `AI_BASE_URL` | empty | The provider's API base, for a proxy or a compatible gateway |
-| `AI_MAX_TOKENS` | `4096` | Output budget of a page review or assist; a full review needs 3000 to 4000 |
+| `AI_MAX_TOKENS` | `6000` | Output budget of a page review or assist; a full review needs 3000 to 4000, and a reasoning model spends part of it thinking first |
 | `AI_REPORT_MAX_TOKENS` | `6000` | Output budget of a GEO site report |
 | `AI_RATE_MAX_CALLS` | `30` | Page calls allowed per user per ten minutes |
 | `AI_REPORT_RATE_MAX_CALLS` | `5` | GEO reports allowed per user per ten minutes |
@@ -146,6 +146,13 @@ nothing leaves the server.
 
 Anthropic and OpenAI read the pictures of the alt text assist; DeepSeek is text only, and the assist
 then infers from file names and surrounding text, and says so.
+
+Any chat model works. The page tasks need a JSON answer: they ask OpenAI-compatible APIs for JSON
+mode (`response_format`), and OpenAI's reasoning models (o1, o3, o4, gpt-5) for short reasoning
+(`reasoning_effort: low`); a model or gateway that refuses either is asked again without it. An
+answer that is still not JSON gets one retry with a correction, and its tokens count in the cost. A
+reasoning model that spends the whole budget before answering is reported as such: raise
+`AI_MAX_TOKENS` (or `AI_REPORT_MAX_TOKENS` for the GEO report).
 
 ### `org.jahia.community.contentgovernance.geo.cfg`: the GEO crawler check
 

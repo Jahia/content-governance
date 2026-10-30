@@ -166,7 +166,14 @@ support from `contentGovernance.siteSettings.ai`.
 | The site of the page enables the feature of the task (`SiteFeatures.isEnabled`) | 403 `switchedOff` |
 | `LlmConfigService.isEnabled()` | 503 `notConfigured` |
 | Per-user rate limit: `AI_RATE_MAX_CALLS` per 10-minute sliding window | 429 `rateLimited` |
+| Provider call: the output budget spent before any answer | 502 `budget` |
 | Provider call and parse | 502 `upstream`; detail and the first 500 characters of an unparseable answer are logged server-side only |
+
+Page tasks ask the provider for a JSON answer (`LlmSettings.withJsonAnswer`): OpenAI-compatible
+providers add `response_format: json_object`, and `reasoning_effort: low` on OpenAI's reasoning
+models, and send the request again without them when the API answers 400 or 422. An answer the
+parser cannot read is asked for once more with a correction appended to the user message; both
+calls' tokens are added up.
 
 Every refusal is JSON, `{"code": "...", "error": "<English message>"}`. The drawer shows the code in
 the editor's language (`audit.ai.errors.<code>`) and falls back to the message. The rate limit is
@@ -234,7 +241,7 @@ operator's values):
 | `AI_MODEL` | empty | the provider's model id |
 | `AI_API_KEY` | empty | server-side only |
 | `AI_BASE_URL` | the provider's API | a proxy or compatible gateway; trailing slashes removed |
-| `AI_MAX_TOKENS` | 4096 (min 256) | output budget of a page task |
+| `AI_MAX_TOKENS` | 6000 (min 256) | output budget of a page task; reasoning models spend part of it before answering |
 | `AI_RATE_MAX_CALLS` | 30 (min 1) | page tasks per user per 10 minutes |
 | `AI_COST_INPUT_PER_MTOKENS`, `AI_COST_OUTPUT_PER_MTOKENS` | empty | USD per million tokens; no cost shown when both are empty |
 | `AI_PROMPT_APPENDIX` | empty | instructions appended to every prompt, of every site |
