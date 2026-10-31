@@ -89,6 +89,14 @@ review, opening the drawer. It never blocks publishing; jContent's own publish a
 - **BotRank**: connect the site to a BotRank project, map cited addresses to pages, and set the time
   of the daily sync.
 
+## Languages
+
+The drawer, the dashboards and Site Settings follow the editor's interface language: English, French,
+German and Spanish (other languages show English). jContent itself has no Spanish interface, so a
+Spanish editor sees jContent in English and this module in Spanish. The German and Spanish texts are
+machine-drafted and await a native review. Content types and the example glossary created on enable
+also come in the four languages.
+
 ## Requirements
 
 - Jahia 8.2 (tested on 8.2.3.2) with jContent 3.7 or later (`jcontent=[3.7,4)`; UI tested on 3.7.1,
@@ -266,6 +274,7 @@ The main ones; each section's architecture page has the full list.
 - The GEO site scan reads one language per run and at most 2000 pages; a larger or multilingual
   site needs schedules.
 - AI answers can be wrong and cost money per call: they are never generated on their own.
+- The German and Spanish interface texts have not had a native review yet.
 
 ## Documentation
 

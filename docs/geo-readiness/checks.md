@@ -2,7 +2,7 @@
 
 Eighteen checks, in three groups, behind the **Score** tab of the GEO readiness section of the
 drawer and the **Site score** tab of the GEO readiness dashboard. This is the reference; the module
-itself shows the same text in the interface, in English and French.
+itself shows the same text in the interface, in English, French, German and Spanish.
 
 **Severity** is about consequence, not effort.
 
