@@ -9,7 +9,7 @@
     <groupId>org.jahia.community</groupId>
     <artifactId>content-governance</artifactId>
     <name>Content Governance</name>
-    <version>1.4.0</version>
+    <version>1.5.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <description>One jContent drawer for content authors with three sections - Page quality (accessibility, SEO, vitals, readability, eco-design, links, AI review), GEO readiness (AI crawlers, site files, schema, BotRank citations) and Compliance (glossaries of non-authorised terms) - switched on per site and tab, with one shared LLM configuration and the GEO and compliance site dashboards.</description>
 
@@ -25,7 +25,7 @@
         <connection>scm:git:git@github.com:Jahia/content-governance.git</connection>
         <developerConnection>scm:git:git@github.com:Jahia/content-governance.git</developerConnection>
         <url>https://github.com/Jahia/content-governance</url>
-        <tag>1_4_0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <properties>
