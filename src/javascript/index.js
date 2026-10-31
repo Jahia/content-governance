@@ -5,7 +5,7 @@ export default function () {
         targets: ['jahiaApp-init:50'],
         callback: async () => {
             const {default: register} = await import('./init');
-            register();
+            await register();
         }
     });
     console.info('%c Content Governance is activated', 'color: #0086BF');

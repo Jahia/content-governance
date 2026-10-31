@@ -1031,6 +1031,7 @@
       "drawer": {
         "close": "Close panel",
         "rerun": "Re-run",
+        "frameTimeout": "The preview of the page did not load within {{seconds}} seconds, so it could not be audited. Check that the page opens in Preview, then re-run the audit.",
         "export": "Export JSON",
         "hidePreview": "Hide preview",
         "showPreview": "Show preview",
@@ -1564,6 +1565,12 @@
             "detail": "Minify, compress or split these assets, or load them only where actually used."
           }
         }
+      },
+      "incomplete": {
+        "timedOutTitle": "This check did not finish",
+        "timedOut": "It took more than {{seconds}} seconds and was stopped; the other tabs show their results. Re-run the audit. If it happens again, the page may load a resource that never answers.",
+        "failedTitle": "This check failed",
+        "failed": "It stopped with an error ({{message}}); the other tabs show their results. Re-run the audit."
       },
       "readability": {
         "simplify": {

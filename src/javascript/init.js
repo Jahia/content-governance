@@ -1,35 +1,68 @@
-import React from 'react';
+import React, {Suspense, lazy} from 'react';
 import i18next from 'i18next';
 import {registry} from '@jahia/ui-extender';
+import {Header, LayoutContent, Loader} from '@jahia/moonstone';
 import {GovernanceAction} from './drawer/GovernanceAction';
-import {GeoDashboard} from './geo/dashboard/GeoDashboard';
-import {ComplianceDashboardRoute} from './compliance/dashboard/ComplianceDashboard';
-import {SettingsPanel} from './settings/SettingsPanel';
 import {SectionGate} from './common/SectionGate';
 import {NS} from './common/i18n';
 import {MODULE} from './common/module';
-import en from '../main/resources/javascript/locales/en.json';
-import fr from '../main/resources/javascript/locales/fr.json';
 
-// The bundles ship with the code, so the labels exist before anything is registered.
-function registerTranslations() {
-    [['en', en], ['fr', fr]].forEach(([lang, resource]) => {
-        if (!i18next.hasResourceBundle(lang, NS)) {
-            i18next.addResourceBundle(lang, NS, resource[NS], true, true);
-        }
-    });
+// What jContent loads when it starts is the header button and the route entries: the drawer, the
+// dashboards and the settings panel load the first time they are opened, and only the editor's
+// language is loaded. Every language file holds every key (they are kept in sync).
+const LOCALES = {
+    en: () => import('../main/resources/javascript/locales/en.json'),
+    fr: () => import('../main/resources/javascript/locales/fr.json')
+};
+
+const named = (load, name) => lazy(() => load().then(module => ({default: module[name]})));
+const GeoDashboard = named(() => import('./geo/dashboard/GeoDashboard'), 'GeoDashboard');
+const ComplianceDashboardRoute = named(() => import('./compliance/dashboard/ComplianceDashboard'), 'ComplianceDashboardRoute');
+const SettingsPanel = named(() => import('./settings/SettingsPanel'), 'SettingsPanel');
+
+/** The language of the editor's interface that the module ships, else English (i18next's fallback). */
+function uiLanguage() {
+    const lang = (i18next.language || globalThis.contextJsParameters?.uilang || 'en').slice(0, 2).toLowerCase();
+    return LOCALES[lang] ? lang : 'en';
 }
 
-const GeoDashboardRoute = () => (
-    <SectionGate section="geo" title={i18next.t(`${NS}:geo.dashboard.navLabel`)}>
-        {isOn => <GeoDashboard isOn={isOn}/>}
-    </SectionGate>
+// Loaded before anything is registered, so the labels exist when jContent first draws them.
+async function registerTranslations() {
+    const lang = uiLanguage();
+    if (!i18next.hasResourceBundle(lang, NS)) {
+        const module = await LOCALES[lang]();
+        const resource = module.default || module;
+        i18next.addResourceBundle(lang, NS, resource[NS], true, true);
+    }
+}
+
+/** A screen that loads on first use, with Jahia's empty layout and a loader meanwhile. */
+const Loading = ({title, children}) => (
+    <Suspense fallback={<LayoutContent hasPadding header={<Header title={title}/>} content={<Loader size="big"/>}/>}>
+        {children}
+    </Suspense>
 );
 
-const ComplianceRoute = () => (
-    <SectionGate section="compliance" title={i18next.t(`${NS}:compliance.dashboard.navLabel`)}>
-        {() => <ComplianceDashboardRoute/>}
-    </SectionGate>
+const GeoDashboardRoute = () => {
+    const title = i18next.t(`${NS}:geo.dashboard.navLabel`);
+    return (
+        <SectionGate section="geo" title={title}>
+            {isOn => <Loading title={title}><GeoDashboard isOn={isOn}/></Loading>}
+        </SectionGate>
+    );
+};
+
+const ComplianceRoute = () => {
+    const title = i18next.t(`${NS}:compliance.dashboard.navLabel`);
+    return (
+        <SectionGate section="compliance" title={title}>
+            {() => <Loading title={title}><ComplianceDashboardRoute/></Loading>}
+        </SectionGate>
+    );
+};
+
+const SettingsRoute = () => (
+    <Loading title={i18next.t(`${NS}:settings.navLabel`)}><SettingsPanel/></Loading>
 );
 
 function register() {
@@ -79,11 +112,11 @@ function register() {
         isSelectable: true,
         requiredPermission: 'site-admin',
         requireModuleInstalledOnSite: MODULE,
-        render: () => <SettingsPanel/>
+        render: () => <SettingsRoute/>
     });
 }
 
-export default function () {
-    registerTranslations();
+export default async function registerContentGovernance() {
+    await registerTranslations();
     register();
 }

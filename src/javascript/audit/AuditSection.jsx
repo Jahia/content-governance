@@ -10,6 +10,7 @@ import {runSeo} from './analyzers/seo';
 import {runLinks} from './analyzers/links';
 import {runJahiaHealth, fetchPageLastModified} from './analyzers/jahiaHealth';
 import {removeToolingElements} from './analyzers/tooling';
+import {runStep} from './analyzers/timeLimit';
 import {requestAiReview, requestSeoAssist, requestAltAssist, requestSimplifyAssist} from './analyzers/aiReview';
 import {AccessibilityTab} from './tabs/AccessibilityTab';
 import {VitalsTab} from './tabs/VitalsTab';
@@ -19,12 +20,21 @@ import {SeoTab} from './tabs/SeoTab';
 import {LinksTab} from './tabs/LinksTab';
 import {JahiaTab} from './tabs/JahiaTab';
 import {AiTab} from './tabs/AiTab';
+import {IncompleteStep} from './tabs/IncompleteStep';
 import {Badge, Banner, Button, Download, Loader, Reload, Tab, TabItem, Typography, Visibility} from '@jahia/moonstone';
 import {HelpTab} from '../common/HelpTab';
 import styles from './AuditSection.module.css';
 
 // Let client islands hydrate and layout settle before measuring
 const SETTLE_MS = 2500;
+
+// The frame's load event waits for every image, font and script of the page: one request that never
+// answers would hold the audit on "Loading" for good. Past this, a page whose document is parsed is
+// audited anyway.
+const FRAME_LOAD_LIMIT_MS = 20_000;
+
+// The time each network-bound step may take before its tab is left out of the audit (runStep).
+const STEP_LIMITS_MS = {vitals: 15_000, a11y: 60_000, links: 45_000, jahia: 30_000};
 
 // Results are cached per page+language in localStorage so reopening the
 // drawer restores the last audit instantly (with its timestamp shown in the
@@ -110,6 +120,24 @@ const RESULT_KEYS = {
 };
 
 /**
+ * The results a fresh audit measured for the tabs the site keeps on, plus the page facts and the
+ * steps that did not finish (`incomplete`, by result key).
+ */
+function measuredResults(measured, page, incomplete, isOn) {
+    const kept = {page};
+    for (const [tab, key] of Object.entries(RESULT_KEYS)) {
+        if (isOn(tab) && measured[key]) {
+            kept[key] = measured[key];
+        }
+    }
+    const missing = Object.keys(incomplete).filter(key => Object.entries(RESULT_KEYS).some(([tab, k]) => k === key && isOn(tab)));
+    if (missing.length > 0) {
+        kept.incomplete = Object.fromEntries(missing.map(key => [key, incomplete[key]]));
+    }
+    return kept;
+}
+
+/**
  * The results of the tabs the site keeps on, or null when one of them is missing (a tab switched
  * back on since the audit was cached): a tab switched off is never shown, exported, nor sent to the
  * AI review.
@@ -188,6 +216,9 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
     const [previewCollapsed, setPreviewCollapsed] = useState(false);
     const frameRef = useRef(null);
     const highlightedRef = useRef(null);
+    // The run whose analysis has started: the frame's load event and the load time limit both start
+    // it, and a later load of the frame (a link followed in the preview) never starts it again.
+    const analyzedRunRef = useRef(null);
 
     const previewUrl = `${globalThis.contextJsParameters?.contextPath || ''}/cms/render/default/${language}${path}.html?pageAuditRun=${runId}`;
 
@@ -253,6 +284,10 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
             // highlight target, no re-analysis
             return;
         }
+        if (analyzedRunRef.current === runId) {
+            return;
+        }
+        analyzedRunRef.current = runId;
 
         setStatus('analyzing');
         setTimeout(async () => {
@@ -279,8 +314,27 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
                 // without alt). What is kept is those facts and the switched-on tabs only.
                 // Vitals first: axe injection and link checks would otherwise
                 // appear in the page's own resource statistics.
-                const vitals = isOn('vitals') || isOn('ecodesign') ? await runWebVitals(frame) : null;
-                const ecodesign = isOn('ecodesign') ? runEcodesign(frame, vitals) : null;
+                // A network-bound step that fails or runs out of time leaves its own tab out; the
+                // other tabs are still shown, and such a partial audit is never cached.
+                const incomplete = {};
+                const step = async (key, start) => {
+                    const outcome = await runStep(start, STEP_LIMITS_MS[key]);
+                    if (outcome.incomplete) {
+                        console.warn(`[content-governance] ${key} did not finish`, outcome);
+                        incomplete[key] = outcome;
+                        return null;
+                    }
+                    return outcome.value;
+                };
+                const vitals = isOn('vitals') || isOn('ecodesign') ? await step('vitals', () => runWebVitals(frame)) : null;
+                let ecodesign = null;
+                if (isOn('ecodesign')) {
+                    if (vitals) {
+                        ecodesign = runEcodesign(frame, vitals);
+                    } else {
+                        incomplete.ecodesign = incomplete.vitals;
+                    }
+                }
                 const readability = isOn('readability') ? runReadability(frame, language) : null;
                 const seo = runSeo(frame, language);
                 const page = {
@@ -288,14 +342,16 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
                     description: seo.description ? (seo.description.text || '') : '',
                     imagesWithoutAlt: seo.imagesWithoutAlt || 0
                 };
-                const a11y = isOn('accessibility') ? await runAccessibility(frame) : null;
-                const links = isOn('links') ? await runLinks(frame) : null;
-                const jahia = isOn('jahia') ? await runJahiaHealth(frame, {client: apolloClient, path, language}) : null;
-                const newResults = {page, ...keepEnabled({a11y, vitals, ecodesign, readability, seo, links, jahia}, isOn)};
+                const a11y = isOn('accessibility') ? await step('a11y', () => runAccessibility(frame)) : null;
+                const links = isOn('links') ? await step('links', () => runLinks(frame)) : null;
+                const jahia = isOn('jahia') ? await step('jahia', () => runJahiaHealth(frame, {client: apolloClient, path, language})) : null;
+                const newResults = measuredResults({a11y, vitals, ecodesign, readability, seo, links, jahia}, page, incomplete, isOn);
                 const timestamp = Date.now();
                 setResults(newResults);
                 setAuditedAt(timestamp);
-                saveCachedAudit(path, language, {schema: CACHE_SCHEMA, timestamp, results: newResults});
+                if (!newResults.incomplete) {
+                    saveCachedAudit(path, language, {schema: CACHE_SCHEMA, timestamp, results: newResults});
+                }
                 setStatus('ready');
             } catch (e) {
                 console.error('[content-governance] analysis failed', e);
@@ -303,7 +359,24 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
                 setStatus('error');
             }
         }, SETTLE_MS);
-    }, [language, path, apolloClient, isOn]);
+    }, [language, path, apolloClient, isOn, runId]);
+
+    // Starts the analysis of a page whose load event does not come (a request that never answers)
+    // once its document is parsed, or reports a preview that did not load at all.
+    useEffect(() => {
+        const waiting = frameVisible && status === 'loading';
+        const timer = waiting && setTimeout(() => {
+            const doc = frameRef.current && frameRef.current.contentDocument;
+            if (doc && doc.readyState !== 'loading' && doc.body) {
+                console.warn('[content-governance] the preview did not finish loading; auditing it as it is');
+                handleFrameLoad();
+            } else {
+                setError(t('drawer.frameTimeout', {seconds: FRAME_LOAD_LIMIT_MS / 1000}));
+                setStatus('error');
+            }
+        }, FRAME_LOAD_LIMIT_MS);
+        return () => clearTimeout(timer);
+    }, [frameVisible, status, handleFrameLoad, t]);
 
     const highlight = useCallback(selector => {
         const doc = frameRef.current && frameRef.current.contentDocument;
@@ -578,6 +651,9 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
                 )}
                 {status === 'ready' && results && (
                     <>
+                    {results.incomplete && results.incomplete[RESULT_KEYS[currentTab]] && (
+                        <IncompleteStep outcome={results.incomplete[RESULT_KEYS[currentTab]]} onRerun={() => setRunId(id => id + 1)}/>
+                    )}
                     {currentTab === 'accessibility' && results.a11y &&
                         <AccessibilityTab
                             result={results.a11y}

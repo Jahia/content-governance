@@ -291,7 +291,8 @@ required), the drawer in jContent (a tab per section kept on, no button once eve
 the GEO dashboard asking the guard for its token once per page, and the Page quality audit (the
 bundled axe-core is the declared version, the rules axe-core turns on reach the Accessibility tab, and
 the Readability tab scores English and German with their own formula, leaves Russian unscored and
-counts characters in Japanese).
+counts characters in Japanese, and a page whose requests never answer is still audited, with the
+check that did not finish named), and how much of the module jContent loads when it starts.
 
 ```bash
 cd tests && yarn install

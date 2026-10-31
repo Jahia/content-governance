@@ -1,11 +1,24 @@
-import React, {useCallback, useRef, useState} from 'react';
+import React, {Suspense, lazy, useCallback, useEffect, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 import {useSelector} from 'react-redux';
 import {useNodeChecks} from '@jahia/data-helper';
 import {useSiteSettings} from '../common/useSiteSettings';
 import {MODULE} from '../common/module';
-import {GovernanceDrawer} from './GovernanceDrawer';
+
+// The drawer and its three sections load apart from jContent's start: fetched when the browser is
+// idle once the button shows, and at the latest on the first click.
+const loadDrawer = () => import('./GovernanceDrawer');
+const GovernanceDrawer = lazy(() => loadDrawer().then(module => ({default: module.GovernanceDrawer})));
+
+function whenIdle(callback) {
+    if (globalThis.requestIdleCallback) {
+        const id = globalThis.requestIdleCallback(callback, {timeout: 5000});
+        return () => globalThis.cancelIdleCallback(id);
+    }
+    const timer = setTimeout(callback, 2000);
+    return () => clearTimeout(timer);
+}
 
 const SECTION_ORDER = ['audit', 'geo', 'compliance'];
 
@@ -47,7 +60,12 @@ export const GovernanceAction = ({path, language, render: Render, ...rest}) => {
     }, []);
     const reopen = useCallback(section => setOpen({section}), []);
 
-    if (!pagePath || !checksResult || !settings) {
+    const shown = Boolean(pagePath && checksResult && settings);
+    useEffect(() => (shown ? whenIdle(() => {
+        loadDrawer().catch(() => {});
+    }) : undefined), [shown]);
+
+    if (!shown) {
         return null;
     }
 
@@ -68,14 +86,16 @@ export const GovernanceAction = ({path, language, render: Render, ...rest}) => {
         <>
             <Render {...rest} onClick={toggle}/>
             {open && ReactDOM.createPortal(
-                <GovernanceDrawer path={pagePath}
-                                  language={lang}
-                                  sections={sections}
-                                  initialSection={open.section}
-                                  settings={settings}
-                                  isOn={isOn}
-                                  onClose={close}
-                                  onReopen={reopen}/>,
+                <Suspense fallback={null}>
+                    <GovernanceDrawer path={pagePath}
+                                      language={lang}
+                                      sections={sections}
+                                      initialSection={open.section}
+                                      settings={settings}
+                                      isOn={isOn}
+                                      onClose={close}
+                                      onReopen={reopen}/>
+                </Suspense>,
                 document.body
             )}
         </>

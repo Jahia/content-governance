@@ -104,4 +104,29 @@ describe('Content Governance - Page quality audit', () => {
             }
         });
     });
+
+    // A request that never answers costs its own tab only. The image holds the frame's load event
+    // (the audit starts once the document is parsed, after 20 s); the link holds the link check,
+    // which stops at its 45 s limit while the other tabs show their results.
+    it('audits a page whose requests never answer, and says which check did not finish', () => {
+        const hang = {delay: 120000, statusCode: 204};
+        cy.intercept('GET', '**/files/cg-never-answers.png*', req => req.reply(hang)).as('image');
+        cy.intercept({url: `**/cms/render/default/en/sites/${siteKey}/cg-never-answers.html*`}, req => req.reply(hang));
+        cy.intercept('GET', `**/cms/render/default/en/sites/${siteKey}/home.html?pageAuditRun=*`, req => {
+            req.continue(res => {
+                const fixture = `<p><img src="/files/cg-never-answers.png" alt="Waiting"> <a href="/cms/render/default/en/sites/${siteKey}/cg-never-answers.html">A page that never answers</a></p>`;
+                res.body = String(res.body).replace('</body>', `${fixture}</body>`);
+            });
+        });
+        cy.login(admin.username, admin.password);
+        cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);
+        cy.contains('button', BUTTON, {timeout: 30000}).click();
+        cy.get('#audit-tab-links', {timeout: 60000}).should('exist');
+        cy.get(DRAWER).contains('automated rules passed', {timeout: 150000}).should('exist');
+        cy.get('#audit-tab-links').click();
+        cy.get(DRAWER).contains('This check did not finish').should('exist');
+        cy.get(DRAWER).contains('It took more than 45 seconds').should('exist');
+        cy.get('#audit-tab-seo').click();
+        cy.get(DRAWER).contains('This check did not finish').should('not.exist');
+    });
 });
