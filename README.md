@@ -279,8 +279,24 @@ curl -u root:<password> http://localhost:8080/modules/api/provisioning \
   -F file=@target/content-governance-<version>.jar
 ```
 
-`mvn clean install` runs the unit tests (477). `test-fixtures/` holds a local site and a BotRank stub
+`mvn clean install` runs the unit tests (497). `test-fixtures/` holds a local site and a BotRank stub
 for the GEO checks.
+
+The Cypress suite in `tests/` runs against a Jahia with the module deployed: the site settings (who reads
+and who changes them, unknown ids dropped, a site without the module), the compliance scan (the example
+glossary, a page scan, a site scan, the refusals, a section switched off), the CSRF guard on the servlets
+(basic auth and a session without the token refused, a session with the token answered, `publish`
+required), the drawer in jContent (a tab per section kept on, no button once every section is off) and
+the GEO dashboard asking the guard for its token once per page.
+
+```bash
+cd tests && yarn install
+JAHIA_URL=http://localhost:8080 SUPER_USER_PASSWORD=<password> yarn e2e:ci
+```
+
+Fixture sites are built from `dx-base-demo-templates`; on an instance without it set
+`CYPRESS_CG_TEMPLATE_SET` to an installed template set (for example `classic-templates`). The suite
+creates and deletes its own sites (`cg-*`) and users, and signs out after each back-office login.
 
 ## CI and releases
 
@@ -295,7 +311,7 @@ workflows:
 | `chachalog-*.yml` | pull requests, push to `main` | checks the changelog fragment, opens the release pull request |
 | `on-release.yml` | a GitHub prerelease | Maven release, signature, Nexus promotion |
 
-There is no integration-test job yet: the module has no Cypress suite. Dependabot keeps axe-core and
+The Cypress suite needs a running Jahia and runs locally (above), not on every pull request. Dependabot keeps axe-core and
 the other dependencies current, and holds back the majors that would break jContent (React 18, the
 Module Federation singletons, css-loader 7, the Jahia parent; reasons in `.github/dependabot.yml`).
 

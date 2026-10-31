@@ -37,9 +37,9 @@ jobs:
         with:
           primary_release_branch: main
           auditci_level: critical
-          # package.json declares no `lint` script and there is no tests/ folder yet, while
-          # the action runs `yarn run lint` whenever a package.json is present. Flip each to
-          # false once that folder has one.
+          # Neither package.json declares a `lint` script, while the action runs `yarn run lint`
+          # whenever a package.json is present. tests/ holds the Cypress suite, run locally
+          # against a running Jahia (README): its dependencies never ship in the module.
           skip_lint_modules: true
           skip_lint_tests: true
           skip_vulns_tests: true

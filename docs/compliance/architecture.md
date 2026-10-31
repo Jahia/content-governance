@@ -254,8 +254,8 @@ valid; checked on a local Jahia 8.2.3.2 through a full restart. What authors see
   the section says so.
 - Labels and icons of the glossary types on an instance migrated from Content Compliance Scan (above).
 - Publication is not blocked: [`publication-blocking.md`](publication-blocking.md).
-- No Cypress suite yet. Unit tests cover matching, match modes, rich text (hostile values included),
-  excerpts and the rendered-path filter (`TermMatcherTest`, `MatchModeTest`, `PlainTextTest`,
-  `ExcerptTest`, `RenderedRootsTest`) and the feature ids (`FeaturesTest`). The permission refusals
-  were verified by hand on Content Compliance Scan (GraphQL probes) and the code is unchanged; the
-  refusal when the section is switched off is not covered by an automated test.
+- Unit tests cover matching, match modes, rich text (hostile values included), excerpts and the
+  rendered-path filter (`TermMatcherTest`, `MatchModeTest`, `PlainTextTest`, `ExcerptTest`,
+  `RenderedRootsTest`) and the feature ids (`FeaturesTest`). The Cypress suite
+  (`tests/cypress/e2e/compliance.spec.ts`, run locally) covers the example glossary, a page scan and a
+  site scan, the refusals and the refusal once the section is switched off.
