@@ -4,7 +4,7 @@
   "private": true,
   "description": "Cypress end-to-end suite for the content-governance Jahia module",
   "license": "MIT",
-  "packageManager": "yarn@4.18.1",
+  "packageManager": "yarn@1.22.22",
   "engines": {
     "node": ">=20.19"
   },

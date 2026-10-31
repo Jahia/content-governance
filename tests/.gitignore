@@ -4,4 +4,3 @@ cypress/videos/
 cypress/downloads/
 results/
 .env
-.yarn/
