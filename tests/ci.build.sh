@@ -8,6 +8,9 @@ for file in ../target/*-SNAPSHOT.jar; do
   fi
 done
 
+# The audit spec checks the axe-core version the module declares (cypress/plugins/index.ts)
+cp ../package.json ./module-package.json
+
 version=$(node -p "require('./package.json').devDependencies['@jahia/cypress']")
 echo Using @jahia/cypress@$version...
 npx --yes --package @jahia/cypress@$version ci.build

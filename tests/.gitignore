@@ -6,3 +6,4 @@ results/
 .env
 artifacts/
 run-artifacts/
+module-package.json

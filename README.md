@@ -318,6 +318,12 @@ Fixture sites are built from `dx-base-demo-templates`; on an instance without it
 `CYPRESS_CG_TEMPLATE_SET` to an installed template set (for example `classic-templates`). The suite
 creates and deletes its own sites (`cg-*`) and users, and signs out after each back-office login.
 
+It also runs every night in GitHub Actions (`.github/workflows/nightly.yml`, or by hand with **Run
+workflow**): the module built from `main` on `jahia/jahia-ee:8.2.3.2`, with jContent 3.8.0, engine 1.2.0
+and classic-templates 0.8.0 from `tests/provisioning-manifest-build.yml`, through Jahia's shared
+integration-tests workflow (`tests/ci.build.sh`, `ci.startup.sh`, `docker-compose.yml`). It stays out of
+the pull request CI. Screenshots of failures are in the run's artifact.
+
 ## CI and releases
 
 GitHub Actions run Jahia's shared [jahia-modules-action](https://github.com/Jahia/jahia-modules-action)
