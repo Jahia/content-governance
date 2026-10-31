@@ -21,6 +21,8 @@ services:
             - jahia
         environment:
             - MANIFEST=${MANIFEST}
+            # @jahia/cypress 8 (env.run.sh) checks that this module is installed before running the tests
+            - MODULE_ID=content-governance
             - SUPER_USER_PASSWORD=${SUPER_USER_PASSWORD}
             - JAHIA_URL=http://jahia:8080
             - CYPRESS_CG_TEMPLATE_SET=classic-templates
