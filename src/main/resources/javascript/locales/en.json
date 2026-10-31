@@ -1,6 +1,7 @@
 {
   "content-governance": {
     "geo": {
+      "fixFirst": "{{tab}}: {{count}} to review",
       "action": {
         "open": "GEO readiness"
       },
@@ -1683,6 +1684,9 @@
       }
     },
     "compliance": {
+      "fixFirst": {
+        "term": "Forbidden term \"{{term}}\" ({{count}})"
+      },
       "action": {
         "open": "Compliance scan"
       },
@@ -1820,6 +1824,20 @@
       "notAuditedTerms": "Not audited yet, forbidden terms: {{terms}} - open Content governance before publishing"
     },
     "drawer": {
+      "fixFirst": {
+        "title": "Fix first",
+        "more": "+{{count}} more",
+        "show": "Show",
+        "hide": "Hide",
+        "go": "Open",
+        "goLabel": "Open: {{title}}",
+        "severity": {
+          "critical": "Critical",
+          "serious": "Serious",
+          "moderate": "Moderate",
+          "minor": "Minor"
+        }
+      },
       "action": "Content governance",
       "title": "Content governance",
       "close": "Close panel",

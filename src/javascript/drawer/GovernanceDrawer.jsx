@@ -6,6 +6,8 @@ import {useGovernanceTranslation} from '../common/i18n';
 import {AuditSection} from '../audit/AuditSection';
 import {GeoSection} from '../geo/GeoSection';
 import {ComplianceSection} from '../compliance/ComplianceSection';
+import {FixFirst} from './FixFirst';
+import {rankFindings} from './findings';
 import styles from './GovernanceDrawer.module.css';
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -24,6 +26,9 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
     const [active, setActive] = useState(() => (usable.find(s => s.id === initialSection) || usable[0] || {}).id);
     const [visited, setVisited] = useState(() => new Set(active ? [active] : []));
     const [counts, setCounts] = useState({});
+    // Findings per section for "Fix first", and the tab a "Fix first" link asks a section to show
+    const [findings, setFindings] = useState({});
+    const [requested, setRequested] = useState(null);
     const drawerRef = useRef(null);
     const previouslyFocused = useRef(null);
     // Set when a press elsewhere closed the drawer: focus then belongs where the user pressed.
@@ -38,12 +43,29 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
         setCounts(c => (c[id] === count ? c : {...c, [id]: count}));
     }, []);
 
+    // Sections report on every change of their results: the same list again changes nothing.
+    const reportFindings = useCallback((id, list) => {
+        setFindings(f => (JSON.stringify(f[id] || []) === JSON.stringify(list) ? f : {...f, [id]: list}));
+    }, []);
+
     // Stable per section: a section keys its effects on these, so a new function on every render of
     // the drawer would refetch on every render.
     const scoped = useMemo(() => Object.fromEntries(['audit', 'geo', 'compliance'].map(id => [id, {
         isOn: tab => isOn(id, tab),
-        onCount: count => reportCount(id, count)
-    }])), [isOn, reportCount]);
+        onCount: count => reportCount(id, count),
+        onFindings: list => reportFindings(id, list)
+    }])), [isOn, reportCount, reportFindings]);
+
+    // Sections in the drawer's order, so findings of equal severity follow it
+    const ranked = useMemo(() => rankFindings(sections.filter(s => !s.unavailable).flatMap(s => findings[s.id] || [])),
+        [sections, findings]);
+    const goTo = useCallback(finding => {
+        select(finding.section);
+        if (finding.tab) {
+            setRequested({section: finding.section, tab: finding.tab, at: Date.now()});
+        }
+    }, [select]);
+    const requestedFor = id => (requested && requested.section === id ? requested : null);
     const reopenCompliance = useCallback(() => onReopen('compliance'), [onReopen]);
 
     // A portal into document.body has no place in the page's focus order: take focus on open and
@@ -126,14 +148,18 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
                                   language={language}
                                   isOn={scoped.audit.isOn}
                                   ai={settings.ai}
-                                  onCount={scoped.audit.onCount}/>
+                                  onCount={scoped.audit.onCount}
+                                  onFindings={scoped.audit.onFindings}
+                                  requestedTab={requestedFor('audit')}/>
                 );
             case 'geo':
                 return (
                     <GeoSection path={path}
                                 language={language}
                                 isOn={scoped.geo.isOn}
-                                onCount={scoped.geo.onCount}/>
+                                onCount={scoped.geo.onCount}
+                                onFindings={scoped.geo.onFindings}
+                                requestedTab={requestedFor('geo')}/>
                 );
             case 'compliance':
                 return (
@@ -141,7 +167,8 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
                                        language={language}
                                        onClose={onClose}
                                        onReopen={reopenCompliance}
-                                       onCount={scoped.compliance.onCount}/>
+                                       onCount={scoped.compliance.onCount}
+                                       onFindings={scoped.compliance.onFindings}/>
                 );
             default:
                 return null;
@@ -191,6 +218,8 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
                     </Tab>
                 </div>
             )}
+
+            <FixFirst findings={ranked} onGo={goTo}/>
 
             {!active && (
                 <div className={styles.empty}>

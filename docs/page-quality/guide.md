@@ -32,6 +32,13 @@ back at once, whoever ran it.
 
 The number on the **Page quality** section tab is the total of the badges of its tabs.
 
+Under the section tabs, **Fix first** gives the most serious finding of the sections measured so far
+on one line, with how many more there are. **Show** lists the five most serious (critical, then
+serious, moderate, minor), whatever their section: accessibility violations and the recommendations
+of every Page quality tab, the GEO readiness tabs with something to review, and the forbidden terms.
+**Open** goes to the section and tab that explains it. GEO readiness and Compliance measure only once
+opened, so their findings join the list after that.
+
 ### The language that is checked
 
 The section checks the page in the language currently selected in jContent or Page Builder. There

@@ -91,6 +91,27 @@ describe('Content Governance - Page quality audit', () => {
         });
     });
 
+    it('puts the most serious finding first in "Fix first", and opens its tab', () => {
+        const fixFirst = 'section[aria-label="Fix first"]';
+        cy.intercept('GET', `**/cms/render/default/en/sites/${siteKey}/home.html?pageAuditRun=*`, req => {
+            req.continue(res => {
+                res.body = String(res.body).replace('</body>', `${FIXTURE}</body>`);
+            });
+        });
+        cy.login(admin.username, admin.password);
+        cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);
+        cy.contains('button', BUTTON, {timeout: 30000}).click();
+        freshAudit();
+        cy.get(DRAWER).contains('automated rules passed', {timeout: 90000}).should('exist');
+        cy.get('#audit-tab-seo').click();
+        cy.get(DRAWER).contains('automated rules passed').should('not.exist');
+        cy.get(fixFirst).contains('button', 'Show').click();
+        // The image without alt of the fixture: a critical violation, ahead of every other finding
+        cy.get('#content-governance-fix-first li').first().should('contain.text', 'Critical').and('contain.text', 'alternative text');
+        cy.get('#content-governance-fix-first li').first().contains('button', 'Open').click();
+        cy.get(DRAWER).contains('automated rules passed').should('be.visible');
+    });
+
     READABILITY.forEach(({lang, expect, text}) => {
         it(`scores readability for a page in ${lang}`, () => {
             cy.intercept('GET', `**/cms/render/default/${lang}/sites/${siteKey}/home.html?pageAuditRun=*`, req => {

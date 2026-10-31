@@ -102,6 +102,10 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   non-blocking item, jContent's publish actions untouched): it is added to `publishMenu`, never
   wraps jContent's actions; jContent writes action labels as HTML, so `buttonLabelParams` holds the
   module's own counts only.
+- **A section that gains a kind of finding reports it to "Fix first"** (2026-10-31): through its
+  `onFindings`, with an axe-core severity (`critical serious moderate minor`) and a translated title,
+  and the tab that shows it (`drawer/findings.js`). Sections report every change of their results;
+  the drawer ignores an identical list, so a section never needs to deduplicate.
 
 ## Configuration
 

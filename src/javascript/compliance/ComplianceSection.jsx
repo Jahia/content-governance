@@ -17,6 +17,7 @@ import {
 } from '@jahia/moonstone';
 import {SCAN_PAGE} from './scan.gql';
 import {collectRenderedPaths} from './renderedPaths';
+import {complianceFindings} from '../drawer/findings';
 import styles from './ComplianceSection.module.css';
 
 const languageName = (code, uiLanguage) => {
@@ -181,7 +182,7 @@ Report.propTypes = {
  * first shows; editing a content closes the drawer, and it reopens on this section, scanned again,
  * when Content Editor closes.
  */
-export const ComplianceSection = ({path, language, onClose, onReopen, onCount}) => {
+export const ComplianceSection = ({path, language, onClose, onReopen, onCount, onFindings}) => {
     const {t} = useGovernanceTranslation('compliance');
     const client = useApolloClient();
     const uiLanguage = useSelector(state => state.uilang);
@@ -219,6 +220,10 @@ export const ComplianceSection = ({path, language, onClose, onReopen, onCount}) 
     useEffect(() => {
         onCount(result.report ? result.report.issues.length : 0);
     }, [onCount, result.report]);
+
+    useEffect(() => {
+        onFindings(complianceFindings(result.report, t));
+    }, [onFindings, result.report, t]);
 
     // Content Editor opens over jContent: close the drawer, and scan again once the editor closes.
     const edit = useCallback(uuid => {
@@ -262,5 +267,7 @@ ComplianceSection.propTypes = {
     language: PropTypes.string.isRequired,
     onClose: PropTypes.func.isRequired,
     onReopen: PropTypes.func.isRequired,
-    onCount: PropTypes.func.isRequired
+    onCount: PropTypes.func.isRequired,
+    // Reports the section's findings to the drawer's "Fix first" list (drawer/findings.js)
+    onFindings: PropTypes.func.isRequired
 };
