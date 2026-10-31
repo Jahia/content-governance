@@ -9,7 +9,8 @@
     "build": "yarn webpack",
     "webpack": "webpack",
     "build:production": "yarn build --mode=production",
-    "clean": "rimraf src/main/resources/javascript/apps"
+    "clean": "rimraf src/main/resources/javascript/apps",
+    "test": "vitest run"
   },
   "jahia": {
     "remotes": {
@@ -42,6 +43,8 @@
     "css-loader": "^6.11.0",
     "rimraf": "^6.1.3",
     "style-loader": "^4.0.0",
+    "vite": "8.3.4",
+    "vitest": "5.0.5",
     "webpack": "^5.88.2",
     "webpack-cli": "^7.2.3"
   }

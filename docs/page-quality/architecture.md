@@ -66,7 +66,7 @@ exported or sent to the AI review (`keepEnabled` in `AuditSection.jsx`). Web Vit
 input of Ecodesign, and the SEO read (a DOM pass) always runs for the page facts the AI tasks need:
 `results.page` holds the title, the meta description and the number of images without alt, whatever
 the switches. Neither result is kept when its own tab is off. A cached audit that lacks a tab switched
-back on since is measured again; `CACHE_SCHEMA` 4 drops caches from before `results.page`.
+back on since is measured again; `CACHE_SCHEMA` 4 dropped caches from before `results.page`, 5 those from before per-language readability.
 The analyzers call no module endpoint; the server enforces the switches on the AI endpoint (see
 [Feature gates](#feature-gates)).
 
@@ -102,7 +102,7 @@ of `{key, severity, params}`; the text is in `audit.<ns>.recs.<key>.title|detail
 |---|---|---|---|
 | Web Vitals | `webVitals.js` | Buffered `PerformanceObserver` (`largest-contentful-paint`, `layout-shift`, 700 ms window), navigation and resource entries, `doc.images` | Runs first so axe and link checks are not in the resource stats. LCP falls back to the `responseEnd` of the largest in-viewport image, else `domContentLoadedEventEnd` (`lcpApprox`). INP is always `null`. Thresholds: LCP 2500/4000 ms, CLS 0.1/0.25, TTFB 800/1800 ms. Size is `transferSize`, else `encodedBodySize` (HTTP cache hits). |
 | Ecodesign | `ecodesign.js` | Vitals diagnostics, resource entries, DOM | 10 criteria: weight 1 MB / 2.5 MB, requests 40 / 70, DOM 1000 / 1500, below-the-fold images without `loading="lazy"`, fonts (max 2, WOFF2 only), autoplay media, legacy-format images over 30 kB, oversized images, missing dimensions, third-party origins (max 5). Not an RGESN conformity score; `ecoChecklist.js` lists 8 whole-service criteria. |
-| Readability | `readability.js` | `main` or `body`, minus `script, style, noscript, svg, nav, header, footer, [aria-hidden="true"]` | Text nodes joined with spaces. Kandel-Moles for `fr`, Flesch (and Flesch-Kincaid grade) for every other language. Under 30 words: `empty`. Long sentence: over 25 words. H1 count on the whole document, heading skips in the root. |
+| Readability | `readability.js` | `main` or `body`, minus `script, style, noscript, svg, nav, header, footer, [aria-hidden="true"]` | Text nodes joined with spaces. `analyzeText` scores with the formula of the language (`FORMULAS`: Flesch and Flesch-Kincaid grade `en`, Kandel-Moles `fr`, Amstad `de`, Fernández Huerta with Law's correction `es`, Franchina-Vacca `it`, Douma `nl`, Martins `pt`), syllables by vowel groups per language (diaeresis hiatus in `fr`/`nl`, silent final e in `en`/`fr`). Another language: `scored: false`, `score: null`, no score advice. `ja zh th lo km my` (`UNSPACED`): `spaced: false`, characters and sentences (split on `。．！？!?`), no word-based field or advice. Under 30 words: `empty`. Long sentence: over 25 words. H1 count on the whole document, heading skips in the root. |
 | SEO | `seo.js` | `<head>` tags, JSON-LD blocks, `<html lang>`, images, links and buttons | Strips the preview prefix ("Aperçu - ", "Preview - "...) from the title. Title 30-60, description 50-160. `collectWeakCtas` keeps up to 10 distinct generic labels with their target and 300 characters of context, for the SEO assist. |
 | Accessibility | `accessibility.js` | Whole frame document | Injects axe-core (below) and runs tags `wcag2a, wcag21a, wcag2aa, wcag21aa, wcag22aa, wcag2aaa, best-practice` by tag, not by rule list, so an axe-core update brings its new rules. Keeps 25 nodes per rule. A card's percentage is passes / (passes + violations), floored; `incomplete` is outside the ratio. `a11yChecklist.js` lists 14 manual criteria. |
 | Links | `links.js` | `a[href]` | Same-origin links whose path starts with `/cms/render/`, `/cms/file/` or `/files/` are fetched with `credentials: 'same-origin'`: `HEAD`, then `GET` on 405/501, batches of 6, at most 60 distinct URLs. URLs matching `logout|login|\.do` and every other same-origin path are counted (`skippedSideEffect`) and never fetched, so a planted link cannot make the auditor's session call an action. External links are only counted. |
@@ -136,7 +136,7 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
   analyzers, `aiReview.recommendations.length` for the AI tab. The section total, reported to the
   drawer through `onCount`, sums the badges of the switched-on tabs.
 - Cache: `localStorage` key `content-governance:audit:{language}:{path}`, entry
-  `{schema, timestamp, results, aiReview, seoAssist, altAssist, simplifyAssist}`. `CACHE_SCHEMA` is 3:
+  `{schema, timestamp, results, aiReview, seoAssist, altAssist, simplifyAssist}`. `CACHE_SCHEMA` is 5:
   bump it whenever the shape of `results` changes, or an old entry is restored into a UI expecting the
   new shape (entries with another schema are deleted on read). Pruned to the 10 most recent entries;
   on a quota error, pruned to 2 and retried once; failures are silent. Every AI result is persisted

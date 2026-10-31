@@ -5,11 +5,20 @@ import {Recommendations} from './Recommendations';
 import {SimplifyAssist} from './SimplifyAssist';
 import styles from './Tabs.module.css';
 
+/** The page language's name in the editor's language, else its code. */
+function languageName(lang, uiLanguage) {
+    try {
+        return new Intl.DisplayNames([uiLanguage || 'en'], {type: 'language'}).of(lang) || lang.toUpperCase();
+    } catch {
+        return lang.toUpperCase();
+    }
+}
+
 export function ReadabilityTab({result, assist}) {
-    const {t} = useGovernanceTranslation('audit');
+    const {t, i18n} = useGovernanceTranslation('audit');
 
     if (result.empty) {
-        return <p className={styles.note}>{t('readability.noText', {count: result.words})}</p>;
+        return <p className={styles.note}>{t('readability.noText', {count: result.words || 0})}</p>;
     }
 
     const scoreBandClass = result.score >= 50 ?
@@ -18,27 +27,38 @@ export function ReadabilityTab({result, assist}) {
 
     return (
         <div>
-            <div className={styles.cards}>
-                <div className={`${styles.card} ${scoreBandClass}`}>
-                    <span className={styles.cardTitle}>
-                        {t('readability.score')} ({result.formula})
-                    </span>
-                    <span className={styles.cardValue}>{result.score}</span>
-                    <span className={styles.cardHint}>{t(`readability.bands.${result.band}`)}</span>
+            {!result.scored && (
+                <p className={styles.note}>
+                    {t(result.spaced ? 'readability.noFormula' : 'readability.noWords', {language: languageName(result.lang, i18n.language)})}
+                </p>
+            )}
+            {(result.scored || result.readingMinutes !== null) && (
+                <div className={styles.cards}>
+                    {result.scored && (
+                        <div className={`${styles.card} ${scoreBandClass}`}>
+                            <span className={styles.cardTitle}>
+                                {t('readability.score')} ({result.formula})
+                            </span>
+                            <span className={styles.cardValue}>{result.score}</span>
+                            <span className={styles.cardHint}>{t(`readability.bands.${result.band}`)}</span>
+                        </div>
+                    )}
+                    {result.gradeLevel !== null && (
+                        <div className={styles.card}>
+                            <span className={styles.cardTitle}>{t('readability.gradeLevel')}</span>
+                            <span className={styles.cardValue}>{result.gradeLevel}</span>
+                            <span className={styles.cardHint}>Flesch-Kincaid</span>
+                        </div>
+                    )}
+                    {result.readingMinutes !== null && (
+                        <div className={styles.card}>
+                            <span className={styles.cardTitle}>{t('readability.readingTime')}</span>
+                            <span className={styles.cardValue}>{result.readingMinutes}</span>
+                            <span className={styles.cardHint}>{t('readability.minutes')}</span>
+                        </div>
+                    )}
                 </div>
-                {result.gradeLevel !== null && (
-                    <div className={styles.card}>
-                        <span className={styles.cardTitle}>{t('readability.gradeLevel')}</span>
-                        <span className={styles.cardValue}>{result.gradeLevel}</span>
-                        <span className={styles.cardHint}>Flesch-Kincaid</span>
-                    </div>
-                )}
-                <div className={styles.card}>
-                    <span className={styles.cardTitle}>{t('readability.readingTime')}</span>
-                    <span className={styles.cardValue}>{result.readingMinutes}</span>
-                    <span className={styles.cardHint}>{t('readability.minutes')}</span>
-                </div>
-            </div>
+            )}
 
             <Recommendations items={result.recommendations} ns="readability"/>
 
@@ -46,13 +66,23 @@ export function ReadabilityTab({result, assist}) {
 
             <h4 className={styles.sectionTitle}>{t('readability.textStats')}</h4>
             <ul className={styles.statList}>
-                <li>{t('readability.words')}: <strong>{result.words}</strong></li>
-                <li>{t('readability.sentences')}: <strong>{result.sentences}</strong></li>
-                <li>{t('readability.avgSentenceLength')}: <strong>{result.avgSentenceLength}</strong></li>
-                <li>{t('readability.longSentences')}: <strong>{result.longSentences}</strong></li>
-                <li>{t('readability.paragraphs')}: <strong>{result.paragraphs}</strong>
-                    {' '}({t('readability.avgWordsPerParagraph')}: {result.avgWordsPerParagraph})
-                </li>
+                {result.spaced ? (
+                    <>
+                        <li>{t('readability.words')}: <strong>{result.words}</strong></li>
+                        <li>{t('readability.sentences')}: <strong>{result.sentences}</strong></li>
+                        <li>{t('readability.avgSentenceLength')}: <strong>{result.avgSentenceLength}</strong></li>
+                        <li>{t('readability.longSentences')}: <strong>{result.longSentences}</strong></li>
+                        <li>{t('readability.paragraphs')}: <strong>{result.paragraphs}</strong>
+                            {result.avgWordsPerParagraph !== null && ` (${t('readability.avgWordsPerParagraph')}: ${result.avgWordsPerParagraph})`}
+                        </li>
+                    </>
+                ) : (
+                    <>
+                        <li>{t('readability.characters')}: <strong>{result.characters}</strong></li>
+                        <li>{t('readability.sentences')}: <strong>{result.sentences}</strong></li>
+                        <li>{t('readability.paragraphs')}: <strong>{result.paragraphs}</strong></li>
+                    </>
+                )}
             </ul>
 
             <h4 className={styles.sectionTitle}>{t('readability.structure')}</h4>
