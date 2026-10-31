@@ -97,12 +97,12 @@ public class AuditHistoryServiceImpl implements AuditHistoryService {
     @Override
     public List<AuditRun> history(String sitePath, String pageId, String language) throws RepositoryException {
         return JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, WORKSPACE, null, session -> {
-            String pagePath = languagePath(sitePath, language) + "/" + pageId;
+            JCRNodeWrapper page = existing(session.getNode(sitePath), SiteFeatures.STORE_NODE, AUDITS, language, pageId);
             List<AuditRun> out = new ArrayList<>();
-            if (!session.nodeExists(pagePath)) {
+            if (page == null) {
                 return out;
             }
-            for (JCRNodeWrapper run : runs(session.getNode(pagePath))) {
+            for (JCRNodeWrapper run : runs(page)) {
                 out.add(new AuditRun(run.getProperty(P_AT).getLong(), string(run, P_BY),
                         AuditSummary.fromJson(string(run, P_SUMMARY)), out.isEmpty() ? string(run, P_RESULTS) : null));
             }
@@ -113,12 +113,12 @@ public class AuditHistoryServiceImpl implements AuditHistoryService {
     @Override
     public List<AuditedPage> pages(String sitePath, String language) throws RepositoryException {
         return JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, WORKSPACE, null, session -> {
-            String languagePath = languagePath(sitePath, language);
+            JCRNodeWrapper languageNode = existing(session.getNode(sitePath), SiteFeatures.STORE_NODE, AUDITS, language);
             List<AuditedPage> out = new ArrayList<>();
-            if (!session.nodeExists(languagePath)) {
+            if (languageNode == null) {
                 return out;
             }
-            NodeIterator pages = session.getNode(languagePath).getNodes();
+            NodeIterator pages = languageNode.getNodes();
             while (pages.hasNext()) {
                 JCRNodeWrapper page = (JCRNodeWrapper) pages.nextNode();
                 if (page.hasProperty(P_AT)) {
@@ -132,8 +132,16 @@ public class AuditHistoryServiceImpl implements AuditHistoryService {
         });
     }
 
-    private static String languagePath(String sitePath, String language) {
-        return sitePath + "/" + SiteFeatures.STORE_NODE + "/" + AUDITS + "/" + language;
+    /** The descendant reached through {@code names}, one child at a time, or null when one is missing. */
+    private static JCRNodeWrapper existing(JCRNodeWrapper parent, String... names) throws RepositoryException {
+        JCRNodeWrapper node = parent;
+        for (String name : names) {
+            if (!node.hasNode(name)) {
+                return null;
+            }
+            node = node.getNode(name);
+        }
+        return node;
     }
 
     /** The audits of a page node, newest first. */

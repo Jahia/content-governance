@@ -26,6 +26,8 @@ public class GqlContentGovernance {
     @GraphQLOsgiService
     private LlmConfigService llm;
 
+    // graphql-java-annotations injects OSGi services into fields only (@GraphQLOsgiService)
+    @SuppressWarnings("java:S6813")
     @Inject
     @GraphQLOsgiService
     private AuditHistoryService audits;
