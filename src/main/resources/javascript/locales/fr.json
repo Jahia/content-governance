@@ -921,7 +921,7 @@
         "mappings": "Adresses rattachées à la main",
         "unmap": "Retirer",
         "mappingsNote": "Un rattachement compte à partir de la prochaine synchronisation.",
-        "switchedOff": "Les citations par les IA sont désactivées pour ce site. Réactivez la section Préparation GEO et son onglet Citations IA dans l'onglet Fonctionnalités ; si la synchronisation quotidienne était active, réactivez-la ensuite ici."
+        "switchedOff": "Les citations par les IA sont désactivées pour ce site. Réactivez la section Préparation GEO et son onglet Citations IA dans l'onglet Fonctionnalités ; une synchronisation quotidienne active reprend à sa prochaine exécution."
       },
       "siteCitations": {
         "view": {

@@ -921,7 +921,7 @@
         "mappings": "Addresses matched by hand",
         "unmap": "Remove",
         "mappingsNote": "A mapping counts from the next sync.",
-        "switchedOff": "AI citations are switched off for this site. Switch the GEO readiness section and its AI citations tab back on in the Features tab; if the daily sync was on, turn it on again here afterwards."
+        "switchedOff": "AI citations are switched off for this site. Switch the GEO readiness section and its AI citations tab back on in the Features tab; a daily sync that was on picks up again at its next run."
       },
       "siteCitations": {
         "view": {

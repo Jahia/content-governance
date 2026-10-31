@@ -134,5 +134,5 @@ running Jahia (README, "Build"); it is kept out of the pull request CI, which th
 
 ## Known leftovers
 
-- Once AI citations or the GEO section were switched off, the daily BotRank sync stays off when they
-  come back: an admin turns it on again (the BotRank tab says so).
+- None known. (Up to 1.4.0, switching AI citations or the GEO section off turned the daily BotRank
+  sync off for good; since 1.5.0 it only pauses it, `SyncStep.first`.)

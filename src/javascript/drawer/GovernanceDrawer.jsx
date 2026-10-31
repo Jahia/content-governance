@@ -174,6 +174,7 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
                             <HelpTab key={section.id}
                                      help={t(`sectionHelp.${section.id}`)}
                                      note={section.unavailable ? t(`unavailable.${section.unavailable}`) : undefined}
+                                     isSelected={active === section.id}
                             >
                                 <TabItem id={`content-governance-section-${section.id}`}
                                          role="tab"

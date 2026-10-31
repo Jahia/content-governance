@@ -286,8 +286,8 @@ section. For GEO readiness the tabs are **Score**, **Crawler access**, **Site fi
 readiness switched off, the section disappears from the drawer, the dashboard says it is switched
 off, and the server refuses the dashboard's and BotRank's calls; the tabs keep their own setting
 for when it comes back. A tab switched off disappears from the drawer. The **AI citations** switch
-also hides the dashboard's **AI citations** group and stops the site's daily BotRank sync at its
-next run. Press **Save**; editors see the change the next time they open the drawer.
+also hides the dashboard's **AI citations** group and pauses the site's daily BotRank sync: its runs
+are skipped while the switch is off, and the first run after it is back on syncs again. Press **Save**; editors see the change the next time they open the drawer.
 
 **AI provider tab.** Shows whether the model shared by the AI features is configured, which
 provider and model, and the file a server administrator edits. The written report of this dashboard

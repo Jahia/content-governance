@@ -45,13 +45,14 @@ public class CitationSyncJob extends BackgroundJob {
             logger.warn("BotRank sync job started without a site or before the module was ready");
             return;
         }
-        if (!CitationStore.settings(sitePath).enabled) {
+        SyncStep step = SyncStep.first(CitationStore.settings(sitePath).enabled, CitationsAccess.moduleEnabled(sitePath));
+        if (step == SyncStep.UNSCHEDULE) {
             // Switched off since the trigger was installed (settings saved, module set up).
             CitationScheduler.unschedule(sitePath);
             return;
         }
-        if (!CitationsAccess.moduleEnabled(sitePath)) {
-            stop(sitePath, "the daily sync stopped: AI citations are switched off for this site, or the module is no longer enabled on it");
+        if (step == SyncStep.SKIP) {
+            logger.debug("BotRank sync of {} skipped: AI citations are switched off for the site", sitePath);
             return;
         }
         if (!stillPermitted(owner, sitePath)) {

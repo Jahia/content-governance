@@ -78,6 +78,23 @@ describe('Content Governance - drawer', () => {
         cy.get(DRAWER).should('not.exist');
     });
 
+    // The pointer is still on a tab just clicked: its help would cover the content the editor came to read.
+    it('shows a section\'s help on hover, and none on the selected section', () => {
+        const help = (id: string) => cy.get(section(id)).parent().find('[role="tooltip"]');
+        const hover = (id: string) => cy.get(section(id)).parent()
+            .trigger('pointerenter', {pointerType: 'mouse'}).trigger('mouseenter').trigger('mousemove');
+        cy.login(admin.username, admin.password);
+        cy.visit(pageUrl);
+        cy.contains('button', BUTTON, {timeout: 30000}).click();
+        cy.get(DRAWER).should('be.visible');
+        hover('geo');
+        help('geo').should('be.visible').and('contain.text', 'AI');
+        cy.get(section('geo')).click();
+        cy.get(section('geo')).should('have.attr', 'aria-selected', 'true');
+        hover('geo');
+        help('geo').should('not.be.visible');
+    });
+
     it('leaves out the tab of a section the site switched off', () => {
         switchOff(siteKey, ['geo']);
         cy.login(admin.username, admin.password);
