@@ -204,6 +204,10 @@ Measures how easy the main text is to read. Navigation, header and footer are le
   language: Flesch (English), Kandel-Moles (French), Amstad (German), Fernández Huerta (Spanish),
   Franchina-Vacca (Italian), Douma (Dutch), Martins (Portuguese). All of them use Flesch's scale. Bands: **Very easy** (90 and up), **Easy** (70 to 89), **Standard** (50 to 69),
   **Difficult** (30 to 49), **Very difficult** (below 30). Aim for 50 or more for a general audience.
+- Swedish, Danish and Norwegian pages get a **LIX** score instead (words per sentence plus the share of
+  words longer than six letters). It reads the other way round: higher is harder. Bands: **Very
+  easy** (below 25), **Easy** (25 to 34), **Standard** (35 to 44), **Difficult** (45 to 54), **Very
+  difficult** (55 and up); aim for 40 or less for a general audience.
 - **Grade level** (Flesch-Kincaid, English only) and **Reading time** (at 200 words a minute).
 - **Recommendations**: hard text, sentences over 25 words, dense paragraphs (over 80 words on
   average), not exactly one H1, skipped heading levels (H2 then H4), less than 300 words.
@@ -211,7 +215,7 @@ Measures how easy the main text is to read. Navigation, header and footer are le
 - **AI plain-language rewrites**: see [AI assists](#ai-assists).
 
 Under 30 words, the tab shows "Not enough text on this page to compute readability". A page in a
-language without a formula here (Russian, Polish, Arabic...) gets no score rather than another
+language without a formula here (Finnish, Russian, Polish, Arabic...) gets no score rather than another
 language's: the tab says so, and sentence length, paragraphs and headings are still checked. Japanese,
 Chinese, Thai and other languages written without spaces between words get neither a score nor a word
 count: the tab counts characters and sentences, and checks the headings. The H1 count covers the whole

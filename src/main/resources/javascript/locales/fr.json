@@ -1650,6 +1650,14 @@
             "title": "Texte difficile à lire (score {{score}})",
             "detail": "Raccourcissez les phrases les plus longues et remplacez le jargon : un score de 50 à 70 convient à la plupart des visiteurs."
           },
+          "veryHardTextLix": {
+            "title": "Texte très difficile à lire (LIX {{score}})",
+            "detail": "Raccourcissez les phrases et préférez des mots courts et courants. Visez un LIX inférieur à 40 pour un public large."
+          },
+          "hardTextLix": {
+            "title": "Texte difficile à lire (LIX {{score}})",
+            "detail": "Raccourcissez les phrases les plus longues et remplacez les mots composés ou techniques longs : un LIX de 30 à 40 convient à la plupart des visiteurs."
+          },
           "longSentences": {
             "title": "{{count}} phrases de plus de 25 mots",
             "detail": "Découpez-les : une idée par phrase. Les phrases longues sont la première cause d'un mauvais score de lisibilité."

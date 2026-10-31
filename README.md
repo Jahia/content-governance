@@ -28,7 +28,7 @@ each opening the tab that explains it.
 | **Accessibility** | Automated WCAG A, AA and AAA rules with axe-core, issues by severity with highlighting, what axe cannot decide, and a manual checklist; alt text suggested by AI for images without one |
 | **SEO** | Title, meta description, indexing, canonical address, social sharing card, structured data, image alt coverage and link texts; titles, descriptions, keywords, headings and call-to-action labels suggested by AI |
 | **Web Vitals** | Load timings, layout shift, an estimated LCP, page weight, requests, DOM size and the heaviest resources, measured in the browser |
-| **Readability** | A score with the formula of the page language (English, French, German, Spanish, Italian, Dutch, Portuguese), long sentences and heading structure; plainer rewrites suggested by AI |
+| **Readability** | A score with the formula of the page language (English, French, German, Spanish, Italian, Dutch, Portuguese; LIX for Swedish, Danish, Norwegian), long sentences and heading structure; plainer rewrites suggested by AI |
 | **Ecodesign** | Page-level checks from the French RGESN 2024 referential, plus a checklist for what a page tool cannot judge (not a conformity score) |
 | **Links** | Broken internal links, absolute addresses to the site's own host, mixed content, unsafe `target="_blank"`; external links are counted, not verified |
 | **Jahia** | Unpublished content on the page, missing translations in active languages, raw resource keys and placeholder text |

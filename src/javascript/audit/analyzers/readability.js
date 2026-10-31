@@ -12,6 +12,11 @@
  * - nl Douma (1960): 206.835 - 0.93 ASL - 77 ASW
  * - pt Martins et al. (1996): 248.835 - 1.015 ASL - 84.6 ASW
  *
+ * - sv, da, nb, nn, no LIX (Björnsson, 1968): words per sentence + 100 x the share of words of more
+ *   than six letters. A higher LIX reads harder; its bands are the midpoints of Björnsson's table
+ *   (20 very easy, 30 easy, 40 medium, 50 hard, 60 very hard). Established for Swedish, used for
+ *   Danish and Norwegian; not Finnish, where it is untested.
+ *
  * Another language gets no score rather than the English one: its text statistics and structure
  * are still measured. Languages written without spaces between words (Japanese, Chinese, Thai...)
  * have no word count either: characters and sentences are counted instead.
@@ -26,6 +31,11 @@ const FORMULAS = {
     nl: {name: 'Douma', score: (asl, asw) => 206.835 - (0.93 * asl) - (77 * asw)},
     pt: {name: 'Martins', score: (asl, asw) => 248.835 - (1.015 * asl) - (84.6 * asw)}
 };
+
+// Higher reads harder; needs no syllable count, so it fits languages without a Flesch adaptation.
+const LIX = {name: 'LIX', score: (asl, longShare) => asl + (100 * longShare)};
+const LIX_LANGUAGES = new Set(['sv', 'da', 'nb', 'nn', 'no']);
+const LONG_WORD_LETTERS = 6;
 
 // Vowel letters per language: a run of them is one syllable nucleus (diphthongs count once).
 const VOWELS = {
@@ -73,6 +83,27 @@ export function countSyllables(word, lang) {
     }
 
     return Math.max(1, count);
+}
+
+/** LIX bands: the midpoints between the anchors of Björnsson's table. */
+function lixBand(score) {
+    if (score < 25) {
+        return 'veryEasy';
+    }
+
+    if (score < 35) {
+        return 'easy';
+    }
+
+    if (score < 45) {
+        return 'standard';
+    }
+
+    if (score < 55) {
+        return 'difficult';
+    }
+
+    return 'veryDifficult';
 }
 
 function scoreBand(score) {
@@ -129,12 +160,20 @@ export function analyzeText(text, lang) {
     }
 
     const asl = words.length / Math.max(1, sentences.length);
-    const formula = FORMULAS[lang];
+    const lix = LIX_LANGUAGES.has(lang);
+    const formula = lix ? LIX : FORMULAS[lang];
     let score = null;
     let asw = null;
-    if (formula) {
+    if (lix) {
+        const longWords = words.filter(w => w.replaceAll(/[^\p{L}]/gu, '').length > LONG_WORD_LETTERS).length;
+        score = Math.round(Math.min(100, Math.max(0, LIX.score(asl, longWords / words.length))));
+    } else if (formula) {
         asw = words.reduce((sum, w) => sum + countSyllables(w, lang), 0) / words.length;
         score = Math.round(Math.min(100, Math.max(0, formula.score(asl, asw))));
+    }
+    let band = null;
+    if (formula) {
+        band = lix ? lixBand(score) : scoreBand(score);
     }
 
     return {
@@ -143,14 +182,16 @@ export function analyzeText(text, lang) {
         empty: false,
         scored: Boolean(formula),
         formula: formula ? formula.name : null,
+        // 'lix' reads the other way round: a higher score is harder
+        scale: lix ? 'lix' : 'flesch',
         score,
-        band: formula ? scoreBand(score) : null,
+        band,
         gradeLevel: lang === 'en' ? Math.round(((0.39 * asl) + (11.8 * asw) - 15.59) * 10) / 10 : null,
         words: words.length,
         characters: null,
         sentences: sentences.length,
         avgSentenceLength: Math.round(asl * 10) / 10,
-        avgSyllablesPerWord: formula ? Math.round(asw * 100) / 100 : null,
+        avgSyllablesPerWord: asw === null ? null : Math.round(asw * 100) / 100,
         longSentences: sentences.filter(s => s.split(/\s+/).length > LONG_SENTENCE_WORDS).length,
         readingMinutes: Math.max(1, Math.round(words.length / READING_WPM))
     };
@@ -231,10 +272,12 @@ export function buildReadabilityRecommendations(r) {
     const recs = [];
     const push = (key, severity, params) => recs.push({key, severity, params: params || {}});
 
-    if (r.scored && r.score < 30) {
-        push('veryHardText', 'serious', {score: r.score});
-    } else if (r.scored && r.score < 50) {
-        push('hardText', 'moderate', {score: r.score});
+    // By band, so it reads right whatever the direction of the scale; LIX has its own targets
+    const suffix = r.scale === 'lix' ? 'Lix' : '';
+    if (r.scored && r.band === 'veryDifficult') {
+        push(`veryHardText${suffix}`, 'serious', {score: r.score});
+    } else if (r.scored && r.band === 'difficult') {
+        push(`hardText${suffix}`, 'moderate', {score: r.score});
     }
 
     if (r.longSentences > 0) {
