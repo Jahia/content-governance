@@ -1,7 +1,11 @@
 # Toolchain of this module, the same locally and in CI (jdx/mise-action).
 # Maven 3.8: under 3.9 the jahia-maven-plugin dependency scan writes a wrong Import-Package while the
-# build still ends BUILD SUCCESS. Node and Yarn for the Page Builder dialog are installed by
-# frontend-maven-plugin (pom.xml).
+# build still ends BUILD SUCCESS. Node and Yarn for the module's own front-end are installed by
+# frontend-maven-plugin (pom.xml); the ones here run the Cypress suite (tests/), locally and in the
+# nightly CI, whose shared workflow installs only what this file lists when it exists. Yarn 1: the
+# shared static analysis installs tests/ with Yarn 1.22.
 [tools]
 java = "temurin-17"
 maven = "3.8.8"
+node = "22"
+yarn = "1.22.22"

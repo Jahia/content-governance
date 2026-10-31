@@ -128,7 +128,8 @@ overwrites them; BotRank files are created by a server administrator, never ship
 - `mvn clean install` runs 497+ Java unit tests (GEO, compliance, settings, LLM config) and the
   front-end unit tests (`yarn test`: Vitest, `src/test/javascript/`, readability scoring).
 - The Cypress suite in `tests/` (README, "Build") against the local Jahia: settings, compliance scan,
-  CSRF guard, drawer, Page quality audit (axe-core, readability per language). Not run by the pull request CI.
+  CSRF guard, drawer, Page quality audit (axe-core, readability per language). Not run by the pull request
+  CI; it runs nightly on `main` (`nightly.yml`, README "Build"), so check the last nightly before a release.
 - Deploy, enable on a site, open a page: the drawer shows the switched-on sections; switch a tab off
   in Site Settings > Content governance and reopen the drawer; the GEO servlet answers 403 and the
   compliance query refuses once their section is off.
@@ -140,7 +141,8 @@ Every PR carries a `.chachalog/` fragment, docs and CI changes included; `.versi
 until 1.0.0 is released. Before releasing, read the README's release steps: the CI account may not
 have write access to this new repository, and the first release PR must fold the hand-written
 `1.0.0 (unreleased)` section of `CHANGELOG.md`. The Cypress suite in `tests/` runs locally against a
-running Jahia (README, "Build"); it is kept out of the pull request CI, which the team wants short.
+running Jahia (README, "Build") and nightly in GitHub Actions; it is kept out of the pull request CI,
+which the team wants short.
 
 ## Known leftovers
 

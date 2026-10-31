@@ -77,22 +77,43 @@ function remember(sent, address, res) {
 async function send(url, init) {
     const sent = await currentTokens();
     const address = new URL(url, globalThis.location.origin).pathname;
-    const res = await fetch(url, {
-        ...init,
-        credentials: 'same-origin',
-        redirect: 'manual',
-        headers: {
-            ...init.headers,
-            ...REQUESTED_WITH,
-            ...(sent.name ? {[sent.name]: sent.pages[address] || sent.master} : {})
-        }
-    });
-    if (res.type === 'opaqueredirect') {
-        return {sent};
+    // The master token works once per address: the first answer brings the address's page token.
+    // While that first request is out, another request to the address waits for it instead of being
+    // refused (the GEO dashboard sends several to one servlet at once). The check and the claim below
+    // have no await between them, so parallel calls cannot both pass.
+    while (sent.name && !sent.pages[address] && sent.firstUse?.[address]) {
+        await sent.firstUse[address];
     }
+    let done = null;
+    if (sent.name && !sent.pages[address]) {
+        sent.firstUse ||= {};
+        sent.firstUse[address] = new Promise(resolve => {
+            done = resolve;
+        });
+    }
+    try {
+        const res = await fetch(url, {
+            ...init,
+            credentials: 'same-origin',
+            redirect: 'manual',
+            headers: {
+                ...init.headers,
+                ...REQUESTED_WITH,
+                ...(sent.name ? {[sent.name]: sent.pages[address] || sent.master} : {})
+            }
+        });
+        if (res.type === 'opaqueredirect') {
+            return {sent};
+        }
 
-    remember(sent, address, res);
-    return {res};
+        remember(sent, address, res);
+        return {res};
+    } finally {
+        if (done) {
+            delete sent.firstUse[address];
+            done();
+        }
+    }
 }
 
 export async function guardedFetch(url, init = {}) {

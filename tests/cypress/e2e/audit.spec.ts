@@ -76,7 +76,7 @@ describe('Content Governance - Page quality audit', () => {
                 res.body = String(res.body).replace('</body>', `${FIXTURE}</body>`);
             });
         }).as('preview');
-        cy.readFile('../package.json').its('dependencies.axe-core').then((range: string) => {
+        cy.wrap<string>(Cypress.env('AXE_CORE_RANGE'), {log: false}).should('be.a', 'string').then((range: string) => {
             const declared = range.replace(/^\D+/, '');
             cy.login(admin.username, admin.password);
             cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);

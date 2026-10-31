@@ -4,3 +4,6 @@ cypress/videos/
 cypress/downloads/
 results/
 .env
+artifacts/
+run-artifacts/
+module-package.json

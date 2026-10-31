@@ -414,6 +414,9 @@ citations panels list only the pages the reader may read (decision 2026-10-29, a
   the module, replaced on every deploy). The drawer, the dashboards and the settings send the guard's
   token through `common/guardedFetch.js`, which reads it from `/modules/CsrfServlet`, keeps the
   per-address token the guard answers with, and after a refusal reloads the tokens once and retries.
+  The master token works once per address: while the first request to an address is out, the others
+  to that address wait for its answer and its page token (the GEO dashboard sends several to one
+  servlet at once; sent together, all but the first would be refused and cost a token reload).
   The servlets answer browser sessions only: they take no API token, and a call signed in another
   way without the token is refused. The JSON content type and same-site checks stay as a second check.
 - **A BotRank sync stops** when the site disables the module, switches off the GEO section or its

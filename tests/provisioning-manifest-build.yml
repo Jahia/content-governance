@@ -1,0 +1,20 @@
+# What the CI Jahia needs besides the module under test, which comes from the build job's artifacts
+# (tests/artifacts, installed by @jahia/cypress). Versions follow the local stack the suite passes on.
+# jContent 3.7 or later (content-governance requires [3.7,4); the 8.2.3.2 image ships 3.5.0).
+- installBundle:
+      - 'mvn:org.jahia.modules/jcontent/3.8.0'
+  autoStart: true
+  uninstallPreviousVersion: true
+
+# The template set of the test sites (CYPRESS_CG_TEMPLATE_SET), a JavaScript module, at the version the
+# suite passes on locally. Nexus holds its snapshots only, and the latest snapshot needs a newer engine
+# (it stayed INSTALLED on engine 1.2.0): its public GitHub release instead.
+- installBundle:
+      - 'mvn:org.jahia.modules/javascript-modules-engine/1.2.0'
+  autoStart: true
+  uninstallPreviousVersion: true
+
+- installBundle:
+      - 'js:https://github.com/Jahia/classic-templates/releases/download/0_8_0/classic-templates-0.8.0.tgz'
+  autoStart: true
+  uninstallPreviousVersion: true
