@@ -13,6 +13,11 @@
     margin-left: auto;
 }
 
+.trend {
+    color: var(--color-gray, #5c6b7a);
+    white-space: nowrap;
+}
+
 /* Preview iframe. Collapsed: zero height but the iframe stays mounted - analyzers and element
    highlighting still need its document. */
 .preview {

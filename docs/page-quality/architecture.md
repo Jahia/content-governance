@@ -9,7 +9,8 @@ The automated checks run in the editor's browser. The section loads
 `/cms/render/default/{lang}{path}.html` in a same-origin iframe, waits for it to settle, strips
 editing tooling from its DOM, and runs seven analyzers against the frame's document and performance
 entries. One of them (Jahia) also queries GraphQL through jContent's Apollo client. Results are kept
-in the editor's `localStorage`. The only server code specific to the section is one servlet,
+in the editor's `localStorage` and, once complete, stored on the site for every editor (see
+[Shared audits](#shared-audits-and-the-site-dashboard)). The other server code specific to the section is one servlet,
 `/modules/content-governance/audit/ai-review`, which runs four server-defined AI tasks on the
 module's shared model connection (`org.jahia.community.contentgovernance.ai`).
 
@@ -152,8 +153,54 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
   on a quota error, pruned to 2 and retried once; failures are silent. Every AI result is persisted
   through `persistAi`, which rewrites all four AI fields, so saving one never drops the others.
 - **Re-run** (`runId > 0`) skips the cache and resets every AI result.
+- **Shared audits:** see the next section.
 - **Export JSON** builds `{path, language, url, auditedAt, results}` in the browser and downloads
   `content-governance-audit-<last path segment>.json`. AI answers are not exported.
+
+## Shared audits and the site dashboard
+
+- **Storage:** `AuditHistoryService` (`audit/service/spi`, DS component `AuditHistoryServiceImpl`)
+  writes with system sessions in the site's private module node
+  (`/sites/<key>/content-governance`, `PrivateStore`), under `audits/<language>/<page identifier>`.
+  - The page node holds the latest audit's `summary` (counts per tab and total), `auditedAt`,
+    `auditedBy`, `path`, `title` and `previousTotal` (the total of the audit before, -1 for none).
+  - One `run-<millis>` child per audit holds `results` (the JSON), `summary`, `auditedAt` and
+    `auditedBy`.
+  - The page keeps `MAX_RUNS` (10). Keyed by identifier, so a moved page keeps its audits.
+- **Input:** `AuditResults.parse` accepts a JSON object of at most 1,000,000 characters. It keeps the
+  tab results (`a11y seo vitals readability ecodesign links jahia`) and `page`, and drops anything
+  else. The counts come from `AuditSummary.of` on the server: accessibility violations, and the
+  recommendations of every other tab.
+- **GraphQL**, under `contentGovernance` (`audit/graphql/AuditFields`):
+  - `saveAudit(path, language, results)` (mutation, once per request);
+  - `pageAudits(path, language)`: newest first, only the newest with `results`, at most 5 per
+    request;
+  - `siteAudits(siteKey, language)`: `pages` of the readable pages, most issues first, and
+    `pageCount`, the readable `jnt:page` of the site, counted up to 10,000. Once per request.
+- **Access** (`AuditAccess`), with the caller's session in `default`, checked before the store:
+  - a signed-in user;
+  - `jContentAccess` on the site;
+  - the module enabled and the `audit` section on;
+  - the language one of the site's;
+  - for a page, a `jnt:page` or `jmix:mainResource` the caller can read.
+
+  `siteAudits` resolves each stored identifier with the caller's session: a page they cannot read,
+  or a deleted one, is left out. Every refusal answers `Permission denied`.
+- **Drawer:**
+  - On opening (`runId` 0), the section asks `pageAudits` before mounting the frame. The newest
+    stored audit replaces the local cache when it is more recent and holds every switched-on tab
+    (`keepEnabled`); without one, the frame measures the page.
+  - A complete fresh audit is cached locally and sent to `saveAudit`. The answer (`auditedBy`, the
+    summary) heads the history.
+  - `AuditTrend` draws the totals oldest first.
+  - A failed read or save logs a warning, and the section works as before shared audits.
+- **Dashboard:** `audit/dashboard/AuditDashboard.jsx`, jContent app `contentGovernancePageQuality`
+  (`jcontent:89`, `jContentAccess`, `SectionGate` on `audit`, lazy).
+  - Moonstone `DataTable`: page, last audit, issues by tab as chips (tabs with issues only), total
+    with a trend chip, **Open**.
+  - Pagination 10/20/50.
+  - **Export CSV** (one row per page, a column per tab) and **Export JSON**, both built in the
+    browser (`exportAudits.js`, `common/exportFile.js`).
 
 ## The AI endpoint
 

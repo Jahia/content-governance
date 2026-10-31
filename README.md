@@ -60,6 +60,9 @@ They stay in jContent's **Additional** accordion:
   `llms.txt` (read only, written in the `llms` module's own **Llms.txt** screen), AI citations, and
   a written report by AI. Scans can be scheduled; **Export CSV** and **Export JSON** download what
   the last scan found.
+- **Page quality**: the latest audit of every audited page, as editors ran it from the drawer, most
+  issues first, with its trend, **Export CSV** and **Export JSON**. Audits are shared: every editor
+  of the site sees a page's newest audit and its last 10 in the drawer.
 - **Compliance**: the whole-site scan, with **Export CSV** and **Export JSON**.
 
 A section switched off for a site switches its dashboard off too: the entry stays in **Additional**
@@ -194,6 +197,7 @@ call to BotRank: a daily sync, on the processing server, stores the citations of
 | Page quality, GEO readiness sections | read the page | the section is on |
 | Compliance section | `jcr:write` on a page | the section is on; greyed out on content that is not a page, or without write access |
 | GEO readiness dashboard and its endpoints | `publish` on the site | always listed; says it is switched off when the GEO section is off |
+| Page quality dashboard and the shared audits | `jContentAccess` on the site, read on the page | always listed; says it is switched off when the Page quality section is off |
 | Compliance dashboard | `jContentAccess` on the site | always listed; says it is switched off when the Compliance section is off |
 | Site Settings > Content governance | `site-admin` on the site | always; the server checks every save |
 
@@ -292,7 +296,9 @@ the GEO dashboard asking the guard for its token once per page, and the Page qua
 bundled axe-core is the declared version, the rules axe-core turns on reach the Accessibility tab, and
 the Readability tab scores English and German with their own formula, leaves Russian unscored and
 counts characters in Japanese, and a page whose requests never answer is still audited, with the
-check that did not finish named), and how much of the module jContent loads when it starts.
+check that did not finish named), the shared audits (stored with counts computed on the server, read
+by a colleague, the last 10 kept, refused outside the site or with the section off, listed in the
+dashboard), and how much of the module jContent loads when it starts.
 
 ```bash
 cd tests && yarn install

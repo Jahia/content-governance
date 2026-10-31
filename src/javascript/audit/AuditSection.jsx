@@ -11,6 +11,7 @@ import {runLinks} from './analyzers/links';
 import {runJahiaHealth, fetchPageLastModified} from './analyzers/jahiaHealth';
 import {removeToolingElements} from './analyzers/tooling';
 import {runStep} from './analyzers/timeLimit';
+import {fetchPageAudits, saveAudit, storedResults} from './auditHistory';
 import {requestAiReview, requestSeoAssist, requestAltAssist, requestSimplifyAssist} from './analyzers/aiReview';
 import {AccessibilityTab} from './tabs/AccessibilityTab';
 import {VitalsTab} from './tabs/VitalsTab';
@@ -32,6 +33,9 @@ const SETTLE_MS = 2500;
 // answers would hold the audit on "Loading" for good. Past this, a page whose document is parsed is
 // audited anyway.
 const FRAME_LOAD_LIMIT_MS = 20_000;
+
+// Audits a page keeps for every editor of the site (AuditHistoryService.MAX_RUNS)
+const AUDITS_KEPT = 10;
 
 // The time each network-bound step may take before its tab is left out of the audit (runStep).
 const STEP_LIMITS_MS = {vitals: 15_000, a11y: 60_000, links: 45_000, jahia: 30_000};
@@ -117,6 +121,40 @@ const RESULT_KEYS = {
     ecodesign: 'ecodesign',
     links: 'links',
     jahia: 'jahia'
+};
+
+const formatDate = (timestamp, language) => new Date(timestamp).toLocaleString(language === 'fr' ? 'fr-FR' : language);
+
+/**
+ * The issues of the stored audits of the page, oldest to newest ("12 → 9 → 7"), each with its date and
+ * who ran it on hover. Nothing while the page has fewer than two.
+ */
+function AuditTrend({runs, language}) {
+    const {t} = useGovernanceTranslation('audit');
+    if (runs.length < 2) {
+        return null;
+    }
+    const oldestFirst = [...runs].reverse();
+    return (
+        <Typography variant="caption" className={styles.trend}>
+            {t('drawer.trend', {count: runs.length})}{' '}
+            {oldestFirst.map((run, index) => (
+                <React.Fragment key={run.auditedAt}>
+                    {index > 0 && ' → '}
+                    <span title={`${formatDate(Date.parse(run.auditedAt), language)} · ${run.auditedBy || ''}`}>{run.summary.total}</span>
+                </React.Fragment>
+            ))}
+        </Typography>
+    );
+}
+
+AuditTrend.propTypes = {
+    runs: PropTypes.arrayOf(PropTypes.shape({
+        auditedAt: PropTypes.string.isRequired,
+        auditedBy: PropTypes.string,
+        summary: PropTypes.shape({total: PropTypes.number.isRequired}).isRequired
+    })).isRequired,
+    language: PropTypes.string.isRequired
 };
 
 /**
@@ -238,6 +276,9 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
     // True when the page was modified after the cached audit: the old report
     // stays visible (the editor may be mid-fix) with a re-run notice.
     const [stale, setStale] = useState(false);
+    // The audits of the page stored for every editor of the site, newest first, and who ran the one shown
+    const [history, setHistory] = useState([]);
+    const [auditedBy, setAuditedBy] = useState(null);
     // Set when results were restored from cache: skips re-analysis on frame load
     const cacheHitRef = useRef(false);
     // AI review state lives here so it survives tab switches
@@ -290,35 +331,41 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
         setPreviewCollapsed(false);
         highlightedRef.current = null;
 
-        const cached = runId === 0 ? loadCachedAudit(path, language) : null;
-        const cachedResults = cached?.results ? keepEnabled(cached.results, isOn) : null;
-        setStale(false);
-        if (cachedResults) {
+        const showCached = (entry, by) => {
             cacheHitRef.current = true;
-            setResults(cachedResults);
-            setAuditedAt(cached.timestamp || null);
-            setAiReview(cached.aiReview || null);
-            setAiPhase(cached.aiReview ? 'done' : 'idle');
-            setSeoAssist(cached.seoAssist || null);
-            setSeoAssistPhase(cached.seoAssist ? 'done' : 'idle');
-            setAltAssist(cached.altAssist || null);
-            setAltPhase(cached.altAssist ? 'done' : 'idle');
-            setSimplifyAssist(cached.simplifyAssist || null);
-            setSimplifyPhase(cached.simplifyAssist ? 'done' : 'idle');
+            setResults(entry.results);
+            setAuditedAt(entry.timestamp || null);
+            setAuditedBy(by);
+            setAiReview(entry.aiReview || null);
+            setAiPhase(entry.aiReview ? 'done' : 'idle');
+            setSeoAssist(entry.seoAssist || null);
+            setSeoAssistPhase(entry.seoAssist ? 'done' : 'idle');
+            setAltAssist(entry.altAssist || null);
+            setAltPhase(entry.altAssist ? 'done' : 'idle');
+            setSimplifyAssist(entry.simplifyAssist || null);
+            setSimplifyPhase(entry.simplifyAssist ? 'done' : 'idle');
             setStatus('ready');
             // Staleness probe: was the page modified after this audit?
-            if (cached.timestamp) {
+            if (entry.timestamp) {
                 fetchPageLastModified(apolloClient, path, language).then(modifiedAt => {
-                    if (modifiedAt && modifiedAt > cached.timestamp) {
+                    if (modifiedAt && modifiedAt > entry.timestamp) {
                         setStale(true);
                     }
                 });
             }
+        };
+
+        const cached = runId === 0 ? loadCachedAudit(path, language) : null;
+        const cachedResults = cached?.results ? keepEnabled(cached.results, isOn) : null;
+        setStale(false);
+        if (cachedResults) {
+            showCached({...cached, results: cachedResults}, null);
         } else {
             cacheHitRef.current = false;
             setStatus('loading');
             setResults(null);
             setAuditedAt(null);
+            setAuditedBy(null);
             setAiReview(null);
             setAiPhase('idle');
             setSeoAssist(null);
@@ -331,10 +378,47 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
 
         // The frame mounts a moment after the section shows: a frame loaded while its box is still
         // being laid out makes Chrome throttle rendering, and FCP/LCP paint entries never fire.
+        // On opening, the audits stored for the site come first: the newest, whoever ran it, is shown
+        // instead of measuring the page again, and without any the frame measures it.
         setFrameVisible(false);
-        const timer = setTimeout(() => setFrameVisible(true), 400);
-        return () => clearTimeout(timer);
+        let cancelled = false;
+        let timer = null;
+        const mountFrame = () => {
+            if (!cancelled) {
+                timer = setTimeout(() => setFrameVisible(true), 400);
+            }
+        };
+        if (runId === 0) {
+            fetchPageAudits(apolloClient, path, language).then(runs => {
+                if (cancelled) {
+                    return;
+                }
+                setHistory(runs);
+                const newest = runs[0];
+                const newestAt = newest ? Date.parse(newest.auditedAt) : 0;
+                const shared = storedResults(newest);
+                const sharedResults = shared ? keepEnabled(shared, isOn) : null;
+                if (sharedResults && newestAt > (cachedResults ? cached.timestamp || 0 : 0)) {
+                    showCached({results: sharedResults, timestamp: newestAt}, newest.auditedBy);
+                }
+                mountFrame();
+            });
+        } else {
+            mountFrame();
+        }
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
     }, [runId, path, language, apolloClient, isOn]);
+
+    // A run stored for the site becomes the newest of the page's history
+    const addRun = useCallback(run => {
+        if (run) {
+            setAuditedBy(run.auditedBy);
+            setHistory(runs => [run, ...runs].slice(0, AUDITS_KEPT));
+        }
+    }, []);
 
     const handleFrameLoad = useCallback(() => {
         if (cacheHitRef.current) {
@@ -359,8 +443,10 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
                 const timestamp = Date.now();
                 setResults(newResults);
                 setAuditedAt(timestamp);
+                setAuditedBy(null);
                 if (!newResults.incomplete) {
                     saveCachedAudit(path, language, {schema: CACHE_SCHEMA, timestamp, results: newResults});
+                    saveAudit(apolloClient, path, language, newResults).then(addRun);
                 }
                 setStatus('ready');
             } catch (e) {
@@ -369,7 +455,7 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
                 setStatus('error');
             }
         }, SETTLE_MS);
-    }, [language, path, apolloClient, isOn, runId]);
+    }, [language, path, apolloClient, isOn, runId, addRun]);
 
     // Starts the analysis of a page whose load event does not come (a request that never answers)
     // once its document is parsed, or reports a preview that did not load at all.
@@ -599,9 +685,12 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
                         onClick={() => setPreviewCollapsed(c => !c)}/>
                 {auditedAt && (
                     <Typography variant="caption" className={styles.lastAudit}>
-                        {t('drawer.lastAudit', {date: new Date(auditedAt).toLocaleString(language === 'fr' ? 'fr-FR' : language)})}
+                        {auditedBy ?
+                            t('drawer.lastAuditBy', {date: formatDate(auditedAt, language), user: auditedBy}) :
+                            t('drawer.lastAudit', {date: formatDate(auditedAt, language)})}
                     </Typography>
                 )}
+                <AuditTrend runs={history} language={language}/>
             </div>
 
             <div className={`${styles.preview} ${previewCollapsed ? styles.previewCollapsed : ''}`}>

@@ -23,26 +23,13 @@ import {
 } from '@jahia/moonstone';
 import {SCAN_SITE} from './scanSite.gql';
 import {exportCsv, exportJson} from './exportReport';
+import {languageName, pageBuilderUrl} from '../../common/url';
 import styles from './ComplianceDashboard.module.css';
 
 const PER_PAGE_OPTIONS = [10, 20, 50];
 
-const languageName = (code, uiLanguage) => {
-    try {
-        return new Intl.DisplayNames([uiLanguage || 'en'], {type: 'language'}).of(code.replace('_', '-')) || code;
-    } catch {
-        return code;
-    }
-};
-
 const editInContentEditor = (uuid, site, language) => {
     window.CE_API?.edit?.({uuid, site, lang: language, isFullscreen: false});
-};
-
-/** Page Builder URL of a page: the jContent pages route, under the context path. */
-const pageBuilderUrl = (path, siteKey, language) => {
-    const relative = path.slice(`/sites/${siteKey}`.length).split('/').map(encodeURIComponent).join('/');
-    return `${globalThis.contextJsParameters?.contextPath || ''}/jahia/jcontent/${siteKey}/${language}/pages${relative}`;
 };
 
 const Excerpt = ({issue}) => (
