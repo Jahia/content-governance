@@ -12,6 +12,8 @@ keeps its history when it moves.
 A **Content governance** button in the header of jContent and Page Builder opens a drawer on the
 right. It has one tab per section, each with a red count of the issues to review. Every section and
 every tab has a tooltip saying what it is for, and why it is greyed out when it cannot be used.
+Under the section tabs, **Fix first** lists the five most serious findings, whatever their section,
+each opening the tab that explains it.
 
 | Section | What it answers | Where it runs |
 |---|---|---|

@@ -94,7 +94,7 @@ function sectionTabs(report, isOn, citations, t) {
  * files, structured data and BotRank citations say about it. The check runs on demand (it fetches
  * the public page once per AI crawler); citations load on their own from the site's last sync.
  */
-export const GeoSection = ({path, language, isOn, onCount}) => {
+export const GeoSection = ({path, language, isOn, onCount, onFindings, requestedTab}) => {
     const {t} = useGovernanceTranslation('geo');
     const [report, setReport] = useState(null);
     const [ranAt, setRanAt] = useState(null);
@@ -167,6 +167,24 @@ export const GeoSection = ({path, language, isOn, onCount}) => {
     useEffect(() => {
         onCount(total);
     }, [onCount, total]);
+
+    // One finding per tab with something to review: the tab knows what, this section only counts.
+    const findingsKey = JSON.stringify(tabs.filter(item => item.count > 0 && !item.disabled).map(item => ({
+        key: `geo.${item.id}`,
+        section: 'geo',
+        tab: item.id,
+        severity: item.id === 'score' || item.id === 'crawler' ? 'serious' : 'moderate',
+        title: t('fixFirst', {tab: item.label, count: item.count})
+    })));
+    useEffect(() => {
+        onFindings(JSON.parse(findingsKey));
+    }, [onFindings, findingsKey]);
+
+    useEffect(() => {
+        if (requestedTab) {
+            setTab(requestedTab.tab);
+        }
+    }, [requestedTab]);
 
     return (
         <>
@@ -364,5 +382,9 @@ GeoSection.propTypes = {
     language: PropTypes.string.isRequired,
     // isOn(tabId): whether the site switched that tab on
     isOn: PropTypes.func.isRequired,
-    onCount: PropTypes.func.isRequired
+    onCount: PropTypes.func.isRequired,
+    // Reports the section's findings to the drawer's "Fix first" list (drawer/findings.js)
+    onFindings: PropTypes.func.isRequired,
+    // {tab, at}: a tab the drawer asks the section to show (a "Fix first" link)
+    requestedTab: PropTypes.shape({tab: PropTypes.string, at: PropTypes.number})
 };

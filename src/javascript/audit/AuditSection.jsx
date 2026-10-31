@@ -12,6 +12,7 @@ import {runJahiaHealth, fetchPageLastModified} from './analyzers/jahiaHealth';
 import {removeToolingElements} from './analyzers/tooling';
 import {runStep} from './analyzers/timeLimit';
 import {fetchPageAudits, saveAudit, storedResults} from './auditHistory';
+import {auditFindings} from '../drawer/findings';
 import {requestAiReview, requestSeoAssist, requestAltAssist, requestSimplifyAssist} from './analyzers/aiReview';
 import {AccessibilityTab} from './tabs/AccessibilityTab';
 import {VitalsTab} from './tabs/VitalsTab';
@@ -265,7 +266,7 @@ function imagesWithoutAlt(results) {
  * review and assists on demand. Results are cached per page and language; the section measures
  * the page when it first shows and on every re-run.
  */
-export function AuditSection({path, language, isOn, ai, onCount}) {
+export function AuditSection({path, language, isOn, ai, onCount, onFindings, requestedTab}) {
     const {t} = useGovernanceTranslation('audit');
     const apolloClient = useApolloClient();
     const [activeTab, setActiveTab] = useState(null);
@@ -662,6 +663,16 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
         onCount(total);
     }, [onCount, total]);
 
+    useEffect(() => {
+        onFindings(status === 'ready' ? auditFindings(results, t) : []);
+    }, [onFindings, status, results, t]);
+
+    useEffect(() => {
+        if (requestedTab) {
+            setActiveTab(requestedTab.tab);
+        }
+    }, [requestedTab]);
+
     const busy = status === 'loading' || status === 'analyzing';
 
     return (
@@ -827,5 +838,9 @@ AuditSection.propTypes = {
     isOn: PropTypes.func.isRequired,
     // {configured, provider, model, images} from the site settings
     ai: PropTypes.object,
-    onCount: PropTypes.func.isRequired
+    onCount: PropTypes.func.isRequired,
+    // Reports the section's findings to the drawer's "Fix first" list (drawer/findings.js)
+    onFindings: PropTypes.func.isRequired,
+    // {tab, at}: a tab the drawer asks the section to show (a "Fix first" link)
+    requestedTab: PropTypes.shape({tab: PropTypes.string, at: PropTypes.number})
 };

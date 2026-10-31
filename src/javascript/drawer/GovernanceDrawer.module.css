@@ -81,3 +81,60 @@
 .drawer :global(.moonstone-tabItem) > :global(.moonstone-badge) {
     margin-inline-end: var(--moon-spacing-small, 8px);
 }
+/* "Fix first": one line under the section bar, a short list when unfolded. */
+.fixFirst {
+    flex-shrink: 0;
+    padding: var(--moon-spacing-small, 8px) var(--moon-spacing-medium, 16px);
+    border-bottom: 1px solid var(--color-gray_light40, #dfe3e8);
+    background: var(--moon-color-warning_plain20, #fff6e0);
+}
+
+.fixFirstLine {
+    display: flex;
+    align-items: center;
+    gap: var(--moon-spacing-small, 8px);
+    min-width: 0;
+}
+
+.fixFirstTitle {
+    flex-shrink: 0;
+}
+
+.fixFirstTop {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.fixFirstMore {
+    flex-shrink: 0;
+}
+
+.fixFirstToggle {
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.fixFirstList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--moon-spacing-small, 8px);
+    margin: var(--moon-spacing-small, 8px) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fixFirstItem {
+    display: flex;
+    align-items: center;
+    gap: var(--moon-spacing-small, 8px);
+    min-width: 0;
+}
+
+.fixFirstText {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
