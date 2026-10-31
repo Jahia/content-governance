@@ -138,6 +138,64 @@ function measuredResults(measured, page, incomplete, isOn) {
 }
 
 /**
+ * Measures the preview frame's page for the tabs the site keeps on: refuses an error page, strips
+ * editing tooling, then runs the analyzers in order.
+ *
+ * @returns {Promise<object>} the results (`measuredResults`), with `incomplete` when a step did not finish
+ */
+async function auditFrame(frame, {isOn, language, path, apolloClient}) {
+    // Refuse to audit an error page (404/500 render) - scoring it
+    // would silently produce meaningless results.
+    const navEntry = frame.contentWindow.performance.getEntriesByType('navigation')[0];
+    if (navEntry && navEntry.responseStatus >= 400) {
+        throw new Error(`HTTP ${navEntry.responseStatus}`);
+    }
+
+    // Strip editor/preview tooling (jExperience persona panel…)
+    // before any analyzer sees the DOM.
+    removeToolingElements(frame.contentDocument);
+
+    // Only the tabs the site keeps on are measured. Eco-design reads the vitals
+    // measurement, so vitals run as its input; the SEO read is a cheap DOM pass that
+    // always runs, for the page facts the AI tasks need (title, description, images
+    // without alt). What is kept is those facts and the switched-on tabs only.
+    // Vitals first: axe injection and link checks would otherwise
+    // appear in the page's own resource statistics.
+    // A network-bound step that fails or runs out of time leaves its own tab out; the
+    // other tabs are still shown, and such a partial audit is never cached.
+    const incomplete = {};
+    const step = async (key, start) => {
+        const outcome = await runStep(start, STEP_LIMITS_MS[key]);
+        if (outcome.incomplete) {
+            console.warn(`[content-governance] ${key} did not finish`, outcome);
+            incomplete[key] = outcome;
+            return null;
+        }
+        return outcome.value;
+    };
+    const vitals = isOn('vitals') || isOn('ecodesign') ? await step('vitals', () => runWebVitals(frame)) : null;
+    let ecodesign = null;
+    if (isOn('ecodesign')) {
+        if (vitals) {
+            ecodesign = runEcodesign(frame, vitals);
+        } else {
+            incomplete.ecodesign = incomplete.vitals;
+        }
+    }
+    const readability = isOn('readability') ? runReadability(frame, language) : null;
+    const seo = runSeo(frame, language);
+    const page = {
+        title: seo.title ? seo.title.text : '',
+        description: seo.description ? (seo.description.text || '') : '',
+        imagesWithoutAlt: seo.imagesWithoutAlt || 0
+    };
+    const a11y = isOn('accessibility') ? await step('a11y', () => runAccessibility(frame)) : null;
+    const links = isOn('links') ? await step('links', () => runLinks(frame)) : null;
+    const jahia = isOn('jahia') ? await step('jahia', () => runJahiaHealth(frame, {client: apolloClient, path, language})) : null;
+    return measuredResults({a11y, vitals, ecodesign, readability, seo, links, jahia}, page, incomplete, isOn);
+}
+
+/**
  * The results of the tabs the site keeps on, or null when one of them is missing (a tab switched
  * back on since the audit was cached): a tab switched off is never shown, exported, nor sent to the
  * AI review.
@@ -297,55 +355,7 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
                     throw new Error('Preview frame unavailable');
                 }
 
-                // Refuse to audit an error page (404/500 render) - scoring it
-                // would silently produce meaningless results.
-                const navEntry = frame.contentWindow.performance.getEntriesByType('navigation')[0];
-                if (navEntry && navEntry.responseStatus >= 400) {
-                    throw new Error(`HTTP ${navEntry.responseStatus}`);
-                }
-
-                // Strip editor/preview tooling (jExperience persona panel…)
-                // before any analyzer sees the DOM.
-                removeToolingElements(frame.contentDocument);
-
-                // Only the tabs the site keeps on are measured. Eco-design reads the vitals
-                // measurement, so vitals run as its input; the SEO read is a cheap DOM pass that
-                // always runs, for the page facts the AI tasks need (title, description, images
-                // without alt). What is kept is those facts and the switched-on tabs only.
-                // Vitals first: axe injection and link checks would otherwise
-                // appear in the page's own resource statistics.
-                // A network-bound step that fails or runs out of time leaves its own tab out; the
-                // other tabs are still shown, and such a partial audit is never cached.
-                const incomplete = {};
-                const step = async (key, start) => {
-                    const outcome = await runStep(start, STEP_LIMITS_MS[key]);
-                    if (outcome.incomplete) {
-                        console.warn(`[content-governance] ${key} did not finish`, outcome);
-                        incomplete[key] = outcome;
-                        return null;
-                    }
-                    return outcome.value;
-                };
-                const vitals = isOn('vitals') || isOn('ecodesign') ? await step('vitals', () => runWebVitals(frame)) : null;
-                let ecodesign = null;
-                if (isOn('ecodesign')) {
-                    if (vitals) {
-                        ecodesign = runEcodesign(frame, vitals);
-                    } else {
-                        incomplete.ecodesign = incomplete.vitals;
-                    }
-                }
-                const readability = isOn('readability') ? runReadability(frame, language) : null;
-                const seo = runSeo(frame, language);
-                const page = {
-                    title: seo.title ? seo.title.text : '',
-                    description: seo.description ? (seo.description.text || '') : '',
-                    imagesWithoutAlt: seo.imagesWithoutAlt || 0
-                };
-                const a11y = isOn('accessibility') ? await step('a11y', () => runAccessibility(frame)) : null;
-                const links = isOn('links') ? await step('links', () => runLinks(frame)) : null;
-                const jahia = isOn('jahia') ? await step('jahia', () => runJahiaHealth(frame, {client: apolloClient, path, language})) : null;
-                const newResults = measuredResults({a11y, vitals, ecodesign, readability, seo, links, jahia}, page, incomplete, isOn);
+                const newResults = await auditFrame(frame, {isOn, language, path, apolloClient});
                 const timestamp = Date.now();
                 setResults(newResults);
                 setAuditedAt(timestamp);

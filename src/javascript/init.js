@@ -1,4 +1,5 @@
 import React, {Suspense, lazy} from 'react';
+import PropTypes from 'prop-types';
 import i18next from 'i18next';
 import {registry} from '@jahia/ui-extender';
 import {Header, LayoutContent, Loader} from '@jahia/moonstone';
@@ -42,6 +43,11 @@ const Loading = ({title, children}) => (
         {children}
     </Suspense>
 );
+
+Loading.propTypes = {
+    title: PropTypes.string.isRequired,
+    children: PropTypes.node.isRequired
+};
 
 const GeoDashboardRoute = () => {
     const title = i18next.t(`${NS}:geo.dashboard.navLabel`);
