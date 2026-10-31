@@ -436,3 +436,7 @@
     font-size: 12px;
     margin-top: 2px;
 }
+
+.incompleteAction {
+    margin-top: var(--spacing-small, 8px);
+}

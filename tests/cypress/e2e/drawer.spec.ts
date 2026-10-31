@@ -46,6 +46,23 @@ describe('Content Governance - drawer', () => {
         deleteTestSite(siteKey);
     });
 
+    // jContent loads the module's entry, the button and one language when it starts; the drawer,
+    // the dashboards and the settings load on first use (622 kB at start before 1.5.0).
+    it('loads less than 200 kB of the module where its button does not show', () => {
+        cy.intercept('GET', '**/modules/content-governance/javascript/apps/*.js').as('apps');
+        cy.login(admin.username, admin.password);
+        cy.visit(`/jahia/jcontent/${siteKey}/en/media`);
+        cy.wait('@apps', {timeout: 30000});
+        // Room for anything loaded late, the background fetch of the drawer included
+        cy.wait(6000);
+        cy.get<Interception[]>('@apps.all').then(calls => {
+            const files = calls.map(call => call.request.url.split('/').pop());
+            const bytes = calls.reduce((sum, call) => sum + String(call.response?.body ?? '').length, 0);
+            expect(files, 'axe-core loads with an audit only').not.to.include('axe.min.js');
+            expect(bytes, `${files.join(', ')}`).to.be.lessThan(200000);
+        });
+    });
+
     it('opens on a page with a tab per section, and closes with Escape', () => {
         cy.login(admin.username, admin.password);
         cy.visit(pageUrl);

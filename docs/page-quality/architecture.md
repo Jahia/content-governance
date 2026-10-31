@@ -30,8 +30,8 @@ jContent / Page Builder header
 
 | Path | Role |
 |---|---|
-| `src/javascript/init.js` | Registers the `contentGovernance` action on `headerPrimaryActions:890`, label `drawer.action` ("Content governance"). |
-| `src/javascript/drawer/GovernanceAction.jsx` | Shows the button on `jnt:page` and `jmix:mainResource` of a site that enables the module (`useNodeChecks`, `requireModuleInstalledOnSite`), reads the site settings, opens the drawer. |
+| `src/javascript/init.js` | Loads the editor's language file (only that one: `en` or `fr`, English otherwise), then registers the `contentGovernance` action on `headerPrimaryActions:890`, label `drawer.action` ("Content governance"), and the routes. Everything else loads on first use: the GEO and Compliance dashboards and the settings panel through `React.lazy` with a Moonstone loader, the drawer from `GovernanceAction`. jContent's start loads about 105 kB of the module (622 kB up to 1.4.0); the drawer spec fails above 200 kB. |
+| `src/javascript/drawer/GovernanceAction.jsx` | Shows the button on `jnt:page` and `jmix:mainResource` of a site that enables the module (`useNodeChecks`, `requireModuleInstalledOnSite`), reads the site settings, opens the drawer. The drawer and its three sections are one lazy chunk, fetched when the browser is idle once the button shows (`requestIdleCallback`, else after 2 s), at the latest on the first click. |
 | `src/javascript/drawer/GovernanceDrawer.jsx` | The drawer: header, one section tab per switched-on section with its count badge, sections mounted on first show and kept mounted while the drawer is open. |
 | `src/javascript/audit/AuditSection.jsx` | The section: preview frame, analyzer pipeline, cache, staleness probe, export, AI task lifecycle, tab bar and badges. |
 | `src/javascript/audit/analyzers/` | One file per analyzer, plus `tooling.js` (DOM cleanup) and `aiReview.js` (AI client). |
@@ -80,13 +80,23 @@ The analyzers call no module endpoint; the server enforces the switches on the A
   Internal links in that render legitimately point to `/cms/render/default/...`.
 - The iframe mounts 400 ms after the section effect runs. A frame loaded while its box is still being
   laid out is throttled by Chrome and never emits paint entries.
+- The frame's `load` event waits for every image, font and script of the page, so one request that
+  never answers would hold the section on "Loading" for good. `FRAME_LOAD_LIMIT_MS` (20 s) after the
+  frame mounts, a document whose `readyState` is past `loading` is audited anyway; one still loading
+  shows `drawer.frameTimeout`. `analyzedRunRef` makes sure a run is analysed once, whichever comes
+  first, and that a later load of the frame (a link followed in the preview) does not analyse again.
 - On `load`, the section waits `SETTLE_MS` (2500 ms) for client islands to hydrate, then:
   1. reads the frame's `navigation` performance entry and throws `HTTP <status>` when
      `responseStatus >= 400`, so a 404 or 500 render is refused instead of scored;
   2. calls `removeToolingElements(doc)`, which removes `[id^="tst-"]`, `[class*="tst-"]` and
      `#personas_panel` (jExperience persona preview, injected by `wem.js` in authoring contexts),
      before any analyzer reads the DOM;
-  3. runs the analyzers in order.
+  3. runs the analyzers in order. The four network-bound ones go through `runStep`
+     (`analyzers/timeLimit.js`) with `STEP_LIMITS_MS`: vitals 15 s, accessibility 60 s, links 45 s,
+     Jahia 30 s. A step that fails or runs out of time is left out: its tab shows `IncompleteStep`
+     (why, and **Re-run**) from `results.incomplete[<result key>]`, eco-design follows vitals, the
+     other tabs show their results, and such a partial audit is never cached. The late answer of a
+     stopped step is ignored, not cancelled.
 - When results come from the cache, the frame still loads (preview and highlight target) but the
   analyzers do not run (`cacheHitRef`).
 - Highlight: `highlight(selector)` uses `querySelector`; `highlightText(sample)` normalises

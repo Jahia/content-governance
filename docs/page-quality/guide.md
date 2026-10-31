@@ -20,6 +20,12 @@ or Content Editor.
 The first time, the section shows "Loading page preview…" then "Analyzing page…". The analysis
 waits for the page to settle before it measures, so expect several seconds.
 
+A page that keeps loading (an image, a font or a script that never answers) is audited after 20
+seconds as it stands. A check that takes too long (Accessibility 60 seconds, Links 45, Jahia 30, Web
+Vitals 15) or fails is stopped: its tab says "This check did not finish" or "This check failed" with
+a **Re-run** button, and the other tabs show their results. Such an audit is not kept for the next
+opening.
+
 Close the drawer with the **Close panel** button, the Escape key, or a click outside it. Your
 results are kept: the next time you open the drawer on the same page and language, they come back at
 once.

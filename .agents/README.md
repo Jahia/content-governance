@@ -81,6 +81,15 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   0-100 scale so the bands and advice stay shared, its vowels in `VOWELS`, its source in the file
   comment, and a hand-computed case in `src/test/javascript/readability.test.js`. A language without
   one gets no score, never another language's; a language written without spaces gets no word count.
+- **jContent's start loads the button and one language only** (2026-10-31): `init.js` imports the
+  registration code, `GovernanceAction` and `SectionGate`; a new screen, dashboard or drawer section
+  is loaded with `React.lazy` (`named()` in `init.js`, `loadDrawer` in `GovernanceAction`), and a new
+  language file goes in `LOCALES`. The drawer spec fails when jContent loads 200 kB or more of the
+  module where the button does not show.
+- **No audit step can hold the drawer** (2026-10-31): a Page quality step that waits on the network
+  goes through `runStep` with its own entry in `STEP_LIMITS_MS`, and its tab shows `IncompleteStep`
+  when it does not finish; the frame is audited after `FRAME_LOAD_LIMIT_MS` when its load event does
+  not come. The audit spec's never-answering page proves both.
 
 ## Configuration
 

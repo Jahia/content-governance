@@ -1031,6 +1031,7 @@
       "drawer": {
         "close": "Fermer le panneau",
         "rerun": "Relancer",
+        "frameTimeout": "L'aperçu de la page ne s'est pas chargé en {{seconds}} secondes : la page n'a pas pu être analysée. Vérifiez qu'elle s'ouvre en Aperçu, puis relancez l'analyse.",
         "export": "Exporter JSON",
         "hidePreview": "Masquer l'aperçu",
         "showPreview": "Afficher l'aperçu",
@@ -1564,6 +1565,12 @@
             "detail": "Minifiez, compressez ou découpez ces ressources, ou chargez-les uniquement là où elles servent."
           }
         }
+      },
+      "incomplete": {
+        "timedOutTitle": "Ce contrôle ne s'est pas terminé",
+        "timedOut": "Il a duré plus de {{seconds}} secondes et a été arrêté ; les autres onglets affichent leurs résultats. Relancez l'analyse. Si cela se reproduit, la page charge peut-être une ressource qui ne répond jamais.",
+        "failedTitle": "Ce contrôle a échoué",
+        "failed": "Il s'est arrêté sur une erreur ({{message}}) ; les autres onglets affichent leurs résultats. Relancez l'analyse."
       },
       "readability": {
         "simplify": {
