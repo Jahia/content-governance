@@ -313,6 +313,7 @@ export const GeoSection = ({path, language, isOn, onCount}) => {
                             <HelpTab key={item.id}
                                      help={t(`tabHelp.${item.id}`)}
                                      note={item.disabled ? t('citations.notConfiguredTab') : undefined}
+                                     isSelected={activeTab === item.id}
                             >
                                 <TabItem
                                     id={`geo-drawer-tab-${item.id}`}

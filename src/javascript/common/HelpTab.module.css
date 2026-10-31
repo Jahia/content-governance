@@ -23,3 +23,8 @@
     stroke: var(--moon-color-gray40);
     stroke-dasharray: 0 14 20 0;
 }
+
+/* Moonstone keeps the tooltip's open state to itself: on the selected tab it is never drawn. */
+.selected :global(.moonstone-tooltip_label) {
+    display: none;
+}

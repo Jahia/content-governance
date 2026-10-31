@@ -723,6 +723,7 @@ export function AuditSection({path, language, isOn, ai, onCount}) {
                         <HelpTab key={tab.key}
                                  help={t(`tabHelp.${tab.key}`)}
                                  note={tab.disabled ? t('tabs.aiNotConfigured') : (tab.badge ? t('tabs.badgeTooltip', {count: tab.badge}) : undefined)}
+                                 isSelected={currentTab === tab.key}
                         >
                             <TabItem id={`audit-tab-${tab.key}`}
                                      aria-controls="audit-tab-panel"
