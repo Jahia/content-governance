@@ -79,8 +79,8 @@ async function send(url, init) {
     const address = new URL(url, globalThis.location.origin).pathname;
     // The master token works once per address: the first answer brings the address's page token.
     // While that first request is out, another request to the address waits for it instead of being
-    // refused (the dashboard sends several to one servlet at once; a slow server made the guard refuse
-    // one). The check and the claim below have no await between them, so parallel calls cannot both pass.
+    // refused (the GEO dashboard sends several to one servlet at once). The check and the claim below
+    // have no await between them, so parallel calls cannot both pass.
     while (sent.name && !sent.pages[address] && sent.firstUse?.[address]) {
         await sent.firstUse[address];
     }

@@ -8,10 +8,6 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "0 3 * * *"
-  # TEMPORARY: one run of this branch before merging (a new workflow cannot be dispatched before
-  # it is on main). Removed before the pull request is merged.
-  push:
-    branches: [feat/nightly-ci]
 
 jobs:
   build:
