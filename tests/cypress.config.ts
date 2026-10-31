@@ -4,6 +4,9 @@ import {setupNodeEvents} from './cypress/plugins';
 export default defineConfig({
     video: false,
     screenshotOnRunFailure: true,
+    // Under results/, which the CI keeps as the run's artifact
+    screenshotsFolder: './results/screenshots',
+    videosFolder: './results/videos',
     viewportWidth: 1440,
     viewportHeight: 900,
     defaultCommandTimeout: 10000,
