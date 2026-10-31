@@ -89,7 +89,8 @@ Jahia's shared workflows in `.github/workflows/` (table in the root README, "CI 
 Every PR carries a `.chachalog/` fragment, docs and CI changes included; `.version` stays `0.0.0`
 until 1.0.0 is released. Before releasing, read the README's release steps: the CI account may not
 have write access to this new repository, and the first release PR must fold the hand-written
-`1.0.0 (unreleased)` section of `CHANGELOG.md`. No integration-test job until a Cypress suite exists.
+`1.0.0 (unreleased)` section of `CHANGELOG.md`. The Cypress suite in `tests/` runs locally against a
+running Jahia (README, "Build"); it is kept out of the pull request CI, which the team wants short.
 
 ## Known leftovers
 
