@@ -1,26 +1,74 @@
 /**
  * Language-aware readability analysis of the preview frame's main content.
- * EN: Flesch Reading Ease + Flesch-Kincaid grade level.
- * FR: Kandel-Moles adaptation of Flesch (207 - 1.015 ASL - 73.6 ASW).
+ *
+ * The score is a Flesch Reading Ease adapted to the page language, each adaptation on Flesch's
+ * 0-100 scale (higher reads easier), so the bands and advice are shared. ASL is words per
+ * sentence, ASW syllables per word:
+ * - en Flesch (1948): 206.835 - 1.015 ASL - 84.6 ASW, plus the Flesch-Kincaid grade level
+ * - fr Kandel and Moles (1958): 207 - 1.015 ASL - 73.6 ASW
+ * - de Amstad (1978): 180 - ASL - 58.5 ASW
+ * - es Fernandez Huerta (1959), with the sentence term as corrected by Law (2011): 206.84 - 1.02 ASL - 60 ASW
+ * - it Franchina and Vacca (1986): 206 - ASL - 65 ASW
+ * - nl Douma (1960): 206.835 - 0.93 ASL - 77 ASW
+ * - pt Martins et al. (1996): 248.835 - 1.015 ASL - 84.6 ASW
+ *
+ * Another language gets no score rather than the English one: its text statistics and structure
+ * are still measured. Languages written without spaces between words (Japanese, Chinese, Thai...)
+ * have no word count either: characters and sentences are counted instead.
  */
 
-const FR_VOWELS = /[aeiouyàâäéèêëîïôöùûüœ]+/g;
-const EN_VOWELS = /[aeiouy]+/g;
+const FORMULAS = {
+    en: {name: 'Flesch', score: (asl, asw) => 206.835 - (1.015 * asl) - (84.6 * asw)},
+    fr: {name: 'Kandel-Moles', score: (asl, asw) => 207 - (1.015 * asl) - (73.6 * asw)},
+    de: {name: 'Amstad', score: (asl, asw) => 180 - asl - (58.5 * asw)},
+    es: {name: 'Fernández Huerta', score: (asl, asw) => 206.84 - (1.02 * asl) - (60 * asw)},
+    it: {name: 'Franchina-Vacca', score: (asl, asw) => 206 - asl - (65 * asw)},
+    nl: {name: 'Douma', score: (asl, asw) => 206.835 - (0.93 * asl) - (77 * asw)},
+    pt: {name: 'Martins', score: (asl, asw) => 248.835 - (1.015 * asl) - (84.6 * asw)}
+};
+
+// Vowel letters per language: a run of them is one syllable nucleus (diphthongs count once).
+const VOWELS = {
+    en: /[aeiouy]+/g,
+    fr: /[aeiouyàâäéèêëîïôöùûüœæ]+/g,
+    de: /[aeiouyäöü]+/g,
+    es: /[aeiouáéíóúü]+/g,
+    it: /[aeiouàèéìíòóù]+/g,
+    nl: /[aeiouyáéèëíïóöú]+/g,
+    pt: /[aeiouáàâãéêíóôõú]+/g
+};
+
+// A diaeresis after another vowel opens a new syllable in French and Dutch (Noël, naïf, geëerd).
+const HIATUS = {fr: /[aeiouy][ëïü]/g, nl: /[aeiouy][ëïü]/g};
+
+// Written without spaces between words: a word count means nothing there.
+const UNSPACED = new Set(['ja', 'zh', 'th', 'lo', 'km', 'my']);
 
 const LONG_SENTENCE_WORDS = 25;
+const MIN_WORDS = 30;
 const READING_WPM = 200;
 
-function countSyllables(word, lang) {
-    const w = word.toLowerCase().replace(/[^a-zàâäçéèêëîïôöùûüœ]/g, '');
+/**
+ * Syllables of one word by vowel groups, plus a hiatus marked by a diaeresis, minus the silent
+ * final e of English and French.
+ *
+ * @param {string} word a word as split from the text
+ * @param {string} lang a language with a formula (`FORMULAS` key)
+ * @returns {number} 0 for a word without letters, else at least 1
+ */
+export function countSyllables(word, lang) {
+    const w = word.toLowerCase().replace(/[^\p{L}]/gu, '');
     if (w.length === 0) {
         return 0;
     }
 
-    const groups = w.match(lang === 'fr' ? FR_VOWELS : EN_VOWELS) || [];
-    let count = groups.length;
+    let count = (w.match(VOWELS[lang] || VOWELS.en) || []).length;
+    if (HIATUS[lang]) {
+        count += (w.match(HIATUS[lang]) || []).length;
+    }
 
-    // Final silent e ("word" endings): English silent e, French e muet
-    if (count > 1 && (w.endsWith('e') || w.endsWith('es') || (lang === 'en' && w.endsWith('ed')))) {
+    if (count > 1 && (lang === 'en' || lang === 'fr')
+        && (w.endsWith('e') || w.endsWith('es') || (lang === 'en' && w.endsWith('ed')))) {
         count--;
     }
 
@@ -45,6 +93,66 @@ function scoreBand(score) {
     }
 
     return 'veryDifficult';
+}
+
+/**
+ * Text statistics and score of a plain text.
+ *
+ * @param {string} text the text, whitespace already collapsed
+ * @param {string} lang two-letter language code, lower case
+ * @returns {object} `{lang, spaced, empty, scored, formula, score, band, gradeLevel, words,
+ *     characters, sentences, avgSentenceLength, avgSyllablesPerWord, longSentences, readingMinutes}`;
+ *     the fields a language cannot measure are `null`
+ */
+export function analyzeText(text, lang) {
+    if (UNSPACED.has(lang)) {
+        const sentences = text.split(/[。．！？!?]+/).map(s => s.trim()).filter(Boolean);
+        const characters = (text.match(/[\p{L}\p{N}]/gu) || []).length;
+        return {
+            lang, spaced: false, empty: characters === 0, scored: false,
+            formula: null, score: null, band: null, gradeLevel: null,
+            words: null, characters, sentences: sentences.length,
+            avgSentenceLength: null, avgSyllablesPerWord: null, longSentences: null, readingMinutes: null
+        };
+    }
+
+    const sentences = text.split(/[.!?…]+(?:\s|$)/)
+        .map(s => s.trim())
+        .filter(s => s.split(/\s+/).length > 1);
+    const words = text.split(/\s+/)
+        .map(w => w.replace(/[^\p{L}\p{N}'’-]/gu, ''))
+        .filter(w => w.length > 0);
+
+    if (words.length < MIN_WORDS) {
+        return {lang, spaced: true, empty: true, scored: false, words: words.length};
+    }
+
+    const asl = words.length / Math.max(1, sentences.length);
+    const formula = FORMULAS[lang];
+    let score = null;
+    let asw = null;
+    if (formula) {
+        asw = words.reduce((sum, w) => sum + countSyllables(w, lang), 0) / words.length;
+        score = Math.round(Math.min(100, Math.max(0, formula.score(asl, asw))));
+    }
+
+    return {
+        lang,
+        spaced: true,
+        empty: false,
+        scored: Boolean(formula),
+        formula: formula ? formula.name : null,
+        score,
+        band: formula ? scoreBand(score) : null,
+        gradeLevel: lang === 'en' ? Math.round(((0.39 * asl) + (11.8 * asw) - 15.59) * 10) / 10 : null,
+        words: words.length,
+        characters: null,
+        sentences: sentences.length,
+        avgSentenceLength: Math.round(asl * 10) / 10,
+        avgSyllablesPerWord: formula ? Math.round(asw * 100) / 100 : null,
+        longSentences: sentences.filter(s => s.split(/\s+/).length > LONG_SENTENCE_WORDS).length,
+        readingMinutes: Math.max(1, Math.round(words.length / READING_WPM))
+    };
 }
 
 export function runReadability(frame, language) {
@@ -74,28 +182,10 @@ export function runReadability(frame, language) {
     }
 
     const text = parts.join(' ').replace(/\s+/g, ' ').trim();
-
-    const sentences = text.split(/[.!?…]+(?:\s|$)/)
-        .map(s => s.trim())
-        .filter(s => s.split(/\s+/).length > 1);
-    const words = text.split(/\s+/)
-        .map(w => w.replace(/[^A-Za-zÀ-ÖØ-öø-ÿœ0-9'’-]/g, ''))
-        .filter(w => w.length > 0);
-
-    if (words.length < 30) {
-        return {lang, empty: true, words: words.length, recommendations: []};
+    const stats = analyzeText(text, lang);
+    if (stats.empty) {
+        return {...stats, recommendations: []};
     }
-
-    const syllables = words.reduce((sum, w) => sum + countSyllables(w, lang), 0);
-    const asl = words.length / Math.max(1, sentences.length);
-    const asw = syllables / words.length;
-
-    const rawScore = lang === 'fr' ?
-        207 - (1.015 * asl) - (73.6 * asw) :
-        206.835 - (1.015 * asl) - (84.6 * asw);
-    const score = Math.round(Math.min(100, Math.max(0, rawScore)));
-
-    const longSentences = sentences.filter(s => s.split(/\s+/).length > LONG_SENTENCE_WORDS).length;
 
     // Heading structure (whole page for h1, main content for hierarchy)
     const levels = Array.from(rootEl.querySelectorAll('h1,h2,h3,h4,h5,h6'))
@@ -117,22 +207,11 @@ export function runReadability(frame, language) {
     );
 
     const result = {
-        lang,
-        empty: false,
-        formula: lang === 'fr' ? 'Kandel-Moles' : 'Flesch',
-        score,
-        band: scoreBand(score),
-        gradeLevel: lang === 'fr' ? null : Math.round(((0.39 * asl) + (11.8 * asw) - 15.59) * 10) / 10,
-        words: words.length,
-        sentences: sentences.length,
-        avgSentenceLength: Math.round(asl * 10) / 10,
-        avgSyllablesPerWord: Math.round(asw * 100) / 100,
-        longSentences,
-        readingMinutes: Math.max(1, Math.round(words.length / READING_WPM)),
+        ...stats,
         h1Count: doc.querySelectorAll('h1').length,
         headingSkips,
         paragraphs: paragraphs.length,
-        avgWordsPerParagraph: paragraphs.length > 0 ? Math.round(paragraphWords / paragraphs.length) : 0
+        avgWordsPerParagraph: stats.spaced && paragraphs.length > 0 ? Math.round(paragraphWords / paragraphs.length) : null
     };
 
     result.recommendations = buildReadabilityRecommendations(result);
@@ -141,15 +220,19 @@ export function runReadability(frame, language) {
 
 /**
  * Actionable advice derived from the scores. Keys resolve to
- * readability.recs.<key>.title / .detail in the locale bundles.
+ * readability.recs.<key>.title / .detail in the locale bundles. A measure the
+ * language cannot take (no formula, no word count) gives no advice.
+ *
+ * @param {object} r the readability result
+ * @returns {Array<{key: string, severity: string, params: object}>}
  */
-function buildReadabilityRecommendations(r) {
+export function buildReadabilityRecommendations(r) {
     const recs = [];
     const push = (key, severity, params) => recs.push({key, severity, params: params || {}});
 
-    if (r.score < 30) {
+    if (r.scored && r.score < 30) {
         push('veryHardText', 'serious', {score: r.score});
-    } else if (r.score < 50) {
+    } else if (r.scored && r.score < 50) {
         push('hardText', 'moderate', {score: r.score});
     }
 
@@ -170,7 +253,7 @@ function buildReadabilityRecommendations(r) {
         push('headingSkips', 'moderate', {count: r.headingSkips});
     }
 
-    if (r.words < 300) {
+    if (r.spaced && r.words < 300) {
         push('thinContent', 'minor', {count: r.words});
     }
 

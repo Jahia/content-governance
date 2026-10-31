@@ -34,7 +34,7 @@ const CACHE_MAX_ENTRIES = 10;
 // Bump whenever the cached `results` shape changes (e.g. a new analyzer key),
 // so entries written by an older module version are ignored instead of
 // restored into UI that expects the new shape.
-const CACHE_SCHEMA = 4;
+const CACHE_SCHEMA = 5;
 
 const cacheKey = (path, language) => `${CACHE_PREFIX}${language}:${path}`;
 

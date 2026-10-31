@@ -139,9 +139,9 @@ export function nodeExists(path: string): Cypress.Chainable<boolean> {
  * @param {string} siteKey the site key.
  * @param {boolean} withModule whether the site enables content-governance.
  */
-export function createTestSite(siteKey: string, withModule = true): void {
+export function createTestSite(siteKey: string, withModule = true, languages = 'en,fr'): void {
     deleteTestSite(siteKey);
-    createSite(siteKey, {templateSet: TEMPLATE_SET, serverName: 'localhost', locale: 'en', languages: 'en,fr'});
+    createSite(siteKey, {templateSet: TEMPLATE_SET, serverName: 'localhost', locale: 'en', languages});
     if (withModule) {
         enableModule(MODULE_NAME, siteKey);
     }

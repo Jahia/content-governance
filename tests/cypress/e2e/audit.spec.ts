@@ -26,12 +26,24 @@ const FIXTURE = '<div id="cg-a11y-fixture">'
     + '</div>';
 const EXPECTED_RULES = ['image-alt', 'link-name', 'label-content-name-mismatch'];
 
+/**
+ * Readability per page language: the formula of a language that has one, no score (rather than
+ * the English one) for a language without, characters instead of words where words are not
+ * spaced. The scores themselves are unit-tested (src/test/javascript/readability.test.js).
+ */
+const READABILITY = [
+    {lang: 'en', expect: 'Readability score (Flesch)', text: 'The team writes short pages. Each page answers one question. Readers find what they need and leave. Short sentences help everyone read faster. Plain words work better than jargon. We test every page with real readers before it goes live.'},
+    {lang: 'de', expect: 'Readability score (Amstad)', text: 'Das Team schreibt kurze Seiten. Jede Seite beantwortet eine Frage. Die Leser finden schnell, was sie suchen. Kurze Sätze helfen allen Menschen beim Lesen. Einfache Wörter sind besser als Fachsprache. Wir testen jede Seite mit echten Lesern.'},
+    {lang: 'ru', expect: 'No readability formula exists for Russian here', text: 'Команда пишет короткие страницы. Каждая страница отвечает на один вопрос. Читатели быстро находят то, что ищут. Короткие предложения помогают всем читать быстрее. Простые слова лучше, чем жаргон. Мы проверяем каждую страницу с настоящими читателями.'},
+    {lang: 'ja', expect: 'Japanese is written without spaces between words', text: '私たちは短いページを書きます。各ページは一つの質問に答えます。読者は必要な情報をすぐに見つけます。'}
+];
+
 describe('Content Governance - Page quality audit', () => {
     const siteKey = 'cg-audit';
     const admin: TestUser = {username: 'cg-audit-admin', password: 'cgAdmin1234'};
 
     before(() => {
-        createTestSite(siteKey);
+        createTestSite(siteKey, true, `en,fr,${READABILITY.map(r => r.lang).filter(l => l !== 'en').join(',')}`);
         createTestUser(admin, `/sites/${siteKey}`, ['site-administrator']);
     });
 
@@ -68,6 +80,28 @@ describe('Content Governance - Page quality audit', () => {
             EXPECTED_RULES.forEach(rule => {
                 cy.get(DRAWER).contains('a', new RegExp(`^${rule}$`)).should('exist');
             });
+        });
+    });
+
+    READABILITY.forEach(({lang, expect, text}) => {
+        it(`scores readability for a page in ${lang}`, () => {
+            cy.intercept('GET', `**/cms/render/default/${lang}/sites/${siteKey}/home.html?pageAuditRun=*`, req => {
+                req.continue(res => {
+                    const body = String(res.body);
+                    const fixture = `<p id="cg-readability-fixture">${text}</p>`;
+                    res.body = body.includes('</main>') ? body.replace('</main>', `${fixture}</main>`) : body.replace('</body>', `${fixture}</body>`);
+                });
+            }).as('preview');
+            cy.login(admin.username, admin.password);
+            cy.visit(`/jahia/jcontent/${siteKey}/${lang}/pages/home`);
+            cy.contains('button', BUTTON, {timeout: 30000}).click();
+            cy.wait('@preview', {timeout: 30000});
+            cy.get('#audit-tab-readability', {timeout: 60000}).click();
+            cy.get(DRAWER).contains(expect, {timeout: 60000}).should('exist');
+            if (lang === 'ja') {
+                cy.get(DRAWER).contains('Characters').should('exist');
+                cy.get(DRAWER).contains('Readability score').should('not.exist');
+            }
         });
     });
 });

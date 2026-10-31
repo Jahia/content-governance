@@ -1602,6 +1602,9 @@
         "headingSkips": "Skipped heading levels",
         "headingSkipsHint": "avoid jumping levels (e.g. H2 to H4)",
         "noText": "Not enough text on this page to compute readability ({{count}} words found).",
+        "noFormula": "No readability formula exists for {{language}} here: the score is left out rather than computed with another language's formula. Sentence length, paragraphs and headings are still checked.",
+        "noWords": "{{language}} is written without spaces between words, so neither a readability score nor a word count applies: characters and sentences are counted instead, and headings are still checked.",
+        "characters": "Characters",
         "recs": {
           "veryHardText": {
             "title": "Text is very difficult to read (score {{score}})",

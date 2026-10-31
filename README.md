@@ -26,7 +26,7 @@ every tab has a tooltip saying what it is for, and why it is greyed out when it 
 | **Accessibility** | Automated WCAG A, AA and AAA rules with axe-core, issues by severity with highlighting, what axe cannot decide, and a manual checklist; alt text suggested by AI for images without one |
 | **SEO** | Title, meta description, indexing, canonical address, social sharing card, structured data, image alt coverage and link texts; titles, descriptions, keywords, headings and call-to-action labels suggested by AI |
 | **Web Vitals** | Load timings, layout shift, an estimated LCP, page weight, requests, DOM size and the heaviest resources, measured in the browser |
-| **Readability** | Flesch scores (English) or Kandel-Moles (French), long sentences and heading structure; plainer rewrites suggested by AI |
+| **Readability** | A score with the formula of the page language (English, French, German, Spanish, Italian, Dutch, Portuguese), long sentences and heading structure; plainer rewrites suggested by AI |
 | **Ecodesign** | Page-level checks from the French RGESN 2024 referential, plus a checklist for what a page tool cannot judge (not a conformity score) |
 | **Links** | Broken internal links, absolute addresses to the site's own host, mixed content, unsafe `target="_blank"`; external links are counted, not verified |
 | **Jahia** | Unpublished content on the page, missing translations in active languages, raw resource keys and placeholder text |
@@ -279,7 +279,8 @@ curl -u root:<password> http://localhost:8080/modules/api/provisioning \
   -F file=@target/content-governance-<version>.jar
 ```
 
-`mvn clean install` runs the unit tests (497). `test-fixtures/` holds a local site and a BotRank stub
+`mvn clean install` runs the unit tests: 497 in Java and the front-end ones (`yarn test`, Vitest, in
+`src/test/javascript/`); `-DskipTests` skips both. `test-fixtures/` holds a local site and a BotRank stub
 for the GEO checks.
 
 The Cypress suite in `tests/` runs against a Jahia with the module deployed: the site settings (who reads
@@ -288,7 +289,9 @@ glossary, a page scan, a site scan, the refusals, a section switched off), the C
 (basic auth and a session without the token refused, a session with the token answered, `publish`
 required), the drawer in jContent (a tab per section kept on, no button once every section is off),
 the GEO dashboard asking the guard for its token once per page, and the Page quality audit (the
-bundled axe-core is the declared version, and the rules axe-core turns on reach the Accessibility tab).
+bundled axe-core is the declared version, the rules axe-core turns on reach the Accessibility tab, and
+the Readability tab scores English and German with their own formula, leaves Russian unscored and
+counts characters in Japanese).
 
 ```bash
 cd tests && yarn install
