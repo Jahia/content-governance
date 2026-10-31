@@ -162,7 +162,8 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
 - **Storage:** `AuditHistoryService` (`audit/service/spi`, DS component `AuditHistoryServiceImpl`)
   writes with system sessions in the site's private module node
   (`/sites/<key>/content-governance`, `PrivateStore`), under `audits/<language>/<page identifier>`.
-  - The page node holds the latest audit's `summary` (counts per tab and total), `auditedAt`,
+  - The page node holds the latest audit's `summary` (counts per tab, total, critical and serious
+    accessibility violations), `auditedAt`,
     `auditedBy`, `path`, `title` and `previousTotal` (the total of the audit before, -1 for none).
   - One `run-<millis>` child per audit holds `results` (the JSON), `summary`, `auditedAt` and
     `auditedBy`.
@@ -194,6 +195,19 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
     summary) heads the history.
   - `AuditTrend` draws the totals oldest first.
   - A failed read or save logs a warning, and the section works as before shared audits.
+- **Publish menu:** `publish/PublishCheckAction.jsx`, action `contentGovernancePublishCheck` on
+  `publishMenu:-1` (above jContent's own items, which stay untouched).
+  - It shows for the page in view only (`state.jcontent.path`), on a `jnt:page` or
+    `jmix:mainResource` of a site that enables the module.
+  - It reads `pageAudits` (summary only: `total`, `seriousAccessibility`, the critical and serious
+    violations counted by `AuditSummary`) and, with `jcr:write`, `complianceScan.scanPage` (with the
+    Page Builder frame's rendered paths, as the drawer does).
+  - The label (`publishCheck.*`) depends on the sections the site keeps on; nothing shows when
+    nothing was found.
+  - jContent writes action labels as HTML (`dangerouslySetInnerHTML`), so `buttonLabelParams` holds
+    numbers only.
+  - The click dispatches `content-governance:open` (`OPEN_DRAWER_EVENT`); `GovernanceAction` opens
+    the drawer on that section for its page.
 - **Dashboard:** `audit/dashboard/AuditDashboard.jsx`, jContent app `contentGovernancePageQuality`
   (`jcontent:89`, `jContentAccess`, `SectionGate` on `audit`, lazy).
   - Moonstone `DataTable`: page, last audit, issues by tab as chips (tabs with issues only), total

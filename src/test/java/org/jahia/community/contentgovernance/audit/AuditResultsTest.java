@@ -12,7 +12,7 @@ class AuditResultsTest {
 
     private static final String RESULTS = "{"
             + "\"page\": {\"title\": \"Home\"},"
-            + "\"a11y\": {\"violations\": [{\"id\": \"image-alt\"}, {\"id\": \"link-name\"}], \"passes\": 41},"
+            + "\"a11y\": {\"violations\": [{\"id\": \"image-alt\", \"impact\": \"critical\"}, {\"id\": \"link-name\", \"impact\": \"minor\"}], \"passes\": 41},"
             + "\"seo\": {\"recommendations\": [{\"key\": \"shortTitle\"}]},"
             + "\"readability\": {\"recommendations\": []},"
             + "\"incomplete\": {\"links\": {\"incomplete\": \"timedOut\"}},"
@@ -41,6 +41,7 @@ class AuditResultsTest {
         assertThat(summary.counts()).containsExactly(
                 java.util.Map.entry("accessibility", 2), java.util.Map.entry("seo", 1), java.util.Map.entry("readability", 0));
         assertThat(summary.total()).isEqualTo(3);
+        assertThat(summary.seriousAccessibility()).isEqualTo(1);
     }
 
     @Test
@@ -48,6 +49,7 @@ class AuditResultsTest {
         AuditSummary summary = AuditSummary.of(AuditResults.parse(RESULTS));
         assertThat(AuditSummary.fromJson(summary.toJson())).isEqualTo(summary);
         assertThat(AuditSummary.fromJson(null).total()).isZero();
+        assertThat(AuditSummary.fromJson("{\"counts\": {}, \"total\": 2}").seriousAccessibility()).isEqualTo(-1);
         assertThat(AuditSummary.fromJson("{\"counts\": {\"seo\": 4, \"unknown\": 9}, \"total\": 4}").counts())
                 .containsOnlyKeys("seo");
     }

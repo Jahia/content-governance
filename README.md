@@ -68,6 +68,12 @@ They stay in jContent's **Additional** accordion:
 A section switched off for a site switches its dashboard off too: the entry stays in **Additional**
 and says so.
 
+### Before publishing
+
+jContent's **Publish** menu of the page in view starts with "Review before publishing - audit issues:
+12, serious accessibility: 2, forbidden terms: 1" (or "Not audited yet") when there is something to
+review, opening the drawer. It never blocks publishing; jContent's own publish actions are untouched.
+
 ## What site administrators get
 
 **Administration > Sites > (site) > Content governance** (`site-admin`), in three tabs:
@@ -197,6 +203,7 @@ call to BotRank: a daily sync, on the processing server, stores the citations of
 | Page quality, GEO readiness sections | read the page | the section is on |
 | Compliance section | `jcr:write` on a page | the section is on; greyed out on content that is not a page, or without write access |
 | GEO readiness dashboard and its endpoints | `publish` on the site | always listed; says it is switched off when the GEO section is off |
+| Publish menu line | read the page; `jcr:write` for the forbidden terms | the page is in view, Page quality or Compliance is on, and something was found |
 | Page quality dashboard and the shared audits | `jContentAccess` on the site, read on the page | always listed; says it is switched off when the Page quality section is off |
 | Compliance dashboard | `jContentAccess` on the site | always listed; says it is switched off when the Compliance section is off |
 | Site Settings > Content governance | `site-admin` on the site | always; the server checks every save |
