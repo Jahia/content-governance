@@ -1812,6 +1812,13 @@
         "message": "A site administrator switched this section off in Site Settings, Content governance."
       }
     },
+    "publishCheck": {
+      "review": "Review before publishing - audit issues: {{issues}}, serious accessibility: {{serious}}, forbidden terms: {{terms}}",
+      "reviewAudit": "Review before publishing - audit issues: {{issues}}, serious accessibility: {{serious}}",
+      "reviewTerms": "Review before publishing - forbidden terms: {{terms}}",
+      "notAudited": "Not audited yet - open Content governance before publishing",
+      "notAuditedTerms": "Not audited yet, forbidden terms: {{terms}} - open Content governance before publishing"
+    },
     "drawer": {
       "action": "Content governance",
       "title": "Content governance",

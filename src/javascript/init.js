@@ -4,6 +4,7 @@ import i18next from 'i18next';
 import {registry} from '@jahia/ui-extender';
 import {Header, LayoutContent, Loader} from '@jahia/moonstone';
 import {GovernanceAction} from './drawer/GovernanceAction';
+import {PublishCheckAction} from './publish/PublishCheckAction';
 import {SectionGate} from './common/SectionGate';
 import {NS} from './common/i18n';
 import {MODULE} from './common/module';
@@ -96,6 +97,14 @@ function register() {
         buttonIcon,
         buttonLabel: `${NS}:drawer.action`,
         component: GovernanceAction
+    });
+
+    // At the top of jContent's Publish menu, for the page in view: what the latest audit and the
+    // compliance scan found, opening the drawer. jContent's own publish actions are untouched.
+    registry.add('action', 'contentGovernancePublishCheck', {
+        targets: ['publishMenu:-1'],
+        buttonIcon,
+        component: PublishCheckAction
     });
 
     // Site dashboards stay where editors know them, in jContent's Additional accordion: GEO

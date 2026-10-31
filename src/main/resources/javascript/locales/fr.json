@@ -1812,6 +1812,13 @@
         "message": "Un administrateur du site a désactivé cette section dans les Paramètres du site, Gouvernance des contenus."
       }
     },
+    "publishCheck": {
+      "review": "À revoir avant de publier - problèmes d’audit : {{issues}}, accessibilité grave : {{serious}}, termes interdits : {{terms}}",
+      "reviewAudit": "À revoir avant de publier - problèmes d’audit : {{issues}}, accessibilité grave : {{serious}}",
+      "reviewTerms": "À revoir avant de publier - termes interdits : {{terms}}",
+      "notAudited": "Pas encore auditée - ouvrez Gouvernance des contenus avant de publier",
+      "notAuditedTerms": "Pas encore auditée, termes interdits : {{terms}} - ouvrez Gouvernance des contenus avant de publier"
+    },
     "drawer": {
       "action": "Gouvernance des contenus",
       "title": "Gouvernance des contenus",

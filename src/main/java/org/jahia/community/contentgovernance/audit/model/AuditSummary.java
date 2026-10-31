@@ -3,6 +3,7 @@ package org.jahia.community.contentgovernance.audit.model;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -11,10 +12,15 @@ import org.json.JSONObject;
  * accessibility violations, and the recommendations of every other tab. Computed on the server from
  * the stored results, never taken from the client.
  *
- * @param counts issues per tab id ({@code accessibility}, {@code seo}...), for the tabs the audit measured
- * @param total  the sum of the counts
+ * @param counts               issues per tab id ({@code accessibility}, {@code seo}...), for the tabs the audit measured
+ * @param total                the sum of the counts
+ * @param seriousAccessibility accessibility violations of impact {@code critical} or {@code serious}, or -1
+ *                             when unknown (a summary stored before it was counted)
  */
-public record AuditSummary(Map<String, Integer> counts, int total) {
+public record AuditSummary(Map<String, Integer> counts, int total, int seriousAccessibility) {
+
+    private static final Set<String> SERIOUS = Set.of("critical", "serious");
+    private static final String SERIOUS_KEY = "seriousAccessibility";
 
     /** Tab id to the key of its result in the audit results, in the drawer's order. */
     public static final Map<String, String> TAB_RESULTS = tabResults();
@@ -38,6 +44,15 @@ public record AuditSummary(Map<String, Integer> counts, int total) {
     public static AuditSummary of(JSONObject results) {
         Map<String, Integer> counts = new LinkedHashMap<>();
         int total = 0;
+        int serious = 0;
+        JSONObject a11y = results.optJSONObject("a11y");
+        JSONArray violations = a11y == null ? null : a11y.optJSONArray("violations");
+        for (int i = 0; violations != null && i < violations.length(); i++) {
+            JSONObject violation = violations.optJSONObject(i);
+            if (violation != null && SERIOUS.contains(violation.optString("impact"))) {
+                serious++;
+            }
+        }
         for (Map.Entry<String, String> tab : TAB_RESULTS.entrySet()) {
             JSONObject result = results.optJSONObject(tab.getValue());
             if (result != null) {
@@ -47,12 +62,13 @@ public record AuditSummary(Map<String, Integer> counts, int total) {
                 total += count;
             }
         }
-        return new AuditSummary(Collections.unmodifiableMap(counts), total);
+        return new AuditSummary(Collections.unmodifiableMap(counts), total, serious);
     }
 
     /** @return the summary as stored: {@code {"counts": {...}, "total": n}} */
     public String toJson() {
-        return new JSONObject().put("counts", new JSONObject(counts)).put("total", total).toString();
+        return new JSONObject().put("counts", new JSONObject(counts)).put("total", total)
+                .put(SERIOUS_KEY, seriousAccessibility).toString();
     }
 
     /**
@@ -61,7 +77,7 @@ public record AuditSummary(Map<String, Integer> counts, int total) {
      */
     public static AuditSummary fromJson(String json) {
         if (json == null || json.isEmpty()) {
-            return new AuditSummary(Map.of(), 0);
+            return new AuditSummary(Map.of(), 0, -1);
         }
         JSONObject object = new JSONObject(json);
         JSONObject stored = object.optJSONObject("counts");
@@ -73,6 +89,6 @@ public record AuditSummary(Map<String, Integer> counts, int total) {
                 }
             }
         }
-        return new AuditSummary(Collections.unmodifiableMap(counts), object.optInt("total"));
+        return new AuditSummary(Collections.unmodifiableMap(counts), object.optInt("total"), object.optInt(SERIOUS_KEY, -1));
     }
 }

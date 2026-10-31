@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import {useSelector} from 'react-redux';
 import {useNodeChecks} from '@jahia/data-helper';
 import {useSiteSettings} from '../common/useSiteSettings';
-import {MODULE} from '../common/module';
+import {MODULE, OPEN_DRAWER_EVENT} from '../common/module';
 
 // The drawer and its three sections load apart from jContent's start: fetched when the browser is
 // idle once the button shows, and at the latest on the first click.
@@ -59,6 +59,17 @@ export const GovernanceAction = ({path, language, render: Render, ...rest}) => {
         setOpen(o => (o ? null : {section: null}));
     }, []);
     const reopen = useCallback(section => setOpen({section}), []);
+
+    // The Publish menu's check opens this drawer on the section to review.
+    useEffect(() => {
+        const onOpen = event => {
+            if (event.detail?.path === pagePath) {
+                reopen(event.detail.section || null);
+            }
+        };
+        globalThis.addEventListener(OPEN_DRAWER_EVENT, onOpen);
+        return () => globalThis.removeEventListener(OPEN_DRAWER_EVENT, onOpen);
+    }, [pagePath, reopen]);
 
     const shown = Boolean(pagePath && checksResult && settings);
     useEffect(() => (shown ? whenIdle(() => {

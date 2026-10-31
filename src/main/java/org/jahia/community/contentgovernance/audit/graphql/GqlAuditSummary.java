@@ -62,7 +62,14 @@ public class GqlAuditSummary {
         return summary.counts().get("jahia");
     }
 
-    /** @return the sum of the counts */
+    /** @return critical and serious accessibility violations, or null when unknown */
+    @GraphQLField
+    @GraphQLDescription("Critical and serious accessibility violations; null for an audit stored before they were counted")
+    public Integer getSeriousAccessibility() {
+        return summary.seriousAccessibility() < 0 ? null : summary.seriousAccessibility();
+    }
+
+        /** @return the sum of the counts */
     @GraphQLField
     @GraphQLNonNull
     public int getTotal() {

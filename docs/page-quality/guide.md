@@ -70,6 +70,17 @@ column per tab; **Export JSON** gives the list as shown. Pages nobody has audite
 heading ("12 of 85 pages audited"), not listed: open them and run their audit. Anyone who may open
 jContent on the site sees it; it says so when the site switched Page quality off.
 
+## Before publishing
+
+jContent's **Publish** menu of the page you are on starts with a line from Content Governance when
+there is something to review: "Review before publishing - audit issues: 12, serious accessibility: 2,
+forbidden terms: 1". The counts come from the page's latest audit (all its issues, and the critical or
+serious accessibility ones) and from a compliance scan of the page. A page nobody has audited yet
+reads "Not audited yet - open Content governance before publishing". Click the line to open the
+drawer on the section to review. It never blocks publishing, and nothing is added when the page has
+no issue. The forbidden terms are counted only for editors who may edit the page, and a section the
+site switched off is left out of the line.
+
 ## Reading the results
 
 ### Badges

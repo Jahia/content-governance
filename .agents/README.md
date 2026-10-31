@@ -16,6 +16,7 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 | `src/javascript/drawer/` | The header action and the one drawer: header, section bar, sections mounted on first visit |
 | `src/javascript/audit/` | Page quality section: preview frame, analyzers (`analyzers/`), tabs, AI assists, shared audits (`auditHistory.js`), the Page quality dashboard (`dashboard/`) |
 | `src/main/java/.../audit/` | Shared audits: `service/spi/AuditHistoryService` and its DS component, `AuditResults` (input check), `model/`, `graphql/` (`AuditAccess`, `AuditFields`, types) |
+| `src/javascript/publish/` | The line at the top of jContent's Publish menu (`PublishCheckAction`) |
 | `src/javascript/geo/` | GEO readiness section (`GeoSection`), its tabs, the GEO dashboard, the BotRank screen |
 | `src/javascript/compliance/` | Compliance section and the compliance dashboard |
 | `src/javascript/settings/` | Site Settings > Content governance: Features, AI provider, BotRank |
@@ -97,6 +98,10 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   the store's system session. Only complete audits are stored, the last 10 per page and language;
   a tab added to the results gets its key in `AuditSummary.TAB_RESULTS`, its count in
   `GqlAuditSummary` and its column in `exportAudits.js`.
+- **The Publish menu line never blocks and never carries page text** (2026-10-31, Stephane: a
+  non-blocking item, jContent's publish actions untouched): it is added to `publishMenu`, never
+  wraps jContent's actions; jContent writes action labels as HTML, so `buttonLabelParams` holds the
+  module's own counts only.
 
 ## Configuration
 
