@@ -107,18 +107,28 @@ describe('Content Governance - drawer', () => {
     });
 
     it('asks the CSRF guard for its token once per page, whatever the parts of the dashboard', () => {
-        cy.intercept('GET', '**/modules/CsrfServlet').as('guardToken');
-        cy.intercept('POST', '**/modules/content-governance/geo/**').as('geo');
+        // jContent's page also loads the guard as a <script> of its own: count the module's fetches only,
+        // by the resource type the browser gives (the sec-fetch-dest header is not sent everywhere).
+        const tokenLoads: Array<{type: string; dest?: string; referer?: string}> = [];
+        cy.intercept('GET', '**/modules/CsrfServlet', req => {
+            tokenLoads.push({type: req.resourceType, dest: req.headers['sec-fetch-dest'] as string, referer: req.headers.referer as string});
+        });
+        const geoCalls: Array<{status?: number; redirected: boolean}> = [];
+        cy.intercept('POST', '**/modules/content-governance/geo/**', req => {
+            req.continue(res => {
+                geoCalls.push({status: res.statusCode, redirected: res.statusCode >= 300 && res.statusCode < 400});
+            });
+        }).as('geo');
         cy.login(admin.username, admin.password);
         cy.visit(`/jahia/jcontent/${siteKey}/en/apps/siteSettingsSeo/geoReadiness`);
         cy.wait('@geo', {timeout: 30000}).its('response.statusCode').should('eq', 200);
         // Let every part of the dashboard send its first request before counting.
         cy.wait(3000);
-        // jContent's page also loads the guard as a <script> of its own: count the module's fetches only.
-        cy.get<Interception[]>('@guardToken.all')
-            .then(calls => calls.filter(call => call.request.headers['sec-fetch-dest'] !== 'script'))
-            .should('have.length', 1);
-        cy.get('@geo.all').should('have.length.greaterThan', 1);
+        cy.wrap(null).should(() => {
+            const fetches = tokenLoads.filter(load => load.type === 'fetch' || load.type === 'xhr');
+            expect(fetches, `guard token loads ${JSON.stringify(tokenLoads)}; dashboard calls ${JSON.stringify(geoCalls)}`).to.have.length(1);
+            expect(geoCalls.length).to.be.greaterThan(1);
+        });
     });
 
     it('shows no button once every section is off', () => {
