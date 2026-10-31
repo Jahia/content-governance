@@ -23,11 +23,13 @@ class GlossarySeederTest {
     void seedText_isReadAsUtf8_inTheSiteLanguage() {
         assertThat(GlossarySeeder.seedText("fr").getString("seed.folder")).isEqualTo("Glossaires de conformit\u00e9");
         assertThat(GlossarySeeder.seedText("fr").getString("seed.term")).isEqualTo("cliquez ici");
+        assertThat(GlossarySeeder.seedText("de").getString("seed.term")).isEqualTo("hier klicken");
+        assertThat(GlossarySeeder.seedText("es").getString("seed.term")).isEqualTo("haga clic aqu\u00ed");
     }
 
     @Test
     void seedText_fallsBackToEnglish_forALanguageWithoutTranslation() {
-        assertThat(GlossarySeeder.seedText("de").getString("seed.term")).isEqualTo("click here");
+        assertThat(GlossarySeeder.seedText("ja").getString("seed.term")).isEqualTo("click here");
         assertThat(GlossarySeeder.seedText("en").getString("seed.folder")).isEqualTo("Compliance glossaries");
     }
 }

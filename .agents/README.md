@@ -45,7 +45,11 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   `common/i18n.js`, `SiteFeatures.MODULE`). Rename all or none.
 - Translations: one namespace, keys prefixed per part (`common`, `drawer`, `settings`, `audit`,
   `geo`, `compliance`), read through `useGovernanceTranslation(prefix)`, never `useTranslation`
-  directly. `en.json` and `fr.json` keep the same keys.
+  directly. `en.json`, `fr.json`, `de.json` and `es.json` keep the same keys and placeholders
+  (`src/test/javascript/locales.test.js` fails otherwise), and `init.js` lists each file in `LOCALES`;
+  a new key goes in all four in the same change. German and Spanish were machine-drafted (2026-10-31)
+  and await a native review; jContent's own German labels (`Zusätzlich`, `Inhalts-Ordner`, `Live`)
+  are reused where a text names a jContent menu, and the drawer is `Panel` in German.
 - Feature ids (`audit`, `audit.seo`, `geo.citations`, `compliance`...) are stored per site and are
   part of the GraphQL API: never rename one. A site stores the ids it switched **off**, so a tab added
   later starts on. Add a tab in `Features.SECTIONS` and in the section's tab list together.

@@ -156,10 +156,13 @@ export function deleteTestSite(siteKey: string): void {
     });
 }
 
-/** Creates a user granted `roles` on `sitePath`, after deleting a leftover with the same name. */
-export function createTestUser(user: TestUser, sitePath: string, roles: string[]): void {
+/**
+ * Creates a user granted `roles` on `sitePath`, after deleting a leftover with the same name; `uiLanguage`
+ * sets the user's preferred interface language (Jahia's `preferredLanguage`).
+ */
+export function createTestUser(user: TestUser, sitePath: string, roles: string[], uiLanguage?: string): void {
     deleteUser(user.username);
-    createUser(user.username, user.password);
+    createUser(user.username, user.password, uiLanguage ? [{name: 'preferredLanguage', value: uiLanguage}] : []);
     if (roles.length > 0) {
         grantRoles(sitePath, roles, user.username, 'USER');
     }
