@@ -164,18 +164,22 @@ Server response, scripts and styles are a developer's.
 
 Measures how easy the main text is to read. Navigation, header and footer are left out.
 
-- **Readability score**, from 0 to 100, higher is easier: Flesch for English, Kandel-Moles for
-  French. Bands: **Very easy** (90 and up), **Easy** (70 to 89), **Standard** (50 to 69),
+- **Readability score**, from 0 to 100, higher is easier, with the formula made for the page
+  language: Flesch (English), Kandel-Moles (French), Amstad (German), Fernández Huerta (Spanish),
+  Franchina-Vacca (Italian), Douma (Dutch), Martins (Portuguese). All of them use Flesch's scale. Bands: **Very easy** (90 and up), **Easy** (70 to 89), **Standard** (50 to 69),
   **Difficult** (30 to 49), **Very difficult** (below 30). Aim for 50 or more for a general audience.
-- **Grade level** (Flesch-Kincaid, not shown for French) and **Reading time** (at 200 words a minute).
+- **Grade level** (Flesch-Kincaid, English only) and **Reading time** (at 200 words a minute).
 - **Recommendations**: hard text, sentences over 25 words, dense paragraphs (over 80 words on
   average), not exactly one H1, skipped heading levels (H2 then H4), less than 300 words.
 - **Text statistics** and **Structure**.
 - **AI plain-language rewrites**: see [AI assists](#ai-assists).
 
-Under 30 words, the tab shows "Not enough text on this page to compute readability". Only English and
-French have their own formula: a page in any other language is scored with the English formula, so
-treat its score as a rough indication. The H1 count covers the whole page, including the template.
+Under 30 words, the tab shows "Not enough text on this page to compute readability". A page in a
+language without a formula here (Russian, Polish, Arabic...) gets no score rather than another
+language's: the tab says so, and sentence length, paragraphs and headings are still checked. Japanese,
+Chinese, Thai and other languages written without spaces between words get neither a score nor a word
+count: the tab counts characters and sentences, and checks the headings. The H1 count covers the whole
+page, including the template.
 
 ### Ecodesign
 
@@ -335,8 +339,9 @@ fix the first ones, **Re-run**, then ask again.
 - **Ecodesign**: page-level checks only. It is not an RGESN conformity score.
 - **Web Vitals**: one lab measurement of the editing version, on your machine, inside a frame. LCP is
   estimated and INP is not measured. Real visitors' figures differ.
-- **Readability**: a formula based on sentence and word length. It does not judge jargon or clarity;
-  languages other than English and French use the English formula.
+- **Readability**: a formula based on sentence and word length, with syllables estimated from vowel
+  groups. It does not judge jargon or clarity, and only English, French, German, Spanish, Italian,
+  Dutch and Portuguese get a score.
 - **Links**: external links are not verified. Internal links are verified as you, on the editing
   version, up to 60 URLs.
 - **Jahia**: only content stored under the page, up to 400 items.

@@ -76,6 +76,11 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 - Build with Maven **3.8** and Java 17 (`mise.toml`), always `clean install`.
 - `robots` and `llms` are optional dependencies (`=optional`): only the GEO robots.txt editor and the
   read-only llms.txt tab need them. llms.txt is written in the `llms` module, never here.
+- **A readability score uses a formula published for the page language** (2026-10-31): one entry
+  per language in `FORMULAS` (`audit/analyzers/readability.js`), an adaptation of Flesch on its
+  0-100 scale so the bands and advice stay shared, its vowels in `VOWELS`, its source in the file
+  comment, and a hand-computed case in `src/test/javascript/readability.test.js`. A language without
+  one gets no score, never another language's; a language written without spaces gets no word count.
 
 ## Configuration
 
@@ -89,9 +94,10 @@ overwrites them; BotRank files are created by a server administrator, never ship
 
 ## Verify
 
-- `mvn clean install` runs 497+ unit tests (GEO, compliance, settings, LLM config).
+- `mvn clean install` runs 497+ Java unit tests (GEO, compliance, settings, LLM config) and the
+  front-end unit tests (`yarn test`: Vitest, `src/test/javascript/`, readability scoring).
 - The Cypress suite in `tests/` (README, "Build") against the local Jahia: settings, compliance scan,
-  CSRF guard, drawer. Not run by the pull request CI.
+  CSRF guard, drawer, Page quality audit (axe-core, readability per language). Not run by the pull request CI.
 - Deploy, enable on a site, open a page: the drawer shows the switched-on sections; switch a tab off
   in Site Settings > Content governance and reopen the drawer; the GEO servlet answers 403 and the
   compliance query refuses once their section is off.
@@ -107,6 +113,5 @@ running Jahia (README, "Build"); it is kept out of the pull request CI, which th
 
 ## Known leftovers
 
-- Readability scores only English (Flesch) and French (Kandel-Moles); other languages get Flesch.
 - Once AI citations or the GEO section were switched off, the daily BotRank sync stays off when they
   come back: an admin turns it on again (the BotRank tab says so).

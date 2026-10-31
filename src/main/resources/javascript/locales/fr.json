@@ -1602,6 +1602,9 @@
         "headingSkips": "Niveaux de titre sautés",
         "headingSkipsHint": "évitez de sauter des niveaux (ex. H2 vers H4)",
         "noText": "Texte insuffisant sur cette page pour calculer la lisibilité ({{count}} mots trouvés).",
+        "noFormula": "Aucune formule de lisibilité n'existe ici pour cette langue ({{language}}) : le score n'est pas calculé, plutôt qu'avec la formule d'une autre langue. La longueur des phrases, les paragraphes et les titres restent vérifiés.",
+        "noWords": "Cette langue ({{language}}) s'écrit sans espace entre les mots : ni score de lisibilité ni nombre de mots ne s'appliquent. Les caractères et les phrases sont comptés à la place, et les titres restent vérifiés.",
+        "characters": "Caractères",
         "recs": {
           "veryHardText": {
             "title": "Texte très difficile à lire (score {{score}})",

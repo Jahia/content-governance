@@ -81,9 +81,15 @@ export function buildDigest(results) {
             lines.push(`[ecodesign ${r.severity}] ${r.key} ${JSON.stringify(r.params)}`));
     }
 
-    if (results.readability && !results.readability.empty) {
-        lines.push(`Readability: ${results.readability.formula} score ${results.readability.score} (${results.readability.band}), ${results.readability.words} words, avg sentence ${results.readability.avgSentenceLength} words`);
-        results.readability.recommendations.forEach(r =>
+    const readability = results.readability;
+    if (readability && !readability.empty) {
+        const counts = readability.spaced ?
+            `${readability.words} words, avg sentence ${readability.avgSentenceLength} words` :
+            `${readability.characters} characters, ${readability.sentences} sentences`;
+        lines.push(readability.scored ?
+            `Readability: ${readability.formula} score ${readability.score} (${readability.band}), ${counts}` :
+            `Readability: no formula for language ${readability.lang}, ${counts}`);
+        readability.recommendations.forEach(r =>
             lines.push(`[readability ${r.severity}] ${r.key} ${JSON.stringify(r.params)}`));
     }
 
