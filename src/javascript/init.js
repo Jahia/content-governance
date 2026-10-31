@@ -14,7 +14,9 @@ import {MODULE} from './common/module';
 // language is loaded. Every language file holds every key (they are kept in sync).
 const LOCALES = {
     en: () => import('../main/resources/javascript/locales/en.json'),
-    fr: () => import('../main/resources/javascript/locales/fr.json')
+    fr: () => import('../main/resources/javascript/locales/fr.json'),
+    de: () => import('../main/resources/javascript/locales/de.json'),
+    es: () => import('../main/resources/javascript/locales/es.json')
 };
 
 const named = (load, name) => lazy(() => load().then(module => ({default: module[name]})));
