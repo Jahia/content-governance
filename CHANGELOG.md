@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.0
+
+### New Features
+
+* Page quality scores readability with the formula made for the page language: Amstad for German, Fernández Huerta for Spanish, Franchina-Vacca for Italian, Douma for Dutch and Martins for Portuguese, next to Flesch for English and Kandel-Moles for French. Until now these languages got the English formula, which scored them lower than they read. A page in another language gets no score instead of a misleading one, and the tab says why; sentence length, paragraphs and headings are still checked. Japanese, Chinese, Thai and other languages written without spaces between words get no word count either: the tab counts characters and sentences. Syllables are counted with each language's vowels, so accented letters (ñ, ã, ä...) no longer split words. Audits cached by an earlier version are measured again.
+
+### Bug Fixes
+
+* Page quality runs axe-core 4.14 (4.14.0 was already bundled in 1.3.0; it is now the declared minimum). The Accessibility tab now also checks that the visible text of a link or button is part of its accessible name (`label-content-name-mismatch`, on by default since 4.14) and reports a few more cases in existing rules, while some false positives are gone (colour contrast, `target-size` on overlapping links to the same page, captions in tables). A page can therefore show a different count than before without its markup having changed. Audits run faster on large pages. The Cypress suite checks that the audit runs the declared axe-core version and that its findings, the new rule included, reach the Accessibility tab.
+
+* A Cypress suite (`tests/`, run against a running Jahia) covers the site settings, the compliance scan and its example glossary, the CSRF guard on the module's servlets and the drawer in jContent.
+
 ## 1.3.0
 
 ### Added
