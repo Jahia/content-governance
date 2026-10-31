@@ -4,6 +4,7 @@ import {analyzeText, buildReadabilityRecommendations, countSyllables} from '../.
 // Three sentences of ten words, every word of two syllables: ASL 10, ASW 2.
 const textOf = word => Array.from({length: 3}, () => `${Array.from({length: 10}, () => word).join(' ')}.`).join(' ');
 const keys = r => buildReadabilityRecommendations(r).map(rec => rec.key);
+const base = {spaced: true, scored: true, score: 60, band: 'standard', words: 400, sentences: 10, longSentences: 0, avgWordsPerParagraph: 40, h1Count: 1, headingSkips: 0};
 
 describe('readability score per language', () => {
     // Expected values computed by hand from each published formula with ASL 10 and ASW 2.
@@ -28,6 +29,30 @@ describe('readability score per language', () => {
     it('keeps the score between 0 and 100', () => {
         expect(analyzeText(textOf('internationalisation'), 'en').score).toBe(0);
         expect(analyzeText(Array.from({length: 30}, () => 'a').join(' '), 'pt').score).toBe(100);
+    });
+});
+
+describe('LIX for the Nordic languages', () => {
+    // Three sentences of ten words, four of them longer than six letters: 10 + 100 x 0.4 = 50.
+    const nordic = Array.from({length: 3}, () => `${[...Array.from({length: 6}, () => 'bok'), ...Array.from({length: 4}, () => 'fönstret')].join(' ')}.`).join(' ');
+
+    it.each(['sv', 'da', 'nb', 'nn', 'no'])('%s is scored with LIX, higher reading harder', lang => {
+        expect(analyzeText(nordic, lang)).toMatchObject({scored: true, formula: 'LIX', scale: 'lix', score: 50, band: 'difficult', avgSyllablesPerWord: null});
+    });
+
+    it('bands LIX on the midpoints of Björnsson\'s table', () => {
+        const short = Array.from({length: 3}, () => `${Array.from({length: 10}, () => 'bok').join(' ')}.`).join(' ');
+        expect(analyzeText(short, 'sv')).toMatchObject({score: 10, band: 'veryEasy'});
+    });
+
+    it('leaves Finnish unscored: LIX is untested there', () => {
+        expect(analyzeText(nordic, 'fi')).toMatchObject({scored: false, score: null});
+    });
+
+    it('gives the LIX advice, by band', () => {
+        expect(keys({...base, scale: 'lix', score: 50, band: 'difficult'})).toEqual(['hardTextLix']);
+        expect(keys({...base, scale: 'lix', score: 65, band: 'veryDifficult'})).toEqual(['veryHardTextLix']);
+        expect(keys({...base, scale: 'lix', score: 35, band: 'standard'})).toEqual([]);
     });
 });
 
@@ -68,11 +93,10 @@ describe('languages without a formula', () => {
 });
 
 describe('recommendations', () => {
-    const base = {spaced: true, scored: true, score: 60, words: 400, sentences: 10, longSentences: 0, avgWordsPerParagraph: 40, h1Count: 1, headingSkips: 0};
 
     it('advises on a hard text only when there is a score', () => {
-        expect(keys({...base, score: 20})).toEqual(['veryHardText']);
-        expect(keys({...base, score: 40})).toEqual(['hardText']);
+        expect(keys({...base, score: 20, band: 'veryDifficult'})).toEqual(['veryHardText']);
+        expect(keys({...base, score: 40, band: 'difficult'})).toEqual(['hardText']);
         expect(keys({...base, scored: false, score: null})).toEqual([]);
     });
 

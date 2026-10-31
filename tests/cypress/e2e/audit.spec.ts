@@ -42,6 +42,7 @@ const freshAudit = () => {
 const READABILITY = [
     {lang: 'en', expect: 'Readability score (Flesch)', text: 'The team writes short pages. Each page answers one question. Readers find what they need and leave. Short sentences help everyone read faster. Plain words work better than jargon. We test every page with real readers before it goes live.'},
     {lang: 'de', expect: 'Readability score (Amstad)', text: 'Das Team schreibt kurze Seiten. Jede Seite beantwortet eine Frage. Die Leser finden schnell, was sie suchen. Kurze Sätze helfen allen Menschen beim Lesen. Einfache Wörter sind besser als Fachsprache. Wir testen jede Seite mit echten Lesern.'},
+    {lang: 'sv', expect: 'Readability score (LIX)', text: 'Teamet skriver korta sidor. Varje sida svarar på en enda fråga. Läsarna hittar snabbt det de söker. Korta meningar hjälper alla att läsa snabbare. Enkla ord fungerar bättre än fackspråk. Vi testar varje sida med riktiga läsare.'},
     {lang: 'ru', expect: 'No readability formula exists for Russian here', text: 'Команда пишет короткие страницы. Каждая страница отвечает на один вопрос. Читатели быстро находят то, что ищут. Короткие предложения помогают всем читать быстрее. Простые слова лучше, чем жаргон. Мы проверяем каждую страницу с настоящими читателями.'},
     {lang: 'ja', expect: 'Japanese is written without spaces between words', text: '私たちは短いページを書きます。各ページは一つの質問に答えます。読者は必要な情報をすぐに見つけます。'}
 ];

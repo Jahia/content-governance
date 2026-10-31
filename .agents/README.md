@@ -83,6 +83,8 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   0-100 scale so the bands and advice stay shared, its vowels in `VOWELS`, its source in the file
   comment, and a hand-computed case in `src/test/javascript/readability.test.js`. A language without
   one gets no score, never another language's; a language written without spaces gets no word count.
+  A scale that reads the other way round (LIX) sets `scale` and is judged by `band`, never by
+  comparing the raw score with Flesch thresholds.
 - **jContent's start loads the button and one language only** (2026-10-31): `init.js` imports the
   registration code, `GovernanceAction` and `SectionGate`; a new screen, dashboard or drawer section
   is loaded with `React.lazy` (`named()` in `init.js`, `loadDrawer` in `GovernanceAction`), and a new

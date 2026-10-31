@@ -21,9 +21,13 @@ export function ReadabilityTab({result, assist}) {
         return <p className={styles.note}>{t('readability.noText', {count: result.words || 0})}</p>;
     }
 
-    const scoreBandClass = result.score >= 50 ?
-        styles.cardGood :
-        (result.score >= 30 ? styles.band_ni : styles.cardBad);
+    // By band: a LIX score reads the other way round from a Flesch one
+    let scoreBandClass = styles.cardGood;
+    if (result.band === 'veryDifficult') {
+        scoreBandClass = styles.cardBad;
+    } else if (result.band === 'difficult') {
+        scoreBandClass = styles.band_ni;
+    }
 
     return (
         <div>

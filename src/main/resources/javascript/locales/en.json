@@ -1650,6 +1650,14 @@
             "title": "Text is difficult to read (score {{score}})",
             "detail": "Shorten the longest sentences and replace jargon: a score of 50-70 suits most website visitors."
           },
+          "veryHardTextLix": {
+            "title": "Text is very difficult to read (LIX {{score}})",
+            "detail": "Shorten sentences and prefer short, everyday words. Aim for a LIX below 40 for a general audience."
+          },
+          "hardTextLix": {
+            "title": "Text is difficult to read (LIX {{score}})",
+            "detail": "Shorten the longest sentences and replace long compound or technical words: a LIX of 30-40 suits most website visitors."
+          },
           "longSentences": {
             "title": "{{count}} sentences longer than 25 words",
             "detail": "Split them - one idea per sentence. Long sentences are the main driver of a poor readability score."
