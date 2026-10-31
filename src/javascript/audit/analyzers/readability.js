@@ -57,7 +57,7 @@ const READING_WPM = 200;
  * @returns {number} 0 for a word without letters, else at least 1
  */
 export function countSyllables(word, lang) {
-    const w = word.toLowerCase().replace(/[^\p{L}]/gu, '');
+    const w = word.toLowerCase().replaceAll(/[^\p{L}]/gu, '');
     if (w.length === 0) {
         return 0;
     }
@@ -116,11 +116,12 @@ export function analyzeText(text, lang) {
         };
     }
 
-    const sentences = text.split(/[.!?…]+(?:\s|$)/)
+    // A sentence ends at the spaces after a full stop, ! ? or an ellipsis (a lookbehind: no backtracking)
+    const sentences = text.split(/(?<=[.!?…])\s+/)
         .map(s => s.trim())
         .filter(s => s.split(/\s+/).length > 1);
     const words = text.split(/\s+/)
-        .map(w => w.replace(/[^\p{L}\p{N}'’-]/gu, ''))
+        .map(w => w.replaceAll(/[^\p{L}\p{N}'’-]/gu, ''))
         .filter(w => w.length > 0);
 
     if (words.length < MIN_WORDS) {

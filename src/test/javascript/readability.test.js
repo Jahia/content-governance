@@ -2,7 +2,8 @@ import {describe, expect, it} from 'vitest';
 import {analyzeText, buildReadabilityRecommendations, countSyllables} from '../../javascript/audit/analyzers/readability.js';
 
 // Three sentences of ten words, every word of two syllables: ASL 10, ASW 2.
-const textOf = word => new Array(3).fill(`${new Array(10).fill(word).join(' ')}.`).join(' ');
+const textOf = word => Array.from({length: 3}, () => `${Array.from({length: 10}, () => word).join(' ')}.`).join(' ');
+const keys = r => buildReadabilityRecommendations(r).map(rec => rec.key);
 
 describe('readability score per language', () => {
     // Expected values computed by hand from each published formula with ASL 10 and ASW 2.
@@ -26,7 +27,7 @@ describe('readability score per language', () => {
 
     it('keeps the score between 0 and 100', () => {
         expect(analyzeText(textOf('internationalisation'), 'en').score).toBe(0);
-        expect(analyzeText(new Array(30).fill('a').join(' '), 'pt').score).toBe(100);
+        expect(analyzeText(Array.from({length: 30}, () => 'a').join(' '), 'pt').score).toBe(100);
     });
 });
 
@@ -68,7 +69,6 @@ describe('languages without a formula', () => {
 
 describe('recommendations', () => {
     const base = {spaced: true, scored: true, score: 60, words: 400, sentences: 10, longSentences: 0, avgWordsPerParagraph: 40, h1Count: 1, headingSkips: 0};
-    const keys = r => buildReadabilityRecommendations(r).map(rec => rec.key);
 
     it('advises on a hard text only when there is a score', () => {
         expect(keys({...base, score: 20})).toEqual(['veryHardText']);
