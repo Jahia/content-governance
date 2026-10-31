@@ -19,7 +19,7 @@ function fakeGuard() {
             return response('{"pageTokens": {}}');
         }
         calls.servlet++;
-        const address = new URL(url, 'http://jahia').pathname;
+        const address = new URL(url, 'https://jahia').pathname;
         const token = init.headers['X-CSRF'];
         if (token === 'master-token-1' && used.has(address)) {
             calls.refused++;
@@ -39,8 +39,11 @@ describe('guardedFetch', () => {
         vi.resetModules();
         guard = fakeGuard();
         vi.stubGlobal('fetch', guard.fetch);
-        vi.stubGlobal('location', {origin: 'http://jahia'});
-        vi.stubGlobal('BroadcastChannel', undefined);
+        vi.stubGlobal('location', {origin: 'https://jahia'});
+        // One tab: the channel that tells other tabs to drop their tokens has no one to tell
+        vi.stubGlobal('BroadcastChannel', class {
+            postMessage() {}
+        });
     });
     afterEach(() => vi.unstubAllGlobals());
 
