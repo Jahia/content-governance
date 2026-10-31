@@ -20,6 +20,7 @@ const named = (load, name) => lazy(() => load().then(module => ({default: module
 const GeoDashboard = named(() => import('./geo/dashboard/GeoDashboard'), 'GeoDashboard');
 const ComplianceDashboardRoute = named(() => import('./compliance/dashboard/ComplianceDashboard'), 'ComplianceDashboardRoute');
 const SettingsPanel = named(() => import('./settings/SettingsPanel'), 'SettingsPanel');
+const AuditDashboardRoute = named(() => import('./audit/dashboard/AuditDashboard'), 'AuditDashboardRoute');
 
 /** The language of the editor's interface that the module ships, else English (i18next's fallback). */
 function uiLanguage() {
@@ -67,6 +68,15 @@ const ComplianceRoute = () => {
     );
 };
 
+const PageQualityRoute = () => {
+    const title = i18next.t(`${NS}:audit.dashboard.navLabel`);
+    return (
+        <SectionGate section="audit" title={title}>
+            {() => <Loading title={title}><AuditDashboardRoute/></Loading>}
+        </SectionGate>
+    );
+};
+
 const SettingsRoute = () => (
     <Loading title={i18next.t(`${NS}:settings.navLabel`)}><SettingsPanel/></Loading>
 );
@@ -98,6 +108,17 @@ function register() {
         requiredPermission: 'publish',
         requireModuleInstalledOnSite: MODULE,
         render: () => <GeoDashboardRoute/>
+    });
+    // The Page quality report lists the audits editors ran from the drawer, for whoever may open
+    // jContent on the site, like the compliance report beside it.
+    registry.add('adminRoute', 'contentGovernancePageQuality', {
+        targets: ['jcontent:89'],
+        label: `${NS}:audit.dashboard.navLabel`,
+        icon: buttonIcon,
+        isSelectable: true,
+        requiredPermission: 'jContentAccess',
+        requireModuleInstalledOnSite: MODULE,
+        render: () => <PageQualityRoute/>
     });
     registry.add('adminRoute', 'contentGovernanceCompliance', {
         targets: ['jcontent:90'],

@@ -26,9 +26,9 @@ Vitals 15) or fails is stopped: its tab says "This check did not finish" or "Thi
 a **Re-run** button, and the other tabs show their results. Such an audit is not kept for the next
 opening.
 
-Close the drawer with the **Close panel** button, the Escape key, or a click outside it. Your
-results are kept: the next time you open the drawer on the same page and language, they come back at
-once.
+Close the drawer with the **Close panel** button, the Escape key, or a click outside it. Results are
+kept: the next time anyone opens the drawer on the same page and language, the newest audit comes
+back at once, whoever ran it.
 
 The number on the **Page quality** section tab is the total of the badges of its tabs.
 
@@ -45,7 +45,8 @@ Page Builder and open the drawer again. Each language has its own results.
 | **Re-run** | Loads the page again and runs every check from scratch. Use it after you have fixed something. It also clears the AI answers of the previous run. |
 | **Export JSON** | Downloads the results of the automated checks as a JSON file (`content-governance-audit-<page name>.json`), with the page path, language and date. AI answers are not included. Useful to attach to a ticket for a developer. |
 | **Hide preview** / **Show preview** | Folds the page preview away to give the results the full height of the drawer. The page stays loaded, so highlighting still works and reopens the preview. |
-| "Last audit: date" | When the results shown were produced. |
+| "Last audit: date by user" | When the results shown were produced, and who ran the audit. |
+| "Issues over the last N audits: 12 → 9 → 7" | The total of the badges at each of the page's last audits (up to 10), oldest first. Hover a number for its date and who ran it. Shown from the second audit. |
 
 Under the toolbar is the page preview. In most tabs, a **Highlight in preview** button scrolls the
 preview to the element concerned and draws a red outline around it.
@@ -55,8 +56,19 @@ this audit**, with the text "The page has been modified since this audit - the r
 outdated. Re-run when you are done editing." and a **Re-run** button. The old results stay visible,
 so you can keep using them as a to-do list while you edit.
 
-Results are stored in your browser only, for your last 10 audits. Colleagues do not see them, and
-clearing your browser data removes them.
+Every complete audit is stored on the site for its page and language, the last 10 of each, so every
+editor of the site sees the newest one and the trend. An audit with a check that did not finish is
+not stored. AI answers stay in your browser only, for your last 10 audits.
+
+## The site dashboard
+
+**Additional > Page quality** in jContent lists the latest audit of every audited page of the site, in
+the language selected in jContent, most issues first: the page, when and by whom it was audited, its
+issues by tab, the total and how it moved since the audit before (green when it went down, red when
+it went up). **Open** goes to the page in Page Builder. **Export CSV** gives one row per page with a
+column per tab; **Export JSON** gives the list as shown. Pages nobody has audited are counted in the
+heading ("12 of 85 pages audited"), not listed: open them and run their audit. Anyone who may open
+jContent on the site sees it; it says so when the site switched Page quality off.
 
 ## Reading the results
 

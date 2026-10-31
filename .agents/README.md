@@ -14,7 +14,8 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 | Path | What |
 |---|---|
 | `src/javascript/drawer/` | The header action and the one drawer: header, section bar, sections mounted on first visit |
-| `src/javascript/audit/` | Page quality section: preview frame, analyzers (`analyzers/`), tabs, AI assists |
+| `src/javascript/audit/` | Page quality section: preview frame, analyzers (`analyzers/`), tabs, AI assists, shared audits (`auditHistory.js`), the Page quality dashboard (`dashboard/`) |
+| `src/main/java/.../audit/` | Shared audits: `service/spi/AuditHistoryService` and its DS component, `AuditResults` (input check), `model/`, `graphql/` (`AuditAccess`, `AuditFields`, types) |
 | `src/javascript/geo/` | GEO readiness section (`GeoSection`), its tabs, the GEO dashboard, the BotRank screen |
 | `src/javascript/compliance/` | Compliance section and the compliance dashboard |
 | `src/javascript/settings/` | Site Settings > Content governance: Features, AI provider, BotRank |
@@ -90,6 +91,12 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   goes through `runStep` with its own entry in `STEP_LIMITS_MS`, and its tab shows `IncompleteStep`
   when it does not finish; the frame is audited after `FRAME_LOAD_LIMIT_MS` when its load event does
   not come. The audit spec's never-answering page proves both.
+- **Shared audits are counted and checked on the server** (2026-10-31): the drawer sends the
+  results; `AuditResults` keeps the tab results and `page` only, `AuditSummary` counts the issues,
+  `AuditAccess` checks `jContentAccess`, the section and the page with the caller's session before
+  the store's system session. Only complete audits are stored, the last 10 per page and language;
+  a tab added to the results gets its key in `AuditSummary.TAB_RESULTS`, its count in
+  `GqlAuditSummary` and its column in `exportAudits.js`.
 
 ## Configuration
 

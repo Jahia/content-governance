@@ -1036,6 +1036,8 @@
         "hidePreview": "Hide preview",
         "showPreview": "Show preview",
         "lastAudit": "Last audit: {{date}}",
+        "lastAuditBy": "Last audit: {{date}} by {{user}}",
+        "trend": "Issues over the last {{count}} audits:",
         "stale": "The page has been modified since this audit - the results below may be outdated. Re-run when you are done editing.",
         "preview": "Page preview",
         "loading": "Loading page preview…",
@@ -1564,6 +1566,32 @@
             "title": "{{count}} very large files (e.g. {{name}})",
             "detail": "Minify, compress or split these assets, or load them only where actually used."
           }
+        }
+      },
+      "dashboard": {
+        "navLabel": "Page quality",
+        "title": "Page quality",
+        "summary": "{{audited}} of {{total}} pages audited in {{language}}",
+        "hint": "The latest audit of each page, as an editor ran it from the Content governance drawer, most issues first. Open a page and its drawer to audit it or to see its findings.",
+        "emptyTitle": "No page audited yet",
+        "empty": "No page has been audited in {{language}}. Open a page in Page Builder, then Content governance, to run its first audit.",
+        "page": "Page",
+        "audited": "Last audit",
+        "byTab": "Issues by tab",
+        "noIssues": "No issue found",
+        "total": "Issues",
+        "actions": "Actions",
+        "trend": "{{previous}} issues at the audit before",
+        "openPage": "Open",
+        "openPageLabel": "Open {{name}} in Page Builder",
+        "exportCsv": "Export CSV",
+        "exportJson": "Export JSON",
+        "refresh": "Refresh",
+        "errorTitle": "The audits could not be read",
+        "error": "Refresh the page; if it persists, a server administrator can find the cause in the server log.",
+        "pagination": {
+          "perPage": "Rows per page",
+          "of": "of"
         }
       },
       "incomplete": {

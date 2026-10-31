@@ -1036,6 +1036,8 @@
         "hidePreview": "Masquer l'aperçu",
         "showPreview": "Afficher l'aperçu",
         "lastAudit": "Dernier audit : {{date}}",
+        "lastAuditBy": "Dernier audit : {{date}} par {{user}}",
+        "trend": "Problèmes sur les {{count}} derniers audits :",
         "stale": "La page a été modifiée depuis ce dernier audit : les résultats ci-dessous peuvent être obsolètes. Relancez l'audit quand vos corrections sont terminées.",
         "preview": "Aperçu de la page",
         "loading": "Chargement de l'aperçu…",
@@ -1564,6 +1566,32 @@
             "title": "{{count}} fichiers très lourds (ex. {{name}})",
             "detail": "Minifiez, compressez ou découpez ces ressources, ou chargez-les uniquement là où elles servent."
           }
+        }
+      },
+      "dashboard": {
+        "navLabel": "Qualité de la page",
+        "title": "Qualité de la page",
+        "summary": "{{audited}} pages auditées sur {{total}} en {{language}}",
+        "hint": "Le dernier audit de chaque page, tel qu'un contributeur l'a lancé depuis le panneau Gouvernance des contenus, les pages les plus problématiques en premier. Ouvrez une page et son panneau pour l'auditer ou voir ses constats.",
+        "emptyTitle": "Aucune page auditée",
+        "empty": "Aucune page n'a été auditée en {{language}}. Ouvrez une page dans Page Builder, puis Gouvernance des contenus, pour lancer son premier audit.",
+        "page": "Page",
+        "audited": "Dernier audit",
+        "byTab": "Problèmes par onglet",
+        "noIssues": "Aucun problème trouvé",
+        "total": "Problèmes",
+        "actions": "Actions",
+        "trend": "{{previous}} problèmes à l'audit précédent",
+        "openPage": "Ouvrir",
+        "openPageLabel": "Ouvrir {{name}} dans Page Builder",
+        "exportCsv": "Exporter en CSV",
+        "exportJson": "Exporter en JSON",
+        "refresh": "Actualiser",
+        "errorTitle": "Les audits n'ont pas pu être lus",
+        "error": "Actualisez la page ; si cela persiste, un administrateur du serveur trouvera la cause dans le journal du serveur.",
+        "pagination": {
+          "perPage": "Lignes par page",
+          "of": "sur"
         }
       },
       "incomplete": {

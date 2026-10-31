@@ -27,6 +27,14 @@ const FIXTURE = '<div id="cg-a11y-fixture">'
 const EXPECTED_RULES = ['image-alt', 'link-name', 'label-content-name-mismatch'];
 
 /**
+ * Audits are shared: a page audited by an earlier test opens on that stored audit. A test that needs
+ * its own measurement presses Re-run once the drawer is ready (enabled once nothing is measuring).
+ */
+const freshAudit = () => {
+    cy.get(DRAWER).contains('button', 'Re-run', {timeout: 120000}).should('not.be.disabled').click();
+};
+
+/**
  * Readability per page language: the formula of a language that has one, no score (rather than
  * the English one) for a language without, characters instead of words where words are not
  * spaced. The scores themselves are unit-tested (src/test/javascript/readability.test.js).
@@ -95,6 +103,7 @@ describe('Content Governance - Page quality audit', () => {
             cy.login(admin.username, admin.password);
             cy.visit(`/jahia/jcontent/${siteKey}/${lang}/pages/home`);
             cy.contains('button', BUTTON, {timeout: 30000}).click();
+            freshAudit();
             cy.wait('@preview', {timeout: 30000});
             cy.get('#audit-tab-readability', {timeout: 60000}).click();
             cy.get(DRAWER).contains(expect, {timeout: 60000}).should('exist');
@@ -121,6 +130,7 @@ describe('Content Governance - Page quality audit', () => {
         cy.login(admin.username, admin.password);
         cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
+        freshAudit();
         cy.get('#audit-tab-links', {timeout: 60000}).should('exist');
         cy.get(DRAWER).contains('automated rules passed', {timeout: 150000}).should('exist');
         cy.get('#audit-tab-links').click();

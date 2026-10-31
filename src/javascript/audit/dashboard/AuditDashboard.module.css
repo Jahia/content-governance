@@ -1,0 +1,116 @@
+/* Page quality dashboard: layout only; components are Moonstone. Same frame as the Compliance dashboard. */
+
+/* Never wider than the panel (jContent 3.8 sizes an app on its widest content), above its own tables. */
+.root,
+.content {
+    width: 100%;
+    min-width: 0;
+    contain: inline-size;
+    isolation: isolate;
+}
+
+/* The app sits in jContent's flex column: a plain block grows to its content's height, LayoutContent's
+   scroll box is then never bounded and the report cannot scroll. Fill the column instead. */
+.root {
+    display: flex;
+    flex: 1 1 0%;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--moon-spacing-large, 24px);
+}
+
+/* Content card, as jContent draws it; full width of the panel. */
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--moon-spacing-medium, 16px);
+    min-width: 0;
+    padding: var(--moon-spacing-large, 24px);
+    border-radius: 4px;
+    background: var(--moon-color-white, #fff);
+    box-shadow: 0 4px 8px 0 rgba(19, 28, 33, 0.2);
+}
+
+.loading {
+    align-items: center;
+    padding: var(--moon-spacing-big, 32px);
+}
+
+
+.inline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--moon-spacing-small, 8px);
+}
+
+.muted {
+    color: var(--moon-color-gray, #6b7780);
+}
+
+.cellText {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.wrap {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+
+/* A narrow pane scrolls the table sideways instead of cutting columns. */
+.tableScroll {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.tableScroll > * {
+    min-width: 760px;
+}
+
+/* Moonstone rows are 48px high and hide what overflows: rows grow with excerpts and reasons. */
+.tableScroll tbody tr {
+    height: auto;
+    min-height: 48px;
+}
+
+.tableScroll tbody td {
+    height: auto;
+    padding-top: var(--moon-spacing-small, 8px);
+    padding-bottom: var(--moon-spacing-small, 8px);
+}
+
+.tableScroll thead tr {
+    height: auto;
+    min-height: 40px;
+}
+
+.tableScroll thead th,
+.tableScroll thead th:global(.moonstone-nowrap) {
+    height: auto;
+    white-space: normal;
+}
+
+/* Pagination keeps its height when it wraps: it stays on one line and scrolls in a narrow pane. */
+.paging {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.paging > * {
+    flex-wrap: nowrap;
+    width: max-content;
+    margin-left: auto;
+}
