@@ -26,6 +26,17 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 
 ## Invariants
 
+- **axe-core is on its latest release whenever this module is worked on** (Stephane, 2026-10-31):
+  `npm view axe-core version`, then raise the `axe-core` range in `package.json` to that version and
+  refresh `yarn.lock`. Read the release notes and say in the changelog fragment what editors will see:
+  a rule turned on by default or new violations raise the Accessibility tab's counts, false-positive
+  fixes lower them. The audit runs by WCAG tag, so new rules need no code. Dependabot also proposes
+  axe-core updates; do not wait for it.
+- **The automated tests follow what axe-core proposes** (Stephane, 2026-10-31): in the same change,
+  `tests/cypress/e2e/audit.spec.ts` gets a case in its fixture, and an entry in its table and
+  `EXPECTED_RULES`, for every rule the release turns on by default or extends; run it on the new build
+  and once with that case removed (it must fail). The spec also fails when the bundled engine is not
+  the version `package.json` declares.
 - React **18** only (jContent singleton). Moonstone **2.20.3**, the version jContent 3.7.1 and 3.8
   run: no API newer than that. Badge colours are `accent`, `success`, `danger` only.
 - Module id, bundle symbolic name and i18n namespace: `content-governance` (`common/module.js`,
@@ -78,7 +89,9 @@ overwrites them; BotRank files are created by a server administrator, never ship
 
 ## Verify
 
-- `mvn clean install` runs 477+ unit tests (GEO, compliance, settings, LLM config).
+- `mvn clean install` runs 497+ unit tests (GEO, compliance, settings, LLM config).
+- The Cypress suite in `tests/` (README, "Build") against the local Jahia: settings, compliance scan,
+  CSRF guard, drawer. Not run by the pull request CI.
 - Deploy, enable on a site, open a page: the drawer shows the switched-on sections; switch a tab off
   in Site Settings > Content governance and reopen the drawer; the GEO servlet answers 403 and the
   compliance query refuses once their section is off.

@@ -286,8 +286,9 @@ The Cypress suite in `tests/` runs against a Jahia with the module deployed: the
 and who changes them, unknown ids dropped, a site without the module), the compliance scan (the example
 glossary, a page scan, a site scan, the refusals, a section switched off), the CSRF guard on the servlets
 (basic auth and a session without the token refused, a session with the token answered, `publish`
-required), the drawer in jContent (a tab per section kept on, no button once every section is off) and
-the GEO dashboard asking the guard for its token once per page.
+required), the drawer in jContent (a tab per section kept on, no button once every section is off),
+the GEO dashboard asking the guard for its token once per page, and the Page quality audit (the
+bundled axe-core is the declared version, and the rules axe-core turns on reach the Accessibility tab).
 
 ```bash
 cd tests && yarn install
