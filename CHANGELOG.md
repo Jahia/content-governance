@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.5.0
+
+### New Features
+
+* The drawer starts with **Fix first**: the most serious finding of the page on one line, with how many more there are, and on Show the five most serious whatever their section (accessibility violations, the recommendations of every Page quality tab, GEO readiness tabs with something to review, forbidden terms), each with Open to go to the section and tab that explains it. GEO readiness and Compliance join the list once they have been opened.
+
+* Content Governance speaks German and Spanish: the drawer, the dashboards, the Publish menu line and Site Settings follow the editor's interface language, as do the content type labels and the example glossary created when a site enables the module. jContent itself has no Spanish interface, so a Spanish editor sees jContent in English and Content Governance in Spanish. The German and Spanish texts were machine-drafted and await a native review.
+
+* Page quality audits are shared by the editors of a site. A complete audit is stored for its page and language, so anyone opening the drawer on that page sees the newest audit at once, with who ran it and when, instead of measuring the page again; the last 10 are kept and the drawer shows how the number of issues moved ("Issues over the last 10 audits: 12 → 9 → 7"). A new site dashboard, Additional > Page quality, lists the latest audit of every audited page in the current language, most issues first, with its issues by tab and its trend, Export CSV and Export JSON; anyone who may open jContent on the site sees it. Audits with a check that did not finish and AI answers are not shared.
+
+* jContent's Publish menu now starts with a line from Content Governance when the page in view has something to review: "Review before publishing - audit issues: 12, serious accessibility: 2, forbidden terms: 1", from the page's latest audit and a compliance scan, or "Not audited yet" for a page nobody has audited. It opens the drawer on the section to review and never blocks publishing; nothing is added to a page without issues. Shared audits now also count their critical and serious accessibility violations.
+
+* Swedish, Danish and Norwegian pages get a readability score: LIX (Björnsson), words per sentence plus the share of words longer than six letters, where a higher score reads harder. Bands follow Björnsson's table, the advice aims for a LIX of 40 or less, and the score card is coloured by band. Finnish stays without a score, LIX being untested there.
+
+### Bug Fixes
+
+* Page quality no longer stays on "Loading" or "Analyzing" when part of a page never answers. A page whose images, fonts or scripts keep loading is audited after 20 seconds as it stands, and a check that takes too long (Accessibility 60 seconds, Links 45, Jahia 30, Web Vitals 15) or fails is stopped: its tab says why with a Re-run button, and the other tabs show their results. jContent also starts faster: it now loads about 105 kB of the module instead of 622 kB, with only the editor's language; the drawer loads in the background once its button shows, and the dashboards and settings the first time they are opened.
+
+* The GEO readiness dashboard no longer risks having a request refused by Jahia's CSRF guard when it loads: requests sent at once to the same module address now wait for the first one's answer instead of all using the session's master token, which the guard accepts once per address. The Cypress suite now runs every night against Jahia 8.2.3.2 in GitHub Actions.
+
+* The help tooltip of a section or tab no longer stays open over the content after you click the tab: the selected tab shows none. Switching AI citations or the GEO readiness section off now pauses the site's daily BotRank sync instead of turning it off: it syncs again at its first run after the switch is back on, with nothing to save. A sync turned off that way by an earlier version is restarted by saving the BotRank settings once.
+
 ## 1.4.0
 
 ### New Features
