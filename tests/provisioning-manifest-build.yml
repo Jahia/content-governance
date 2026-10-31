@@ -6,14 +6,15 @@
   autoStart: true
   uninstallPreviousVersion: true
 
-# The template set of the test sites (CYPRESS_CG_TEMPLATE_SET), a JavaScript module: Nexus holds its
-# snapshots only.
+# The template set of the test sites (CYPRESS_CG_TEMPLATE_SET), a JavaScript module, at the version the
+# suite passes on locally. Nexus holds its snapshots only, and the latest snapshot needs a newer engine
+# (it stayed INSTALLED on engine 1.2.0): its public GitHub release instead.
 - installBundle:
       - 'mvn:org.jahia.modules/javascript-modules-engine/1.2.0'
   autoStart: true
   uninstallPreviousVersion: true
 
 - installBundle:
-      - 'js:mvn:org.jahia.modules.javascript/classic-templates/LATEST/tgz'
+      - 'js:https://github.com/Jahia/classic-templates/releases/download/0_8_0/classic-templates-0.8.0.tgz'
   autoStart: true
   uninstallPreviousVersion: true
