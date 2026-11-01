@@ -1573,7 +1573,7 @@
         "navLabel": "Calidad de la página",
         "title": "Calidad de la página",
         "summary": "{{audited}} de {{total}} páginas auditadas en {{language}}",
-        "hint": "La última auditoría de cada página, tal como la ejecutó un editor desde el panel lateral de Gobernanza de contenidos, con más problemas primero. Abra una página y su panel lateral para auditarla o ver sus hallazgos.",
+        "hint": "La última auditoría de cada página, tal como la ejecutó un editor desde el panel lateral de Gobernanza de contenidos, con más problemas primero. Despliegue una página para leer sus hallazgos; ábrala para auditarla de nuevo.",
         "emptyTitle": "Aún no hay ninguna página auditada",
         "empty": "No se ha auditado ninguna página en {{language}}. Abra una página en Page Builder y luego Gobernanza de contenidos para ejecutar su primera auditoría.",
         "page": "Página",
@@ -1593,6 +1593,13 @@
         "pagination": {
           "perPage": "Filas por página",
           "of": "de"
+        },
+        "findings": {
+          "loading": "Leyendo los hallazgos…",
+          "error": "No se pudieron leer los hallazgos. Pliegue y despliegue la página para intentarlo de nuevo.",
+          "missing": "Los hallazgos de esta auditoría no se guardaron. Abra la página y vuelva a auditarla.",
+          "elements": "{{count}} elemento",
+          "elements_plural": "{{count}} elementos"
         }
       },
       "incomplete": {

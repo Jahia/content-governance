@@ -72,7 +72,11 @@ not stored. AI answers stay in your browser only, for your last 10 audits.
 **Additional > Page quality** in jContent lists the latest audit of every audited page of the site, in
 the language selected in jContent, most issues first: the page, when and by whom it was audited, its
 issues by tab, the total and how it moved since the audit before (green when it went down, red when
-it went up). **Open** goes to the page in Page Builder. **Export CSV** gives one row per page with a
+it went up). Expand a page (the arrow before its title) to read the findings of that audit, the most
+serious first: each says what is wrong and what to do, with its severity, its tab and, for
+accessibility, how many elements fail the rule. They come from the stored audit, so nothing is
+measured again; to see the elements themselves, open the page and its drawer. **Open** goes to the
+page in Page Builder. **Export CSV** gives one row per page with a
 column per tab; **Export JSON** gives the list as shown. Pages nobody has audited are counted in the
 heading ("12 of 85 pages audited"), not listed: open them and run their audit. Anyone who may open
 jContent on the site sees it; it says so when the site switched Page quality off.

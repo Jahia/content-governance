@@ -6,11 +6,16 @@ import {Banner, Button, Chip, DataTable, Download, EmptyData, Header, LayoutCont
 import {useGovernanceTranslation} from '../../common/i18n';
 import {languageName, pageBuilderUrl} from '../../common/url';
 import {SITE_AUDITS} from '../auditHistory';
+import {keyed, readFindings, subRowsOf} from './pageFindings';
 import {TAB_COLUMNS, exportCsv, exportJson} from './exportAudits';
 import styles from './AuditDashboard.module.css';
 
 const PER_PAGE_OPTIONS = [10, 20, 50];
 const COUNTED_PAGES_LIMIT = 10_000;
+const SEVERITY_COLORS = {critical: 'danger', serious: 'danger', moderate: 'warning', minor: 'default'};
+
+/** A state update that records what was read for one page. */
+const withDetail = (path, detail) => all => ({...all, [path]: detail});
 
 /** Fewer issues than the audit before: green; more: red; the same or no audit before: nothing. */
 const Trend = ({total, previous}) => {
@@ -33,47 +38,107 @@ Trend.propTypes = {
 
 const PagesTable = ({pages, siteKey, language}) => {
     const {t} = useGovernanceTranslation('audit');
+    const client = useApolloClient();
     const [page, setPage] = useState(1);
+    const [expanded, setExpanded] = useState([]);
+    // Findings per page path, read when its row is first opened: {kind: 'error'} or {findings}
+    const [details, setDetails] = useState({});
+    const requested = useRef(new Set());
     const [perPage, setPerPage] = useState(PER_PAGE_OPTIONS[0]);
     const lastPage = Math.max(1, Math.ceil(pages.length / perPage));
     const current = Math.min(page, lastPage);
     const formatDate = iso => new Date(iso).toLocaleString(language === 'fr' ? 'fr-FR' : language);
 
-    // Every column key points at the row: each cell renders from the page it belongs to.
+    // A page with issues gets sub-rows, so it can be opened; they are its findings once read.
     const data = useMemo(() => pages.slice((current - 1) * perPage, current * perPage).map(item => {
-        const row = {id: item.path, item};
-        const keyed = Object.fromEntries(['page', 'audited', 'tabs', 'total', 'actions'].map(key => [key, row]));
-        return {...row, ...keyed};
-    }), [pages, current, perPage]);
+        const row = keyed({id: item.path, kind: 'page', item});
+        return item.lastAudit.summary.total > 0 ? {...row, subRows: subRowsOf(item, details)} : row;
+    }), [pages, current, perPage, details]);
+
+    const load = useCallback(path => {
+        requested.current.add(path);
+        readFindings(client, path, language, t)
+            .then(findings => setDetails(withDetail(path, {findings})))
+            .catch(error => {
+                console.error('[content-governance]', error);
+                // Opening the row again tries again
+                requested.current.delete(path);
+                setDetails(withDetail(path, {kind: 'error'}));
+            });
+    }, [client, language, t]);
+
+    const onExpandChange = useCallback(ids => {
+        setExpanded(ids);
+        ids.filter(id => !requested.current.has(id) && pages.some(item => item.path === id)).forEach(load);
+    }, [load, pages]);
 
     const columns = [
         {
             key: 'page',
             label: t('dashboard.page'),
-            width: '28%',
-            render: ({value}) => (
-                <div className={styles.cellText}>
-                    <Typography weight="semiBold" className={styles.wrap}>{value.item.title || value.item.path}</Typography>
-                    <Typography variant="caption" className={`${styles.wrap} ${styles.muted}`}>{value.item.path}</Typography>
-                </div>
-            )
+            width: '34%',
+            render: ({value}) => {
+                if (value.kind === 'finding') {
+                    return (
+                        <div className={styles.cellText}>
+                            <Typography weight="semiBold" className={styles.wrap}>{value.finding.title}</Typography>
+                            {value.finding.detail && <Typography variant="caption" className={`${styles.wrap} ${styles.muted}`}>{value.finding.detail}</Typography>}
+                        </div>
+                    );
+                }
+                if (value.kind !== 'page') {
+                    return (
+                        <div className={styles.inline}>
+                            {value.kind === 'loading' && <Loader size="small"/>}
+                            <Typography variant="caption" className={styles.wrap}>{t(`dashboard.findings.${value.kind}`)}</Typography>
+                        </div>
+                    );
+                }
+                return (
+                    <div className={styles.cellText}>
+                        <Typography weight="semiBold" className={styles.wrap}>{value.item.title || value.item.path}</Typography>
+                        <Typography variant="caption" className={`${styles.wrap} ${styles.muted}`}>{value.item.path}</Typography>
+                    </div>
+                );
+            }
         },
         {
             key: 'audited',
             label: t('dashboard.audited'),
             width: '17%',
-            render: ({value}) => (
-                <div className={styles.cellText}>
-                    <Typography variant="caption" className={styles.wrap}>{formatDate(value.item.lastAudit.auditedAt)}</Typography>
-                    <Typography variant="caption" className={styles.muted}>{value.item.lastAudit.auditedBy}</Typography>
-                </div>
-            )
+            render: ({value}) => {
+                if (value.kind === 'finding') {
+                    return <Chip color={SEVERITY_COLORS[value.finding.severity] || 'default'} label={t(`a11y.impacts.${value.finding.severity}`)}/>;
+                }
+                if (value.kind !== 'page') {
+                    return null;
+                }
+                return (
+                    <div className={styles.cellText}>
+                        <Typography variant="caption" className={styles.wrap}>{formatDate(value.item.lastAudit.auditedAt)}</Typography>
+                        <Typography variant="caption" className={styles.muted}>{value.item.lastAudit.auditedBy}</Typography>
+                    </div>
+                );
+            }
         },
         {
             key: 'tabs',
             label: t('dashboard.byTab'),
-            width: '35%',
+            width: '29%',
             render: ({value}) => {
+                if (value.kind === 'finding') {
+                    return (
+                        <div className={styles.inline}>
+                            <Chip label={t(`tabs.${value.finding.tab}`)}/>
+                            {value.finding.count > 0 && (
+                                <Typography variant="caption" className={styles.muted}>{t('dashboard.findings.elements', {count: value.finding.count})}</Typography>
+                            )}
+                        </div>
+                    );
+                }
+                if (value.kind !== 'page') {
+                    return null;
+                }
                 const summary = value.item.lastAudit.summary;
                 const withIssues = TAB_COLUMNS.filter(tab => summary[tab] > 0);
                 if (withIssues.length === 0) {
@@ -93,7 +158,7 @@ const PagesTable = ({pages, siteKey, language}) => {
             key: 'total',
             label: t('dashboard.total'),
             width: '10%',
-            render: ({value}) => (
+            render: ({value}) => value.kind === 'page' && (
                 <div className={styles.inline}>
                     {/* Moonstone's Typography drops a bare 0: the count is written as text */}
                     <Typography weight="bold">{`${value.item.lastAudit.summary.total}`}</Typography>
@@ -106,7 +171,7 @@ const PagesTable = ({pages, siteKey, language}) => {
             label: t('dashboard.actions'),
             width: '10%',
             align: 'right',
-            render: ({value}) => (
+            render: ({value}) => value.kind === 'page' && (
                 <Button variant="ghost"
                         size="small"
                         label={t('dashboard.openPage')}
@@ -122,7 +187,13 @@ const PagesTable = ({pages, siteKey, language}) => {
     return (
         <>
             <div className={styles.tableScroll}>
-                <DataTable primaryKey="id" data={data} columns={columns} enablePagination={false}/>
+                <DataTable primaryKey="id"
+                           data={data}
+                           columns={columns}
+                           isStructured
+                           expandedRows={expanded}
+                           enablePagination={false}
+                           onExpandChange={onExpandChange}/>
             </div>
             {pages.length > PER_PAGE_OPTIONS[0] && (
                 <div className={styles.paging}>

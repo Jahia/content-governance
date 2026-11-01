@@ -1573,7 +1573,7 @@
         "navLabel": "Seitenqualität",
         "title": "Seitenqualität",
         "summary": "{{audited}} von {{total}} Seiten in {{language}} geprüft",
-        "hint": "Das jeweils letzte Audit jeder Seite, wie ein Redakteur es im Content-Governance-Panel ausgeführt hat, die meisten Probleme zuerst. Öffnen Sie eine Seite und ihr Panel, um sie zu prüfen oder ihre Befunde anzuzeigen.",
+        "hint": "Das jeweils letzte Audit jeder Seite, wie ein Redakteur es im Content-Governance-Panel ausgeführt hat, die meisten Probleme zuerst. Klappen Sie eine Seite auf, um ihre Befunde zu lesen; öffnen Sie sie, um sie erneut zu prüfen.",
         "emptyTitle": "Noch keine Seite geprüft",
         "empty": "In {{language}} wurde noch keine Seite geprüft. Öffnen Sie eine Seite in Page Builder und dann Content-Governance, um ihr erstes Audit auszuführen.",
         "page": "Seite",
@@ -1593,6 +1593,13 @@
         "pagination": {
           "perPage": "Zeilen pro Seite",
           "of": "von"
+        },
+        "findings": {
+          "loading": "Befunde werden gelesen…",
+          "error": "Die Befunde konnten nicht gelesen werden. Klappen Sie die Seite zu und wieder auf, um es erneut zu versuchen.",
+          "missing": "Die Befunde dieses Audits wurden nicht gespeichert. Öffnen Sie die Seite und führen Sie ihr Audit erneut aus.",
+          "elements": "{{count}} Element",
+          "elements_plural": "{{count}} Elemente"
         }
       },
       "incomplete": {

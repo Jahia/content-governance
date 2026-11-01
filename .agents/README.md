@@ -126,7 +126,8 @@ overwrites them; BotRank files are created by a server administrator, never ship
 ## Verify
 
 - `mvn clean install` runs 497+ Java unit tests (GEO, compliance, settings, LLM config) and the
-  front-end unit tests (`yarn test`: Vitest, `src/test/javascript/`, readability scoring).
+  front-end unit tests (`yarn test`: Vitest, `src/test/javascript/`: readability, findings, locales,
+  the CSRF fetch; `@apollo/client`, a host library, is a stub in `stubs/`).
 - The Cypress suite in `tests/` (README, "Build") against the local Jahia: settings, compliance scan,
   CSRF guard, drawer, Page quality audit (axe-core, readability per language). Not run by the pull request
   CI; it runs nightly on `main` (`nightly.yml`, README "Build"), so check the last nightly before a release.

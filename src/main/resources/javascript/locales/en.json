@@ -1573,7 +1573,7 @@
         "navLabel": "Page quality",
         "title": "Page quality",
         "summary": "{{audited}} of {{total}} pages audited in {{language}}",
-        "hint": "The latest audit of each page, as an editor ran it from the Content governance drawer, most issues first. Open a page and its drawer to audit it or to see its findings.",
+        "hint": "The latest audit of each page, as an editor ran it from the Content governance drawer, most issues first. Expand a page to read its findings; open it to audit it again.",
         "emptyTitle": "No page audited yet",
         "empty": "No page has been audited in {{language}}. Open a page in Page Builder, then Content governance, to run its first audit.",
         "page": "Page",
@@ -1593,6 +1593,13 @@
         "pagination": {
           "perPage": "Rows per page",
           "of": "of"
+        },
+        "findings": {
+          "loading": "Reading the findings…",
+          "error": "The findings could not be read. Collapse and expand the page to try again.",
+          "missing": "The findings of this audit were not stored. Open the page and run its audit again.",
+          "elements": "{{count}} element",
+          "elements_plural": "{{count}} elements"
         }
       },
       "incomplete": {
