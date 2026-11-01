@@ -63,7 +63,8 @@ They stay in jContent's **Additional** accordion:
   a written report by AI. Scans can be scheduled; **Export CSV** and **Export JSON** download what
   the last scan found.
 - **Page quality**: the latest audit of every audited page, as editors ran it from the drawer, most
-  issues first, with its trend, **Export CSV** and **Export JSON**. Audits are shared: every editor
+  issues first, with its trend, **Export CSV** and **Export JSON**. Expand a page to read its
+  findings, the most serious first, with what to do about each. Audits are shared: every editor
   of the site sees a page's newest audit and its last 10 in the drawer.
 - **Compliance**: the whole-site scan, with **Export CSV** and **Export JSON**.
 

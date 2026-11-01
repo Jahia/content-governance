@@ -213,6 +213,14 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
   (`jcontent:89`, `jContentAccess`, `SectionGate` on `audit`, lazy).
   - Moonstone `DataTable`: page, last audit, issues by tab as chips (tabs with issues only), total
     with a trend chip, **Open**.
+  - A page with issues can be expanded (`isStructured`, `expandedRows` controlled: rows change once
+    their findings arrive). Opening a row the first time asks `pageAudits` for that page
+    (`pageFindings.js`): the newest run's `results` go through `auditFindings`, the drawer's own
+    list, and `rankFindings`, most serious first. Each finding is a sub-row: title and `detail`
+    (axe-core's rule description, or the recommendation's `.detail` text), severity, tab, and
+    `count` (failing elements) for accessibility. Until then one sub-row says the findings are being
+    read; a failed read says so and the next opening tries again; an audit whose results were not
+    stored says to run it again. The list is never loaded for the whole site at once.
   - Pagination 10/20/50.
   - **Export CSV** (one row per page, a column per tab) and **Export JSON**, both built in the
     browser (`exportAudits.js`, `common/exportFile.js`).

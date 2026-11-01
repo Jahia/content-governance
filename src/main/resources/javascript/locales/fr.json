@@ -1573,7 +1573,7 @@
         "navLabel": "Qualité de la page",
         "title": "Qualité de la page",
         "summary": "{{audited}} pages auditées sur {{total}} en {{language}}",
-        "hint": "Le dernier audit de chaque page, tel qu'un contributeur l'a lancé depuis le panneau Gouvernance des contenus, les pages les plus problématiques en premier. Ouvrez une page et son panneau pour l'auditer ou voir ses constats.",
+        "hint": "Le dernier audit de chaque page, tel qu'un contributeur l'a lancé depuis le panneau Gouvernance des contenus, les pages les plus problématiques en premier. Dépliez une page pour lire ses constats ; ouvrez-la pour relancer son audit.",
         "emptyTitle": "Aucune page auditée",
         "empty": "Aucune page n'a été auditée en {{language}}. Ouvrez une page dans Page Builder, puis Gouvernance des contenus, pour lancer son premier audit.",
         "page": "Page",
@@ -1593,6 +1593,13 @@
         "pagination": {
           "perPage": "Lignes par page",
           "of": "sur"
+        },
+        "findings": {
+          "loading": "Lecture des constats…",
+          "error": "Les constats n'ont pas pu être lus. Repliez puis dépliez la page pour réessayer.",
+          "missing": "Les constats de cet audit n'ont pas été enregistrés. Ouvrez la page et relancez son audit.",
+          "elements": "{{count}} élément",
+          "elements_plural": "{{count}} éléments"
         }
       },
       "incomplete": {

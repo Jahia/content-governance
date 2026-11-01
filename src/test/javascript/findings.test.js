@@ -20,14 +20,18 @@ describe('rankFindings', () => {
 describe('auditFindings', () => {
     it('lists the accessibility violations, then the recommendations of each tab', () => {
         const findings = auditFindings({
-            a11y: {violations: [{id: 'image-alt', impact: 'critical', help: 'Images must have alternative text'}]},
+            a11y: {violations: [{id: 'image-alt', impact: 'critical', help: 'Images must have alternative text',
+                description: 'Ensure <img> elements have alternative text', totalNodes: 3}]},
             seo: {recommendations: [{key: 'shortTitle', severity: 'moderate', params: {count: 12}}]},
             ecodesign: {recommendations: [{key: 'heavyPage', severity: 'serious'}]}
         }, t);
         expect(findings).toEqual([
-            {key: 'audit.a11y.image-alt', section: 'audit', tab: 'accessibility', severity: 'critical', title: 'Images must have alternative text'},
-            {key: 'audit.seo.shortTitle', section: 'audit', tab: 'seo', severity: 'moderate', title: 'seo.recs.shortTitle.title {"count":12}'},
-            {key: 'audit.ecodesign.heavyPage', section: 'audit', tab: 'ecodesign', severity: 'serious', title: 'eco.recs.heavyPage.title'}
+            {key: 'audit.a11y.image-alt', section: 'audit', tab: 'accessibility', severity: 'critical', title: 'Images must have alternative text',
+                detail: 'Ensure <img> elements have alternative text', count: 3},
+            {key: 'audit.seo.shortTitle', section: 'audit', tab: 'seo', severity: 'moderate', title: 'seo.recs.shortTitle.title {"count":12}',
+                detail: 'seo.recs.shortTitle.detail {"count":12}'},
+            {key: 'audit.ecodesign.heavyPage', section: 'audit', tab: 'ecodesign', severity: 'serious', title: 'eco.recs.heavyPage.title',
+                detail: 'eco.recs.heavyPage.detail'}
         ]);
     });
 

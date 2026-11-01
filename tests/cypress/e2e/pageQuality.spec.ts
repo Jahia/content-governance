@@ -115,6 +115,37 @@ describe('Content Governance - shared Page quality audits', () => {
         });
     });
 
+    it('shows the findings of a page\'s latest audit when its dashboard row is expanded, most serious first', () => {
+        const audit = JSON.stringify({
+            page: {title: 'Shared page', description: '', imagesWithoutAlt: 3},
+            seo: {recommendations: [{key: 'noTitle', severity: 'serious', params: {}}]},
+            a11y: {
+                violations: [{
+                    id: 'image-alt', impact: 'critical', help: 'Images must have alternative text',
+                    description: 'Ensure img elements have alternative text', totalNodes: 3, nodes: []
+                }],
+                passes: [], incomplete: []
+            }
+        });
+        gqlOk(author, SAVE, {path: pagePath, language: 'en', results: audit});
+        cy.login(colleague.username, colleague.password);
+        cy.visit(`/jahia/jcontent/${siteKey}/en/apps/contentGovernancePageQuality`);
+        cy.contains('pages audited in English', {timeout: 30000}).should('exist');
+        cy.contains('Images must have alternative text').should('not.exist');
+        cy.contains('tbody tr', 'Shared page').find('td[aria-expanded="false"] svg').first().click();
+        cy.contains('tbody tr', 'Images must have alternative text', {timeout: 15000})
+            .should('contain.text', 'Ensure img elements have alternative text')
+            .and('contain.text', 'Critical')
+            .and('contain.text', 'Accessibility')
+            .and('contain.text', '3 elements')
+            .next()
+            .should('contain.text', 'The page has no title')
+            .and('contain.text', 'the strongest on-page SEO signal')
+            .and('contain.text', 'Serious')
+            .and('contain.text', 'SEO');
+        cy.logout();
+    });
+
     it('refuses results that are not an audit, and two saves in one request', () => {
         gql(author, SAVE, {path: pagePath, language: 'en', results: '{"page": {}}'})
             .then((body: GqlBody) => assertRefused(body, ['contentGovernance', 'saveAudit'], 'The results hold no tab'));

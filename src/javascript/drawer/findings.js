@@ -3,6 +3,8 @@
  * `{key, section, tab, severity, title}`: `severity` is `critical`, `serious`, `moderate` or
  * `minor` (axe-core's impacts, which the module's recommendations already use), `title` is
  * already translated, `tab` is the tab of the section that shows it (null for a section without tabs).
+ * Page quality findings also carry `detail` (what to do, translated) and, for accessibility,
+ * `count` (the elements that fail the rule).
  */
 
 const RANK = {critical: 0, serious: 1, moderate: 2, minor: 3};
@@ -38,7 +40,15 @@ export function auditFindings(results, t) {
     }
     const out = [];
     (results.a11y?.violations || []).forEach(rule => {
-        out.push({key: `audit.a11y.${rule.id}`, section: 'audit', tab: 'accessibility', severity: rule.impact || 'minor', title: rule.help || rule.id});
+        out.push({
+            key: `audit.a11y.${rule.id}`,
+            section: 'audit',
+            tab: 'accessibility',
+            severity: rule.impact || 'minor',
+            title: rule.help || rule.id,
+            detail: rule.description,
+            count: rule.totalNodes
+        });
     });
     AUDIT_TABS.forEach(([tab, ns]) => {
         (results[tab]?.recommendations || []).forEach(rec => {
@@ -47,7 +57,8 @@ export function auditFindings(results, t) {
                 section: 'audit',
                 tab,
                 severity: rec.severity || 'minor',
-                title: t(`${ns}.recs.${rec.key}.title`, rec.params)
+                title: t(`${ns}.recs.${rec.key}.title`, rec.params),
+                detail: t(`${ns}.recs.${rec.key}.detail`, rec.params)
             });
         });
     });
