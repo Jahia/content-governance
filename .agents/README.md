@@ -25,6 +25,7 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 | `src/main/java/.../settings/` | `Features` (section and tab ids) and `SiteFeatures` (the server-side gate) |
 | `src/main/java/.../graphql/` | `contentGovernance { siteSettings }`, `saveSiteSettings`, `complianceScan` |
 | `src/main/java/.../{audit,geo,compliance}/` | Each section's server side, as in the original modules |
+| `src/main/resources/ccs_glossaryTerm/html/` | The glossary term's default view, which jContent's Preview shows |
 
 ## Invariants
 
@@ -80,6 +81,14 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   no first-line marker on purpose). Every call from the UI goes through `common/guardedFetch.js`,
   never a bare `fetch`; the servlets take no API token (decision 2026-10-30, browser only).
 - Build with Maven **3.8** and Java 17 (`mise.toml`), always `clean install`.
+- **The `Import-Package` instruction starts with `${jahia.plugin.projectPackageImport},`** (1.7.0): it
+  carries the tag libraries the JSP views need, which the module's own instruction would otherwise
+  drop; the term view then fails "Unable to load tag handler class". Check the jar imports
+  `org.jahia.taglibs.template.include`.
+- **Glossary terms have a default view** (`ccs_glossaryTerm/html/glossaryTerm.jsp`, CSS
+  `css/glossary-term.css`): jContent's Preview renders it (never a `cm` view). Labels come from the
+  type's own keys in the four bundles, every value is escaped; `compliance.spec.ts` renders it as
+  jContent does.
 - `robots` and `llms` are optional dependencies (`=optional`): only the GEO robots.txt editor and the
   read-only llms.txt tab need them. llms.txt is written in the `llms` module, never here.
 - **A readability score uses a formula published for the page language** (2026-10-31): one entry

@@ -1,0 +1,61 @@
+/* Preview of a non-authorised term in jContent (ccs_glossaryTerm/html/glossaryTerm.jsp). */
+.cg-glossary-term {
+    --cg-term-ink: #131c21;
+    --cg-term-muted: #5b6770;
+    --cg-term-line: #dde3e8;
+    --cg-term-forbidden: #c8102e;
+    --cg-term-suggested: #00805f;
+    max-width: 640px;
+    margin: 24px;
+    font-family: Nunito Sans, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: var(--cg-term-ink);
+}
+
+.cg-glossary-term__type {
+    margin: 0 0 4px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cg-term-muted);
+}
+
+.cg-glossary-term__term {
+    margin: 0 0 16px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--cg-term-forbidden);
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+}
+
+.cg-glossary-term__fields {
+    margin: 0;
+    border-top: 1px solid var(--cg-term-line);
+}
+
+.cg-glossary-term__field {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--cg-term-line);
+}
+
+.cg-glossary-term__field dt {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cg-term-muted);
+}
+
+.cg-glossary-term__field dd {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.5;
+    white-space: pre-line;
+}
+
+.cg-glossary-term__alternative {
+    font-weight: 700;
+    color: var(--cg-term-suggested);
+}
