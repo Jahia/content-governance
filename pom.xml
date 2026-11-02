@@ -270,8 +270,12 @@
                         <_dsannotations>*</_dsannotations>
                         <Export-Package>org.jahia.community.contentgovernance.compliance.model,org.jahia.community.contentgovernance.compliance.service.spi</Export-Package>
                         <!-- Named explicitly: the GraphQL packages come from graphql-dxm-provider, whose
-                             transitive dependencies are excluded, so the bundle plugin would not infer them. -->
+                             transitive dependencies are excluded, so the bundle plugin would not infer them.
+                             The first line keeps the parent's: the packages jahia-maven-plugin finds in the
+                             JSP views (their tag libraries), which bnd cannot see; without it a view fails
+                             "Unable to load tag handler class". -->
                         <Import-Package>
+                            ${jahia.plugin.projectPackageImport},
                             org.jahia.modules.graphql.provider.dxm,
                             org.jahia.modules.graphql.provider.dxm.osgi.annotations,
                             graphql.annotations.annotationTypes,

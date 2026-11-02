@@ -51,7 +51,9 @@ language of the page.
 
 Terms come from **Compliance glossaries**, one per language, kept in the site's contents by the
 people who own the wording (Legal, compliance). The scan reads the page and every piece of content
-it shows, and lists each term found with its reason and the suggested wording.
+it shows, and lists each term found with its reason and the suggested wording. Selecting a term in
+jContent shows it in the **Preview** tab: the term, how it matches, the reason and the suggested
+wording, in the editor's language.
 
 ### Site dashboards
 

@@ -140,6 +140,34 @@ describe('Content Governance - compliance scan', () => {
             .then((body: GqlBody) => assertRefused(body, ['complianceScan', 'scanSite']));
     });
 
+    it('previews a term in jContent with its labels, its values escaped', () => {
+        const termPath = `${folderPath}/glossary-en/cg-preview-term`;
+        addNodeTree(`${folderPath}/glossary-en`, {
+            name: 'cg-preview-term', type: 'ccs:glossaryTerm',
+            props: [
+                {name: 'term', value: 'cg-preview-term'},
+                {name: 'reason', value: '<b>Not allowed</b> & never was'},
+                {name: 'alternative', value: 'allowed'}
+            ]
+        });
+        // What jContent's preview asks for content outside pages: the default view, rendered as a module
+        const preview = `query R($path: String!, $language: String!) { jcr { nodeByPath(path: $path) {
+            renderedContent(templateType: "html", view: null, contextConfiguration: "module", language: $language) { output }
+        } } }`;
+        gqlOk(editor, preview, {path: termPath, language: 'en'}).its('jcr.nodeByPath.renderedContent.output').should((html: string) => {
+            expect(html).to.contain('cg-glossary-term');
+            expect(html).to.contain('Non-authorised term');
+            expect(html).to.contain('Whole word or phrase');
+            expect(html).to.contain('&lt;b&gt;Not allowed&lt;/b&gt; &amp; never was');
+            expect(html, 'the reason is not markup').to.not.contain('<b>Not allowed</b>');
+            expect(html).to.contain('allowed');
+        });
+        gqlOk(editor, preview, {path: termPath, language: 'fr'}).its('jcr.nodeByPath.renderedContent.output').should((html: string) => {
+            expect(html).to.contain('Terme non autoris');
+            expect(html).to.contain('Motif');
+        });
+    });
+
     it('refuses to scan once the site switches the compliance section off', () => {
         switchOff(siteKey, ['compliance']);
         const off = 'The compliance scan is not enabled on this site';
