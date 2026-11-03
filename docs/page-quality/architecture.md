@@ -60,7 +60,9 @@ jContent / Page Builder header
   `drawer/useDock.js` docks it in jContent's content area (`main .moonstone-layoutContent`), under
   the header: it gives the Page Builder frame's wrapper (or the content list in list views) a
   `margin-right` of the drawer's width plus 16 px, puts the original margin back on close, and
-  follows window resizes and the swap between Page Builder and the list. The width starts at 45% of
+  follows window resizes, the swap between Page Builder and the list, and the frame's own size (a
+  page header above it, such as Page Insights, opening or closing moves it while the area keeps its
+  size). The width starts at 45% of
   the area (600 px at least), leaves the page 360 px, and is dragged on the left edge (a native
   button, since Sonar refuses a focusable `role="separator"` div; arrows move 16 px, Shift 64) and remembered in `localStorage`
   (`content-governance:panelWidth`). Where the area cannot keep 360 px beside a 480 px drawer, the
