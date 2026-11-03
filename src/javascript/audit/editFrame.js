@@ -36,9 +36,9 @@ export function findEditFrameDocument(path, language) {
 }
 
 export const normalize = s => (s || '')
-    .replace(/[’‘]/g, '\'')
-    .replace(/[“”«»]/g, '"')
-    .replace(/\s+/g, ' ')
+    .replaceAll(/[’‘]/g, '\'')
+    .replaceAll(/[“”«»]/g, '"')
+    .replaceAll(/\s+/g, ' ')
     .trim()
     .toLowerCase();
 

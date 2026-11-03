@@ -27,6 +27,9 @@
     bottom: 0;
     left: 0;
     width: 8px;
+    padding: 0;
+    border: none;
+    background: transparent;
     cursor: col-resize;
     z-index: 1;
     touch-action: none;

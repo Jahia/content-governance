@@ -1866,7 +1866,7 @@
         "notPage": "Der Compliance-Scan liest eine Seite und das, was sie anzeigt: Öffnen Sie eine Seite, um ihn zu verwenden.",
         "noWrite": "Der Compliance-Scan ist für Personen gedacht, die diese Seite bearbeiten dürfen."
       },
-      "resize": "Panelbreite ändern",
+      "resize": "Panelbreite ändern: ziehen oder die Pfeiltasten links und rechts verwenden",
       "nothingAvailable": "Kein Bereich von Content-Governance ist für diesen Inhalt verfügbar.",
       "sectionHelp": {
         "audit": "Prüft die Seite, die Sie bearbeiten: Barrierefreiheit, SEO, Geschwindigkeit, Lesbarkeit, Ökodesign, Links und Jahia-Inhalte, mit KI-Vorschlägen auf Anfrage.",

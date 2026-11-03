@@ -1866,7 +1866,7 @@
         "notPage": "El análisis de cumplimiento lee una página y lo que muestra: abra una página para usarlo.",
         "noWrite": "El análisis de cumplimiento está reservado a quienes pueden editar esta página."
       },
-      "resize": "Cambiar el ancho del panel",
+      "resize": "Cambiar el ancho del panel: arrastre, o use las flechas izquierda y derecha",
       "nothingAvailable": "Ninguna sección de Gobernanza de contenidos puede usarse con este contenido.",
       "sectionHelp": {
         "audit": "Revisa la página que está editando: accesibilidad, SEO, velocidad, legibilidad, ecodiseño, enlaces y contenido Jahia, con sugerencias de IA a petición.",

@@ -61,8 +61,8 @@ jContent / Page Builder header
   the header: it gives the Page Builder frame's wrapper (or the content list in list views) a
   `margin-right` of the drawer's width plus 16 px, puts the original margin back on close, and
   follows window resizes and the swap between Page Builder and the list. The width starts at 45% of
-  the area (600 px at least), leaves the page 360 px, and is dragged on the left edge (a WAI-ARIA
-  separator; arrows move 16 px, Shift 64) and remembered in `localStorage`
+  the area (600 px at least), leaves the page 360 px, and is dragged on the left edge (a native
+  button, since Sonar refuses a focusable `role="separator"` div; arrows move 16 px, Shift 64) and remembered in `localStorage`
   (`content-governance:panelWidth`). Where the area cannot keep 360 px beside a 480 px drawer, the
   drawer covers the page instead. Geometry is written to the elements, not React state, so a drag
   does not render the sections. It closes on Escape, its close button and the header button; a

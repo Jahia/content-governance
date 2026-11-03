@@ -1866,7 +1866,7 @@
         "notPage": "Le contrôle de conformité lit une page et ce qu'elle affiche : ouvrez une page pour l'utiliser.",
         "noWrite": "Le contrôle de conformité est réservé aux personnes qui peuvent modifier cette page."
       },
-      "resize": "Redimensionner le panneau",
+      "resize": "Redimensionner le panneau : faites glisser, ou utilisez les flèches gauche et droite",
       "nothingAvailable": "Aucune section de Gouvernance des contenus ne peut être utilisée sur ce contenu.",
       "sectionHelp": {
         "audit": "Contrôle la page que vous modifiez : accessibilité, SEO, vitesse, lisibilité, écoconception, liens et contenus Jahia, avec des suggestions de l'IA à la demande.",

@@ -29,9 +29,8 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
     const [findings, setFindings] = useState({});
     const [requested, setRequested] = useState(null);
     const drawerRef = useRef(null);
-    const handleRef = useRef(null);
     const previouslyFocused = useRef(null);
-    const dock = useDock(drawerRef, handleRef);
+    const dock = useDock(drawerRef);
 
     const select = useCallback(id => {
         setActive(id);
@@ -140,15 +139,14 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
                 aria-labelledby="content-governance-drawer-title"
                 tabIndex={-1}
         >
-            {/* A focusable separator is a widget, the WAI-ARIA window splitter: arrows resize */}
-            <div ref={handleRef}
-                 role="separator"
-                 aria-orientation="vertical"
-                 aria-label={t('resize')}
-                 tabIndex={0}
-                 className={styles.resize}
-                 onPointerDown={dock.onPointerDown}
-                 onKeyDown={dock.onKeyDown}/>
+            {/* The left edge: dragged, or moved with the arrow keys once focused. A native button: Moonstone
+                has no splitter, and Sonar refuses a focusable separator role on a div (S6819, S6845, S6847). */}
+            <button type="button"
+                    aria-label={t('resize')}
+                    title={t('resize')}
+                    className={styles.resize}
+                    onPointerDown={dock.onPointerDown}
+                    onKeyDown={dock.onKeyDown}/>
             <header className={styles.header}>
                 <div className={styles.headerText}>
                     <Typography id="content-governance-drawer-title" variant="heading" component="h2">{t('title')}</Typography>

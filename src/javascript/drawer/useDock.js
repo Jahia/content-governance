@@ -36,18 +36,19 @@ const findAnchor = area => document.querySelector('#page-builder-frame-1')?.pare
 /**
  * Docks the drawer in jContent's content area, under the header: the page under edit (or the
  * content list) narrows to make room, and stays usable while the panel is open, as jContent's own
- * preview panel does. The width is the editor's, dragged on the separator and remembered.
+ * preview panel does. The width is the editor's, dragged on the left edge and remembered.
  *
  * Geometry is written straight to the elements, never through React state: a drag would otherwise
  * render every section of the drawer on each pointer move.
  *
  * @param {React.RefObject<HTMLElement>} panelRef the drawer
- * @param {React.RefObject<HTMLElement>} handleRef its separator
- * @returns {{onPointerDown: Function, onKeyDown: Function}} the separator's handlers
+ * @returns {{onPointerDown: Function, onKeyDown: Function}} the handlers of its resize handle, a
+ *     button on its left edge
  */
-export function useDock(panelRef, handleRef) {
+export function useDock(panelRef) {
     const width = useRef(readWidth());
-    const layout = useRef(() => {});
+    // Places the panel and returns the width the layout allowed
+    const layout = useRef(() => null);
 
     // A layout effect: the panel is placed before the browser first paints it.
     useLayoutEffect(() => {
@@ -75,7 +76,7 @@ export function useDock(panelRef, handleRef) {
             const panel = panelRef.current;
             area = findArea();
             if (!panel || !area) {
-                return;
+                return null;
             }
             const next = findAnchor(area);
             if (next !== anchor) {
@@ -111,12 +112,7 @@ export function useDock(panelRef, handleRef) {
                 width: `${w}px`,
                 height: `${Math.max(bottom - top, 0)}px`
             });
-            const handle = handleRef.current;
-            if (handle) {
-                handle.setAttribute('aria-valuenow', String(Math.round(w)));
-                handle.setAttribute('aria-valuemin', String(Math.round(Math.min(MIN_WIDTH, max))));
-                handle.setAttribute('aria-valuemax', String(Math.round(max)));
-            }
+            return w;
         };
         const schedule = () => {
             cancelAnimationFrame(frame);
@@ -141,14 +137,13 @@ export function useDock(panelRef, handleRef) {
             release();
             document.body.classList.remove(DRAGGING_CLASS);
         };
-    }, [panelRef, handleRef]);
+    }, [panelRef]);
 
     const resizeTo = useCallback(next => {
         width.current = next;
-        layout.current();
-        // Read back what the layout allowed, so a drag past a limit does not store a width never shown
-        width.current = Number(handleRef.current?.getAttribute('aria-valuenow')) || next;
-    }, [handleRef]);
+        // Keep what the layout allowed, so a drag past a limit does not store a width never shown
+        width.current = layout.current() || next;
+    }, []);
 
     const onPointerDown = useCallback(event => {
         if (event.button !== 0) {

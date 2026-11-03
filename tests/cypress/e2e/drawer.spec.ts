@@ -80,7 +80,8 @@ describe('Content Governance - drawer', () => {
 
     // The drawer used to cover the right of the screen and close on any press outside it.
     it('docks beside the page under edit, stays open on a press in the page, and resizes from its edge', () => {
-        const SEPARATOR = `${DRAWER} [role="separator"]`;
+        const HANDLE = `${DRAWER} button[aria-label^="Resize the panel"]`;
+        const drawerWidth = () => Math.round(Cypress.$(DRAWER)[0].getBoundingClientRect().width);
         const frameWrapper = () => cy.get('#page-builder-frame-1').parent();
         cy.login(admin.username, admin.password);
         cy.visit(pageUrl);
@@ -94,12 +95,11 @@ describe('Content Governance - drawer', () => {
             expect(Math.abs(frame.top - drawer.top), 'the drawer starts under the header, with the page').to.be.lessThan(2);
         });
         cy.get('#page-builder-frame-1').click(40, 40);
-        cy.get(DRAWER).should('be.visible');
-        cy.get(SEPARATOR).invoke('attr', 'aria-valuenow').then(before => {
-            cy.get(SEPARATOR).focus().trigger('keydown', {key: 'ArrowLeft'});
-            const wider = String(Number(before) + 16);
-            cy.get(SEPARATOR).should('have.attr', 'aria-valuenow', wider);
-            cy.window().should(win => expect(win.localStorage.getItem('content-governance:panelWidth')).to.eq(wider));
+        cy.get(DRAWER).should('be.visible').then(() => {
+            const wider = drawerWidth() + 16;
+            cy.get(HANDLE).focus().trigger('keydown', {key: 'ArrowLeft'});
+            cy.wrap(null).should(() => expect(drawerWidth()).to.eq(wider));
+            cy.window().should(win => expect(win.localStorage.getItem('content-governance:panelWidth')).to.eq(String(wider)));
         });
         cy.focused().type('{esc}');
         cy.get(DRAWER).should('not.exist');
