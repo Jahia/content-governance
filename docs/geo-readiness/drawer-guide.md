@@ -7,7 +7,7 @@ answers that for the page you have open, and tells you which parts are yours to 
 
 Open a page in jContent or Page Builder. A content item that has its own address (a main resource,
 such as a blog post) works too. Press **Content governance** in the header. A drawer opens on the
-right with one tab per section the site uses: **Page quality**, **GEO readiness** and
+right, beside the page, with one tab per section the site uses: **Page quality**, **GEO readiness** and
 **Compliance**. Choose **GEO readiness**. When it is the only section switched on, the drawer opens
 on it, still under its **GEO readiness** tab.
 
@@ -15,9 +15,9 @@ The **GEO readiness** tab carries a red number when the tabs inside it found pro
 total of their own numbers. Each tab, here and inside the section, has a tooltip saying what it is
 for.
 
-Nothing in this section changes your page: it only reads and reports. The drawer closes with
-Escape, its close button, the **Content governance** button again, or a click anywhere outside it:
-the page under edit, the content tree, or another panel's button.
+Nothing in this section changes your page: it only reads and reports. The page under edit stays
+usable beside the drawer, and the drawer's left edge drags to make it wider. The drawer closes with
+Escape, its close button, or the **Content governance** button again.
 
 If you do not see **GEO readiness**, a site administrator switched it off for this site in
 **Site Settings > Content governance**. A single tab can be switched off the same way, and is then

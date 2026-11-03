@@ -35,6 +35,7 @@ jContent / Page Builder header
 | `src/javascript/drawer/GovernanceAction.jsx` | Shows the button on `jnt:page` and `jmix:mainResource` of a site that enables the module (`useNodeChecks`, `requireModuleInstalledOnSite`), reads the site settings, opens the drawer. The drawer and its three sections are one lazy chunk, fetched when the browser is idle once the button shows (`requestIdleCallback`, else after 2 s), at the latest on the first click. |
 | `src/javascript/drawer/FixFirst.jsx`, `findings.js` | "Fix first": each section reports `{key, section, tab, severity, title}` findings through `onFindings` (Page quality: violations by impact and every tab's recommendations, `auditFindings`; GEO: one per tab with a count, score and crawler serious, the others moderate; Compliance: one serious per term, `complianceFindings`). The drawer keeps them per section (an identical list changes nothing), `rankFindings` keeps the five most serious, ties in section order, and **Open** selects the section and passes `requestedTab` `{tab, at}`. |
 | `src/javascript/drawer/GovernanceDrawer.jsx` | The drawer: header, one section tab per switched-on section with its count badge, sections mounted on first show and kept mounted while the drawer is open. |
+| `src/javascript/drawer/useDock.js` | Docks the drawer beside the page under edit, under jContent's header, and resizes it from its left edge (see the drawer notes below). |
 | `src/javascript/audit/AuditSection.jsx` | The section: preview frame, analyzer pipeline, cache, staleness probe, export, AI task lifecycle, tab bar and badges. |
 | `src/javascript/audit/analyzers/` | One file per analyzer, plus `tooling.js` (DOM cleanup) and `aiReview.js` (AI client). |
 | `src/javascript/audit/tabs/` | One component per tab, the three assist components, the shared `Recommendations` list, the two manual checklists. |
@@ -54,10 +55,18 @@ jContent / Page Builder header
 - `useSiteSettings(siteKey)` runs `ContentGovernanceSiteSettings` with `fetchPolicy: 'network-only'`
   on every mount, so a switch changed by an administrator applies the next time the drawer opens. It
   returns `isOn(section, tab)` and `settings.ai` (`configured`, `provider`, `model`, `images`).
-- The drawer is a `<dialog open>` (not `showModal()`, which would leave jContent's stacking context)
-  rendered by a portal into `document.body`. It traps Tab, closes on Escape, on a pointer press
-  outside, and when focus moves into an iframe outside it (the Page Builder frame). The preview frame
-  of this section is inside the dialog, so clicking it does not close the drawer.
+- The drawer is a non-modal `<dialog open>` (not `showModal()`, which would make it modal, in the top
+  layer above Content Editor and jContent's menus) rendered by a portal into `document.body`.
+  `drawer/useDock.js` docks it in jContent's content area (`main .moonstone-layoutContent`), under
+  the header: it gives the Page Builder frame's wrapper (or the content list in list views) a
+  `margin-right` of the drawer's width plus 16 px, puts the original margin back on close, and
+  follows window resizes and the swap between Page Builder and the list. The width starts at 45% of
+  the area (600 px at least), leaves the page 360 px, and is dragged on the left edge (a WAI-ARIA
+  separator; arrows move 16 px, Shift 64) and remembered in `localStorage`
+  (`content-governance:panelWidth`). Where the area cannot keep 360 px beside a 480 px drawer, the
+  drawer covers the page instead. Geometry is written to the elements, not React state, so a drag
+  does not render the sections. It closes on Escape, its close button and the header button; a
+  press on the page leaves it open, and it returns focus where it was on close.
 - `AuditSection` receives `isOn(tab)` for the `audit` section. `TAB_IDS` (`accessibility`, `seo`,
   `vitals`, `readability`, `ecodesign`, `links`, `jahia`, `ai`) is filtered by it. The `ai` tab is
   kept but disabled while `settings.ai.configured` is false; its tooltip (Moonstone `Tooltip`,
@@ -101,9 +110,22 @@ The analyzers call no module endpoint; the server enforces the switches on the A
      stopped step is ignored, not cancelled.
 - When results come from the cache, the frame still loads (preview and highlight target) but the
   analyzers do not run (`cacheHitRef`).
-- Highlight: `highlight(selector)` uses `querySelector`; `highlightText(sample)` normalises
-  whitespace, quotes and case, searches at element level, falls back to the first 8 then 4 words,
-  and outlines the tightest matching element. Both reopen a collapsed preview.
+- Highlight (`audit/editFrame.js`): the audit always runs in the preview, a plain render of the page;
+  the outline goes to Page Builder's active frame (`iframe[data-sel-role="page-builder-frame-active"]`)
+  when it shows the audited page and language (`/<lang><path>.html` ends its path). `highlight(selector)`
+  resolves the selector in the preview, then `locateInFrame` finds the same element in the edit frame:
+  the same id, else the same tag with the same `src`/`href`/`alt` and text at the same rank, outside
+  jContent's `#jahia-portal-root`. A container whose markup edit mode changed gives way to its nearest
+  ancestor (4 at most) that matches and holds an element of its tag; an element with no children
+  never climbs. `highlightText(sample)` normalises whitespace, quotes and case, searches at element
+  level, falls back to the first 8 then 4 words, and outlines the tightest matching element, in the
+  edit frame first. What the edit frame lacks is outlined in the preview, which opens. One outline at
+  a time; it is removed when the drawer closes.
+- Hidden preview: beside Page Builder `previewCollapsed` starts true. Hidden is not folded: the
+  preview sits behind the results at the size of the whole section (`position: absolute; inset: 0;
+  z-index: -1` in the drawer section's isolated stacking context, every band above it opaque,
+  `inert`, `aria-hidden`), because the analyzers read the frame's viewport and paint (LCP, images
+  above the fold) and a frame with no height measures nothing. A re-run keeps the editor's choice.
 
 ## The analyzers
 

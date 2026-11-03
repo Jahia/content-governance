@@ -7,7 +7,7 @@ informational: it tells you what to fix before publishing, it does not stop you 
 ## Open it
 
 1. Open the page in Page Builder (or select it in jContent).
-2. Click **Content governance** in the header. A drawer opens on the right.
+2. Click **Content governance** in the header. A drawer opens on the right, beside the page.
 3. Click the **Compliance** tab. The scan runs the first time the section shows.
 
 The drawer opens on its first section the site uses, usually **Page quality**. When Compliance is

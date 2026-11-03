@@ -26,7 +26,9 @@ Vitals 15) or fails is stopped: its tab says "This check did not finish" or "Thi
 a **Re-run** button, and the other tabs show their results. Such an audit is not kept for the next
 opening.
 
-Close the drawer with the **Close panel** button, the Escape key, or a click outside it. Results are
+The drawer sits beside the page under edit, which stays usable: drag its left edge to make it wider
+(the width is remembered). Close it with the **Close panel** button, the Escape key, or the **Content
+governance** button again. Results are
 kept: the next time anyone opens the drawer on the same page and language, the newest audit comes
 back at once, whoever ran it.
 
@@ -51,12 +53,15 @@ Page Builder and open the drawer again. Each language has its own results.
 |---|---|
 | **Re-run** | Loads the page again and runs every check from scratch. Use it after you have fixed something. It also clears the AI answers of the previous run. |
 | **Export JSON** | Downloads the results of the automated checks as a JSON file (`content-governance-audit-<page name>.json`), with the page path, language and date. AI answers are not included. Useful to attach to a ticket for a developer. |
-| **Hide preview** / **Show preview** | Folds the page preview away to give the results the full height of the drawer. The page stays loaded, so highlighting still works and reopens the preview. |
+| **Hide preview** / **Show preview** | Hides the page preview to give the results the full height of the drawer. In Page Builder it starts hidden, since the page is beside the drawer. The preview stays loaded behind the results, so the audit measures it the same way and highlighting can still show it. |
 | "Last audit: date by user" | When the results shown were produced, and who ran the audit. |
 | "Issues over the last N audits: 12 → 9 → 7" | The total of the badges at each of the page's last audits (up to 10), oldest first. Hover a number for its date and who ran it. Shown from the second audit. |
 
-Under the toolbar is the page preview. In most tabs, a **Highlight in preview** button scrolls the
-preview to the element concerned and draws a red outline around it.
+Under the toolbar is the page preview, hidden at first in Page Builder. In most tabs, a **Highlight
+on the page** button scrolls to the element concerned and draws a red outline around it: in the page
+under edit when Page Builder shows it, so you can edit it at once, otherwise in the preview, which
+opens for it. An element the page under edit does not show (one added by a script, or shown on
+the published site only) is outlined in the preview. The outline goes when you close the drawer.
 
 If the page was changed after the results were produced, a warning appears: **Page modified since
 this audit**, with the text "The page has been modified since this audit - the results below may be
@@ -154,7 +159,7 @@ best-practice rules.
   nothing to test. A 100% card means every automated rule passed, not that the page is compliant.
 - **Violations**, most severe first. Each line shows the severity, the WCAG level, the rule and the
   number of elements. Open it to see what the rule checks (with a link to its documentation), the
-  HTML of up to 25 failing elements, what is wrong with each, and **Highlight in preview**.
+  HTML of up to 25 failing elements, what is wrong with each, and **Highlight on the page**.
 - **Automated checks needing human review**: cases marked **To verify**. Look at each one.
 - **Manual checklist (not automatable)**: 14 WCAG criteria no tool can judge, such as keyboard use,
   meaningful alt text, captions, focus order, 200% zoom. Review them once per page type.
@@ -263,7 +268,7 @@ loading in templates, third-party scripts.
 - **Link summary**: total links, internal links (how many were verified, skipped or not verified
   because of the limit) and external links.
 - **Broken links**: each with its HTTP status (or "error" when the request failed), its text, its
-  URL and **Highlight in preview**.
+  URL and **Highlight on the page**.
 - **Recommendations**: broken internal links, absolute URLs hardcoded to this host (they break when
   the site moves to another domain: use an internal page link instead), `http://` links on an
   `https` page, `target="_blank"` links without `rel="noopener"`.
@@ -309,7 +314,7 @@ findings above go to the configured provider. After a few seconds you get:
   Accessibility, Performance, UX, Proofreading, Factuality, Consistency, Conversion, Localization,
   Legal, Ecodesign. Proofreading, factuality (outdated dates, contradictions), consistency,
   conversion, localization and legal wording are things no automated check covers.
-- When a recommendation is about specific words, the quoted text with **Highlight in preview**, and
+- When a recommendation is about specific words, the quoted text with **Highlight on the page**, and
   often a **Suggested fix** with **Copy**.
 
 The assessment and recommendations are written in your jContent interface language; quotes and
@@ -336,8 +341,8 @@ rules:
 | Assist | Where | Button | What you get |
 |---|---|---|---|
 | **AI suggestions** | **SEO** | **Suggest with AI** | 2 or 3 title tags, 3 meta descriptions, an `og:title` and `og:description` for social sharing, a focus keyword with supporting terms, heading rewrites (current, suggested, reason), and for each generic link or button label ("Read more", "Click here", "Submit"...) 2 or 3 specific labels. Character counts turn to a warning colour outside the recommended length. |
-| **AI alt text** | **Accessibility**, when images have no alt | **Suggest alt text** | For up to 8 images without alt, largest first: a thumbnail, a suggested alt (125 characters at most), or "Decorative - use an empty alt", a reason, and **Highlight in preview**. |
-| **AI plain-language rewrites** | **Readability**, when the page has long sentences | **Rewrite the hardest sentences** | The 6 longest sentences (22 words or more, in paragraphs, list items, tables and quotes of the main content), each with a rewrite, word counts before and after, a reason and **Highlight in preview**. |
+| **AI alt text** | **Accessibility**, when images have no alt | **Suggest alt text** | For up to 8 images without alt, largest first: a thumbnail, a suggested alt (125 characters at most), or "Decorative - use an empty alt", a reason, and **Highlight on the page**. |
+| **AI plain-language rewrites** | **Readability**, when the page has long sentences | **Rewrite the hardest sentences** | The 6 longest sentences (22 words or more, in paragraphs, list items, tables and quotes of the main content), each with a rewrite, word counts before and after, a reason and **Highlight on the page**. |
 
 Where each suggestion goes:
 

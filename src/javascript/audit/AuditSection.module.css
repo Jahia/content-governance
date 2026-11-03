@@ -1,4 +1,5 @@
 .toolbar {
+    background: var(--color-light, #fff);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -30,10 +31,19 @@
     overflow: hidden;
 }
 
+/* Hidden: behind the results at the size of the whole section, not folded to no height. The
+   analyzers read the frame's viewport and its paint (LCP, images above the fold): a frame with no
+   height measures nothing. The drawer's section isolates the stacking, and every band above it is
+   opaque. */
 .previewCollapsed {
-    height: 0;
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    height: auto;
     min-height: 0;
     border-bottom: none;
+    pointer-events: none;
+    transition: none;
 }
 
 .frame {
@@ -44,6 +54,7 @@
 }
 
 .stale {
+    background: var(--color-light, #fff);
     flex-shrink: 0;
     padding: 8px 20px 0;
 }
@@ -57,6 +68,7 @@
 
 /* Moonstone's tab bar has a fixed height: it scrolls sideways instead of wrapping under the content. */
 .tabBar {
+    background: var(--color-light, #fff);
     flex-shrink: 0;
     overflow-x: auto;
     padding: 0 12px;
@@ -69,6 +81,7 @@
 }
 
 .content {
+    background: var(--color-light, #fff);
     flex: 1 1 0%;
     min-height: 0;
     overflow-y: auto;
