@@ -106,6 +106,31 @@ describe('Content Governance - drawer', () => {
         frameWrapper().should($wrapper => expect($wrapper[0].style.marginRight, 'the page gets its width back').to.eq('0px'));
     });
 
+    // A page header above the frame (Page Insights) opens and closes while the drawer is open: the
+    // frame moves and changes height, the content area does not.
+    it('follows the page under edit when a bar above it opens or closes', () => {
+        const top = (selector: string) => Math.round(Cypress.$(selector)[0].getBoundingClientRect().top);
+        cy.login(admin.username, admin.password);
+        cy.visit(pageUrl);
+        cy.get('#page-builder-frame-1', {timeout: 30000}).parent().then($wrapper => {
+            const bar = document.createElement('div');
+            bar.id = 'cg-test-bar';
+            bar.style.height = '40px';
+            bar.style.flexShrink = '0';
+            $wrapper[0].parentElement?.insertBefore(bar, $wrapper[0]);
+        });
+        cy.contains('button', BUTTON).click();
+        cy.get(DRAWER).should('be.visible');
+        [240, 40].forEach(height => {
+            cy.get('#cg-test-bar').invoke('css', 'height', `${height}px`);
+            cy.get('#page-builder-frame-1').parent().should($wrapper => {
+                const frameTop = Math.round($wrapper[0].getBoundingClientRect().top);
+                expect(frameTop, 'the frame moved').to.be.greaterThan(height);
+                expect(top(DRAWER), 'the drawer starts with the frame').to.eq(frameTop);
+            });
+        });
+    });
+
     // The pointer is still on a tab just clicked: its help would cover the content the editor came to read.
     it('shows a section\'s help on hover, and none on the selected section', () => {
         const help = (id: string) => cy.get(section(id)).parent().find('[role="tooltip"]');

@@ -57,6 +57,16 @@ export function useDock(panelRef) {
         // The anchor's own inline margin (Page Builder writes margin: 0), put back on close
         let original = null;
         let frame = 0;
+        const schedule = () => {
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(place);
+        };
+        // The area changes size with the window and the accordion. The anchor also moves inside it: a
+        // bar above the frame (a page header such as Page Insights) that opens or closes shifts the
+        // frame and changes its height while the area keeps its own.
+        const resize = new ResizeObserver(schedule);
+        // Page Builder and the content list replace each other in the area: follow the swap.
+        const swap = new MutationObserver(schedule);
 
         const restore = () => {
             if (original?.value) {
@@ -68,13 +78,25 @@ export function useDock(panelRef) {
         const release = () => {
             if (anchor) {
                 restore();
+                resize.unobserve(anchor);
             }
             anchor = null;
         };
 
-        const place = () => {
+        function place() {
             const panel = panelRef.current;
-            area = findArea();
+            const nextArea = findArea();
+            if (nextArea !== area) {
+                if (area) {
+                    resize.unobserve(area);
+                    swap.disconnect();
+                }
+                area = nextArea;
+                if (area) {
+                    resize.observe(area);
+                    swap.observe(area, {childList: true});
+                }
+            }
             if (!panel || !area) {
                 return null;
             }
@@ -82,10 +104,13 @@ export function useDock(panelRef) {
             if (next !== anchor) {
                 release();
                 anchor = next;
-                original = anchor && {
-                    value: anchor.style.getPropertyValue('margin-right'),
-                    priority: anchor.style.getPropertyPriority('margin-right')
-                };
+                if (anchor) {
+                    original = {
+                        value: anchor.style.getPropertyValue('margin-right'),
+                        priority: anchor.style.getPropertyPriority('margin-right')
+                    };
+                    resize.observe(anchor);
+                }
             }
             const box = area.getBoundingClientRect();
             const style = getComputedStyle(area);
@@ -113,21 +138,10 @@ export function useDock(panelRef) {
                 height: `${Math.max(bottom - top, 0)}px`
             });
             return w;
-        };
-        const schedule = () => {
-            cancelAnimationFrame(frame);
-            frame = requestAnimationFrame(place);
-        };
+        }
         layout.current = place;
 
         place();
-        const resize = new ResizeObserver(schedule);
-        // Page Builder and the content list replace each other in the area: follow the swap.
-        const swap = new MutationObserver(schedule);
-        if (area) {
-            resize.observe(area);
-            swap.observe(area, {childList: true});
-        }
         globalThis.addEventListener('resize', schedule);
         return () => {
             cancelAnimationFrame(frame);
