@@ -1435,7 +1435,7 @@
         },
         "incomplete": "{{count}} zu prüfen",
         "noViolations": "Die automatisierten Prüfungen haben keine Verstöße festgestellt.",
-        "highlight": "In der Vorschau hervorheben",
+        "highlight": "Auf der Seite hervorheben",
         "moreElements": "…und {{count}} weitere Elemente",
         "machineNote": "Automatisierte Prüfungen decken nur einen Teil der WCAG-Kriterien ab. Ein fehlerfreies Ergebnis bescheinigt keine vollständige Konformität; die manuelle Checkliste unten deckt den Rest ab.",
         "engineInfo": "Engine: {{engine}} · {{rules}} Regeln ausgeführt · {{passes}} bestanden",
@@ -1866,6 +1866,7 @@
         "notPage": "Der Compliance-Scan liest eine Seite und das, was sie anzeigt: Öffnen Sie eine Seite, um ihn zu verwenden.",
         "noWrite": "Der Compliance-Scan ist für Personen gedacht, die diese Seite bearbeiten dürfen."
       },
+      "resize": "Panelbreite ändern: ziehen oder die Pfeiltasten links und rechts verwenden",
       "nothingAvailable": "Kein Bereich von Content-Governance ist für diesen Inhalt verfügbar.",
       "sectionHelp": {
         "audit": "Prüft die Seite, die Sie bearbeiten: Barrierefreiheit, SEO, Geschwindigkeit, Lesbarkeit, Ökodesign, Links und Jahia-Inhalte, mit KI-Vorschlägen auf Anfrage.",

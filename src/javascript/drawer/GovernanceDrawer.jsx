@@ -8,9 +8,8 @@ import {GeoSection} from '../geo/GeoSection';
 import {ComplianceSection} from '../compliance/ComplianceSection';
 import {FixFirst} from './FixFirst';
 import {rankFindings} from './findings';
+import {useDock} from './useDock';
 import styles from './GovernanceDrawer.module.css';
-
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * The one drawer of the module: a header, one tab per section the site switched on, and the
@@ -31,8 +30,7 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
     const [requested, setRequested] = useState(null);
     const drawerRef = useRef(null);
     const previouslyFocused = useRef(null);
-    // Set when a press elsewhere closed the drawer: focus then belongs where the user pressed.
-    const closedOutside = useRef(false);
+    const dock = useDock(drawerRef);
 
     const select = useCallback(id => {
         setActive(id);
@@ -69,18 +67,19 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
     const reopenCompliance = useCallback(() => onReopen('compliance'), [onReopen]);
 
     // A portal into document.body has no place in the page's focus order: take focus on open and
-    // give it back on close, unless the drawer closed because the user pressed somewhere else.
+    // give it back on close.
     useEffect(() => {
         previouslyFocused.current = document.activeElement;
         drawerRef.current?.focus();
         return () => {
-            if (!closedOutside.current && typeof previouslyFocused.current?.focus === 'function') {
+            if (typeof previouslyFocused.current?.focus === 'function') {
                 previouslyFocused.current.focus();
             }
         };
     }, []);
 
-    // Escape closes; Tab stays inside. The dialog is non-modal (see below), so both are ours.
+    // Escape closes. The panel is not modal: focus moves freely between it and the page under edit,
+    // and a press on the page leaves it open, as jContent's preview panel does.
     useEffect(() => {
         const node = drawerRef.current;
         if (!node) {
@@ -89,55 +88,10 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
         const onKeyDown = e => {
             if (e.key === 'Escape') {
                 onClose();
-                return;
-            }
-            if (e.key !== 'Tab') {
-                return;
-            }
-            const focusable = [...node.querySelectorAll(FOCUSABLE)].filter(el => !el.closest('[hidden]'));
-            if (focusable.length === 0) {
-                return;
-            }
-            const first = focusable[0];
-            const last = focusable[focusable.length - 1];
-            if (e.shiftKey && document.activeElement === first) {
-                e.preventDefault();
-                last.focus();
-            } else if (!e.shiftKey && document.activeElement === last) {
-                e.preventDefault();
-                first.focus();
             }
         };
         node.addEventListener('keydown', onKeyDown);
         return () => node.removeEventListener('keydown', onKeyDown);
-    }, [onClose]);
-
-    // Closes on a press outside, the way jContent's own side panels behave. The page under edit is
-    // an iframe whose clicks never reach this document, so focus moving into an iframe outside the
-    // drawer counts as outside too; the preview frame of the Page quality section is inside.
-    useEffect(() => {
-        const isOutside = target => drawerRef.current && target instanceof Node && !drawerRef.current.contains(target);
-        const onPointerDown = e => {
-            if (isOutside(e.target)) {
-                closedOutside.current = true;
-                onClose('outside');
-            }
-        };
-        const onBlur = () => {
-            setTimeout(() => {
-                const focused = document.activeElement;
-                if (focused && focused.tagName === 'IFRAME' && isOutside(focused)) {
-                    closedOutside.current = true;
-                    onClose('outside');
-                }
-            }, 0);
-        };
-        document.addEventListener('pointerdown', onPointerDown, true);
-        globalThis.addEventListener('blur', onBlur);
-        return () => {
-            document.removeEventListener('pointerdown', onPointerDown, true);
-            globalThis.removeEventListener('blur', onBlur);
-        };
     }, [onClose]);
 
     const renderSection = id => {
@@ -176,16 +130,23 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
     };
 
     return (
-        // A real <dialog>, rendered `open` rather than through showModal(): showModal() moves it to
-        // the browser's top layer, out of jContent's stacking context. aria-modal and the focus
-        // trap stay ours to enforce for the same reason.
+        // A non-modal <dialog>, rendered `open` rather than through showModal(): showModal() makes it
+        // modal and moves it to the browser's top layer, above Content Editor and jContent's menus.
+        // useDock places it beside the page under edit.
         <dialog ref={drawerRef}
                 open
                 className={styles.drawer}
                 aria-labelledby="content-governance-drawer-title"
-                aria-modal="true"
                 tabIndex={-1}
         >
+            {/* The left edge: dragged, or moved with the arrow keys once focused. A native button: Moonstone
+                has no splitter, and Sonar refuses a focusable separator role on a div (S6819, S6845, S6847). */}
+            <button type="button"
+                    aria-label={t('resize')}
+                    title={t('resize')}
+                    className={styles.resize}
+                    onPointerDown={dock.onPointerDown}
+                    onKeyDown={dock.onKeyDown}/>
             <header className={styles.header}>
                 <div className={styles.headerText}>
                     <Typography id="content-governance-drawer-title" variant="heading" component="h2">{t('title')}</Typography>

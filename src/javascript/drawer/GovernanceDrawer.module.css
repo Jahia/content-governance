@@ -1,28 +1,55 @@
 .drawer {
     /* The UA stylesheet gives <dialog> padding, a border, auto margins, fit-content sizing,
-       inset-inline-start: 0 and height: fit-content. Each is cleared: with left AND right AND width
-       set, LTR drops right, and the panel sits in the top left corner at its content's height. */
+       inset-inline-start: 0 and height: fit-content. Each is cleared; useDock writes left, top,
+       width and height, beside the page under edit and under jContent's header. */
     padding: 0;
     margin: 0;
-    border: none;
     color: inherit;
     max-height: none;
+    max-width: none;
     position: fixed;
-    top: 0;
-    left: auto;
-    right: 0;
-    bottom: 0;
-    height: auto;
-    width: 60vw;
-    min-width: min(640px, 96vw);
-    max-width: min(960px, 96vw);
+    right: auto;
+    bottom: auto;
     background: var(--color-light, #fff);
-    border-left: 1px solid var(--color-gray_light40, #dfe3e8);
-    box-shadow: -8px 0 24px -16px rgba(0, 0, 0, .35);
+    border: 1px solid var(--color-gray_light40, #dfe3e8);
+    border-radius: 4px;
     display: flex;
     flex-direction: column;
-    z-index: 1300;
+    /* Above jContent's content only: its menus, notifications and Content Editor open over the panel. */
+    z-index: 2;
     overflow: hidden;
+}
+
+/* The left edge drags to resize; arrows do the same once it has focus. */
+.resize {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 8px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: col-resize;
+    z-index: 1;
+    touch-action: none;
+}
+
+.resize:hover,
+.resize:focus-visible {
+    background: var(--color-accent, #00a0e3);
+    opacity: .5;
+    outline: none;
+}
+
+/* The frame of the page under edit would take the pointer from a drag that crosses it. */
+:global(body.content-governance-resizing) {
+    cursor: col-resize;
+    user-select: none;
+}
+
+:global(body.content-governance-resizing) iframe {
+    pointer-events: none;
 }
 
 .header {
@@ -66,6 +93,9 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
+    /* A section may keep a layer behind its content (the hidden preview of Page quality) */
+    position: relative;
+    isolation: isolate;
 }
 
 .section[hidden] {

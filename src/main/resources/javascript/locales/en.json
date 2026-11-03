@@ -1435,7 +1435,7 @@
         },
         "incomplete": "{{count}} to verify",
         "noViolations": "No violations detected by automated checks.",
-        "highlight": "Highlight in preview",
+        "highlight": "Highlight on the page",
         "moreElements": "…and {{count}} more elements",
         "machineNote": "Automated checks cover a subset of WCAG criteria. A clean result does not certify full compliance; the manual checklist below covers the rest.",
         "engineInfo": "Engine: {{engine}} · {{rules}} rules executed · {{passes}} passed",
@@ -1866,6 +1866,7 @@
         "notPage": "The compliance scan reads a page and what it shows: open a page to use it.",
         "noWrite": "The compliance scan is for people who may edit this page."
       },
+      "resize": "Resize the panel: drag, or use the left and right arrow keys",
       "nothingAvailable": "No section of Content governance can be used on this content.",
       "sectionHelp": {
         "audit": "Checks the page you are editing: accessibility, SEO, speed, readability, eco-design, links and Jahia content, with AI suggestions on demand.",

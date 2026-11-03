@@ -25,6 +25,7 @@ import {AiTab} from './tabs/AiTab';
 import {IncompleteStep} from './tabs/IncompleteStep';
 import {Badge, Banner, Button, Download, Loader, Reload, Tab, TabItem, Typography, Visibility} from '@jahia/moonstone';
 import {HelpTab} from '../common/HelpTab';
+import {findByText, findEditFrameDocument, locateInFrame} from './editFrame';
 import styles from './AuditSection.module.css';
 
 // Let client islands hydrate and layout settle before measuring
@@ -311,10 +312,13 @@ export function AuditSection({path, language, isOn, ai, onCount, onFindings, req
     // loading it while the drawer is still translated off-screen makes Chrome
     // throttle rendering, and FCP/LCP paint entries never fire.
     const [frameVisible, setFrameVisible] = useState(false);
-    // Collapsing hides the preview visually (height 0) but keeps the iframe
-    // mounted - analyzers and highlight still need its document.
-    const [previewCollapsed, setPreviewCollapsed] = useState(false);
+    // Hiding the preview keeps the iframe mounted at full size behind the results - analyzers and
+    // highlight still need its document, and a frame with no height never paints.
+    // Beside Page Builder the page is already on screen: the preview starts hidden behind the
+    // results, where it keeps its size and paints, so the analyzers measure it as before.
+    const [previewCollapsed, setPreviewCollapsed] = useState(() => Boolean(findEditFrameDocument(path, language)));
     const frameRef = useRef(null);
+    const previewRef = useRef(null);
     const highlightedRef = useRef(null);
     // The run whose analysis has started: the frame's load event and the load time limit both start
     // it, and a later load of the frame (a link followed in the preview) never starts it again.
@@ -328,8 +332,6 @@ export function AuditSection({path, language, isOn, ai, onCount, onFindings, req
         setSeoAssistError(null);
         setAltError(null);
         setSimplifyError(null);
-        // Re-runs need a visible frame for paint-dependent measurements
-        setPreviewCollapsed(false);
         highlightedRef.current = null;
 
         const showCached = (entry, by) => {
@@ -475,95 +477,61 @@ export function AuditSection({path, language, isOn, ai, onCount, onFindings, req
         return () => clearTimeout(timer);
     }, [frameVisible, status, handleFrameLoad, t]);
 
+    // Marks one element: in the page under edit when Page Builder shows it beside the drawer,
+    // else in the preview, which opens for it.
+    const mark = useCallback(target => {
+        if (highlightedRef.current) {
+            try {
+                highlightedRef.current.style.outline = '';
+                highlightedRef.current.style.outlineOffset = '';
+            } catch {
+                // Element may be gone after re-run or a reload of the page under edit
+            }
+            highlightedRef.current = null;
+        }
+        if (!target) {
+            return;
+        }
+        if (target.ownerDocument === (frameRef.current && frameRef.current.contentDocument)) {
+            setPreviewCollapsed(false);
+        }
+        target.scrollIntoView({behavior: 'smooth', block: 'center'});
+        target.style.outline = '3px solid #e0182d';
+        target.style.outlineOffset = '2px';
+        highlightedRef.current = target;
+    }, []);
+
     const highlight = useCallback(selector => {
         const doc = frameRef.current && frameRef.current.contentDocument;
         if (!doc) {
             return;
         }
-
-        setPreviewCollapsed(false);
-
-        if (highlightedRef.current) {
-            try {
-                highlightedRef.current.style.outline = '';
-                highlightedRef.current.style.outlineOffset = '';
-            } catch (e) {
-                // Element may be gone after re-run
-            }
-        }
-
         let el = null;
         try {
             el = doc.querySelector(selector);
-        } catch (e) {
+        } catch {
             return;
         }
-
-        if (el) {
-            el.scrollIntoView({behavior: 'smooth', block: 'center'});
-            el.style.outline = '3px solid #e0182d';
-            el.style.outlineOffset = '2px';
-            highlightedRef.current = el;
+        if (!el) {
+            return;
         }
-    }, []);
+        const editDoc = findEditFrameDocument(path, language);
+        mark((editDoc && locateInFrame(el, editDoc)) || el);
+    }, [mark, path, language]);
 
     const highlightText = useCallback(sample => {
-        const doc = frameRef.current && frameRef.current.contentDocument;
-        if (!doc || !doc.body || !sample) {
-            return;
-        }
+        const editDoc = findEditFrameDocument(path, language);
+        mark((editDoc && findByText(editDoc, sample))
+            || findByText(frameRef.current && frameRef.current.contentDocument, sample));
+    }, [mark, path, language]);
 
-        setPreviewCollapsed(false);
+    // Hidden behind the results, nothing of the preview takes focus or the pointer
+    useEffect(() => {
+        previewRef.current?.toggleAttribute('inert', previewCollapsed);
+    }, [previewCollapsed]);
 
-        if (highlightedRef.current) {
-            try {
-                highlightedRef.current.style.outline = '';
-                highlightedRef.current.style.outlineOffset = '';
-            } catch (e) {
-                // Element may be gone after re-run
-            }
-        }
-
-        // LLM quotes are approximate: normalize whitespace, apostrophes and
-        // quotes, compare case-insensitively, and search at ELEMENT level so
-        // wording spanning several inline text nodes still matches. Fall back
-        // to the first words of the quote when the full text is not found.
-        const normalize = s => s
-            .replace(/[’‘]/g, '\'')
-            .replace(/[“”«»]/g, '"')
-            .replace(/\s+/g, ' ')
-            .trim()
-            .toLowerCase();
-
-        const fullNeedle = normalize(sample);
-        const words = fullNeedle.split(' ');
-        const needles = [...new Set([
-            fullNeedle,
-            words.slice(0, 8).join(' '),
-            words.slice(0, 4).join(' ')
-        ])].filter(n => n.length >= 3);
-
-        const elements = [...doc.body.querySelectorAll('*')]
-            .filter(el => !['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE'].includes(el.tagName));
-
-        let target = null;
-        for (const needle of needles) {
-            const matches = elements.filter(el => normalize(el.textContent || '').includes(needle));
-            if (matches.length > 0) {
-                // Tightest container = the match with the least text
-                target = matches.reduce((a, b) =>
-                    ((a.textContent || '').length <= (b.textContent || '').length ? a : b));
-                break;
-            }
-        }
-
-        if (target) {
-            target.scrollIntoView({behavior: 'smooth', block: 'center'});
-            target.style.outline = '3px solid #e0182d';
-            target.style.outlineOffset = '2px';
-            highlightedRef.current = target;
-        }
-    }, []);
+    // A mark left in the page under edit goes with the drawer
+    useEffect(() => () => mark(null), [mark]);
 
     // Every AI result rides in the same cache entry: always persist all of
     // them, overriding the one that just changed, or one save wipes the others.
@@ -704,7 +672,10 @@ export function AuditSection({path, language, isOn, ai, onCount, onFindings, req
                 <AuditTrend runs={history} language={language}/>
             </div>
 
-            <div className={`${styles.preview} ${previewCollapsed ? styles.previewCollapsed : ''}`}>
+            <div ref={previewRef}
+                 className={`${styles.preview} ${previewCollapsed ? styles.previewCollapsed : ''}`}
+                 aria-hidden={previewCollapsed || undefined}
+            >
                 {frameVisible && (
                     <iframe
                         key={runId}
@@ -712,6 +683,7 @@ export function AuditSection({path, language, isOn, ai, onCount, onFindings, req
                         title={t('drawer.preview')}
                         src={previewUrl}
                         className={styles.frame}
+                        tabIndex={previewCollapsed ? -1 : undefined}
                         onLoad={handleFrameLoad}
                     />
                 )}

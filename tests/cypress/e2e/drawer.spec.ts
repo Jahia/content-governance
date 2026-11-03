@@ -78,6 +78,34 @@ describe('Content Governance - drawer', () => {
         cy.get(DRAWER).should('not.exist');
     });
 
+    // The drawer used to cover the right of the screen and close on any press outside it.
+    it('docks beside the page under edit, stays open on a press in the page, and resizes from its edge', () => {
+        const HANDLE = `${DRAWER} button[aria-label^="Resize the panel"]`;
+        const drawerWidth = () => Math.round(Cypress.$(DRAWER)[0].getBoundingClientRect().width);
+        const frameWrapper = () => cy.get('#page-builder-frame-1').parent();
+        cy.login(admin.username, admin.password);
+        cy.visit(pageUrl);
+        cy.window().then(win => win.localStorage.removeItem('content-governance:panelWidth'));
+        cy.contains('button', BUTTON, {timeout: 30000}).click();
+        cy.get(DRAWER).should('be.visible');
+        frameWrapper().should($wrapper => {
+            const frame = $wrapper[0].getBoundingClientRect();
+            const drawer = Cypress.$(DRAWER)[0].getBoundingClientRect();
+            expect(frame.right, 'the page ends where the drawer starts').to.be.lessThan(drawer.left);
+            expect(Math.abs(frame.top - drawer.top), 'the drawer starts under the header, with the page').to.be.lessThan(2);
+        });
+        cy.get('#page-builder-frame-1').click(40, 40);
+        cy.get(DRAWER).should('be.visible').then(() => {
+            const wider = drawerWidth() + 16;
+            cy.get(HANDLE).focus().trigger('keydown', {key: 'ArrowLeft'});
+            cy.wrap(null).should(() => expect(drawerWidth()).to.eq(wider));
+            cy.window().should(win => expect(win.localStorage.getItem('content-governance:panelWidth')).to.eq(String(wider)));
+        });
+        cy.focused().type('{esc}');
+        cy.get(DRAWER).should('not.exist');
+        frameWrapper().should($wrapper => expect($wrapper[0].style.marginRight, 'the page gets its width back').to.eq('0px'));
+    });
+
     // The pointer is still on a tab just clicked: its help would cover the content the editor came to read.
     it('shows a section\'s help on hover, and none on the selected section', () => {
         const help = (id: string) => cy.get(section(id)).parent().find('[role="tooltip"]');

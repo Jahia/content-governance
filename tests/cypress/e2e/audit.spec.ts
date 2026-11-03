@@ -110,7 +110,50 @@ describe('Content Governance - Page quality audit', () => {
         // The image without alt of the fixture: a critical violation, ahead of every other finding
         cy.get('#content-governance-fix-first li').first().should('contain.text', 'Critical').and('contain.text', 'alternative text');
         cy.get('#content-governance-fix-first li').first().contains('button', 'Open').click();
-        cy.get(DRAWER).contains('automated rules passed').should('be.visible');
+        // The docked drawer is as tall as the page under edit: the tab's results may start below its fold
+        cy.get(DRAWER).contains('automated rules passed').scrollIntoView().should('be.visible');
+    });
+
+    // Beside Page Builder the page is on screen: the preview starts hidden (behind the results, where
+    // it is still measured) and a finding is marked in the page under edit when it is there.
+    it('hides the preview beside Page Builder and highlights a finding in the page under edit, else in the preview', () => {
+        const LINK = '<div id="cg-a11y-fixture"><a href="#cg-report" aria-label="Open the annual report">Download</a></div>';
+        const marked = (el: HTMLElement) => expect(el.style.outline, 'marked').to.contain('3px');
+        const ruleDetails = (rule: string) => cy.get(DRAWER).contains('a', new RegExp(`^${rule}$`)).closest('details')
+            .then($details => {
+                ($details[0] as HTMLDetailsElement).open = true;
+            });
+        cy.intercept('GET', `**/cms/render/default/en/sites/${siteKey}/home.html?pageAuditRun=*`, req => {
+            req.continue(res => {
+                res.body = String(res.body).replace('</body>', `${FIXTURE}</body>`);
+            });
+        });
+        // The page under edit gets the link only: the image without alt is in the preview alone
+        cy.intercept('GET', `**/cms/editframe/default/en/sites/${siteKey}/home.html*`, req => {
+            req.continue(res => {
+                res.body = String(res.body).replace('</body>', `${LINK}</body>`);
+            });
+        });
+        cy.login(admin.username, admin.password);
+        cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);
+        cy.get('iframe[data-sel-role="page-builder-frame-active"]', {timeout: 30000})
+            .its('0.contentDocument.body').find('#cg-a11y-fixture', {timeout: 30000}).should('exist');
+        cy.contains('button', BUTTON).click();
+        cy.get(DRAWER).contains('button', 'Show preview').should('exist');
+        freshAudit();
+        cy.get(DRAWER).contains('a', /^image-alt$/, {timeout: 90000}).should('exist');
+        cy.get(DRAWER).contains('button', 'Show preview').should('exist');
+
+        ruleDetails('label-content-name-mismatch').contains('button', 'Highlight on the page').click();
+        cy.get('iframe[data-sel-role="page-builder-frame-active"]').its('0.contentDocument.body')
+            .find('#cg-a11y-fixture a').should($a => marked($a[0]));
+        cy.get(DRAWER).contains('button', 'Show preview').should('exist');
+
+        ruleDetails('image-alt').contains('button', 'Highlight on the page').click();
+        cy.get(DRAWER).contains('button', 'Hide preview').should('exist');
+        cy.get(`${DRAWER} iframe`).its('0.contentDocument.body').find('#cg-a11y-fixture img').should($img => marked($img[0]));
+        cy.get('iframe[data-sel-role="page-builder-frame-active"]').its('0.contentDocument.body')
+            .find('#cg-a11y-fixture a').should($a => expect($a[0].style.outline, 'one mark at a time').to.eq(''));
     });
 
     READABILITY.forEach(({lang, expect, text}) => {

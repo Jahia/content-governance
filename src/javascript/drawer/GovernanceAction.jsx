@@ -1,4 +1,4 @@
-import React, {Suspense, lazy, useCallback, useEffect, useRef, useState} from 'react';
+import React, {Suspense, lazy, useCallback, useEffect, useState} from 'react';
 import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 import {useSelector} from 'react-redux';
@@ -28,9 +28,6 @@ const SECTION_ORDER = ['audit', 'geo', 'compliance'];
  */
 export const GovernanceAction = ({path, language, render: Render, ...rest}) => {
     const [open, setOpen] = useState(null);
-    // A press on this button while the drawer is open is also a press outside it, which closes the
-    // drawer before the button's click arrives. Without this, the click would reopen it at once.
-    const closedOutsideAt = useRef(0);
     const reduxLanguage = useSelector(state => state.language);
     const siteKey = useSelector(state => state.site);
     const jcontentPath = useSelector(state => state.jcontent?.path || null);
@@ -46,18 +43,9 @@ export const GovernanceAction = ({path, language, render: Render, ...rest}) => {
     const {checksResult: canWrite} = useNodeChecks({path: pagePath}, {requiredPermission: ['jcr:write']});
     const {settings, isOn} = useSiteSettings(checksResult ? siteKey : null);
 
-    const close = useCallback(reason => {
-        if (reason === 'outside') {
-            closedOutsideAt.current = Date.now();
-        }
-        setOpen(null);
-    }, []);
-    const toggle = useCallback(() => {
-        if (Date.now() - closedOutsideAt.current < 500) {
-            return;
-        }
-        setOpen(o => (o ? null : {section: null}));
-    }, []);
+    const close = useCallback(() => setOpen(null), []);
+    // The panel docks beside the page and leaves this button in view: a second press closes it.
+    const toggle = useCallback(() => setOpen(o => (o ? null : {section: null})), []);
     const reopen = useCallback(section => setOpen({section}), []);
 
     // The Publish menu's check opens this drawer on the section to review.

@@ -1435,7 +1435,7 @@
         },
         "incomplete": "{{count}} por verificar",
         "noViolations": "Las comprobaciones automáticas no detectaron ninguna infracción.",
-        "highlight": "Resaltar en la vista previa",
+        "highlight": "Resaltar en la página",
         "moreElements": "…y {{count}} elementos más",
         "machineNote": "Las comprobaciones automáticas cubren una parte de los criterios WCAG. Un resultado limpio no certifica la conformidad total; la lista de comprobación manual siguiente cubre el resto.",
         "engineInfo": "Motor: {{engine}} · {{rules}} reglas ejecutadas · {{passes}} superadas",
@@ -1866,6 +1866,7 @@
         "notPage": "El análisis de cumplimiento lee una página y lo que muestra: abra una página para usarlo.",
         "noWrite": "El análisis de cumplimiento está reservado a quienes pueden editar esta página."
       },
+      "resize": "Cambiar el ancho del panel: arrastre, o use las flechas izquierda y derecha",
       "nothingAvailable": "Ninguna sección de Gobernanza de contenidos puede usarse con este contenido.",
       "sectionHelp": {
         "audit": "Revisa la página que está editando: accesibilidad, SEO, velocidad, legibilidad, ecodiseño, enlaces y contenido Jahia, con sugerencias de IA a petición.",

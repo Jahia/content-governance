@@ -13,7 +13,7 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 
 | Path | What |
 |---|---|
-| `src/javascript/drawer/` | The header action and the one drawer: header, section bar, sections mounted on first visit |
+| `src/javascript/drawer/` | The header action and the one drawer: header, section bar, sections mounted on first visit; `useDock.js` docks it beside the page under jContent's header |
 | `src/javascript/audit/` | Page quality section: preview frame, analyzers (`analyzers/`), tabs, AI assists, shared audits (`auditHistory.js`), the Page quality dashboard (`dashboard/`) |
 | `src/main/java/.../audit/` | Shared audits: `service/spi/AuditHistoryService` and its DS component, `AuditResults` (input check), `model/`, `graphql/` (`AuditAccess`, `AuditFields`, types) |
 | `src/javascript/publish/` | The line at the top of jContent's Publish menu (`PublishCheckAction`) |
