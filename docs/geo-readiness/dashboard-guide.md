@@ -97,7 +97,11 @@ features share (see [`architecture.md`](architecture.md#configuration)).
 
 Press **Write the report**. You get a verdict, a status per area, a ranked list of what to fix first
 with who can fix it and how much effort, quick wins, and a now/next/later plan. **Export as
-Markdown** and **Export as JSON** download it.
+Markdown** and **Export as JSON** download it. Both files say that a model wrote the report, in a
+form a program can read: the JSON has a `digitalSourceType` field, and the Markdown starts with
+front matter that holds the same field with the provider, the model and the date. The value is the
+IPTC term for content that a trained model created
+(`http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia`).
 
 **What leaves the building:** scores, the names of failing checks, page paths and titles, and
 counts. Never the text of your pages, and never the key. It is written only when you ask, because
