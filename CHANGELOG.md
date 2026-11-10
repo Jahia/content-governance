@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.0
+
+* The exported GEO report now states in a machine-readable field that it was written by AI.
+
 ## 1.8.1
 
 * The drawer moves with the page under edit when a bar above it, such as Page Insights, opens or closes.
