@@ -4,7 +4,7 @@ import {useGovernanceTranslation} from '../../common/i18n';
 import {Banner, Button, Chip, Loader, Typography} from '@jahia/moonstone';
 import {fetchReportStatus, generateReport, readReport} from '../api/geoReport';
 import {jcontentUrl} from '../util/jcontentUrl';
-import {downloadText, reportFilename, reportToMarkdown} from '../util/exportReport';
+import {downloadText, reportFilename, reportToJson, reportToMarkdown} from '../util/exportReport';
 import {Actions, Card, Meta, Note, Panel, PanelHeader} from '../dashboard/Layout';
 import styles from './Tabs.module.css';
 
@@ -77,7 +77,7 @@ export const ReportPanel = ({path, language, reportLanguage, siteKey, siteName})
 
         if (ext === 'json') {
             downloadText(reportFilename(siteKey, language, report, 'json'),
-                JSON.stringify(report, null, 2), 'application/json');
+                reportToJson(report), 'application/json');
         } else {
             downloadText(reportFilename(siteKey, language, report, 'md'),
                 reportToMarkdown(report, {site: siteName || siteKey, t}), 'text/markdown');

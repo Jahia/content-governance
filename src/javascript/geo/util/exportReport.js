@@ -11,9 +11,18 @@ const PHASES = ['now', 'next', 'later'];
 
 const joinDot = parts => parts.filter(Boolean).join(' · ');
 
+/** The IPTC Digital Source Type term for content that a trained model created. */
+export const AI_DIGITAL_SOURCE_TYPE = 'http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia';
+
+/** The report as JSON, with its AI origin in a field that a program can read. */
+export function reportToJson(report) {
+    return JSON.stringify({digitalSourceType: AI_DIGITAL_SOURCE_TYPE, ...report}, null, 2);
+}
+
 /** Markdown for the whole report. `site` is the display name, `t` the translator. */
 export function reportToMarkdown(report, {site, t}) {
     return [
+        ...frontMatter(report),
         ...heading(report, site, t),
         ...summary(report, t),
         ...complianceTable(report, t),
@@ -25,6 +34,23 @@ export function reportToMarkdown(report, {site, t}) {
         `_${t('report.disclaimer')}_`,
         ''
     ].join('\n');
+}
+
+/**
+ * YAML front matter with the same AI origin as the JSON export. A JSON string is a valid YAML
+ * double-quoted scalar, so a model id that holds a colon or a slash stays one value.
+ */
+function frontMatter(report) {
+    const fields = {
+        digitalSourceType: AI_DIGITAL_SOURCE_TYPE,
+        provider: report.provider,
+        model: report.model,
+        generatedAt: report.generatedAt
+    };
+    const lines = Object.entries(fields)
+        .filter(([, value]) => value)
+        .map(([key, value]) => `${key}: ${JSON.stringify(String(value))}`);
+    return ['---', ...lines, '---', ''];
 }
 
 function heading(report, site, t) {
