@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.1
+
+* The drawer and the dashboards no longer stop with "Invalid language tag" on a site language with a region, such as Chinese (China) or Portuguese (Brazil).
+
 ## 1.9.0
 
 * The exported GEO report now states in a machine-readable field that it was written by AI.
