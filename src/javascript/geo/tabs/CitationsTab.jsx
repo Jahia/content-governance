@@ -5,6 +5,7 @@ import {Banner, Button, Chip, Loader, Typography} from '@jahia/moonstone';
 import {BarList, Histogram} from '../charts/Charts';
 import styles from './Tabs.module.css';
 import cit from './CitationsTab.module.css';
+import {toLocaleTag} from '../../common/locale';
 
 
 // An unparsable value is shown as BotRank sent it; Date never throws, it is only invalid.
@@ -49,7 +50,7 @@ RowVariation.propTypes = {value: PropTypes.number, t: PropTypes.func.isRequired}
 RowVariation.defaultProps = {value: null};
 
 // A position as BotRank sends it (two decimals), shown with one.
-const formatRank = (rank, lang) => Number(rank).toLocaleString(lang || undefined, {maximumFractionDigits: 1});
+const formatRank = (rank, lang) => Number(rank).toLocaleString(toLocaleTag(lang), {maximumFractionDigits: 1});
 
 /** The theme's sub line: how many questions, and its own change when BotRank gave one. */
 const tagSub = (tag, t) => {

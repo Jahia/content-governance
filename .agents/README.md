@@ -29,6 +29,10 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 
 ## Invariants
 
+- **Every language handed to the browser's formatters goes through `common/locale.js`** (`toLocaleTag`,
+  `languageDisplayName`): jContent gives the Jahia form (`zh_CN`), `Intl` and `toLocaleString` take
+  `zh-CN` and throw `RangeError` on the other; the drawer stopped on a `zh_CN` page before 1.9.1.
+  `languages.spec.ts` audits a `zh_CN` page.
 - **axe-core is on its latest release whenever this module is worked on** (Stephane, 2026-10-31):
   `npm view axe-core version`, then raise the `axe-core` range in `package.json` to that version and
   refresh `yarn.lock`. Read the release notes and say in the changelog fragment what editors will see:

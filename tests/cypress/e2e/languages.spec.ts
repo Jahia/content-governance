@@ -41,3 +41,41 @@ describe('Content Governance - interface languages', () => {
         });
     });
 });
+
+/**
+ * A content language with a region (`zh_CN`, `pt_BR`): Jahia writes it the Java way, the browser's
+ * date and number formatters take `zh-CN` and threw `RangeError: Invalid language tag: zh_CN`
+ * as soon as the drawer showed an audit date (1.9.0).
+ */
+describe('Content Governance - content language with a region', () => {
+    const siteKey = 'cg-region';
+    const admin: TestUser = {username: 'cg-region-admin', password: 'cgAdmin1234'};
+
+    before(() => {
+        createTestSite(siteKey, true, 'en,zh_CN');
+        createTestUser(admin, `/sites/${siteKey}`, ['site-administrator']);
+    });
+
+    beforeEach(() => {
+        cy.on('uncaught:exception', error => !(error.message.includes('offsetWidth')
+            && String(error.stack).includes('/modules/jcontent/')));
+    });
+
+    afterEach(() => cy.logout());
+
+    after(() => {
+        deleteUser(admin.username);
+        deleteTestSite(siteKey);
+    });
+
+    it('audits a page in zh_CN and shows the date of the audit', () => {
+        cy.login(admin.username, admin.password);
+        cy.visit(`/jahia/jcontent/${siteKey}/zh_CN/pages/home`);
+        cy.contains('button', 'Content governance', {timeout: 30000}).click();
+        cy.get(DRAWER).contains('button', 'Re-run', {timeout: 120000}).should('not.be.disabled').click();
+        cy.get(DRAWER).contains('automated rules passed', {timeout: 120000}).should('exist');
+        cy.get(DRAWER).contains(/Last audit: .*2\d{3}/).should('exist');
+        cy.get(DRAWER).find('#content-governance-section-compliance').click();
+        cy.get(DRAWER).contains('Chinese (China)', {timeout: 60000}).should('exist');
+    });
+});

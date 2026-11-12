@@ -1,3 +1,5 @@
+import {languageDisplayName} from './locale';
+
 /**
  * Module servlet and asset URLs under Jahia's context path, which is empty at the web root and
  * "/jahia" (or any other prefix) when Jahia is deployed under a path.
@@ -11,10 +13,4 @@ export const pageBuilderUrl = (path, siteKey, language) => {
 };
 
 /** A language code's name in the editor's language (`fr` in English: "French"), else the code. */
-export const languageName = (code, uiLanguage) => {
-    try {
-        return new Intl.DisplayNames([uiLanguage || 'en'], {type: 'language'}).of(code.replace('_', '-')) || code;
-    } catch {
-        return code;
-    }
-};
+export const languageName = (code, uiLanguage) => languageDisplayName(code, uiLanguage);

@@ -6,6 +6,7 @@ import {checkLanguages} from '../api/siteScore';
 import {languageLabel} from '../util/languageFlag';
 import {PairedBars} from '../charts/Charts';
 import {Card, Figure, Figures, Note, Panel, PanelHeader} from '../dashboard/Layout';
+import {languageDisplayName} from '../../common/locale';
 
 /** A gap this wide between two markets is the finding, not a rounding difference. */
 const NOTABLE_SPREAD = 10;
@@ -16,12 +17,8 @@ const NOTABLE_SPREAD = 10;
  * browser - which knows them in the reader's own language.
  */
 function nameOf(code, uiLanguage) {
-    try {
-        const names = new Intl.DisplayNames([uiLanguage || 'en'], {type: 'language'});
-        return languageLabel(code, names.of(code) || code);
-    } catch (e) {
-        return languageLabel(code);
-    }
+    const name = languageDisplayName(code, uiLanguage, null);
+    return name ? languageLabel(code, name) : languageLabel(code);
 }
 
 /**

@@ -9,6 +9,7 @@ import {SITE_AUDITS} from '../auditHistory';
 import {keyed, readFindings, subRowsOf} from './pageFindings';
 import {TAB_COLUMNS, exportCsv, exportJson} from './exportAudits';
 import styles from './AuditDashboard.module.css';
+import {toLocaleTag} from '../../common/locale';
 
 const PER_PAGE_OPTIONS = [10, 20, 50];
 const COUNTED_PAGES_LIMIT = 10_000;
@@ -47,7 +48,7 @@ const PagesTable = ({pages, siteKey, language}) => {
     const [perPage, setPerPage] = useState(PER_PAGE_OPTIONS[0]);
     const lastPage = Math.max(1, Math.ceil(pages.length / perPage));
     const current = Math.min(page, lastPage);
-    const formatDate = iso => new Date(iso).toLocaleString(language === 'fr' ? 'fr-FR' : language);
+    const formatDate = iso => new Date(iso).toLocaleString(toLocaleTag(language));
 
     // A page with issues gets sub-rows, so it can be opened; they are its findings once read.
     const data = useMemo(() => pages.slice((current - 1) * perPage, current * perPage).map(item => {

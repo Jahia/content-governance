@@ -19,14 +19,9 @@ import {SCAN_PAGE} from './scan.gql';
 import {collectRenderedPaths} from './renderedPaths';
 import {complianceFindings} from '../drawer/findings';
 import styles from './ComplianceSection.module.css';
+import {languageDisplayName} from '../common/locale';
 
-const languageName = (code, uiLanguage) => {
-    try {
-        return new Intl.DisplayNames([uiLanguage || 'en'], {type: 'language'}).of(code.replace('_', '-')) || code;
-    } catch {
-        return code;
-    }
-};
+const languageName = (code, uiLanguage) => languageDisplayName(code, uiLanguage);
 
 /** Issues grouped by content, in the order the scan found them. */
 const groupByContent = issues => {

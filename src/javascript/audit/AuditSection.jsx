@@ -27,6 +27,7 @@ import {Badge, Banner, Button, Download, Loader, Reload, Tab, TabItem, Typograph
 import {HelpTab} from '../common/HelpTab';
 import {findByText, findEditFrameDocument, locateInFrame} from './editFrame';
 import styles from './AuditSection.module.css';
+import {toLocaleTag} from '../common/locale';
 
 // Let client islands hydrate and layout settle before measuring
 const SETTLE_MS = 2500;
@@ -125,7 +126,7 @@ const RESULT_KEYS = {
     jahia: 'jahia'
 };
 
-const formatDate = (timestamp, language) => new Date(timestamp).toLocaleString(language === 'fr' ? 'fr-FR' : language);
+const formatDate = (timestamp, language) => new Date(timestamp).toLocaleString(toLocaleTag(language));
 
 /**
  * The issues of the stored audits of the page, oldest to newest ("12 → 9 → 7"), each with its date and
