@@ -4,14 +4,11 @@ import {useGovernanceTranslation} from '../../common/i18n';
 import {Recommendations} from './Recommendations';
 import {SimplifyAssist} from './SimplifyAssist';
 import styles from './Tabs.module.css';
+import {languageDisplayName} from '../../common/locale';
 
 /** The page language's name in the editor's language, else its code. */
 function languageName(lang, uiLanguage) {
-    try {
-        return new Intl.DisplayNames([uiLanguage || 'en'], {type: 'language'}).of(lang) || lang.toUpperCase();
-    } catch {
-        return lang.toUpperCase();
-    }
+    return languageDisplayName(lang, uiLanguage, lang.toUpperCase());
 }
 
 export function ReadabilityTab({result, assist}) {

@@ -8,6 +8,7 @@ import {jcontentUrl} from '../util/jcontentUrl';
 import {Card, Columns, Figure, Figures, Meta, Note, Panel, PanelHeader, Ring, Source} from '../dashboard/Layout';
 import styles from './Tabs.module.css';
 import own from './SiteCitationsPanel.module.css';
+import {toLocaleTag} from '../../common/locale';
 
 
 /** The four sub-tabs of the dashboard's AI citations group, in order. */
@@ -34,7 +35,8 @@ function loadSite(path, language) {
 }
 
 /** Number formats in the UI language, so French reads 1,6 % and 1 473. */
-const formats = lang => {
+const formats = language => {
+    const lang = toLocaleTag(language);
     const pct = new Intl.NumberFormat(lang, {style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1});
     const int = new Intl.NumberFormat(lang);
     const one = new Intl.NumberFormat(lang, {minimumFractionDigits: 1, maximumFractionDigits: 1});
