@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../../common/i18n';
-import {bandOf} from '../analyzers/webVitals';
 import {Recommendations} from './Recommendations';
 import styles from './Tabs.module.css';
 
@@ -34,30 +33,17 @@ export function VitalsTab({result}) {
             <div className={styles.cards}>
                 {METRICS.map(key => {
                     const value = metrics[key];
-                    const band = bandOf(key, value);
                     const isApprox = key === 'lcp' && metrics.lcpApprox;
                     let display = formatMs(value);
                     if (key === 'cls') {
                         display = value === null ? '-' : value.toFixed(3);
                     }
                     const shown = isApprox ? `≈ ${display}` : display;
-                    const bandClass = band ? styles['band_' + band] : '';
-                    const approxHint = band ? ` · ${t('vitals.approx')}` : t('vitals.approx');
                     return (
-                        <div
-                            key={key}
-                            className={`${styles.card} ${bandClass}`}
-                        >
+                        <div key={key} className={styles.card}>
                             <span className={styles.cardTitle}>{t(`vitals.metrics.${key}`)}</span>
-                            <span className={styles.cardValue}>
-                                {key === 'inp' ? t('vitals.inpNa') : shown}
-                            </span>
-                            {(band || isApprox) && (
-                                <span className={styles.cardHint}>
-                                    {band ? t(`vitals.bands.${band}`) : ''}
-                                    {isApprox ? approxHint : ''}
-                                </span>
-                            )}
+                            <span className={styles.cardValue}>{key === 'inp' ? t('vitals.inpNa') : shown}</span>
+                            {isApprox && <span className={styles.cardHint}>{t('vitals.approx')}</span>}
                         </div>
                     );
                 })}
