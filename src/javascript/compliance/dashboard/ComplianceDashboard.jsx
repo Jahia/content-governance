@@ -29,7 +29,7 @@ import styles from './ComplianceDashboard.module.css';
 const PER_PAGE_OPTIONS = [10, 20, 50];
 
 const editInContentEditor = (uuid, site, language) => {
-    window.CE_API?.edit?.({uuid, site, lang: language, isFullscreen: false});
+    globalThis.CE_API?.edit?.({uuid, site, lang: language, isFullscreen: false});
 };
 
 const Excerpt = ({issue}) => (
@@ -214,7 +214,7 @@ const LocationsTable = ({locations, glossaryTitles, siteKey, language}) => {
                                 aria-label={t('dashboard.openPageLabel', {name: value.location.name})}
                                 onClick={e => {
                                     e.stopPropagation();
-                                    window.location.assign(pageBuilderUrl(value.location.path, siteKey, language));
+                                    globalThis.location.assign(pageBuilderUrl(value.location.path, siteKey, language));
                                 }}/>
                     );
                 }
@@ -226,7 +226,7 @@ const LocationsTable = ({locations, glossaryTitles, siteKey, language}) => {
                             icon={<Edit/>}
                             label={t('issue.edit')}
                             aria-label={t('issue.editLabel', {name})}
-                            isDisabled={!window.CE_API?.edit}
+                            isDisabled={!globalThis.CE_API?.edit}
                             onClick={e => {
                                 e.stopPropagation();
                                 editInContentEditor(uuid, siteKey, language);
@@ -355,7 +355,7 @@ export const ComplianceDashboard = ({siteKey, language}) => {
                                             variant="ghost"
                                             size="small"
                                             label={t('glossaries.item', {title: glossary.title, count: glossary.termCount})}
-                                            isDisabled={!window.CE_API?.edit}
+                                            isDisabled={!globalThis.CE_API?.edit}
                                             onClick={() => editInContentEditor(glossary.uuid, siteKey, language)}/>
                                 ))}
                             </div>

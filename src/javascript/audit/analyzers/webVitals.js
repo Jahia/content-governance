@@ -70,7 +70,7 @@ export async function runWebVitals(frame) {
         observeBuffered(win, 'layout-shift')
     ]);
 
-    const lcpEntry = lcpEntries.length > 0 ? lcpEntries[lcpEntries.length - 1] : null;
+    const lcpEntry = lcpEntries.length > 0 ? lcpEntries.at(-1) : null;
     const cls = shiftEntries
         .filter(e => !e.hadRecentInput)
         .reduce((sum, e) => sum + e.value, 0);
@@ -165,20 +165,13 @@ function buildVitalsRecommendations({metrics, diagnostics}) {
     const recs = [];
     const push = (key, severity, params) => recs.push({key, severity, params: params || {}});
 
-    const lcpBand = bandOf('lcp', metrics.lcp);
-    if (lcpBand && lcpBand !== 'good') {
-        push('slowLcp', lcpBand === 'poor' ? 'serious' : 'moderate');
-    }
-
-    const clsBand = bandOf('cls', metrics.cls);
-    if (clsBand && clsBand !== 'good') {
-        push('highCls', clsBand === 'poor' ? 'serious' : 'moderate');
-    }
-
-    const ttfbBand = bandOf('ttfb', metrics.ttfb);
-    if (ttfbBand && ttfbBand !== 'good') {
-        push('slowTtfb', ttfbBand === 'poor' ? 'serious' : 'moderate');
-    }
+    // A metric outside its good band: serious when poor, moderate when it needs improvement
+    [['lcp', 'slowLcp'], ['cls', 'highCls'], ['ttfb', 'slowTtfb']].forEach(([metric, key]) => {
+        const band = bandOf(metric, metrics[metric]);
+        if (band && band !== 'good') {
+            push(key, band === 'poor' ? 'serious' : 'moderate');
+        }
+    });
 
     if (diagnostics.missingDims > 0) {
         push('missingDims', 'serious', {count: diagnostics.missingDims});
@@ -188,10 +181,9 @@ function buildVitalsRecommendations({metrics, diagnostics}) {
         push('oversizedImages', 'moderate', {count: diagnostics.oversized});
     }
 
-    if (diagnostics.totalBytes > 2 * 1024 * 1024) {
-        push('heavyPage', 'serious', {size: `${(diagnostics.totalBytes / (1024 * 1024)).toFixed(1)} MB`});
-    } else if (diagnostics.totalBytes > 1024 * 1024) {
-        push('heavyPage', 'moderate', {size: `${(diagnostics.totalBytes / (1024 * 1024)).toFixed(1)} MB`});
+    const megabytes = diagnostics.totalBytes / (1024 * 1024);
+    if (megabytes > 1) {
+        push('heavyPage', megabytes > 2 ? 'serious' : 'moderate', {size: `${megabytes.toFixed(1)} MB`});
     }
 
     if (diagnostics.requests > 80) {

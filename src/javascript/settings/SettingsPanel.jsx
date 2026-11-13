@@ -73,7 +73,7 @@ const FeaturesScreen = ({settings, toolbarLeft, title, onSaved}) => {
                 <div className={styles.content}>
                     {!settings.canEdit && <Banner variant="info" title={t('readOnlyTitle')}>{t('readOnly')}</Banner>}
                     {error && <div role="alert"><Banner variant="danger" title={t('errorTitle')}>{t('error')}</Banner></div>}
-                    {saved && !dirty && <div role="status"><Banner variant="info" title={t('savedTitle')}>{t('saved')}</Banner></div>}
+                    {saved && !dirty && <output><Banner variant="info" title={t('savedTitle')}>{t('saved')}</Banner></output>}
                     <Typography>{t('intro')}</Typography>
                     {settings.sections.map(section => {
                         const sectionOn = !draft.has(section.id);

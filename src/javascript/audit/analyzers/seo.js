@@ -15,8 +15,8 @@ const GENERIC_ANCHORS = /^(click here|here|read more|more|learn more|link|see mo
 const MAX_WEAK_CTAS = 10;
 
 const normalizeLabel = text => (text || '')
-    .replace(/\s+/g, ' ')
-    .replace(/^[\s\W_]+|[\s\W_]+$/g, '')
+    .replaceAll(/\s+/g, ' ')
+    .replaceAll(/^[\s\W_]+|[\s\W_]+$/g, '')
     .trim();
 
 /**
@@ -42,15 +42,15 @@ function collectWeakCtas(doc) {
         // Walk up until the block carries real text beyond the label itself
         // (the link's own wrapper usually contains nothing else)
         let block = el.parentElement;
-        while (block && block !== doc.body && (block.textContent || '').replace(/\s+/g, ' ').trim().length < label.length + 40) {
+        while (block && block !== doc.body && (block.textContent || '').replaceAll(/\s+/g, ' ').trim().length < label.length + 40) {
             block = block.parentElement;
         }
 
         seen.set(key, {
-            text: (raw || '').replace(/\s+/g, ' ').trim(),
+            text: (raw || '').replaceAll(/\s+/g, ' ').trim(),
             count: 1,
             target: el.getAttribute('href') || '',
-            context: block ? (block.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 300) : ''
+            context: block ? (block.textContent || '').replaceAll(/\s+/g, ' ').trim().slice(0, 300) : ''
         });
     });
 

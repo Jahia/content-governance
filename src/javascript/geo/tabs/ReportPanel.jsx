@@ -7,6 +7,7 @@ import {jcontentUrl} from '../util/jcontentUrl';
 import {downloadText, reportFilename, reportToJson, reportToMarkdown} from '../util/exportReport';
 import {Actions, Card, Meta, Note, Panel, PanelHeader} from '../dashboard/Layout';
 import styles from './Tabs.module.css';
+import {withKeys} from '../../common/keys';
 
 const AREAS = ['reachability', 'content', 'structured_data', 'freshness', 'languages', 'site_files', 'links', 'addresses'];
 const STATUS_COLOR = {met: 'success', partial: 'warning', missing: 'danger'};
@@ -227,8 +228,8 @@ const Report = ({report, language, reportLanguage, t}) => {
             <Card title={t('report.priorities')}>
                 {priorities.length === 0 && <Note>{t('report.none')}</Note>}
                 <ol className={styles.priorityList}>
-                    {priorities.map((p, i) => (
-                        <li key={`${i}:${p.title}`} className={styles.priority}>
+                    {withKeys(priorities, priority => priority.title).map(({item: p, key}) => (
+                        <li key={key} className={styles.priority}>
                             <div className={styles.priorityHead}>
                                 <Chip label={t(`score.severity.${p.severity}`)} color={SEVERITY_COLOR[p.severity] || 'default'}/>
                                 <Typography variant="body" className={styles.priorityTitle}>{p.title}</Typography>

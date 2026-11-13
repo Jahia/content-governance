@@ -85,15 +85,15 @@ export const SiteScorePanel = ({path, language}) => {
      * to type a repository path correctly from memory.
      */
     const pickScope = useCallback(() => {
-        if (!window.CE_API || !window.CE_API.openPicker) {
+        if (!globalThis.CE_API || !globalThis.CE_API.openPicker) {
             return;
         }
 
-        window.CE_API.openPicker({
+        globalThis.CE_API.openPicker({
             type: 'editorial',
             initialSelectedItem: scope ? [scope] : [path],
-            site: (window.jahiaGWTParameters && window.jahiaGWTParameters.siteKey) || undefined,
-            lang: (window.jahiaGWTParameters && window.jahiaGWTParameters.uilang) || language,
+            site: (globalThis.jahiaGWTParameters && globalThis.jahiaGWTParameters.siteKey) || undefined,
+            lang: (globalThis.jahiaGWTParameters && globalThis.jahiaGWTParameters.uilang) || language,
             isMultiple: false,
             setValue: selected => {
                 const first = Array.isArray(selected) ? selected[0] : selected;
@@ -141,6 +141,7 @@ export const SiteScorePanel = ({path, language}) => {
             {error && <Banner variant="danger" title={t('score17.errorTitle')} role="alert">{error}</Banner>}
 
             {run.status === 'running' && (
+                // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- Moonstone's Banner renders its own element: the role is the only way to announce it
                 <Banner variant="info" title={t('score17.runningTitle')} role="status" aria-live="polite">
                     {t('score17.running', {done: run.pagesDone, total: run.pagesTotal})}
                 </Banner>

@@ -5,8 +5,10 @@ import {useGovernanceTranslation} from '../../common/i18n';
 import {Recommendations} from './Recommendations';
 import styles from './Tabs.module.css';
 
-const selectorFor = href =>
-    `a[href="${href.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`;
+const selectorFor = href => {
+    const escaped = href.replaceAll('\\', '\\\\').replaceAll('"', String.raw`\"`);
+    return `a[href="${escaped}"]`;
+};
 
 export function LinksTab({result, onHighlight}) {
     const {t} = useGovernanceTranslation('audit');

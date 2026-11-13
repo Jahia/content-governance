@@ -5,6 +5,7 @@ import {useGovernanceTranslation} from '../../common/i18n';
 import {MANUAL_CHECKLIST} from './a11yChecklist';
 import {AltAssist} from './AltAssist';
 import styles from './Tabs.module.css';
+import {impactClass} from './impactClass';
 
 const LEVELS = ['A', 'AA', 'AAA', 'BP'];
 
@@ -121,7 +122,7 @@ export function AccessibilityTab({result, onHighlight, assist}) {
                     key={v.id}
                     rule={v}
                     chip={
-                        <span className={`${styles.impact} ${styles[`impact_${v.impact}`]}`}>
+                        <span className={impactClass(v.impact)}>
                             {t(`a11y.impacts.${v.impact}`)}
                         </span>
                     }

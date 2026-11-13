@@ -57,7 +57,7 @@ const cacheKey = (path, language) => `${CACHE_PREFIX}${language}:${path}`;
 
 function loadCachedAudit(path, language) {
     try {
-        const raw = window.localStorage.getItem(cacheKey(path, language));
+        const raw = globalThis.localStorage.getItem(cacheKey(path, language));
         if (!raw) {
             return null;
         }
@@ -65,7 +65,7 @@ function loadCachedAudit(path, language) {
         const entry = JSON.parse(raw);
         // Ignore (and clear) entries from an older results schema
         if (entry.schema !== CACHE_SCHEMA) {
-            window.localStorage.removeItem(cacheKey(path, language));
+            globalThis.localStorage.removeItem(cacheKey(path, language));
             return null;
         }
 
@@ -77,12 +77,12 @@ function loadCachedAudit(path, language) {
 
 function pruneCache(keep) {
     try {
-        const entries = Object.keys(window.localStorage)
+        const entries = Object.keys(globalThis.localStorage)
             .filter(k => k.startsWith(CACHE_PREFIX))
             .map(k => {
                 let timestamp = 0;
                 try {
-                    timestamp = JSON.parse(window.localStorage.getItem(k)).timestamp || 0;
+                    timestamp = JSON.parse(globalThis.localStorage.getItem(k)).timestamp || 0;
                 } catch (e) {
                     // Unparseable entry: treat as oldest
                 }
@@ -90,14 +90,14 @@ function pruneCache(keep) {
                 return {k, timestamp};
             })
             .sort((a, b) => b.timestamp - a.timestamp);
-        entries.slice(keep).forEach(e => window.localStorage.removeItem(e.k));
+        entries.slice(keep).forEach(e => globalThis.localStorage.removeItem(e.k));
     } catch (e) {
         // localStorage unavailable
     }
 }
 
 function saveCachedAudit(path, language, entry) {
-    const write = () => window.localStorage.setItem(cacheKey(path, language), JSON.stringify(entry));
+    const write = () => globalThis.localStorage.setItem(cacheKey(path, language), JSON.stringify(entry));
     try {
         write();
         pruneCache(CACHE_MAX_ENTRIES);
@@ -124,6 +124,14 @@ const RESULT_KEYS = {
     ecodesign: 'ecodesign',
     links: 'links',
     jahia: 'jahia'
+};
+
+// What a tab's tooltip adds to its help: why it is greyed out, or how many issues it holds
+const tabNote = (tab, t) => {
+    if (tab.disabled) {
+        return t('tabs.aiNotConfigured');
+    }
+    return tab.badge ? t('tabs.badgeTooltip', {count: tab.badge}) : undefined;
 };
 
 const formatDate = (timestamp, language) => new Date(timestamp).toLocaleString(toLocaleTag(language));
@@ -706,7 +714,7 @@ export function AuditSection({path, language, isOn, ai, onCount, onFindings, req
                     {tabs.map(tab => (
                         <HelpTab key={tab.key}
                                  help={t(`tabHelp.${tab.key}`)}
-                                 note={tab.disabled ? t('tabs.aiNotConfigured') : (tab.badge ? t('tabs.badgeTooltip', {count: tab.badge}) : undefined)}
+                                 note={tabNote(tab, t)}
                                  isSelected={currentTab === tab.key}
                         >
                             <TabItem id={`audit-tab-${tab.key}`}

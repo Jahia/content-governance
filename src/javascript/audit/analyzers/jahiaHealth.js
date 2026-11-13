@@ -84,7 +84,7 @@ export async function fetchPageLastModified(client, path, language) {
     }
 }
 
-const BAD_STATUSES = ['MODIFIED', 'NOT_PUBLISHED', 'UNPUBLISHED', 'MARKED_FOR_DELETION', 'CONFLICT'];
+const BAD_STATUSES = new Set(['MODIFIED', 'NOT_PUBLISHED', 'UNPUBLISHED', 'MARKED_FOR_DELETION', 'CONFLICT']);
 
 // namespace:key.path.segments - schemes and URLs never match (letter start,
 // at least one dotted segment, no slashes)
@@ -162,7 +162,7 @@ export async function runJahiaHealth(frame, {client, path, language}) {
             scanned = nodes.length;
 
             unpublished = nodes
-                .filter(n => BAD_STATUSES.includes(n.aggregatedPublicationInfo.publicationStatus))
+                .filter(n => BAD_STATUSES.has(n.aggregatedPublicationInfo.publicationStatus))
                 .map(n => ({
                     path: n.path.replace(path, '') || '/',
                     type: n.primaryNodeType.name,
@@ -208,7 +208,7 @@ function buildHealthRecommendations(r) {
         push('rawI18nKeys', 'critical', {count: r.rawKeys.count});
     }
 
-    const pageUnpublished = r.pageStatus && BAD_STATUSES.includes(r.pageStatus);
+    const pageUnpublished = r.pageStatus && BAD_STATUSES.has(r.pageStatus);
     if (r.unpublished.length > 0 || pageUnpublished) {
         push('unpublishedChanges', 'serious', {count: r.unpublished.length + (pageUnpublished ? 1 : 0)});
     }

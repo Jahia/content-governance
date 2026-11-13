@@ -223,7 +223,7 @@ export function runReadability(frame, language) {
         textNode = walker.nextNode();
     }
 
-    const text = parts.join(' ').replace(/\s+/g, ' ').trim();
+    const text = parts.join(' ').replaceAll(/\s+/g, ' ').trim();
     const stats = analyzeText(text, lang);
     if (stats.empty) {
         return {...stats, recommendations: []};

@@ -8,9 +8,12 @@ import styles from './Tabs.module.css';
 export function EcodesignTab({result}) {
     const {t} = useGovernanceTranslation('audit');
 
-    const scoreClass = result.passed === result.total ?
-        styles.cardGood :
-        (result.passed >= result.total * 0.6 ? styles.band_ni : styles.cardBad);
+    let scoreClass = styles.cardBad;
+    if (result.passed === result.total) {
+        scoreClass = styles.cardGood;
+    } else if (result.passed >= result.total * 0.6) {
+        scoreClass = styles.band_ni;
+    }
 
     return (
         <div>

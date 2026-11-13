@@ -63,14 +63,23 @@ const tipText = (value, label) => (
     </>
 );
 
+// The fill of a meter by where its value stands against the two thresholds
+const meterTone = (value, good, warn) => {
+    if (value >= good) {
+        return styles.fillGood;
+    }
+    return value >= warn ? styles.fillWarn : styles.fillBad;
+};
+
 /**
  * A single ratio against its limit. The fill carries severity and the track is
  * a lighter step of the same ramp, so state reads across the whole bar.
  */
 export const Meter = ({value, max, label, good, warn}) => {
     const pct = Math.max(0, Math.min(100, (value / max) * 100));
-    const tone = value >= good ? styles.fillGood : (value >= warn ? styles.fillWarn : styles.fillBad);
+    const tone = meterTone(value, good, warn);
     return (
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- a meter drawn in CSS: no <img> can stand for it
         <div className={`${styles.chart} ${styles.meter}`} data-geo-chart="" role="img" aria-label={label}>
             <div className={styles.meterTrack}>
                 <div className={`${styles.meterFill} ${tone}`} style={{width: `${pct}%`}}/>
@@ -381,7 +390,12 @@ PairedBars.defaultProps = {format: v => `${v}%`, missingLabel: '—'};
  */
 export const FailureMatrix = ({pages, checks, legend, passLabel, tipFor, columnTipFor}) => {
     const {show, hide, node} = useTip();
-    const tone = sev => (sev === 'critical' ? styles.fillBad : (sev === 'important' ? styles.fillWarn : styles.fillAdvisory));
+    const tone = sev => {
+        if (sev === 'critical') {
+            return styles.fillBad;
+        }
+        return sev === 'important' ? styles.fillWarn : styles.fillAdvisory;
+    };
     return (
         <div className={styles.chart} data-geo-chart="">
             <div className={styles.matrixScroll}>

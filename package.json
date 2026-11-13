@@ -10,6 +10,7 @@
     "webpack": "webpack",
     "build:production": "yarn build --mode=production",
     "clean": "rimraf src/main/resources/javascript/apps",
+    "lint": "eslint .",
     "test": "vitest run"
   },
   "jahia": {
@@ -41,8 +42,15 @@
     "clean-webpack-plugin": "^4.0.0",
     "copy-webpack-plugin": "^12.0.2",
     "css-loader": "^6.11.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-sonarjs": "^4.2.2",
+    "eslint-plugin-unicorn": "^65.0.1",
+    "globals": "^17.14.0",
     "rimraf": "^6.1.3",
     "style-loader": "^4.0.0",
+    "typescript": "^5.9.3",
     "vite": "8.3.4",
     "vitest": "5.0.5",
     "webpack": "^5.88.2",

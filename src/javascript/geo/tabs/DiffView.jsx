@@ -4,7 +4,12 @@ import {useGovernanceTranslation} from '../../common/i18n';
 import {Typography} from '@jahia/moonstone';
 import {diffLines, collapse, hasChanges} from '../util/diffLines';
 import styles from './Tabs.module.css';
+import {withKeys} from '../../common/keys';
 
+
+const SIGNS = {add: '+', del: '-'};
+// What names a row of the diff: its kind and its line, or the number of lines a gap stands for
+const rowKey = row => (row.type === 'gap' ? `gap:${row.count}` : `${row.type}:${row.text}`);
 
 /**
  * Shows what an apply would change, before it changes it. Removed lines and
@@ -26,17 +31,17 @@ export const DiffView = ({before, after}) => {
         <div>
             <Typography variant="caption" className={styles.diffSummary}>{t('diff.summary', {added, removed})}</Typography>
             <pre className={styles.diff}>
-                {rows.map((r, i) => {
+                {withKeys(rows, rowKey).map(({item: r, key}) => {
                     if (r.type === 'gap') {
                         return (
-                            <span key={i} className={styles.diffGap}>
+                            <span key={key} className={styles.diffGap}>
                                 {t('diff.unchanged', {count: r.count})}{'\n'}
                             </span>
                         );
                     }
-                    const sign = r.type === 'add' ? '+' : (r.type === 'del' ? '-' : ' ');
+                    const sign = SIGNS[r.type] || ' ';
                     return (
-                        <span key={i} className={styles['diff' + r.type]}>
+                        <span key={key} className={styles['diff' + r.type]}>
                             {sign} {r.text}{'\n'}
                         </span>
                     );
