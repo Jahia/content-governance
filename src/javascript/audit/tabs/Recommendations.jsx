@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../../common/i18n';
 import styles from './Tabs.module.css';
+import {impactClass} from './impactClass';
 
 /**
  * Shared recommendations block: severity chip + what to fix + how.
@@ -19,7 +20,7 @@ export function Recommendations({items, ns}) {
             )}
             {items.map(rec => (
                 <div key={rec.key} className={styles.rec}>
-                    <span className={`${styles.impact} ${styles[`impact_${rec.severity}`]}`}>
+                    <span className={impactClass(rec.severity)}>
                         {t(`a11y.impacts.${rec.severity}`)}
                     </span>
                     <div className={styles.recBody}>

@@ -35,7 +35,7 @@ export function extractPageText(frame) {
         node = walker.nextNode();
     }
 
-    return parts.join(' ').replace(/\s+/g, ' ').trim();
+    return parts.join(' ').replaceAll(/\s+/g, ' ').trim();
 }
 
 export function buildDigest(results) {
@@ -105,7 +105,7 @@ export function extractHeadings(frame, max = 20) {
 
     const rootEl = doc.querySelector('main') || doc.body;
     return Array.from(rootEl.querySelectorAll('h1, h2, h3'))
-        .map(h => ({level: h.tagName.toLowerCase(), text: (h.textContent || '').replace(/\s+/g, ' ').trim()}))
+        .map(h => ({level: h.tagName.toLowerCase(), text: (h.textContent || '').replaceAll(/\s+/g, ' ').trim()}))
         .filter(h => h.text)
         .slice(0, max);
 }
@@ -141,7 +141,7 @@ export function requestSeoAssist({language, path, results, frame}) {
     return postTask({
         task: 'seo',
         language,
-        uiLanguage: (window.contextJsParameters && window.contextJsParameters.uilang) || language,
+        uiLanguage: (globalThis.contextJsParameters && globalThis.contextJsParameters.uilang) || language,
         path,
         title: seo.title ? seo.title.text : '',
         description: seo.description ? (seo.description.text || '') : '',
@@ -190,7 +190,7 @@ export function collectHardSentences(frame) {
             .filter(n => n.nodeType === 3 || !/^(P|LI|TD|BLOCKQUOTE|DD|UL|OL|TABLE|SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/.test(n.tagName))
             .map(n => (n.nodeType === 3 ? n.textContent : proseText(n)))
             .join(' ')
-            .replace(/\s+/g, ' ')
+            .replaceAll(/\s+/g, ' ')
             .trim();
         text.split(/(?<=[.!?…])\s+/).forEach(sentence => {
             const words = sentence.trim().split(/\s+/).filter(Boolean).length;
@@ -215,7 +215,7 @@ export async function requestSimplifyAssist({language, path, frame}) {
     const answer = await postTask({
         task: 'simplify',
         language,
-        uiLanguage: (window.contextJsParameters && window.contextJsParameters.uilang) || language,
+        uiLanguage: (globalThis.contextJsParameters && globalThis.contextJsParameters.uilang) || language,
         path,
         sentences: items.map(({id, text, words}) => ({id, text, words}))
     });
@@ -281,7 +281,7 @@ function thumbnail(img, doc) {
     }
 }
 
-const clean = s => (s || '').replace(/\s+/g, ' ').trim();
+const clean = s => (s || '').replaceAll(/\s+/g, ' ').trim();
 
 /**
  * Images without an alt attribute, largest first, with the DOM context the
@@ -344,7 +344,7 @@ export async function requestAltAssist({language, path, results, frame, aiStatus
     const answer = await postTask({
         task: 'alt',
         language,
-        uiLanguage: (window.contextJsParameters && window.contextJsParameters.uilang) || language,
+        uiLanguage: (globalThis.contextJsParameters && globalThis.contextJsParameters.uilang) || language,
         path,
         title: results.page ? results.page.title : '',
         images: items
@@ -358,7 +358,7 @@ export function requestAiReview({language, path, results, frame}) {
         language,
         // Recommendations are written FOR the editor: use the jContent UI
         // language, falling back to the audited page language
-        uiLanguage: (window.contextJsParameters && window.contextJsParameters.uilang) || language,
+        uiLanguage: (globalThis.contextJsParameters && globalThis.contextJsParameters.uilang) || language,
         path,
         title: results.page ? results.page.title : '',
         description: results.page ? results.page.description : '',

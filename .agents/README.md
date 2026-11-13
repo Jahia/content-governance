@@ -141,6 +141,13 @@ overwrites them; BotRank files are created by a server administrator, never ship
 - `mvn clean install` runs 497+ Java unit tests (GEO, compliance, settings, LLM config) and the
   front-end unit tests (`yarn test`: Vitest, `src/test/javascript/`: readability, findings, locales,
   the CSRF fetch; `@apollo/client`, a host library, is a stub in `stubs/`).
+- **`yarn lint` before every push** (ESLint, `eslint.config.mjs`, about 3 s): the rules the SonarQube
+  gate of the pull requests fails on (nested ternaries and template literals, `replaceAll`, `globalThis`,
+  array index keys, `propTypes`, roles and handlers on non-interactive elements, cognitive complexity
+  15, slow or redundant regular expressions), each with its Sonar key. The gate accepts no new issue, and it failed four pull requests
+  before this check existed (#30, #31, #49, #63). The pull request CI runs it (`Static Analysis`). A rule
+  is added when the gate reports one this file lacks; a rule is switched off on a line only with the
+  reason beside it (`-- ...`). Keys of a list come from `common/keys.js` (`withKeys`), never the index.
 - The Cypress suite in `tests/` (README, "Build") against the local Jahia: settings, compliance scan,
   CSRF guard, drawer, Page quality audit (axe-core, readability per language). Not run by the pull request
   CI; it runs nightly on `main` (`nightly.yml`, README "Build"), so check the last nightly before a release.

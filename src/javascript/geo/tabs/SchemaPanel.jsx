@@ -118,9 +118,10 @@ export const SchemaPanel = ({path, language}) => {
 
                     <ul className={styles.checkList}>
                         {types.map(row => {
-                            const current = draft[row.nodeType] !== undefined ?
-                                draft[row.nodeType] :
-                                (row.mapped ? row.schemaType : UNMAPPED);
+                            let current = row.mapped ? row.schemaType : UNMAPPED;
+                            if (draft[row.nodeType] !== undefined) {
+                                current = draft[row.nodeType];
+                            }
                             return (
                                 <li key={row.nodeType} className={styles.checkItem}>
                                     <span className={styles.checkText}>

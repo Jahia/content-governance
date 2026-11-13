@@ -37,10 +37,10 @@ jobs:
         with:
           primary_release_branch: main
           auditci_level: critical
-          # Neither package.json declares a `lint` script, while the action runs `yarn run lint`
-          # whenever a package.json is present. tests/ holds the Cypress suite, run locally
-          # against a running Jahia (README): its dependencies never ship in the module.
-          skip_lint_modules: true
+          # The module's `yarn lint` (eslint.config.mjs) holds the rules the SonarQube gate fails
+          # on, so they fail here first. tests/ declares no `lint` script, while the action runs
+          # `yarn run lint` whenever a package.json is present: its Cypress suite is type-checked
+          # with tsc and run against a running Jahia (README).
           skip_lint_tests: true
           skip_vulns_tests: true
 

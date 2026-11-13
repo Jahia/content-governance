@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {AI_DIGITAL_SOURCE_TYPE, reportToJson, reportToMarkdown} from '../../javascript/geo/util/exportReport.js';
 
-const t = (key, params) => `${key}${params ? ` ${JSON.stringify(params)}` : ''}`;
+const t = (key, params) => (params ? `${key} ${JSON.stringify(params)}` : key);
 
 const report = {
     generatedAt: '2026-11-10T14:03:07.512Z',

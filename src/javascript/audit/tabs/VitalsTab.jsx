@@ -36,22 +36,26 @@ export function VitalsTab({result}) {
                     const value = metrics[key];
                     const band = bandOf(key, value);
                     const isApprox = key === 'lcp' && metrics.lcpApprox;
-                    const display = key === 'cls' ?
-                        (value === null ? '-' : value.toFixed(3)) :
-                        formatMs(value);
+                    let display = formatMs(value);
+                    if (key === 'cls') {
+                        display = value === null ? '-' : value.toFixed(3);
+                    }
+                    const shown = isApprox ? `≈ ${display}` : display;
+                    const bandClass = band ? styles['band_' + band] : '';
+                    const approxHint = band ? ` · ${t('vitals.approx')}` : t('vitals.approx');
                     return (
                         <div
                             key={key}
-                            className={`${styles.card} ${band ? styles[`band_${band}`] : ''}`}
+                            className={`${styles.card} ${bandClass}`}
                         >
                             <span className={styles.cardTitle}>{t(`vitals.metrics.${key}`)}</span>
                             <span className={styles.cardValue}>
-                                {key === 'inp' ? t('vitals.inpNa') : `${isApprox ? '≈ ' : ''}${display}`}
+                                {key === 'inp' ? t('vitals.inpNa') : shown}
                             </span>
                             {(band || isApprox) && (
                                 <span className={styles.cardHint}>
                                     {band ? t(`vitals.bands.${band}`) : ''}
-                                    {isApprox ? `${band ? ' · ' : ''}${t('vitals.approx')}` : ''}
+                                    {isApprox ? approxHint : ''}
                                 </span>
                             )}
                         </div>

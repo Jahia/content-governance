@@ -311,7 +311,7 @@ export const CitationsTab = ({data, failed}) => {
                         format={String}
                         tipFor={r => formatDay(r.day)}
                         axisLeft={formatDay(history[0].date)}
-                        axisRight={formatDay(history[history.length - 1].date)}
+                        axisRight={formatDay(history.at(-1).date)}
                     />
                     <Typography variant="caption" className={styles.explain}>{t('citations.historyNote')}</Typography>
                 </>

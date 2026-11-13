@@ -274,7 +274,7 @@ const Ranking = ({data, f, t}) => {
                 {days.length > 0 && (
                     <Card title={t('siteCitations.shareHistory')} intro={t('siteCitations.shareHistoryIntro')}>
                         <div className={own.stats}>
-                            <Figure label={t('siteCitations.statLast')} value={f.pct(days[days.length - 1].share)} tone="accent"/>
+                            <Figure label={t('siteCitations.statLast')} value={f.pct(days.at(-1).share)} tone="accent"/>
                             <Figure label={t('siteCitations.statAverage')} value={f.pct(avg)}/>
                             <Figure label={t('siteCitations.statBest')} value={f.pct(Math.max(...days.map(x => x.share)))}/>
                             <Figure label={t('siteCitations.statLow')} value={f.pct(Math.min(...days.map(x => x.share)))}/>
@@ -284,7 +284,7 @@ const Ranking = ({data, f, t}) => {
                             format={v => f.pct(v / 100)}
                             tipFor={r => (r.share === null ? `${f.day(r.day)}, ${t('siteCitations.noSource')}` : f.day(r.day))}
                             axisLeft={f.day(d.shareHistory[0].date)}
-                            axisRight={f.day(d.shareHistory[d.shareHistory.length - 1].date)}
+                            axisRight={f.day(d.shareHistory.at(-1).date)}
                         />
                     </Card>
                 )}

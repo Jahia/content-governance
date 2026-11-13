@@ -309,6 +309,9 @@ curl -u root:<password> http://localhost:8080/modules/api/provisioning \
 `src/test/javascript/`); `-DskipTests` skips both. `test-fixtures/` holds a local site and a BotRank stub
 for the GEO checks.
 
+`yarn lint` (ESLint, `eslint.config.mjs`) checks the front-end code against the rules the SonarQube
+gate of the pull requests fails on; run it before a push. The pull request CI runs it too.
+
 The Cypress suite in `tests/` runs against a Jahia with the module deployed: the site settings (who reads
 and who changes them, unknown ids dropped, a site without the module), the compliance scan (the example
 glossary, a page scan, a site scan, the refusals, a section switched off), the CSRF guard on the servlets

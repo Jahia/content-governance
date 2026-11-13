@@ -5,6 +5,7 @@ import {useGovernanceTranslation} from '../../common/i18n';
 import {AiUnavailable} from '../../common/AiUnavailable';
 import {CopyButton} from './CopyButton';
 import styles from './Tabs.module.css';
+import {impactClass} from './impactClass';
 
 export function AiTab({status, review, phase, error, onGenerate, onHighlightText}) {
     const {t} = useGovernanceTranslation('audit');
@@ -57,7 +58,7 @@ export function AiTab({status, review, phase, error, onGenerate, onHighlightText
                     {review.recommendations.map((rec, i) => (
                         /* eslint-disable-next-line react/no-array-index-key */
                         <div key={i} className={styles.rec}>
-                            <span className={`${styles.impact} ${styles[`impact_${rec.severity}`]}`}>
+                            <span className={impactClass(rec.severity)}>
                                 {t(`a11y.impacts.${rec.severity}`)}
                             </span>
                             <div className={styles.recBody}>

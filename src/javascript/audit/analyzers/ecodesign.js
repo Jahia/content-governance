@@ -83,8 +83,13 @@ export function runEcodesign(frame, vitals) {
     const oversized = d.oversized || 0;
     const missingDims = d.missingDims || 0;
 
-    const band = (value, good, poor) =>
-        value <= good ? 'good' : (value <= poor ? 'ni' : 'poor');
+    const band = (value, good, poor) => {
+        if (value <= good) {
+            return 'good';
+        }
+        return value <= poor ? 'ni' : 'poor';
+    };
+    const legacyNote = legacyFonts > 0 ? ` (${legacyFonts} legacy)` : '';
 
     // --- criteria ----------------------------------------------------------
     const criteria = [
@@ -114,7 +119,7 @@ export function runEcodesign(frame, vitals) {
         {
             key: 'webFonts', family: 'frontend',
             ok: fontFiles.length <= FONT_FILES_MAX && legacyFonts === 0,
-            value: `${fontFiles.length}${legacyFonts > 0 ? ` (${legacyFonts} legacy)` : ''}`
+            value: `${fontFiles.length}${legacyNote}`
         },
         {
             key: 'autoplay', family: 'ux',

@@ -32,6 +32,14 @@ const AccessChip = ({live, t}) => {
 
 AccessChip.propTypes = {live: PropTypes.object.isRequired, t: PropTypes.func.isRequired};
 
+// The label of the access check button: checking, checked before, never checked
+const accessLabelKey = (accessPhase, access) => {
+    if (accessPhase === 'running') {
+        return 'files.robots.control.checkingAccess';
+    }
+    return access ? 'files.robots.control.recheckAccess' : 'files.robots.control.checkAccess';
+};
+
 export const RobotsControlPanel = ({path, language}) => {
     const {t} = useGovernanceTranslation('geo');
     const [preview, setPreview] = useState(null);
@@ -163,9 +171,7 @@ export const RobotsControlPanel = ({path, language}) => {
                         size="default"
                         variant="outlined"
                         isDisabled={accessPhase === 'running' || !preview.homePath}
-                        label={accessPhase === 'running' ?
-                            t('files.robots.control.checkingAccess') :
-                            (access ? t('files.robots.control.recheckAccess') : t('files.robots.control.checkAccess'))}
+                        label={t(accessLabelKey(accessPhase, access))}
                         onClick={checkAccess}
                     />
                     <Typography variant="caption">

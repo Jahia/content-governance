@@ -64,7 +64,7 @@ const IssueGroup = ({group, glossaryTitles, onEdit}) => {
                         icon={<Edit/>}
                         label={t('issue.edit')}
                         aria-label={t('issue.editLabel', {name: group.nodeName || group.nodePath})}
-                        isDisabled={!window.CE_API?.edit}
+                        isDisabled={!globalThis.CE_API?.edit}
                         onClick={() => onEdit(group.nodeUuid)}/>
             </div>
             {group.origin !== 'PAGE' && (
@@ -150,7 +150,7 @@ const Report = ({report, framed, uiLanguage, onEdit}) => {
                                 variant="ghost"
                                 size="small"
                                 label={t('glossaries.item', {title: glossary.title, count: glossary.termCount})}
-                                isDisabled={!window.CE_API?.edit}
+                                isDisabled={!globalThis.CE_API?.edit}
                                 onClick={() => onEdit(glossary.uuid)}/>
                     ))}
                 </div>
@@ -222,11 +222,11 @@ export const ComplianceSection = ({path, language, onClose, onReopen, onCount, o
 
     // Content Editor opens over jContent: close the drawer, and scan again once the editor closes.
     const edit = useCallback(uuid => {
-        if (!window.CE_API?.edit) {
+        if (!globalThis.CE_API?.edit) {
             return;
         }
         onClose();
-        window.CE_API.edit({uuid, site, lang: language, isFullscreen: false, onClosedCallback: onReopen});
+        globalThis.CE_API.edit({uuid, site, lang: language, isFullscreen: false, onClosedCallback: onReopen});
     }, [onClose, onReopen, site, language]);
 
     return (

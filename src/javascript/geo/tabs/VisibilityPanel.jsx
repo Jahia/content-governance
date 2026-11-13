@@ -8,6 +8,14 @@ import {Actions, Card, Figure, Figures, Panel, PanelHeader} from '../dashboard/L
 import styles from './Tabs.module.css';
 
 
+// The label of the scan button: scanning, scanned before, never scanned
+const scanLabelKey = (phase, result) => {
+    if (phase === 'running') {
+        return 'visibility.scanning';
+    }
+    return result ? 'visibility.rescan' : 'visibility.scan';
+};
+
 /**
  * GEO-19. Published pages no crawler can ever read.
  *
@@ -95,9 +103,7 @@ export const VisibilityPanel = ({path, language}) => {
                         size="big"
                         variant="outlined"
                         isDisabled={phase === 'running'}
-                        label={phase === 'running' ?
-                            t('visibility.scanning') :
-                            (result ? t('visibility.rescan') : t('visibility.scan'))}
+                        label={t(scanLabelKey(phase, result))}
                         onClick={scan}
                     />
                     {result && (

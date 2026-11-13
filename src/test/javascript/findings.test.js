@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {auditFindings, complianceFindings, rankFindings} from '../../javascript/drawer/findings.js';
 
-const t = (key, params) => `${key}${params ? ` ${JSON.stringify(params)}` : ''}`;
+const t = (key, params) => (params ? `${key} ${JSON.stringify(params)}` : key);
 
 describe('rankFindings', () => {
     const f = (key, severity) => ({key, severity});

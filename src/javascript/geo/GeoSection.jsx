@@ -23,7 +23,7 @@ const cacheKey = (path, language) => `content-governance:geo:${CACHE_SCHEMA}:${l
 
 function loadCached(path, language) {
     try {
-        const raw = window.localStorage.getItem(cacheKey(path, language));
+        const raw = globalThis.localStorage.getItem(cacheKey(path, language));
         if (!raw) {
             return null;
         }
@@ -36,7 +36,7 @@ function loadCached(path, language) {
 
 function saveCached(path, language, report) {
     try {
-        window.localStorage.setItem(
+        globalThis.localStorage.setItem(
             cacheKey(path, language),
             JSON.stringify({schema: CACHE_SCHEMA, timestamp: Date.now(), report})
         );
@@ -88,6 +88,14 @@ function sectionTabs(report, isOn, citations, t) {
 
     return tabs;
 }
+
+// The label of the run button: running, run before, never run
+const runLabelKey = (phase, report) => {
+    if (phase === 'running') {
+        return 'drawer.running';
+    }
+    return report ? 'drawer.rerun' : 'drawer.run';
+};
 
 /**
  * The GEO readiness section of the drawer: can AI crawlers read this page, and what the site's
@@ -193,7 +201,7 @@ export const GeoSection = ({path, language, isOn, onCount, onFindings, requested
                     size="big"
                     color="accent"
                     isDisabled={phase === 'running'}
-                    label={phase === 'running' ? t('drawer.running') : (report ? t('drawer.rerun') : t('drawer.run'))}
+                    label={t(runLabelKey(phase, report))}
                     onClick={run}
                 />
                 {ranAt && (
