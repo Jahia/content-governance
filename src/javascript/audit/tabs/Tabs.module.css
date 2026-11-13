@@ -440,3 +440,50 @@
 .incompleteAction {
     margin-top: var(--spacing-small, 8px);
 }
+
+/* The heading outline: one row per heading, indented by its level. */
+.outline {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.outlineRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 2px 0;
+    border-bottom: 1px solid #f4f6f8;
+}
+
+.outlineRow > * {
+    flex-shrink: 0;
+}
+
+/* The heading's words take the room left and wrap; chips and the button keep their size. */
+.outlineRow > .outlineText {
+    flex: 1 1 0%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.outlineLevel2 {
+    padding-left: 16px;
+}
+
+.outlineLevel3 {
+    padding-left: 32px;
+}
+
+.outlineLevel4 {
+    padding-left: 48px;
+}
+
+.outlineLevel5 {
+    padding-left: 64px;
+}
+
+.outlineLevel6 {
+    padding-left: 80px;
+}

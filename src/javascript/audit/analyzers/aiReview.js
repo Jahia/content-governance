@@ -7,6 +7,7 @@
 
 import {moduleUrl} from '../../common/url';
 import {guardedFetch} from '../../common/guardedFetch';
+import {cssPath} from './cssPath';
 
 const ENDPOINT = moduleUrl('/audit/ai-review');
 
@@ -226,35 +227,6 @@ export async function requestSimplifyAssist({language, path, frame}) {
 // Alt text: images per request (server cap too) and thumbnail edge for vision models
 const ALT_MAX_IMAGES = 8;
 const THUMB_MAX_PX = 512;
-
-/** Stable CSS selector for an element of the preview document (for highlight after the audit). */
-function cssPath(el) {
-    const doc = el.ownerDocument;
-    const win = doc.defaultView;
-    const escape = id => (win && win.CSS && win.CSS.escape ? win.CSS.escape(id) : id);
-    const parts = [];
-    let node = el;
-    while (node && node.nodeType === 1 && node !== doc.body) {
-        if (node.id) {
-            parts.unshift(`#${escape(node.id)}`);
-            break;
-        }
-
-        let selector = node.tagName.toLowerCase();
-        const parent = node.parentElement;
-        if (parent) {
-            const siblings = Array.from(parent.children).filter(c => c.tagName === node.tagName);
-            if (siblings.length > 1) {
-                selector += `:nth-of-type(${siblings.indexOf(node) + 1})`;
-            }
-        }
-
-        parts.unshift(selector);
-        node = parent;
-    }
-
-    return parts.join(' > ');
-}
 
 /**
  * Downscaled JPEG copy of a loaded image for the vision model, or null when

@@ -156,6 +156,37 @@ describe('Content Governance - Page quality audit', () => {
             .find('#cg-a11y-fixture a').should($a => expect($a[0].style.outline, 'one mark at a time').to.eq(''));
     });
 
+    // The Readability tab counted skipped levels without saying which heading skips: the outline lists
+    // every heading of the main content, and what is wrong with it.
+    it('lists the headings as an outline, with the level a heading skips and a heading without text', () => {
+        const OUTLINE = '<div id="cg-outline-fixture"><h2>Outline section</h2><h4>Outline detail</h4><h3></h3></div>';
+        const outline = `${DRAWER} ol[aria-label="Heading outline"]`;
+        cy.intercept('GET', `**/cms/render/default/en/sites/${siteKey}/home.html?pageAuditRun=*`, req => {
+            req.continue(res => {
+                const body = String(res.body);
+                res.body = body.includes('</main>') ? body.replace('</main>', `${OUTLINE}</main>`) : body.replace('</body>', `${OUTLINE}</body>`);
+            });
+        });
+        cy.login(admin.username, admin.password);
+        cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);
+        cy.contains('button', BUTTON, {timeout: 30000}).click();
+        freshAudit();
+        cy.get(DRAWER).contains('automated rules passed', {timeout: 90000}).should('exist');
+        cy.get('#audit-tab-readability').click();
+        cy.contains(`${outline} li`, 'Outline section', {timeout: 30000})
+            .should('contain.text', 'H2').and('not.contain.text', 'Skips');
+        cy.contains(`${outline} li`, 'Outline detail')
+            .should('contain.text', 'H4').and('contain.text', 'Skips from H2 to H4');
+        cy.contains(`${outline} li`, '(no text)').should('contain.text', 'H3').and('contain.text', 'Empty');
+        cy.get(DRAWER).contains('li', 'Skipped heading levels').find('strong')
+            .should($count => expect(Number($count.text())).to.be.greaterThan(0));
+
+        // The fixture is in the preview alone: the preview opens on the heading
+        cy.contains(`${outline} li`, 'Outline detail').find('button').click();
+        cy.get(`${DRAWER} iframe`).its('0.contentDocument.body').find('#cg-outline-fixture h4')
+            .should($heading => expect($heading[0].style.outline, 'marked').to.contain('3px'));
+    });
+
     READABILITY.forEach(({lang, expect, text}) => {
         it(`scores readability for a page in ${lang}`, () => {
             cy.intercept('GET', `**/cms/render/default/${lang}/sites/${siteKey}/home.html?pageAuditRun=*`, req => {

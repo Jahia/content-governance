@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../../common/i18n';
 import {Recommendations} from './Recommendations';
 import {SimplifyAssist} from './SimplifyAssist';
+import {HeadingOutline} from './HeadingOutline';
 import styles from './Tabs.module.css';
 import {languageDisplayName} from '../../common/locale';
 
@@ -11,11 +12,41 @@ function languageName(lang, uiLanguage) {
     return languageDisplayName(lang, uiLanguage, lang.toUpperCase());
 }
 
-export function ReadabilityTab({result, assist}) {
+/** The page's heading counts and its outline; an audit stored before 1.10 on a short page has neither. */
+function Structure({result, onHighlight}) {
+    const {t} = useGovernanceTranslation('audit');
+    return (
+        <>
+            {result.h1Count !== undefined && (
+                <>
+                    <h4 className={styles.sectionTitle}>{t('readability.structure')}</h4>
+                    <ul className={styles.statList}>
+                        <li>{t('readability.h1Count')}: <strong>{result.h1Count}</strong></li>
+                        <li>{t('readability.headingSkips')}: <strong>{result.headingSkips}</strong></li>
+                    </ul>
+                </>
+            )}
+            <h4 className={styles.sectionTitle}>{t('readability.outline.title')}</h4>
+            <HeadingOutline outline={result.outline} total={result.headingCount} onHighlight={onHighlight}/>
+        </>
+    );
+}
+
+Structure.propTypes = {
+    result: PropTypes.object.isRequired,
+    onHighlight: PropTypes.func.isRequired
+};
+
+export function ReadabilityTab({result, assist, onHighlight}) {
     const {t, i18n} = useGovernanceTranslation('audit');
 
     if (result.empty) {
-        return <p className={styles.note}>{t('readability.noText', {count: result.words || 0})}</p>;
+        return (
+            <div>
+                <p className={styles.note}>{t('readability.noText', {count: result.words || 0})}</p>
+                <Structure result={result} onHighlight={onHighlight}/>
+            </div>
+        );
     }
 
     // By band: a LIX score reads the other way round from a Flesch one
@@ -86,11 +117,7 @@ export function ReadabilityTab({result, assist}) {
                 )}
             </ul>
 
-            <h4 className={styles.sectionTitle}>{t('readability.structure')}</h4>
-            <ul className={styles.statList}>
-                <li>{t('readability.h1Count')}: <strong>{result.h1Count}</strong></li>
-                <li>{t('readability.headingSkips')}: <strong>{result.headingSkips}</strong></li>
-            </ul>
+            <Structure result={result} onHighlight={onHighlight}/>
         </div>
     );
 }
@@ -98,5 +125,7 @@ export function ReadabilityTab({result, assist}) {
 ReadabilityTab.propTypes = {
     result: PropTypes.object.isRequired,
     // Props forwarded to <SimplifyAssist/> (AI status, rewrites, phase, callbacks)
-    assist: PropTypes.object.isRequired
+    assist: PropTypes.object.isRequired,
+    // Shows an element of the page from its selector (a heading of the outline)
+    onHighlight: PropTypes.func.isRequired
 };
