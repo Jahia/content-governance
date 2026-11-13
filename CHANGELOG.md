@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.10.0
+
+### New Features
+
+* Page quality's Readability tab lists the page's headings as an outline: every heading indented by its level, the level a heading skips, a heading without text, and a button that shows it on the page. Pages under 30 words show their headings too.
+
+### Bug Fixes
+
+* `yarn lint` checks the front-end code against the rules of the SonarQube gate before a push, and the pull request CI runs it. The existing code was brought in line with them, with no change for editors.
+
 ## 1.9.1
 
 * The drawer and the dashboards no longer stop with "Invalid language tag" on a site language with a region, such as Chinese (China) or Portuguese (Brazil).
