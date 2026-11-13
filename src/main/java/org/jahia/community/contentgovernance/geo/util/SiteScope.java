@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.util;
 
+import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionFactory;
 import org.jahia.services.content.JCRSessionWrapper;
@@ -12,7 +13,6 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
@@ -128,6 +128,6 @@ public final class SiteScope {
 
     private static JCRSessionWrapper session(String language) throws RepositoryException {
         return JCRSessionFactory.getInstance()
-                .getCurrentUserSession("default", Locale.forLanguageTag(language));
+                .getCurrentUserSession("default", Locales.of(language));
     }
 }

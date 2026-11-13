@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.scheduler;
 
+import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.community.contentgovernance.geo.check.ScanInProgressException;
 import org.jahia.community.contentgovernance.geo.check.ScanStore;
 import org.jahia.community.contentgovernance.geo.check.SiteScorer;
@@ -22,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
-import java.util.Locale;
 
 /**
  * The scheduled half of GEO-17. One run scores one site in one language.
@@ -131,7 +131,7 @@ public class SiteScanJob extends BackgroundJob {
                 return false;
             }
             return Boolean.TRUE.equals(JCRTemplate.getInstance().doExecute(owner.getJahiaUser(), "default",
-                    Locale.forLanguageTag(language), (JCRCallback<Boolean>) session -> {
+                    Locales.of(language), (JCRCallback<Boolean>) session -> {
                         try {
                             if (!session.getNode(sitePath).hasPermission(SiteScope.DASHBOARD.get(0))) {
                                 return false;

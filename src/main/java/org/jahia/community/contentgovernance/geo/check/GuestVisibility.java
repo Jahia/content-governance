@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.check;
 
+import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
@@ -65,7 +66,7 @@ public final class GuestVisibility {
      * the site the way a crawler does rather than the way an editor does.
      */
     public static <T> T inGuestSession(String language, GuestCallback<T> work) throws RepositoryException {
-        return asGuest(Locale.forLanguageTag(language), work::run);
+        return asGuest(Locales.of(language), work::run);
     }
 
     @FunctionalInterface
@@ -75,7 +76,7 @@ public final class GuestVisibility {
 
     /** One page, for the drawer. Cheap: two session reads and a condition evaluation. */
     public static JSONObject forPage(String path, String language) throws RepositoryException {
-        Locale locale = Locale.forLanguageTag(language);
+        Locale locale = Locales.of(language);
         return JCRTemplate.getInstance().doExecuteWithSystemSession(null, "live", locale,
                 (JCRCallback<JSONObject>) systemSession -> {
                     JSONObject out = new JSONObject();
@@ -103,7 +104,7 @@ public final class GuestVisibility {
 
     /** Every published page of a site, for the dashboard. */
     public static JSONObject scanSite(String sitePath, String language, int maxPages) throws RepositoryException {
-        Locale locale = Locale.forLanguageTag(language);
+        Locale locale = Locales.of(language);
         int cap = maxPages > 0 ? maxPages : DEFAULT_MAX;
 
         return JCRTemplate.getInstance().doExecuteWithSystemSession(null, "live", locale,
