@@ -24,7 +24,13 @@ export function HeadingOutline({outline, total, onHighlight}) {
     const rows = outline.map(heading => {
         const rank = seen.get(heading.selector) || 0;
         seen.set(heading.selector, rank + 1);
-        return {...heading, key: `${heading.selector}#${rank}`};
+        // H1 has no indent class
+        const indent = styles[`outlineLevel${heading.level}`];
+        return {
+            ...heading,
+            key: `${heading.selector}#${rank}`,
+            className: indent ? `${styles.outlineRow} ${indent}` : styles.outlineRow
+        };
     });
 
     return (
@@ -32,7 +38,7 @@ export function HeadingOutline({outline, total, onHighlight}) {
             <p className={styles.note}>{t('readability.outline.intro')}</p>
             <ol className={styles.outline} aria-label={t('readability.outline.title')}>
                 {rows.map(heading => (
-                    <li key={heading.key} className={`${styles.outlineRow} ${styles[`outlineLevel${heading.level}`]}`}>
+                    <li key={heading.key} className={heading.className}>
                         <Chip label={`H${heading.level}`} color={heading.level === 1 ? 'accent' : 'default'}/>
                         <div className={styles.outlineText}>
                             <Typography component="span" variant="body">
