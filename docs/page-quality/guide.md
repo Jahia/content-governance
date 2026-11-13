@@ -220,10 +220,16 @@ Measures how easy the main text is to read. Navigation, header and footer are le
 - **Grade level** (Flesch-Kincaid, English only) and **Reading time** (at 200 words a minute).
 - **Recommendations**: hard text, sentences over 25 words, dense paragraphs (over 80 words on
   average), not exactly one H1, skipped heading levels (H2 then H4), less than 300 words.
-- **Text statistics** and **Structure**.
+- **Text statistics** and **Structure** (the number of H1 headings and of skipped levels).
+- **Heading outline**: every heading of the main content, in page order, indented by its level, so
+  you see the page as a screen reader user or a search engine does. A heading that skips a level
+  says so (**Skips from H2 to H4**), a heading without text is marked **Empty**, and the eye button
+  shows the heading on the page (in the page under edit in Page Builder, otherwise in the preview).
+  The first 200 headings are listed. An audit run before version 1.10 has no outline: **Re-run** it.
 - **AI plain-language rewrites**: see [AI assists](#ai-assists).
 
-Under 30 words, the tab shows "Not enough text on this page to compute readability". A page in a
+Under 30 words, the tab shows "Not enough text on this page to compute readability", then the
+structure and the heading outline, which do not depend on the amount of text. A page in a
 language without a formula here (Finnish, Russian, Polish, Arabic...) gets no score rather than another
 language's: the tab says so, and sentence length, paragraphs and headings are still checked. Japanese,
 Chinese, Thai and other languages written without spaces between words get neither a score nor a word

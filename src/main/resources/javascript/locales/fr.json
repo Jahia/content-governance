@@ -1644,6 +1644,16 @@
         "h1Hint": "une page doit avoir exactement un H1",
         "headingSkips": "Niveaux de titre sautés",
         "headingSkipsHint": "évitez de sauter des niveaux (ex. H2 vers H4)",
+        "outline": {
+          "title": "Plan des titres",
+          "intro": "Les titres du contenu principal, dans l'ordre de la page, indentés par niveau. Les lecteurs d'écran et les moteurs de recherche lisent la page à travers ce plan.",
+          "skipped": "Saute de H{{from}} à H{{to}}",
+          "empty": "Vide",
+          "noText": "(sans texte)",
+          "none": "Le contenu principal n'a aucun titre.",
+          "rerun": "Cet audit a été lancé avant que le plan des titres n'existe. Relancez-le pour voir les titres de la page.",
+          "more": "Les {{shown}} premiers titres sur {{count}} sont listés."
+        },
         "noText": "Texte insuffisant sur cette page pour calculer la lisibilité ({{count}} mots trouvés).",
         "noFormula": "Aucune formule de lisibilité n'existe ici pour cette langue ({{language}}) : le score n'est pas calculé, plutôt qu'avec la formule d'une autre langue. La longueur des phrases, les paragraphes et les titres restent vérifiés.",
         "noWords": "Cette langue ({{language}}) s'écrit sans espace entre les mots : ni score de lisibilité ni nombre de mots ne s'appliquent. Les caractères et les phrases sont comptés à la place, et les titres restent vérifiés.",

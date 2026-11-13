@@ -1644,6 +1644,16 @@
         "h1Hint": "una página debe tener exactamente un H1",
         "headingSkips": "Niveles de encabezado omitidos",
         "headingSkipsHint": "evite saltar niveles (p. ej., de H2 a H4)",
+        "outline": {
+          "title": "Esquema de títulos",
+          "intro": "Los títulos del contenido principal, en el orden de la página, sangrados por nivel. Los lectores de pantalla y los buscadores leen la página a través de este esquema.",
+          "skipped": "Salta de H{{from}} a H{{to}}",
+          "empty": "Vacío",
+          "noText": "(sin texto)",
+          "none": "El contenido principal no tiene ningún título.",
+          "rerun": "Esta auditoría se ejecutó antes de que existiera el esquema de títulos. Vuelva a ejecutarla para ver los títulos de la página.",
+          "more": "Se muestran los primeros {{shown}} títulos de {{count}}."
+        },
         "noText": "No hay suficiente texto en esta página para calcular la legibilidad ({{count}} palabras encontradas).",
         "noFormula": "No existe aquí ninguna fórmula de legibilidad para {{language}}: la puntuación se omite en lugar de calcularse con la fórmula de otro idioma. La longitud de las frases, los párrafos y los encabezados se siguen comprobando.",
         "noWords": "{{language}} se escribe sin espacios entre palabras, por lo que no se aplican ni la puntuación de legibilidad ni el recuento de palabras: se cuentan caracteres y frases en su lugar, y los encabezados se siguen comprobando.",

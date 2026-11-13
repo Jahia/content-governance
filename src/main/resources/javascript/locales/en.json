@@ -1644,6 +1644,16 @@
         "h1Hint": "a page should have exactly one H1",
         "headingSkips": "Skipped heading levels",
         "headingSkipsHint": "avoid jumping levels (e.g. H2 to H4)",
+        "outline": {
+          "title": "Heading outline",
+          "intro": "The headings of the main content, in page order, indented by level. Screen readers and search engines read the page through this outline.",
+          "skipped": "Skips from H{{from}} to H{{to}}",
+          "empty": "Empty",
+          "noText": "(no text)",
+          "none": "The main content has no heading.",
+          "rerun": "This audit was run before the outline existed. Re-run it to see the page's headings.",
+          "more": "The first {{shown}} of {{count}} headings are listed."
+        },
         "noText": "Not enough text on this page to compute readability ({{count}} words found).",
         "noFormula": "No readability formula exists for {{language}} here: the score is left out rather than computed with another language's formula. Sentence length, paragraphs and headings are still checked.",
         "noWords": "{{language}} is written without spaces between words, so neither a readability score nor a word count applies: characters and sentences are counted instead, and headings are still checked.",

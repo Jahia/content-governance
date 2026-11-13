@@ -22,6 +22,8 @@
  * have no word count either: characters and sentences are counted instead.
  */
 
+import {buildOutline, collectHeadings} from './headingOutline';
+
 const FORMULAS = {
     en: {name: 'Flesch', score: (asl, asw) => 206.835 - (1.015 * asl) - (84.6 * asw)},
     fr: {name: 'Kandel-Moles', score: (asl, asw) => 207 - (1.015 * asl) - (73.6 * asw)},
@@ -225,22 +227,13 @@ export function runReadability(frame, language) {
 
     const text = parts.join(' ').replaceAll(/\s+/g, ' ').trim();
     const stats = analyzeText(text, lang);
+    // Heading structure (whole page for h1, main content for the outline and its skipped levels)
+    const {outline, skips: headingSkips, total: headingCount} = buildOutline(collectHeadings(rootEl));
+    const structure = {h1Count: doc.querySelectorAll('h1').length, headingSkips, headingCount, outline};
     if (stats.empty) {
-        return {...stats, recommendations: []};
+        // Too little text to measure, and so no advice: the headings are still shown
+        return {...stats, ...structure, recommendations: []};
     }
-
-    // Heading structure (whole page for h1, main content for hierarchy)
-    const levels = Array.from(rootEl.querySelectorAll('h1,h2,h3,h4,h5,h6'))
-        .map(h => Number(h.tagName[1]));
-    let headingSkips = 0;
-    let prev = 0;
-    levels.forEach(level => {
-        if (prev > 0 && level > prev + 1) {
-            headingSkips++;
-        }
-
-        prev = level;
-    });
 
     const paragraphs = Array.from(rootEl.querySelectorAll('p'))
         .filter(p => (p.textContent || '').trim().length > 0);
@@ -250,8 +243,7 @@ export function runReadability(frame, language) {
 
     const result = {
         ...stats,
-        h1Count: doc.querySelectorAll('h1').length,
-        headingSkips,
+        ...structure,
         paragraphs: paragraphs.length,
         avgWordsPerParagraph: stats.spaced && paragraphs.length > 0 ? Math.round(paragraphWords / paragraphs.length) : null
     };

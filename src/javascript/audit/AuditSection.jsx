@@ -792,6 +792,7 @@ export function AuditSection({path, language, isOn, ai, onCount, onFindings, req
                     {currentTab === 'readability' && results.readability &&
                         <ReadabilityTab
                             result={results.readability}
+                            onHighlight={highlight}
                             assist={{
                                 aiStatus,
                                 assist: simplifyAssist,

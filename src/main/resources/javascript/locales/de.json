@@ -1644,6 +1644,16 @@
         "h1Hint": "eine Seite sollte genau eine H1 haben",
         "headingSkips": "Übersprungene Überschriftenebenen",
         "headingSkipsHint": "vermeiden Sie Ebenensprünge (z. B. von H2 zu H4)",
+        "outline": {
+          "title": "Überschriftenstruktur",
+          "intro": "Die Überschriften des Hauptinhalts in der Reihenfolge der Seite, nach Ebene eingerückt. Screenreader und Suchmaschinen lesen die Seite über diese Struktur.",
+          "skipped": "Springt von H{{from}} auf H{{to}}",
+          "empty": "Leer",
+          "noText": "(kein Text)",
+          "none": "Der Hauptinhalt hat keine Überschrift.",
+          "rerun": "Dieses Audit wurde ausgeführt, bevor es die Überschriftenstruktur gab. Führen Sie es erneut aus, um die Überschriften der Seite zu sehen.",
+          "more": "Die ersten {{shown}} von {{count}} Überschriften sind aufgelistet."
+        },
         "noText": "Auf dieser Seite ist nicht genug Text, um die Lesbarkeit zu berechnen ({{count}} Wörter gefunden).",
         "noFormula": "Für {{language}} gibt es hier keine Lesbarkeitsformel: Der Score wird weggelassen, statt mit der Formel einer anderen Sprache berechnet zu werden. Satzlänge, Absätze und Überschriften werden trotzdem geprüft.",
         "noWords": "{{language}} wird ohne Leerzeichen zwischen den Wörtern geschrieben, daher gelten weder ein Lesbarkeitsscore noch eine Wortzählung: Stattdessen werden Zeichen und Sätze gezählt, und Überschriften werden weiterhin geprüft.",
