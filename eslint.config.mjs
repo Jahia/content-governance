@@ -37,6 +37,10 @@ export default [
             'sonarjs/no-nested-conditional': 'error', // S3358
             'sonarjs/no-nested-template-literals': 'error', // S4624
             'sonarjs/slow-regex': 'error', // S5852
+            // The gate's S5852 on a pattern slow-regex let through (`[\W_]+$`, #64)
+            'sonarjs/super-linear-regex': 'error',
+            'sonarjs/duplicates-in-character-class': 'error', // S5869
+            'sonarjs/anchor-precedence': 'error', // S5850
             'unicorn/prefer-string-replace-all': 'error', // S7781
             'unicorn/prefer-code-point': 'error', // S7758
             'unicorn/prefer-string-raw': 'error', // S7780

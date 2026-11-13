@@ -4,12 +4,15 @@ import {describe, expect, it} from 'vitest';
 // Every language file holds every key of en.json with the same placeholders: init.js loads one file
 // only, so a key missing there shows as a raw key, and a dropped {{placeholder}} loses a value.
 const DIR = new URL('../../main/resources/javascript/locales/', import.meta.url);
-const PLACEHOLDER = /\{\{\s*[^}]+?\s*\}\}/g;
 const read = file => JSON.parse(readFileSync(new URL(file, DIR), 'utf8'))['content-governance'];
 const flat = (value, prefix = '') => (value && typeof value === 'object' ?
     Object.entries(value).flatMap(([key, v]) => flat(v, prefix ? `${prefix}.${key}` : key)) :
     [[prefix, value]]);
-const placeholders = text => (text.match(PLACEHOLDER) || []).sort((a, b) => a.localeCompare(b));
+// The {{placeholders}} of a text, as written: what follows each "{{" up to its "}}"
+const placeholders = text => text.split('{{').slice(1)
+    .filter(part => part.includes('}}'))
+    .map(part => `{{${part.slice(0, part.indexOf('}}'))}}}`)
+    .sort((a, b) => a.localeCompare(b));
 
 const english = new Map(flat(read('en.json')));
 const others = readdirSync(DIR).filter(file => file.endsWith('.json') && file !== 'en.json');

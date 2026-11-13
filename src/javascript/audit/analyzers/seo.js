@@ -14,10 +14,27 @@ const DESCRIPTION_RANGE = [50, 160];
 const GENERIC_ANCHORS = /^(click here|here|read more|more|learn more|link|see more|view more|submit|send|go|ok|continue|next|cliquez ici|ici|en savoir plus|lire la suite|plus|voir plus|découvrir|envoyer|soumettre|valider|continuer|suivant)$/i;
 const MAX_WEAK_CTAS = 10;
 
-const normalizeLabel = text => (text || '')
-    .replaceAll(/\s+/g, ' ')
-    .replaceAll(/^[\s\W_]+|[\s\W_]+$/g, '')
-    .trim();
+const DECORATION = /[\W_]/;
+
+/**
+ * A link or button label without what decorates it at either end ("Read More +" gives "Read More").
+ * A loop, not a pattern anchored at the end: that one backtracks on a long label (Sonar S5852).
+ *
+ * @param {string} [text] the label as the page shows it
+ * @returns {string} the label, its inner white space collapsed
+ */
+export const normalizeLabel = text => {
+    const label = (text || '').replaceAll(/\s+/g, ' ');
+    let start = 0;
+    let end = label.length;
+    while (start < end && DECORATION.test(label[start])) {
+        start++;
+    }
+    while (end > start && DECORATION.test(label[end - 1])) {
+        end--;
+    }
+    return label.slice(start, end);
+};
 
 /**
  * Weak calls to action: links and buttons whose label is generic. Returns
