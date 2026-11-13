@@ -1506,7 +1506,7 @@
         }
       },
       "vitals": {
-        "labNote": "Labormessung dieser Vorschaudarstellung. Die Werte sind Richtwerte und weichen von realen Nutzerdaten (Felddaten) ab.",
+        "labNote": "Richtwerte: Die Seite wird in ihrer Bearbeitungsvorschau gemessen, in Ihrem Browser und mit Ihrer Sitzung. Sie entsprechen daher nicht der Live-Website (kein Cache, kein CDN). Nutzen Sie sie, um vor und nach einer Änderung zu vergleichen. Was die Seite schwer macht (unten), ist auf der Live-Website dasselbe.",
         "metrics": {
           "lcp": "LCP",
           "cls": "CLS",
@@ -1516,11 +1516,6 @@
           "inp": "INP"
         },
         "approx": "geschätzt",
-        "bands": {
-          "good": "Gut",
-          "ni": "Verbesserungswürdig",
-          "poor": "Schlecht"
-        },
         "inpNa": "k. A.",
         "diagnostics": "Diagnose",
         "requests": "Anfragen",
@@ -1531,18 +1526,6 @@
         "oversized": "{{count}} überdimensioniert",
         "largest": "Größte Ressourcen",
         "recs": {
-          "slowLcp": {
-            "title": "Hauptinhalt wird langsam dargestellt",
-            "detail": "Komprimieren Sie das Hero-Bild bzw. den größten Block oder laden Sie es vorab, damit Besucher den Hauptinhalt früher sehen."
-          },
-          "highCls": {
-            "title": "Layoutverschiebungen beim Laden",
-            "detail": "Reservieren Sie Platz für Bilder, Einbettungen und spät geladene Blöcke, damit die Seite unter dem Leser nicht springt."
-          },
-          "slowTtfb": {
-            "title": "Langsame Serverantwort (TTFB)",
-            "detail": "Schon das HTML kommt langsam an: Aktivieren Sie das Seiten-Caching oder prüfen Sie die Serverlast, bevor Sie etwas anderes optimieren."
-          },
           "missingDims": {
             "title": "{{count}} Bilder ohne width/height-Attribute",
             "detail": "Fügen Sie width und height hinzu, damit der Browser den Platz im Voraus reserviert - dies ist die häufigste Ursache für Layoutverschiebungen."
@@ -1700,7 +1683,7 @@
       "tabHelp": {
         "accessibility": "Automatisierte WCAG-Prüfungen mit axe-core: Probleme nach Schweregrad, was manuell zu prüfen ist, und von der KI vorgeschlagene Alternativtexte für Bilder ohne Alternativtext.",
         "seo": "Titel, Meta-Beschreibung, Indexierung, kanonische Adresse, Vorschaukarte für soziale Netzwerke, strukturierte Daten und Linktexte, mit von der KI vorgeschlagenen Formulierungen.",
-        "vitals": "Wie schnell die Seite lädt und wie stabil sie bleibt, gemessen in Ihrem Browser, und was sie verlangsamt.",
+        "vitals": "Richtwerte zum Laden der Bearbeitungsvorschau und was die Seite schwer macht.",
         "readability": "Wie leicht der Text in seiner Sprache zu lesen ist: Score, lange Sätze und Überschriften, mit von der KI vorgeschlagenen einfacheren Umformulierungen.",
         "ecodesign": "Ökodesign-Prüfungen nach dem französischen Referenzrahmen RGESN: Seitengewicht, Anfragen, Bilder, Schriften, Medien und Drittanbieter.",
         "links": "Defekte interne Links, vollständig ausgeschriebene Adressen, gemischte Inhalte und Links, die ohne Schutz ein neues Fenster öffnen.",

@@ -1,7 +1,7 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../common/i18n';
-import {Badge, Banner, Button, Tab, TabItem, Typography} from '@jahia/moonstone';
+import {Banner, Button, Tab, TabItem, Typography} from '@jahia/moonstone';
 import {HelpTab} from '../common/HelpTab';
 import {runCrawlerCheck} from './api/crawlerCheck';
 import {ScoreTab} from './tabs/ScoreTab';
@@ -13,6 +13,7 @@ import {fetchPageCitations} from './api/citations';
 import tabStyles from './tabs/Tabs.module.css';
 import styles from './GeoSection.module.css';
 import {fetchErrorHint} from './util/fetchError';
+import {CountBadge} from '../common/CountBadge';
 
 const CACHE_SCHEMA = 8;
 
@@ -73,8 +74,8 @@ const formatScanDate = iso => {
  */
 function sectionTabs(report, isOn, citations, t) {
     const tabs = report ? [
-        {id: 'score', label: t('score.tab'), count: report.score ? report.score.criticalFailed : 0},
-        {id: 'crawler', label: t('crawler.tab'), count: report.blockedCount},
+        {id: 'score', label: t('score.tab'), count: report.score ? report.score.criticalFailed : 0, serious: true},
+        {id: 'crawler', label: t('crawler.tab'), count: report.blockedCount, serious: true},
         {id: 'files', label: t('files.tab'), count: filesIssueCount(report)},
         {
             id: 'schema',
@@ -181,7 +182,7 @@ export const GeoSection = ({path, language, isOn, onCount, onFindings, requested
         key: `geo.${item.id}`,
         section: 'geo',
         tab: item.id,
-        severity: item.id === 'score' || item.id === 'crawler' ? 'serious' : 'moderate',
+        severity: item.serious ? 'serious' : 'moderate',
         title: t('fixFirst', {tab: item.label, count: item.count})
     })));
     useEffect(() => {
@@ -347,7 +348,7 @@ export const GeoSection = ({path, language, isOn, onCount, onFindings, requested
                                     label={item.label}
                                     isSelected={activeTab === item.id}
                                     isDisabled={Boolean(item.disabled)}
-                                    icon={item.count > 0 ? <Badge label={String(item.count)} color="danger"/> : undefined}
+                                    icon={item.count > 0 ? <CountBadge count={item.count} isSerious={Boolean(item.serious)}/> : undefined}
                                     onClick={() => setTab(item.id)}
                                 />
                             </HelpTab>

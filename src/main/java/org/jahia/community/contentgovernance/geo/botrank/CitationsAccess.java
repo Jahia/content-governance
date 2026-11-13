@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.botrank;
 
+import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.community.contentgovernance.settings.Features;
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
 import org.jahia.services.content.JCRNodeWrapper;
@@ -11,7 +12,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Who may read and change the BotRank data of a site, checked with the caller's own session.
@@ -77,7 +77,7 @@ public final class CitationsAccess {
      */
     public static Site siteOf(String path, String language) throws RepositoryException {
         JCRSessionWrapper session = JCRSessionFactory.getInstance()
-                .getCurrentUserSession("default", Locale.forLanguageTag(language));
+                .getCurrentUserSession("default", Locales.of(language));
         JCRNodeWrapper node = session.getNode(path);
         JCRSiteNode site = node.getResolveSite();
         if (site == null || !site.isNodeType("jnt:virtualsite")) {

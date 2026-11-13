@@ -1506,7 +1506,7 @@
         }
       },
       "vitals": {
-        "labNote": "Mesure en laboratoire de ce rendu d'aperçu. Les valeurs sont indicatives et diffèrent des données réelles des visiteurs.",
+        "labNote": "Chiffres indicatifs : la page est mesurée sur son aperçu d'édition, dans votre navigateur et avec votre session ; ils ne correspondent donc pas au site en ligne (ni cache, ni CDN). Utilisez-les pour comparer avant et après une modification. Ce qui alourdit la page, ci-dessous, est identique sur le site en ligne.",
         "metrics": {
           "lcp": "LCP",
           "cls": "CLS",
@@ -1516,11 +1516,6 @@
           "inp": "INP"
         },
         "approx": "estimation",
-        "bands": {
-          "good": "Bon",
-          "ni": "À améliorer",
-          "poor": "Faible"
-        },
         "inpNa": "n/d",
         "diagnostics": "Diagnostics",
         "requests": "Requêtes",
@@ -1531,18 +1526,6 @@
         "oversized": "{{count}} surdimensionnées",
         "largest": "Ressources les plus lourdes",
         "recs": {
-          "slowLcp": {
-            "title": "Le contenu principal s'affiche lentement",
-            "detail": "Compressez ou préchargez l'image principale / le plus gros bloc pour que les visiteurs voient le contenu essentiel plus tôt."
-          },
-          "highCls": {
-            "title": "La mise en page bouge pendant le chargement",
-            "detail": "Réservez l'espace des images, embeds et blocs chargés tardivement pour que la page ne saute pas sous les yeux du lecteur."
-          },
-          "slowTtfb": {
-            "title": "Réponse serveur lente (TTFB)",
-            "detail": "Le HTML lui-même arrive lentement : activez le cache de page ou vérifiez la charge serveur avant toute autre optimisation."
-          },
           "missingDims": {
             "title": "{{count}} images sans attributs width/height",
             "detail": "Ajoutez width et height pour que le navigateur réserve l'espace : c'est la première cause de sauts de mise en page."
@@ -1700,7 +1683,7 @@
       "tabHelp": {
         "accessibility": "Contrôles WCAG automatiques avec axe-core : problèmes par gravité, points à vérifier à la main et textes alternatifs proposés par l'IA pour les images qui n'en ont pas.",
         "seo": "Titre, méta-description, indexation, adresse canonique, carte de partage sur les réseaux, données structurées et textes des liens, avec des formulations proposées par l'IA.",
-        "vitals": "La vitesse de chargement de la page et sa stabilité, mesurées dans votre navigateur, avec ce qui l'alourdit.",
+        "vitals": "Chiffres de chargement indicatifs de l'aperçu d'édition, et ce qui alourdit la page.",
         "readability": "La facilité de lecture du texte dans sa langue : score, phrases longues et titres, avec des réécritures plus simples proposées par l'IA.",
         "ecodesign": "Contrôles d'écoconception du référentiel RGESN : poids de la page, requêtes, images, polices, médias et services tiers.",
         "links": "Liens internes cassés, adresses écrites en entier, contenu mixte et liens ouvrant une nouvelle fenêtre sans protection.",

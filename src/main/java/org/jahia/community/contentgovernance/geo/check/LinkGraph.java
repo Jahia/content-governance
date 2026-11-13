@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.check;
 
+import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.community.contentgovernance.geo.util.Markup;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
@@ -16,7 +17,6 @@ import javax.jcr.RepositoryException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -154,7 +154,7 @@ public final class LinkGraph {
 
         try {
             JCRTemplate.getInstance().doExecuteWithSystemSession(null, "live",
-                    Locale.forLanguageTag(language), (JCRCallback<Void>) session -> {
+                    Locales.of(language), (JCRCallback<Void>) session -> {
                         for (Map.Entry<String, String> e : byJcrPath.entrySet()) {
                             int refs = countReferences(session, e.getKey(), renderedPages);
                             if (refs > 0) {

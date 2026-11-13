@@ -1506,7 +1506,7 @@
         }
       },
       "vitals": {
-        "labNote": "Lab measurement of this preview render. Values are directional and differ from real-user (field) data.",
+        "labNote": "Indicative figures: the page is measured on its editing preview, in your browser and with your session, so they do not match the live site (no cache, no CDN). Use them to compare before and after a change. What weighs the page down, below, is the same on the live site.",
         "metrics": {
           "lcp": "LCP",
           "cls": "CLS",
@@ -1516,11 +1516,6 @@
           "inp": "INP"
         },
         "approx": "estimated",
-        "bands": {
-          "good": "Good",
-          "ni": "Needs improvement",
-          "poor": "Poor"
-        },
         "inpNa": "n/a",
         "diagnostics": "Diagnostics",
         "requests": "Requests",
@@ -1531,18 +1526,6 @@
         "oversized": "{{count}} oversized",
         "largest": "Largest resources",
         "recs": {
-          "slowLcp": {
-            "title": "Main content renders slowly",
-            "detail": "Compress or preload the hero image / largest block so visitors see the main content sooner."
-          },
-          "highCls": {
-            "title": "Layout shifts while loading",
-            "detail": "Reserve space for images, embeds and late-loading blocks so the page does not jump under the reader."
-          },
-          "slowTtfb": {
-            "title": "Slow server response (TTFB)",
-            "detail": "The HTML itself is slow to arrive: enable page caching or review server load before optimizing anything else."
-          },
           "missingDims": {
             "title": "{{count}} images without width/height attributes",
             "detail": "Add width and height so the browser reserves the space up front - this is the most common cause of layout shifts."
@@ -1700,7 +1683,7 @@
       "tabHelp": {
         "accessibility": "Automated WCAG checks with axe-core: issues by severity, what to verify by hand, and alt text suggested by AI for images without one.",
         "seo": "Title, meta description, indexing, canonical address, social sharing card, structured data and link texts, with wording suggested by AI.",
-        "vitals": "How fast the page loads and how stable it stays, measured in your browser, with what weighs it down.",
+        "vitals": "Indicative load figures of the editing preview, and what weighs the page down.",
         "readability": "How easy the text is to read in its language: score, long sentences and headings, with plainer rewrites suggested by AI.",
         "ecodesign": "Eco-design checks from the French RGESN referential: page weight, requests, images, fonts, media and third parties.",
         "links": "Broken internal links, addresses written in full, mixed content and links opening a new window without protection.",

@@ -1,0 +1,121 @@
+<title>Content Governance 1.8.1 Slack Post</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: one column, the message as Slack shows it, then the text to paste. */
+:root {
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --fg: #1d1c1d;
+  --muted: #616061;
+  --line: #e2e4e9;
+  --accent: #0a6cff;
+  --code-bg: #eef1f6;
+  --font-body: "Lato", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171c; --card: #1e2128; --fg: #e8e9ec; --muted: #a4a8b1; --line: #2f333c;
+    --accent: #5aa0ff; --code-bg: #262a33; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171c; --card: #1e2128; --fg: #e8e9ec; --muted: #a4a8b1; --line: #2f333c;
+  --accent: #5aa0ff; --code-bg: #262a33; color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 48px;
+}
+main { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+h1 { font-size: 22px; font-weight: 900; margin: 0; text-wrap: balance; }
+.lead { color: var(--muted); margin: 4px 0 0; }
+.label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.message { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 16px 20px; display: flex; gap: 12px; }
+.avatar { flex: 0 0 36px; height: 36px; border-radius: 6px; background: var(--accent); color: #fff; font-weight: 900; display: grid; place-items: center; }
+.body { min-width: 0; }
+.who { font-weight: 900; } .who span { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 6px; }
+.body p { margin: 6px 0; }
+.body ul { margin: 6px 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.body a { color: var(--accent); }
+.raw { position: relative; }
+pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin: 0; overflow-x: auto;
+  font-family: var(--font-mono); font-size: 13px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+.actions { display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+button { font: inherit; font-weight: 700; background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: 8px 16px; cursor: pointer; }
+button:focus-visible { outline: 3px solid var(--fg); outline-offset: 2px; }
+.status { color: var(--muted); font-size: 13px; }
+</style>
+
+<main>
+  <header>
+    <h1>Content Governance 1.8.1 announcement</h1>
+    <p class="lead">Internal Slack post for the latest release. Copy the text below and paste it in the channel: Slack turns the asterisks into bold and the link into a link.</p>
+  </header>
+
+  <section>
+    <p class="label">How it reads in Slack</p>
+    <div class="message">
+      <div class="avatar" aria-hidden="true">CG</div>
+      <div class="body">
+        <div class="who">You <span>now</span></div>
+        <p>🛡️ <strong>Content Governance 1.8.1 is out</strong></p>
+        <p>Content Governance is the one drawer in jContent and Page Builder that checks a page before it goes live: page quality (accessibility, SEO, speed, readability, eco-design), GEO readiness for AI assistants, and compliance with the site's own glossaries.</p>
+        <p><strong>What's new in 1.8</strong></p>
+        <ul>
+          <li><strong>The drawer docks beside the page.</strong> It opens under the header next to Page Builder, like jContent's preview panel, instead of covering the screen. The page stays editable while the drawer is open, and you can drag its edge to make it wider (it remembers the width).</li>
+          <li><strong>Highlight on the page.</strong> In Page quality, a finding is outlined right in the page you are editing, so you can click the element and fix it. The separate preview starts hidden in Page Builder, and <em>Show preview</em> brings it back.</li>
+          <li><strong>Works with Page Insights.</strong> The drawer moves with the page when the Insights bar above it opens or closes (1.8.1).</li>
+        </ul>
+        <p><strong>Get it:</strong> <a href="https://store.jahia.com/contents/modules-repository/org/jahia/community/content-governance.html">Content Governance on the Jahia Store</a>, for Jahia 8.2 with jContent 3.7 or later.</p>
+        <p>Questions or feedback: reply in the thread 🧵</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="raw">
+    <p class="label">Text to paste</p>
+<pre id="post">:shield: *Content Governance 1.8.1 is out*
+
+Content Governance is the one drawer in jContent and Page Builder that checks a page before it goes live: page quality (accessibility, SEO, speed, readability, eco-design), GEO readiness for AI assistants, and compliance with the site's own glossaries.
+
+*What's new in 1.8*
+• *The drawer docks beside the page.* It opens under the header next to Page Builder, like jContent's preview panel, instead of covering the screen. The page stays editable while the drawer is open, and you can drag its edge to make it wider (it remembers the width).
+• *Highlight on the page.* In Page quality, a finding is outlined right in the page you are editing, so you can click the element and fix it. The separate preview starts hidden in Page Builder, and _Show preview_ brings it back.
+• *Works with Page Insights.* The drawer moves with the page when the Insights bar above it opens or closes (1.8.1).
+
+*Get it:* &lt;https://store.jahia.com/contents/modules-repository/org/jahia/community/content-governance.html|Content Governance on the Jahia Store&gt;, for Jahia 8.2 with jContent 3.7 or later.
+
+Questions or feedback: reply in the thread :thread:</pre>
+    <div class="actions">
+      <button type="button" id="copy">Copy text</button>
+      <span class="status" id="status" role="status"></span>
+    </div>
+  </section>
+</main>
+
+<script>
+document.getElementById('copy').addEventListener('click', () => {
+  const pre = document.getElementById('post');
+  const status = document.getElementById('status');
+  const selectIt = () => {
+    const range = document.createRange();
+    range.selectNodeContents(pre);
+    const sel = getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    status.textContent = 'Selected: press Cmd+C or Ctrl+C to copy.';
+  };
+  try {
+    navigator.clipboard.writeText(pre.textContent).then(
+      () => { status.textContent = 'Copied.'; },
+      selectIt
+    );
+  } catch (e) {
+    selectIt();
+  }
+});
+</script>

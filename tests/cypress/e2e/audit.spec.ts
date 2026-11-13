@@ -109,6 +109,12 @@ describe('Content Governance - Page quality audit', () => {
         cy.get(fixFirst).contains('button', 'Show').click();
         // The image without alt of the fixture: a critical violation, ahead of every other finding
         cy.get('#content-governance-fix-first li').first().should('contain.text', 'Critical').and('contain.text', 'alternative text');
+        // Red is for what is critical or serious: the fixture's image without alt, on its tab and its section
+        cy.get('#audit-tab-accessibility').find('.moonstone-badge').should('exist');
+        cy.get('#content-governance-section-audit').find('.moonstone-badge').should('exist');
+        cy.get('#content-governance-fix-first li').each($finding => {
+            expect($finding.text(), 'Fix first lists critical and serious findings only').to.match(/Critical|Serious/);
+        });
         cy.get('#content-governance-fix-first li').first().contains('button', 'Open').click();
         // The docked drawer is as tall as the page under edit: the tab's results may start below its fold
         cy.get(DRAWER).contains('automated rules passed').scrollIntoView().should('be.visible');
@@ -154,6 +160,22 @@ describe('Content Governance - Page quality audit', () => {
         cy.get(`${DRAWER} iframe`).its('0.contentDocument.body').find('#cg-a11y-fixture img').should($img => marked($img[0]));
         cy.get('iframe[data-sel-role="page-builder-frame-active"]').its('0.contentDocument.body')
             .find('#cg-a11y-fixture a').should($a => expect($a[0].style.outline, 'one mark at a time').to.eq(''));
+    });
+
+    // Timings are measured on the editing preview, in the editor's browser: they cannot match the live
+    // site, so they are plain figures, with no colour band and no finding of their own.
+    it('shows the Web Vitals timings as indicative figures, without a band or a finding', () => {
+        cy.login(admin.username, admin.password);
+        cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);
+        cy.contains('button', BUTTON, {timeout: 30000}).click();
+        freshAudit();
+        cy.get(DRAWER).contains('automated rules passed', {timeout: 90000}).should('exist');
+        cy.get('#audit-tab-vitals').click();
+        cy.get('#audit-tab-panel').should('contain.text', 'Indicative figures').and('contain.text', 'LCP').within(() => {
+            ['Needs improvement', 'Poor', 'Main content renders slowly', 'Slow server response', 'Layout shifts while loading'].forEach(text => {
+                cy.contains(text).should('not.exist');
+            });
+        });
     });
 
     // The Readability tab counted skipped levels without saying which heading skips: the outline lists

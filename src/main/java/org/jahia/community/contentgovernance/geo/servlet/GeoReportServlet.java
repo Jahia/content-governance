@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.servlet;
 
+import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.community.contentgovernance.geo.check.GeoReport;
 import org.jahia.community.contentgovernance.geo.check.ScanStore;
 import org.jahia.community.contentgovernance.ai.LlmConfigService;
@@ -25,7 +26,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Locale;
 
 /**
  * The written report, generated on request and read back afterwards.
@@ -233,7 +233,7 @@ public class GeoReportServlet extends GeoServlet {
             return configured.trim();
         }
         JCRSessionWrapper live = JCRSessionFactory.getInstance()
-                .getCurrentUserSession("live", Locale.forLanguageTag(language));
+                .getCurrentUserSession("live", Locales.of(language));
         return PublicUrls.base(live.getNode(sitePath), req, "");
     }
 

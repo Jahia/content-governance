@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.compliance.service.internal;
 
+import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
 import org.jahia.services.content.DefaultEventListener;
 import org.jahia.services.content.JCRCallback;
@@ -17,7 +18,6 @@ import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.query.Query;
 import java.util.LinkedHashSet;
-import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.Set;
 
@@ -101,7 +101,7 @@ public class GlossarySeeder extends DefaultEventListener {
                 return;
             }
             JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, EDIT_WORKSPACE,
-                    Locale.forLanguageTag(language), (JCRCallback<Void>) session -> {
+                    Locales.of(language), (JCRCallback<Void>) session -> {
                         create(session, sitePath, language);
                         return null;
                     });
@@ -139,7 +139,7 @@ public class GlossarySeeder extends DefaultEventListener {
 
     /** The example's text in {@code language}, English when the module has no translation for it. */
     static ResourceBundle seedText(String language) {
-        return ResourceBundle.getBundle(BUNDLE, Locale.forLanguageTag(language), GlossarySeeder.class.getClassLoader(),
+        return ResourceBundle.getBundle(BUNDLE, Locales.of(language), GlossarySeeder.class.getClassLoader(),
                 ResourceBundle.Control.getNoFallbackControl(ResourceBundle.Control.FORMAT_PROPERTIES));
     }
 
