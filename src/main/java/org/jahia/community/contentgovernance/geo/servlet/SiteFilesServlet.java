@@ -71,6 +71,7 @@ public class SiteFilesServlet extends GeoServlet {
     private static final String ROBOTS_PROP = "j:robots";
     /** The community robots module ships this as the autocreated default. */
     private static final String ROBOTS_DEFAULT = "User-agent: *";
+    private static final String EDIT_WORKSPACE = "default";
     private static final int MAX_CONTENT = 400_000;
 
     /**
@@ -189,7 +190,7 @@ public class SiteFilesServlet extends GeoServlet {
      */
     private JSONObject previewRobots(String path, String language, JSONObject decisions) throws Exception {
         JCRSessionWrapper edit = JCRSessionFactory.getInstance()
-                .getCurrentUserSession("default", Locales.of(language));
+                .getCurrentUserSession(EDIT_WORKSPACE, Locales.of(language));
         JCRNodeWrapper site = edit.getNode(path).getResolveSite();
         JCRNodeWrapper editSite = edit.getNode(site.getPath());
 
@@ -250,7 +251,7 @@ public class SiteFilesServlet extends GeoServlet {
             throw new IllegalArgumentException("empty content");
         }
         JCRSessionWrapper edit = JCRSessionFactory.getInstance()
-                .getCurrentUserSession("default", Locales.of(language));
+                .getCurrentUserSession(EDIT_WORKSPACE, Locales.of(language));
         JCRNodeWrapper site = edit.getNode(path).getResolveSite();
         JCRNodeWrapper editSite = edit.getNode(site.getPath());
 
@@ -263,7 +264,7 @@ public class SiteFilesServlet extends GeoServlet {
         edit.save();
 
         JCRPublicationService.getInstance().publishByMainId(
-                editSite.getIdentifier(), "default", "live",
+                editSite.getIdentifier(), EDIT_WORKSPACE, "live",
                 Collections.singleton(language), false, null);
 
         JSONObject out = new JSONObject();
