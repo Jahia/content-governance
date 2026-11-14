@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.11.0
+
+### New Features
+
+* A calmer drawer: a count is red only when it holds a critical or serious finding and grey otherwise, and "Fix first" is a plain line that lists those findings only. Web Vitals shows LCP, CLS and TTFB as indicative figures of the editing preview, with no colour band and no finding, since they cannot match the live site; what weighs the page down keeps its findings.
+
+### Bug Fixes
+
+* GEO readiness no longer says "This page is not published" for a published page on a site language with a region, such as Chinese (China) or Portuguese (Brazil); site scans, citations and the example glossary read those languages too.
+
 ## 1.10.0
 
 ### New Features
