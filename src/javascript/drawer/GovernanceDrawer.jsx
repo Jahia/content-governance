@@ -1,15 +1,16 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import PropTypes from 'prop-types';
-import {Badge, Button, Close, Tab, TabItem, Typography} from '@jahia/moonstone';
+import {Button, Close, Tab, TabItem, Typography} from '@jahia/moonstone';
 import {HelpTab} from '../common/HelpTab';
 import {useGovernanceTranslation} from '../common/i18n';
 import {AuditSection} from '../audit/AuditSection';
 import {GeoSection} from '../geo/GeoSection';
 import {ComplianceSection} from '../compliance/ComplianceSection';
 import {FixFirst} from './FixFirst';
-import {rankFindings} from './findings';
+import {isSerious, rankFindings} from './findings';
 import {useDock} from './useDock';
 import styles from './GovernanceDrawer.module.css';
+import {CountBadge} from '../common/CountBadge';
 
 /**
  * The one drawer of the module: a header, one tab per section the site switched on, and the
@@ -54,9 +55,13 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
         onFindings: list => reportFindings(id, list)
     }])), [isOn, reportCount, reportFindings]);
 
-    // Sections in the drawer's order, so findings of equal severity follow it
-    const ranked = useMemo(() => rankFindings(sections.filter(s => !s.unavailable).flatMap(s => findings[s.id] || [])),
-        [sections, findings]);
+    // "Fix first" lists what is critical or serious only, sections in the drawer's order so findings
+    // of equal severity follow it; a section's count is red when it holds one of them
+    const ranked = useMemo(() => rankFindings(sections.filter(s => !s.unavailable)
+        .flatMap(s => findings[s.id] || [])
+        .filter(finding => isSerious(finding.severity))),
+    [sections, findings]);
+    const hasSerious = id => (findings[id] || []).some(finding => isSerious(finding.severity));
     const goTo = useCallback(finding => {
         select(finding.section);
         if (finding.tab) {
@@ -172,7 +177,7 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
                                          label={t(`section.${section.id}`)}
                                          isSelected={active === section.id}
                                          isDisabled={Boolean(section.unavailable)}
-                                         icon={counts[section.id] > 0 ? <Badge label={String(counts[section.id])} color="danger"/> : undefined}
+                                         icon={counts[section.id] > 0 ? <CountBadge count={counts[section.id]} isSerious={hasSerious(section.id)}/> : undefined}
                                          onClick={() => select(section.id)}/>
                             </HelpTab>
                         ))}

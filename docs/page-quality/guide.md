@@ -32,12 +32,14 @@ governance** button again. Results are
 kept: the next time anyone opens the drawer on the same page and language, the newest audit comes
 back at once, whoever ran it.
 
-The number on the **Page quality** section tab is the total of the badges of its tabs.
+The number on the **Page quality** section tab is the total of the counts of its tabs. It is red
+when one of its findings is critical or serious, grey otherwise.
 
-Under the section tabs, **Fix first** gives the most serious finding of the sections measured so far
-on one line, with how many more there are. **Show** lists the five most serious (critical, then
-serious, moderate, minor), whatever their section: accessibility violations and the recommendations
-of every Page quality tab, the GEO readiness tabs with something to review, and the forbidden terms.
+Under the section tabs, **Fix first** appears when a section measured so far holds a critical or
+serious finding: it gives the most serious one on one line, with how many more there are. **Show**
+lists up to five of them (critical, then serious), whatever their section: accessibility violations
+and the recommendations of every Page quality tab, the GEO readiness score and crawler access, and
+the forbidden terms. Moderate and minor findings stay in their tabs.
 **Open** goes to the section and tab that explains it. GEO readiness and Compliance measure only once
 opened, so their findings join the list after that.
 
@@ -101,8 +103,9 @@ site switched off is left out of the line.
 
 ### Badges
 
-A red badge on a tab is the number of issues to review in that tab (hover it: "N issues to review").
-No badge means nothing to review.
+A number on a tab is the count of issues to review in that tab (hover it: "N issues to review"). It is
+**red** when one of them is critical or serious, the ones to deal with before publishing, and **grey**
+when they are all moderate or minor. No number means nothing to review.
 
 | Tab | The badge counts |
 |---|---|
@@ -183,24 +186,28 @@ templates.
 
 ### Web Vitals
 
-Measures how fast the preview loads.
+Shows how the editing preview loaded, and what weighs the page down.
 
-| Metric | What it is | Good | Poor |
-|---|---|---|---|
-| **LCP** | Time until the main content (usually the largest image) is shown | up to 2.5 s | over 4 s |
-| **CLS** | How much the layout jumps while loading | up to 0.1 | over 0.25 |
-| **TTFB** | Time until the server starts answering | up to 800 ms | over 1.8 s |
-| **DOM ready**, **Full load** | Page structure ready, everything loaded | no band | no band |
-| **INP** | Reaction time to a click | shown as "n/a" | |
+| Figure | What it is |
+|---|---|
+| **LCP** | Time until the main content (usually the largest image) is shown |
+| **CLS** | How much the layout jumps while loading |
+| **TTFB** | Time until the server starts answering |
+| **DOM ready**, **Full load** | Page structure ready, everything loaded |
+| **INP** | Reaction time to a click, shown as "n/a" |
 
-Between good and poor, the card says **Needs improvement**. Below the cards: **Recommendations**,
-**Diagnostics** (requests, page weight, DOM nodes, images without width and height, oversized
-images) and **Largest resources**.
+**These figures are indicative.** The page is measured once on its editing preview, in your browser
+and with your session: no cache, no CDN, an editor's rendering. They do not match the live site and
+cannot be made to, so they carry no colour, no count and no finding. Use them to compare before and
+after a change on the same page. For the site's real Core Web Vitals, use Google Search Console or
+PageSpeed Insights on the published URL. LCP is marked "estimated" with a "≈": the browser does not
+report it inside the preview frame, so it is approximated from the largest image in view, or from DOM
+ready when there is none.
 
-These are lab values from one load of the preview on your machine and network. They differ from what
-visitors experience. LCP is marked "estimated" with a "≈": the browser does not report it inside the
-preview frame, so it is approximated from the largest image in view, or from DOM ready when there is
-none.
+Below the figures, what does not depend on where the page is measured, and is the same on the live
+site: **Recommendations** (images without width and height, images heavier than needed, page weight,
+number of requests, DOM size, heavy scripts and styles), **Diagnostics** and **Largest resources**.
+An audit run before version 1.11 no longer shows its findings on LCP, CLS or TTFB.
 
 What you can act on: upload images at the size they are shown, prefer fewer and lighter embeds.
 Server response, scripts and styles are a developer's.
@@ -392,8 +399,9 @@ fix the first ones, **Re-run**, then ask again.
 - **Accessibility**: automated rules cover a subset of WCAG. A clean result does not certify
   compliance. The manual checklist covers the rest, and only a person can judge it.
 - **Ecodesign**: page-level checks only. It is not an RGESN conformity score.
-- **Web Vitals**: one lab measurement of the editing version, on your machine, inside a frame. LCP is
-  estimated and INP is not measured. Real visitors' figures differ.
+- **Web Vitals**: one measurement of the editing version, on your machine, inside a frame. LCP is
+  estimated and INP is not measured. The timings are indicative and raise no finding: they cannot
+  match the live site.
 - **Readability**: a formula based on sentence and word length, with syllables estimated from vowel
   groups. It does not judge jargon or clarity, and only English, French, German, Spanish, Italian,
   Dutch and Portuguese get a score.

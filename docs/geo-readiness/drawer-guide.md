@@ -11,8 +11,8 @@ right, beside the page, with one tab per section the site uses: **Page quality**
 **Compliance**. Choose **GEO readiness**. When it is the only section switched on, the drawer opens
 on it, still under its **GEO readiness** tab.
 
-The **GEO readiness** tab carries a red number when the tabs inside it found problems: it is the
-total of their own numbers. Each tab, here and inside the section, has a tooltip saying what it is
+The **GEO readiness** tab carries a number when the tabs inside it found problems: it is the
+total of their own numbers, red when the score or the crawler access is concerned, grey otherwise. Each tab, here and inside the section, has a tooltip saying what it is
 for.
 
 Nothing in this section changes your page: it only reads and reports. The page under edit stays
@@ -71,7 +71,8 @@ dashboard when the sitemap changed since. These scan facts, like the context lin
 and the template line, appear only for people who hold the **publish** permission on the site, the
 same people who can open the dashboard.
 
-A tab showing a red number has that many problems inside it. A tab with no number has nothing that
+A tab showing a number has that many problems inside it: red on **Score** and **Crawler access**,
+which decide whether an assistant can read the page at all, grey on the others. A tab with no number has nothing that
 needs you.
 
 ## Tab 1 - Score

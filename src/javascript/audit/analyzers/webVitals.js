@@ -157,21 +157,17 @@ export async function runWebVitals(frame) {
 }
 
 /**
- * Turns raw measurements into actionable recommendations. Each item carries
+ * Turns what weighs the page down into recommendations. Each item carries
  * an i18n key (vitals.recs.<key>.title / .detail), a severity aligned with
  * the accessibility impact scale, and interpolation params.
+ *
+ * The timings (LCP, CLS, TTFB) give none: measured on the editing preview in the editor's browser,
+ * they cannot match the live site, and are shown as indicative figures only. Weight, requests,
+ * image sizes and DOM size are the same wherever the page is rendered.
  */
-function buildVitalsRecommendations({metrics, diagnostics}) {
+export function buildVitalsRecommendations({diagnostics}) {
     const recs = [];
     const push = (key, severity, params) => recs.push({key, severity, params: params || {}});
-
-    // A metric outside its good band: serious when poor, moderate when it needs improvement
-    [['lcp', 'slowLcp'], ['cls', 'highCls'], ['ttfb', 'slowTtfb']].forEach(([metric, key]) => {
-        const band = bandOf(metric, metrics[metric]);
-        if (band && band !== 'good') {
-            push(key, band === 'poor' ? 'serious' : 'moderate');
-        }
-    });
 
     if (diagnostics.missingDims > 0) {
         push('missingDims', 'serious', {count: diagnostics.missingDims});
@@ -201,24 +197,4 @@ function buildVitalsRecommendations({metrics, diagnostics}) {
     }
 
     return recs;
-}
-
-/** Google thresholds: [good upper bound, needs-improvement upper bound] */
-export const THRESHOLDS = {
-    lcp: [2500, 4000],
-    cls: [0.1, 0.25],
-    ttfb: [800, 1800]
-};
-
-export function bandOf(metric, value) {
-    const t = THRESHOLDS[metric];
-    if (!t || value === null || value === undefined) {
-        return null;
-    }
-
-    if (value <= t[0]) {
-        return 'good';
-    }
-
-    return value <= t[1] ? 'ni' : 'poor';
 }

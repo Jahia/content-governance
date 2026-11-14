@@ -108,15 +108,16 @@
 
 /* A count passed as a TabItem icon sits 4 px from the label: every tab bar of the drawer (sections,
    Page quality, GEO readiness) gives it room. */
-.drawer :global(.moonstone-tabItem) > :global(.moonstone-badge) {
+.drawer :global(.moonstone-tabItem) > :global(.moonstone-badge),
+.drawer :global(.moonstone-tabItem) > :global(.moonstone-chip) {
     margin-inline-end: var(--moon-spacing-small, 8px);
 }
-/* "Fix first": one line under the section bar, a short list when unfolded. */
+/* "Fix first": one plain line under the section bar, shown for critical or serious findings only;
+   a short list when unfolded. */
 .fixFirst {
     flex-shrink: 0;
     padding: var(--moon-spacing-small, 8px) var(--moon-spacing-medium, 16px);
     border-bottom: 1px solid var(--color-gray_light40, #dfe3e8);
-    background: var(--moon-color-warning_plain20, #fff6e0);
 }
 
 .fixFirstLine {

@@ -33,6 +33,11 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   `languageDisplayName`): jContent gives the Jahia form (`zh_CN`), `Intl` and `toLocaleString` take
   `zh-CN` and throw `RangeError` on the other; the drawer stopped on a `zh_CN` page before 1.9.1.
   `languages.spec.ts` audits a `zh_CN` page.
+- **In Java, a language becomes a locale through `util.Locales.of(language)`**, never
+  `Locale.forLanguageTag`: that one reads `zh-CN` and answers the empty locale for Jahia's `zh_CN`
+  without failing, and a `live` session opened with it finds no page. GEO readiness reported every
+  published page of a `zh_CN` site as never published until 1.10.1 (30 call sites). `LocalesTest`
+  and `languages.spec.ts` (a page published in `zh_CN`) keep it so.
 - **axe-core is on its latest release whenever this module is worked on** (Stephane, 2026-10-31):
   `npm view axe-core version`, then raise the `axe-core` range in `package.json` to that version and
   refresh `yarn.lock`. Read the release notes and say in the changelog fragment what editors will see:

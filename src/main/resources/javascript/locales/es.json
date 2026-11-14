@@ -1506,7 +1506,7 @@
         }
       },
       "vitals": {
-        "labNote": "Medición de laboratorio de este renderizado de vista previa. Los valores son orientativos y difieren de los datos de usuarios reales (de campo).",
+        "labNote": "Cifras orientativas: la página se mide en su vista previa de edición, en su navegador y con su sesión, por lo que no coinciden con el sitio publicado (sin caché ni CDN). Úselas para comparar antes y después de un cambio. Lo que hace pesada la página, abajo, es igual en el sitio publicado.",
         "metrics": {
           "lcp": "LCP",
           "cls": "CLS",
@@ -1516,11 +1516,6 @@
           "inp": "INP"
         },
         "approx": "estimado",
-        "bands": {
-          "good": "Bueno",
-          "ni": "Mejorable",
-          "poor": "Deficiente"
-        },
         "inpNa": "n/d",
         "diagnostics": "Diagnóstico",
         "requests": "Peticiones",
@@ -1531,18 +1526,6 @@
         "oversized": "{{count}} sobredimensionadas",
         "largest": "Recursos más grandes",
         "recs": {
-          "slowLcp": {
-            "title": "El contenido principal se muestra lentamente",
-            "detail": "Comprima o precargue la imagen principal o el bloque más grande para que los visitantes vean antes el contenido principal."
-          },
-          "highCls": {
-            "title": "El diseño se desplaza durante la carga",
-            "detail": "Reserve espacio para las imágenes, los contenidos incrustados y los bloques que se cargan tarde, para que la página no salte bajo los ojos del lector."
-          },
-          "slowTtfb": {
-            "title": "Respuesta lenta del servidor (TTFB)",
-            "detail": "El propio HTML tarda en llegar: active la caché de páginas o revise la carga del servidor antes de optimizar cualquier otra cosa."
-          },
           "missingDims": {
             "title": "{{count}} imágenes sin atributos width/height",
             "detail": "Añada width y height para que el navegador reserve el espacio de antemano - es la causa más frecuente de desplazamientos del diseño."
@@ -1700,7 +1683,7 @@
       "tabHelp": {
         "accessibility": "Comprobaciones WCAG automáticas con axe-core: problemas por gravedad, lo que hay que verificar a mano y texto alternativo sugerido por IA para las imágenes que no lo tienen.",
         "seo": "Título, metadescripción, indexación, dirección canónica, tarjeta para redes sociales, datos estructurados y textos de los enlaces, con redacción sugerida por IA.",
-        "vitals": "La rapidez con que carga la página y su estabilidad, medidas en su navegador, con lo que la ralentiza.",
+        "vitals": "Cifras orientativas de carga de la vista previa de edición, y lo que hace pesada la página.",
         "readability": "Lo fácil que es leer el texto en su idioma: puntuación, frases largas y encabezados, con reformulaciones más sencillas sugeridas por IA.",
         "ecodesign": "Comprobaciones de ecodiseño del referencial francés RGESN: peso de la página, peticiones, imágenes, fuentes, multimedia y servicios de terceros.",
         "links": "Enlaces internos rotos, direcciones escritas completas, contenido mixto y enlaces que abren una ventana nueva sin protección.",

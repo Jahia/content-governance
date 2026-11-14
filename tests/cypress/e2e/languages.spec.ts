@@ -1,5 +1,5 @@
-import {deleteUser} from '@jahia/cypress';
-import {TestUser, createTestSite, createTestUser, deleteTestSite} from '../support/cg';
+import {deleteUser, publishAndWaitJobEnding} from '@jahia/cypress';
+import {TestUser, addNodeTree, createTestSite, createTestUser, deleteTestSite, guardToken, servlet} from '../support/cg';
 
 const DRAWER = 'dialog[aria-labelledby="content-governance-drawer-title"]';
 
@@ -77,5 +77,29 @@ describe('Content Governance - content language with a region', () => {
         cy.get(DRAWER).contains(/Last audit: .*2\d{3}/).should('exist');
         cy.get(DRAWER).find('#content-governance-section-compliance').click();
         cy.get(DRAWER).contains('Chinese (China)', {timeout: 60000}).should('exist');
+    });
+
+    // The servlets turned the language into a Java locale with Locale.forLanguageTag, which reads
+    // "zh-CN" and gives the empty locale for "zh_CN": the live workspace then had no such page.
+    it('finds a page published in zh_CN published, in GEO readiness', () => {
+        const pagePath = `/sites/${siteKey}/home/cg-region-page`;
+        addNodeTree(`/sites/${siteKey}/home`, {
+            name: 'cg-region-page', type: 'jnt:page',
+            props: [
+                {name: 'j:templateName', value: 'simple'},
+                {name: 'jcr:title', language: 'en', value: 'Region page'},
+                {name: 'jcr:title', language: 'zh_CN', value: '地区页面'}
+            ]
+        });
+        publishAndWaitJobEnding(`/sites/${siteKey}/home`, ['en', 'zh_CN']);
+        cy.login(admin.username, admin.password);
+        guardToken().then(token => {
+            ['en', 'zh_CN'].forEach(language => {
+                servlet('/geo/crawler-check', {path: pagePath, language}, {[token.name]: token.value}).then(response => {
+                    expect(response.status, language).to.eq(200);
+                    expect(response.body.published, `published in ${language}`).to.eq(true);
+                });
+            });
+        });
     });
 });

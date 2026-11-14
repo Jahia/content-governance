@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.servlet;
 
+import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.community.contentgovernance.geo.botrank.BotRankConnection;
 import org.jahia.community.contentgovernance.geo.botrank.BotRankConnections;
 import org.jahia.community.contentgovernance.geo.botrank.BotRankException;
@@ -30,7 +31,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
@@ -476,7 +476,7 @@ public class CitationsServlet extends GeoServlet {
         }
         try {
             JCRNodeWrapper n = JCRSessionFactory.getInstance()
-                    .getCurrentUserSession("default", Locale.forLanguageTag(language)).getNode(path);
+                    .getCurrentUserSession("default", Locales.of(language)).getNode(path);
             return n.isNodeType("jnt:page") || n.isNodeType("jmix:mainResource") ? n : null;
         } catch (RepositoryException e) {
             return null;
@@ -486,7 +486,7 @@ public class CitationsServlet extends GeoServlet {
     /** Whether the caller can read the page in live: a page never published has no citations to show. */
     private static boolean isPublished(String path, String language) {
         try {
-            JCRSessionFactory.getInstance().getCurrentUserSession("live", Locale.forLanguageTag(language)).getNode(path);
+            JCRSessionFactory.getInstance().getCurrentUserSession("live", Locales.of(language)).getNode(path);
             return true;
         } catch (RepositoryException e) {
             return false;

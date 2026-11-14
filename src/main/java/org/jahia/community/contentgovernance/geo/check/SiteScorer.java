@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.check;
 
+import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
@@ -18,7 +19,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -173,7 +173,7 @@ public final class SiteScorer {
             // purpose: touching them would make their own pre-existing findings
             // count as this pull request's new code.
             return JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, "live",
-                    Locale.forLanguageTag(language),
+                    Locales.of(language),
                     (JCRCallback<List<String>>) session -> publishedPages(session, root, opts.maxPages));
         }
 
@@ -398,7 +398,7 @@ public final class SiteScorer {
 
         private String storedLlms() throws RepositoryException {
             return JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, "live",
-                    Locale.forLanguageTag(language),
+                    Locales.of(language),
                     (JCRCallback<String>) session -> LlmsFile.of(session.getNode(sitePath)));
         }
 
@@ -465,7 +465,7 @@ public final class SiteScorer {
         private static String resolveUrl(String path, String language, Options opts, JSONObject out)
                 throws RepositoryException {
             return JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, "live",
-                    Locale.forLanguageTag(language), (JCRCallback<String>) session -> {
+                    Locales.of(language), (JCRCallback<String>) session -> {
                         JCRNodeWrapper n = session.getNode(path);
                         out.put("title", title(n));
                         out.put("template", template(n));
@@ -609,7 +609,7 @@ public final class SiteScorer {
                 return withoutTrailingSlashes(opts.publicBaseUrl.trim());
             }
             return JCRTemplate.getInstance().doExecuteWithSystemSession(null, "live",
-                    Locale.forLanguageTag(language), (JCRCallback<String>) session ->
+                    Locales.of(language), (JCRCallback<String>) session ->
                             PublicUrls.base(session.getNode(sitePath), null, ""));
         }
 

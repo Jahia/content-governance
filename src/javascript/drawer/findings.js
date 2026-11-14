@@ -1,3 +1,5 @@
+import {withoutTimingFindings} from '../audit/vitalsFindings';
+
 /**
  * The findings of the drawer's sections, for its "Fix first" list. A finding is
  * `{key, section, tab, severity, title}`: `severity` is `critical`, `serious`, `moderate` or
@@ -8,6 +10,9 @@
  */
 
 const RANK = {critical: 0, serious: 1, moderate: 2, minor: 3};
+
+/** A finding to deal with before publishing: its count is red and it is listed in "Fix first". */
+export const isSerious = severity => severity === 'critical' || severity === 'serious';
 
 /** Each Page quality tab with recommendations (also its key in the results) and the namespace of their texts. */
 const AUDIT_TABS = [['seo', 'seo'], ['vitals', 'vitals'], ['readability', 'readability'], ['ecodesign', 'eco'], ['links', 'links'], ['jahia', 'jahia']];
@@ -51,7 +56,8 @@ export function auditFindings(results, t) {
         });
     });
     AUDIT_TABS.forEach(([tab, ns]) => {
-        (results[tab]?.recommendations || []).forEach(rec => {
+        const recommendations = results[tab]?.recommendations || [];
+        (tab === 'vitals' ? withoutTimingFindings(recommendations) : recommendations).forEach(rec => {
             out.push({
                 key: `audit.${tab}.${rec.key}`,
                 section: 'audit',

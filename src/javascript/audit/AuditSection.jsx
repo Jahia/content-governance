@@ -23,11 +23,14 @@ import {LinksTab} from './tabs/LinksTab';
 import {JahiaTab} from './tabs/JahiaTab';
 import {AiTab} from './tabs/AiTab';
 import {IncompleteStep} from './tabs/IncompleteStep';
-import {Badge, Banner, Button, Download, Loader, Reload, Tab, TabItem, Typography, Visibility} from '@jahia/moonstone';
+import {Banner, Button, Download, Loader, Reload, Tab, TabItem, Typography, Visibility} from '@jahia/moonstone';
 import {HelpTab} from '../common/HelpTab';
 import {findByText, findEditFrameDocument, locateInFrame} from './editFrame';
 import styles from './AuditSection.module.css';
 import {toLocaleTag} from '../common/locale';
+import {tabCounts} from './tabCounts';
+import {withoutTimingFindings} from './vitalsFindings';
+import {CountBadge} from '../common/CountBadge';
 
 // Let client islands hydrate and layout settle before measuring
 const SETTLE_MS = 2500;
@@ -256,7 +259,10 @@ function keepEnabled(results, isOn) {
             if (!results[key]) {
                 return null;
             }
-            kept[key] = results[key];
+            // An audit stored before 1.11 holds findings on timings, which are no finding any more
+            kept[key] = key === 'vitals' ?
+                {...results[key], recommendations: withoutTimingFindings(results[key].recommendations)} :
+                results[key];
         }
     }
     if (results.page) {
@@ -615,21 +621,12 @@ export function AuditSection({path, language, isOn, ai, onCount, onFindings, req
     // Badge = number of issues to review in that tab; null-safe so a partial
     // result never breaks the tab bar. Tabs the site switched off are left out; the AI tab stays,
     // greyed out, while no model is configured.
-    const count = (r, extract) => (r ? extract(r) : null);
-    const badges = {
-        accessibility: count(results && results.a11y, a => a.violations.length),
-        seo: count(results && results.seo, r => r.recommendations.length),
-        vitals: count(results && results.vitals, r => r.recommendations.length),
-        readability: count(results && results.readability, r => r.recommendations.length),
-        ecodesign: count(results && results.ecodesign, r => r.recommendations.length),
-        links: count(results && results.links, r => r.recommendations.length),
-        jahia: count(results && results.jahia, r => r.recommendations.length),
-        ai: count(aiReview, r => r.recommendations.length)
-    };
+    const counts = tabCounts(results, aiReview);
     const tabs = TAB_IDS.filter(id => isOn(id)).map(id => ({
         key: id,
         label: t(`tabs.${id}`),
-        badge: badges[id],
+        badge: counts[id] ? counts[id].count : null,
+        serious: Boolean(counts[id] && counts[id].serious),
         disabled: id === 'ai' && !aiStatus.enabled
     }));
     const enabledTabs = tabs.filter(tab => !tab.disabled);
@@ -722,7 +719,7 @@ export function AuditSection({path, language, isOn, ai, onCount, onFindings, req
                                      label={tab.label}
                                      isSelected={currentTab === tab.key}
                                      isDisabled={tab.disabled}
-                                     icon={tab.badge ? <Badge label={String(tab.badge)} color="danger"/> : undefined}
+                                     icon={tab.badge ? <CountBadge count={tab.badge} isSerious={tab.serious}/> : undefined}
                                      onClick={() => setActiveTab(tab.key)}/>
                         </HelpTab>
                     ))}

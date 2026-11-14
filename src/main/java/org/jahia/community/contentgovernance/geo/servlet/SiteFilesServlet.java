@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.servlet;
 
+import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.community.contentgovernance.geo.check.AiCrawlers;
 import org.jahia.community.contentgovernance.geo.check.GuestVisibility;
 import org.jahia.community.contentgovernance.geo.check.RobotsEditor;
@@ -34,7 +35,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -71,6 +71,7 @@ public class SiteFilesServlet extends GeoServlet {
     private static final String ROBOTS_PROP = "j:robots";
     /** The community robots module ships this as the autocreated default. */
     private static final String ROBOTS_DEFAULT = "User-agent: *";
+    private static final String EDIT_WORKSPACE = "default";
     private static final int MAX_CONTENT = 400_000;
 
     /**
@@ -166,7 +167,7 @@ public class SiteFilesServlet extends GeoServlet {
      */
     private JSONObject readLlms(String path, String language) throws RepositoryException {
         JCRSessionWrapper live = JCRSessionFactory.getInstance()
-                .getCurrentUserSession("live", Locale.forLanguageTag(language));
+                .getCurrentUserSession("live", Locales.of(language));
         JCRNodeWrapper liveSite = live.getNode(path).getResolveSite();
         String content = LlmsFile.of(liveSite);
 
@@ -189,7 +190,7 @@ public class SiteFilesServlet extends GeoServlet {
      */
     private JSONObject previewRobots(String path, String language, JSONObject decisions) throws Exception {
         JCRSessionWrapper edit = JCRSessionFactory.getInstance()
-                .getCurrentUserSession("default", Locale.forLanguageTag(language));
+                .getCurrentUserSession(EDIT_WORKSPACE, Locales.of(language));
         JCRNodeWrapper site = edit.getNode(path).getResolveSite();
         JCRNodeWrapper editSite = edit.getNode(site.getPath());
 
@@ -250,7 +251,7 @@ public class SiteFilesServlet extends GeoServlet {
             throw new IllegalArgumentException("empty content");
         }
         JCRSessionWrapper edit = JCRSessionFactory.getInstance()
-                .getCurrentUserSession("default", Locale.forLanguageTag(language));
+                .getCurrentUserSession(EDIT_WORKSPACE, Locales.of(language));
         JCRNodeWrapper site = edit.getNode(path).getResolveSite();
         JCRNodeWrapper editSite = edit.getNode(site.getPath());
 
@@ -263,7 +264,7 @@ public class SiteFilesServlet extends GeoServlet {
         edit.save();
 
         JCRPublicationService.getInstance().publishByMainId(
-                editSite.getIdentifier(), "default", "live",
+                editSite.getIdentifier(), EDIT_WORKSPACE, "live",
                 Collections.singleton(language), false, null);
 
         JSONObject out = new JSONObject();

@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.servlet;
 
+import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.community.contentgovernance.geo.check.GuestVisibility;
 import org.jahia.community.contentgovernance.geo.check.Freshness;
 import org.jahia.community.contentgovernance.geo.check.Languages;
@@ -32,7 +33,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -344,7 +344,7 @@ public class SiteScanServlet extends GeoServlet {
             return configured.trim();
         }
         JCRSessionWrapper live = JCRSessionFactory.getInstance()
-                .getCurrentUserSession("live", Locale.forLanguageTag(language));
+                .getCurrentUserSession("live", Locales.of(language));
         return org.jahia.community.contentgovernance.geo.util.PublicUrls.base(live.getNode(sitePath), req, "");
     }
 }

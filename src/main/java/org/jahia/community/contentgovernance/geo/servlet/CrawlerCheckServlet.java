@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.servlet;
 
+import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.community.contentgovernance.geo.check.AiCrawlers;
 import org.jahia.community.contentgovernance.geo.check.GeoScore;
 import org.jahia.community.contentgovernance.geo.check.PageFetch;
@@ -40,7 +41,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URL;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
@@ -231,7 +231,7 @@ public class CrawlerCheckServlet extends GeoServlet {
     private boolean mayReadNode(String path, String language, HttpServletResponse resp) throws IOException {
         try {
             JCRNodeWrapper node = JCRSessionFactory.getInstance()
-                    .getCurrentUserSession("default", Locale.forLanguageTag(language))
+                    .getCurrentUserSession("default", Locales.of(language))
                     .getNode(path);
             // The site's switches decide, not the drawer: a site with the GEO
             // section off gets no check, whoever calls.
@@ -262,7 +262,7 @@ public class CrawlerCheckServlet extends GeoServlet {
             throws IOException {
         try {
             JCRSessionWrapper live = JCRSessionFactory.getInstance()
-                    .getCurrentUserSession("live", Locale.forLanguageTag(language));
+                    .getCurrentUserSession("live", Locales.of(language));
             JCRNodeWrapper node = live.getNode(path);
             return publicUrlFor(node, req, resp);
         } catch (javax.jcr.PathNotFoundException e) {
@@ -619,7 +619,7 @@ public class CrawlerCheckServlet extends GeoServlet {
     private JSONObject rollupFor(String path, String language, JSONObject score) throws Exception {
         JSONObject empty = new JSONObject();
         JCRSessionWrapper live = JCRSessionFactory.getInstance()
-                .getCurrentUserSession("live", java.util.Locale.forLanguageTag(language));
+                .getCurrentUserSession("live", Locales.of(language));
         JCRNodeWrapper node = live.getNode(path);
         String sitePath = node.getResolveSite().getPath();
         String template = node.hasProperty("j:templateName")
@@ -655,7 +655,7 @@ public class CrawlerCheckServlet extends GeoServlet {
     private JSONObject sitemapFor(String path, String language) throws Exception {
         JSONObject out = new JSONObject();
         JCRSessionWrapper live = JCRSessionFactory.getInstance()
-                .getCurrentUserSession("live", java.util.Locale.forLanguageTag(language));
+                .getCurrentUserSession("live", Locales.of(language));
         String sitePath = live.getNode(path).getResolveSite().getPath();
 
         JSONObject stored = ScanStore.read(sitePath, language);
@@ -689,7 +689,7 @@ public class CrawlerCheckServlet extends GeoServlet {
      */
     private JSONObject linksFor(String path, String language) throws Exception {
         JCRSessionWrapper live = JCRSessionFactory.getInstance()
-                .getCurrentUserSession("live", java.util.Locale.forLanguageTag(language));
+                .getCurrentUserSession("live", Locales.of(language));
         String sitePath = live.getNode(path).getResolveSite().getPath();
         JSONObject links = ScanStore.read(sitePath, language).optJSONObject("links");
         JSONObject counts = LinkGraph.countsFor(links, path, language);
@@ -699,7 +699,7 @@ public class CrawlerCheckServlet extends GeoServlet {
     /** Any vanity URL conflict the last scan found on this page. */
     private JSONObject vanityFor(String path, String language) throws Exception {
         JCRSessionWrapper live = JCRSessionFactory.getInstance()
-                .getCurrentUserSession("live", java.util.Locale.forLanguageTag(language));
+                .getCurrentUserSession("live", Locales.of(language));
         String sitePath = live.getNode(path).getResolveSite().getPath();
         JSONObject vanity = ScanStore.read(sitePath, language).optJSONObject("vanity");
         return VanityUrls.findingFor(vanity, path, language);
@@ -708,7 +708,7 @@ public class CrawlerCheckServlet extends GeoServlet {
     /** Which of the site's languages this page exists in, and which it does not. */
     private JSONObject languagesFor(String path, String language) throws Exception {
         JCRSessionWrapper live = JCRSessionFactory.getInstance()
-                .getCurrentUserSession("live", java.util.Locale.forLanguageTag(language));
+                .getCurrentUserSession("live", Locales.of(language));
         String sitePath = live.getNode(path).getResolveSite().getPath();
         return Languages.forNode(sitePath, path);
     }
@@ -723,7 +723,7 @@ public class CrawlerCheckServlet extends GeoServlet {
     private JSONObject schemaFor(String path, String language, HttpServletRequest req,
             String pageTitle, boolean withStoredOverrides) throws RepositoryException {
         JCRSessionWrapper live = JCRSessionFactory.getInstance()
-                .getCurrentUserSession("live", java.util.Locale.forLanguageTag(language));
+                .getCurrentUserSession("live", Locales.of(language));
         JCRNodeWrapper node = live.getNode(path);
         String sitePath = node.getResolveSite().getPath();
         // The overrides are the one part of this that is site configuration read
@@ -750,7 +750,7 @@ public class CrawlerCheckServlet extends GeoServlet {
      */
     private JSONObject contextFor(String path, String language) throws Exception {
         JCRSessionWrapper live = JCRSessionFactory.getInstance()
-                .getCurrentUserSession("live", java.util.Locale.forLanguageTag(language));
+                .getCurrentUserSession("live", Locales.of(language));
         String sitePath = live.getNode(path).getResolveSite().getPath();
         JSONObject state = ScanStore.read(sitePath, language);
 

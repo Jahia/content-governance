@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.check;
 
+import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.community.contentgovernance.ai.Completion;
 import org.jahia.community.contentgovernance.ai.LlmConfigService;
 import org.jahia.community.contentgovernance.ai.LlmProvider;
@@ -465,7 +466,7 @@ public final class GeoReport {
 
     private static String languageName(String tag) {
         try {
-            String name = Locale.forLanguageTag(tag).getDisplayLanguage(Locale.ENGLISH);
+            String name = Locales.of(tag).getDisplayLanguage(Locale.ENGLISH);
             return name == null || name.isEmpty() ? tag : name + " (" + tag + ")";
         } catch (Exception e) {
             return tag;
