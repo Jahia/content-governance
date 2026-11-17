@@ -751,7 +751,7 @@ public class AiReviewServlet extends HttpServlet {
             throw new IllegalStateException("model did not return JSON");
         }
 
-        JSONObject parsed = parseLenient(cleaned.substring(start));
+        JSONObject parsed = parseJson(cleaned.substring(start));
 
         JSONObject safe = new JSONObject();
         safe.put("summary", parsed.optString("summary", ""));
@@ -794,7 +794,7 @@ public class AiReviewServlet extends HttpServlet {
             throw new IllegalStateException("model did not return JSON");
         }
 
-        JSONObject parsed = parseLenient(cleaned.substring(start));
+        JSONObject parsed = parseJson(cleaned.substring(start));
 
         JSONObject safe = new JSONObject();
         safe.put("titles", safeStrings(parsed.optJSONArray("titles"), MAX_SUGGESTIONS));
@@ -866,7 +866,7 @@ public class AiReviewServlet extends HttpServlet {
             throw new IllegalStateException("model did not return JSON");
         }
 
-        JSONObject parsed = parseLenient(cleaned.substring(start));
+        JSONObject parsed = parseJson(cleaned.substring(start));
         JSONArray safeSentences = new JSONArray();
         JSONArray sentences = parsed.optJSONArray("sentences");
         if (sentences != null) {
@@ -897,7 +897,7 @@ public class AiReviewServlet extends HttpServlet {
             throw new IllegalStateException("model did not return JSON");
         }
 
-        JSONObject parsed = parseLenient(cleaned.substring(start));
+        JSONObject parsed = parseJson(cleaned.substring(start));
         JSONArray safeImages = new JSONArray();
         JSONArray images = parsed.optJSONArray("images");
         if (images != null) {
@@ -947,16 +947,12 @@ public class AiReviewServlet extends HttpServlet {
      * Parses the model JSON up to its last closing brace. genai-connector returns one JSON object and refuses
      * an answer cut before it is complete, so no salvage of a cut answer is needed.
      */
-    private JSONObject parseLenient(String raw) {
-        int end = raw.lastIndexOf('}');
-        if (end > 0) {
-            try {
-                return new JSONObject(raw.substring(0, end + 1));
-            } catch (JSONException e) {
-                throw new IllegalStateException("model returned malformed JSON", e);
-            }
+    private JSONObject parseJson(String raw) {
+        try {
+            return new JSONObject(raw.substring(0, raw.lastIndexOf('}') + 1));
+        } catch (JSONException e) {
+            throw new IllegalStateException("model returned malformed JSON", e);
         }
-        throw new IllegalStateException("model returned malformed JSON");
     }
 
     private String normalize(String value, String[] allowed, String fallback) {

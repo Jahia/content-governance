@@ -489,7 +489,7 @@ public final class GeoReport {
         if (start < 0) {
             throw new IOException("the model did not answer with JSON");
         }
-        JSONObject in = lenient(cleaned.substring(start));
+        JSONObject in = parseJson(cleaned.substring(start));
 
         JSONObject out = new JSONObject();
         out.put("summary", clip(in.optString("summary", ""), SUMMARY));
@@ -589,16 +589,12 @@ public final class GeoReport {
      * The object up to its last closing brace. genai-connector returns one JSON object and refuses an answer
      * cut before it is complete, so no salvage of a cut answer is needed.
      */
-    private static JSONObject lenient(String raw) throws IOException {
-        int end = raw.lastIndexOf('}');
-        if (end > 0) {
-            try {
-                return new JSONObject(raw.substring(0, end + 1));
-            } catch (JSONException e) {
-                throw new IOException("the model answered with malformed JSON", e);
-            }
+    private static JSONObject parseJson(String raw) throws IOException {
+        try {
+            return new JSONObject(raw.substring(0, raw.lastIndexOf('}') + 1));
+        } catch (JSONException e) {
+            throw new IOException("the model answered with malformed JSON", e);
         }
-        throw new IOException("the model answered with malformed JSON");
     }
 
     private static JSONArray strings(JSONArray in, int max) {

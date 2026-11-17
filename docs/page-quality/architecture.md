@@ -316,7 +316,7 @@ The client sends `task` and data; the server owns the prompts. An unknown task r
   any other code is passed as is). Content to publish (fixes, titles, alt texts, rewrites) is written
   in the page language; prose for the editor (summary, details, reasons) in the UI language.
 - Parsing: genai-connector returns one JSON object, or refuses an answer cut before it is complete
-  JSON (`budget` error). `parseLenient` reads the object from its first `{`. Each task has its own
+  JSON (`budget` error). `parseJson` reads the object from its first `{`. Each task has its own
   parser that copies only the expected fields, normalises enums (severity, category, heading level, with a fallback), caps array lengths
   and clips suggestions and reasons to 300 characters (rewrites to 1,500; the review's title, detail
   and wording are not clipped). Nothing else from the model reaches the browser, and the tabs render
