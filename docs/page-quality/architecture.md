@@ -315,10 +315,9 @@ The client sends `task` and data; the server owns the prompts. An unknown task r
   Both are turned into a language name (French, German, Spanish, Italian, Portuguese, Dutch, English;
   any other code is passed as is). Content to publish (fixes, titles, alt texts, rewrites) is written
   in the page language; prose for the editor (summary, details, reasons) in the UI language.
-- Parsing: the answer is read from its first `{`. `parseLenient` first tries up to the last `}`;
-  if that fails (an answer cut by the output budget), it cuts back to the last complete `},` and
-  closes `]}`, so complete items survive. Each task has its own parser that copies only the expected
-  fields, normalises enums (severity, category, heading level, with a fallback), caps array lengths
+- Parsing: genai-connector returns one JSON object, or refuses an answer cut before it is complete
+  JSON (`budget` error). `parseLenient` reads the object from its first `{`. Each task has its own
+  parser that copies only the expected fields, normalises enums (severity, category, heading level, with a fallback), caps array lengths
   and clips suggestions and reasons to 300 characters (rewrites to 1,500; the review's title, detail
   and wording are not clipped). Nothing else from the model reaches the browser, and the tabs render
   it as React text (no `innerHTML`).

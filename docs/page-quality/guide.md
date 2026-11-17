@@ -393,7 +393,7 @@ fix the first ones, **Re-run**, then ask again.
 | "You cannot read this page any more, so the AI cannot review it." | Your rights on the page changed since the drawer opened. | The person who manages rights. |
 | "The AI model reached its output limit before it finished the answer..." | The answer reached its budget of 6000 tokens before it was complete. A reasoning model can spend the budget before it writes the answer. | A server administrator, who checks the `max.output.tokens.limit` of genai-connector and the model of its `balanced` tier. |
 | "The AI provider did not answer. Retry in a moment; if it persists, tell a server administrator." | The provider failed, or its answer was still unreadable after genai-connector asked again. | Try again later; if it persists, a server administrator (server log). |
-| "The answer reached its output limit, so some recommendations may be missing." | The answer hit the output limit; complete items are kept. | A server administrator, who checks the `max.output.tokens.limit` of genai-connector. |
+| "The answer reached its output limit, so some recommendations may be missing." | The answer stopped at its output limit, but it was still complete JSON. | A server administrator, who checks the `max.output.tokens.limit` of genai-connector. |
 
 ## Limits to keep in mind
 

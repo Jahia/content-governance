@@ -306,8 +306,25 @@ public class AiReviewServlet extends HttpServlet {
         }
     }
 
-    /** What a call that passed every check runs with: the task, its feature, its site, and whether pictures go. */
-    private record Grant(String task, AiFeature feature, String siteKey, boolean vision) {
+    /**
+     * What a call runs with: the task, its feature, its site and whether pictures go, or why AiService refuses it.
+     *
+     * @param refusal null when the model answers the caller on the site
+     */
+    record Grant(String task, AiFeature feature, String siteKey, boolean vision, AiException.Reason refusal) {
+    }
+
+    /** Asks AiService whether a task can run on a site; it reads no repository. */
+    static Grant grantOf(AiService ai, String task, String siteKey) {
+        AiFeature feature = featureOf(task);
+        AiStatus status = ai.status(feature, siteKey);
+        AiException.Reason refusal = null;
+        if (status.availability() == AiStatus.Availability.NO_ACCESS) {
+            refusal = AiException.Reason.NO_ACCESS;
+        } else if (!status.ready()) {
+            refusal = AiException.Reason.NOT_CONFIGURED;
+        }
+        return new Grant(task, feature, siteKey, status.vision(), refusal);
     }
 
     /** The grant of a call the caller may run now, or null once the refusal is written. */
@@ -324,11 +341,9 @@ public class AiReviewServlet extends HttpServlet {
             writeError(res, HttpServletResponse.SC_FORBIDDEN, "switchedOff", "This feature is switched off on the site");
             return null;
         }
-        AiFeature feature = featureOf(task);
-        AiStatus status = ai.status(feature, site.getSiteKey());
-        if (!status.ready()) {
-            writeFailure(res, status.availability() == AiStatus.Availability.NO_ACCESS
-                    ? AiException.Reason.NO_ACCESS : AiException.Reason.NOT_CONFIGURED);
+        Grant grant = grantOf(ai, task, site.getSiteKey());
+        if (grant.refusal() != null) {
+            writeFailure(res, grant.refusal());
             return null;
         }
         // Counted last, once every refusal that costs nothing is behind: a call that reaches this
@@ -337,7 +352,7 @@ public class AiReviewServlet extends HttpServlet {
             writeError(res, 429, "rateLimited", "Too many AI review requests; please retry later");
             return null;
         }
-        return new Grant(task, feature, site.getSiteKey(), status.vision());
+        return grant;
     }
 
     /** The server-defined prompt of a task: never chosen by the client beyond the task name. */
@@ -430,7 +445,7 @@ public class AiReviewServlet extends HttpServlet {
     }
 
     /** Calls the model with the task's prompt and answers with its validated result. */
-    private void run(HttpServletResponse res, JSONObject payload, Grant grant) throws IOException {
+    void run(HttpServletResponse res, JSONObject payload, Grant grant) throws IOException {
         Prompt prompt = promptFor(grant.task(), payload, grant.vision());
         AiAnswer answer = null;
         try {
@@ -441,7 +456,7 @@ public class AiReviewServlet extends HttpServlet {
             review.put("model", answer.model());
             if (answer.truncated()) {
                 review.put(TRUNCATED, true);
-                logger.warn("AI {} answer reached its output budget ({} tokens); complete items were salvaged",
+                logger.warn("AI {} answer reached its output budget ({} tokens) as complete JSON; it may miss items",
                         prompt.task, MAX_OUTPUT_TOKENS);
             }
             JSONObject usage = usageOf(answer);
@@ -929,30 +944,18 @@ public class AiReviewServlet extends HttpServlet {
     }
 
     /**
-     * Parses the model JSON, salvaging answers truncated by the max_tokens
-     * limit: cut back to the last complete recommendation object and close
-     * the array and root object. Complete recommendations are recovered
-     * instead of failing the whole review.
+     * Parses the model JSON up to its last closing brace. genai-connector returns one JSON object and refuses
+     * an answer cut before it is complete, so no salvage of a cut answer is needed.
      */
     private JSONObject parseLenient(String raw) {
         int end = raw.lastIndexOf('}');
         if (end > 0) {
             try {
                 return new JSONObject(raw.substring(0, end + 1));
-            } catch (Exception e) {
-                // Fall through to truncation salvage
+            } catch (JSONException e) {
+                throw new IllegalStateException("model returned malformed JSON", e);
             }
         }
-
-        int idx = raw.lastIndexOf("},");
-        while (idx > 0) {
-            try {
-                return new JSONObject(raw.substring(0, idx + 1) + "]}");
-            } catch (Exception e) {
-                idx = raw.lastIndexOf("},", idx - 1);
-            }
-        }
-
         throw new IllegalStateException("model returned malformed JSON");
     }
 

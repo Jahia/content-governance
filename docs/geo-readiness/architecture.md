@@ -306,8 +306,8 @@ server. The written report reads these keys:
 
 `AI_RATE_MAX_CALLS` in the same file belongs to the page tasks of Page quality, and the report does
 not read it. The output budget of the report is 6000 tokens, and genai-connector caps it with its
-`max.output.tokens.limit` key. A site-wide report is long: with a cap that is too low, the end of the
-report is cut, and the tab says so. Site Settings > Content governance > **AI model** shows
+`max.output.tokens.limit` key. A site-wide report is long: with a cap that is too low, the request
+answers 502 `provider failed: the answer reached its output budget`, and no report is stored. Site Settings > Content governance > **AI model** shows
 whether a model answers the user on the site, and its provider and model.
 
 Up to 1.11.0, the module had its own client, configured in this file by `AI_PROVIDER`, `AI_MODEL`,

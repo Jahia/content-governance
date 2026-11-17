@@ -8,6 +8,7 @@ import org.jahia.community.contentgovernance.ai.AiFeature;
 import org.jahia.community.contentgovernance.ai.AiRequest;
 import org.jahia.community.contentgovernance.ai.AiService;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -584,22 +585,17 @@ public final class GeoReport {
         return out;
     }
 
-    /** Whole object first; failing that, the longest prefix that closes. Models cut off mid-list. */
+    /**
+     * The object up to its last closing brace. genai-connector returns one JSON object and refuses an answer
+     * cut before it is complete, so no salvage of a cut answer is needed.
+     */
     private static JSONObject lenient(String raw) throws IOException {
         int end = raw.lastIndexOf('}');
         if (end > 0) {
             try {
                 return new JSONObject(raw.substring(0, end + 1));
-            } catch (Exception e) {
-                // fall through to salvage
-            }
-        }
-        int idx = raw.lastIndexOf("},");
-        while (idx > 0) {
-            try {
-                return new JSONObject(raw.substring(0, idx + 1) + "]}");
-            } catch (Exception e) {
-                idx = raw.lastIndexOf("},", idx - 1);
+            } catch (JSONException e) {
+                throw new IOException("the model answered with malformed JSON", e);
             }
         }
         throw new IOException("the model answered with malformed JSON");
