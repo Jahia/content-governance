@@ -719,10 +719,10 @@
       "report": {
         "title": "El informe redactado",
         "intro": "Todo lo demás en este panel está medido y así lo indica. Esta pestaña pide a un modelo que lea esas mediciones y redacte la conclusión: en qué situación está el sitio frente a los rastreadores de IA, qué corregir primero, quién puede corregirlo y en qué orden. Solo responde cuando usted lo pide, porque cada respuesta tiene un coste y tarda un tiempo.",
-        "notConfiguredTitle": "No hay ningún proveedor configurado",
-        "notConfigured": "Defina AI_PROVIDER, AI_MODEL y AI_API_KEY en digital-factory-data/karaf/etc/org.jahia.community.contentgovernance.llm.cfg para activar esta pestaña. Hasta entonces, nada sale del servidor.",
+        "notConfiguredTitle": "Ningún modelo de IA disponible",
+        "notConfigured": "Instale genai-connector y asigne un modelo a su nivel balanced para activar esta pestaña. Hasta entonces, nada sale del servidor.",
         "provider": "Redactado por {{provider}} · {{model}}",
-        "privacy": "El proveedor recibe las mediciones de este sitio: puntuaciones, identificadores de las comprobaciones no superadas, rutas y títulos de las páginas, recuentos. Nunca el cuerpo de las páginas, nunca la clave.",
+        "privacy": "El modelo recibe las mediciones de este sitio a través de genai-connector: puntuaciones, identificadores de comprobaciones fallidas, rutas y títulos de páginas, recuentos. Nunca el contenido de las páginas.",
         "generate": "Redactar el informe",
         "regenerate": "Volver a redactarlo",
         "generating": "Redactando…",
@@ -736,7 +736,7 @@
         "otherLanguageTitle": "Redactado en otro idioma",
         "otherLanguage": "Este informe se redactó en {{have}}. Su interfaz está en {{want}}: vuelva a redactarlo para obtenerlo en su idioma.",
         "truncatedTitle": "Incompleto",
-        "truncated": "El modelo se quedó sin espacio antes de terminar. Puede faltar el final del informe; aumentar AI_REPORT_MAX_TOKENS le da más margen.",
+        "truncated": "Al modelo se le acabó el espacio antes de terminar. Puede faltar el final del informe.",
         "summary": "Situación del sitio",
         "compliance": "Cumplimiento por área",
         "priorities": "Qué hacer, por orden",
@@ -794,7 +794,9 @@
           "owner": "Responsable: {{owner}}",
           "effort": "Esfuerzo: {{effort}}"
         },
-        "notConfiguredTab": "No hay ningún proveedor de IA configurado en este servidor."
+        "notConfiguredTab": "No hay ningún modelo de IA disponible para usted en este sitio.",
+        "noAccessTitle": "Sin acceso a la IA",
+        "noAccess": "No tiene acceso a la IA en este sitio. Un administrador del sitio concede el permiso genaiAccess."
       },
       "fetchError": {
         "ConnectException": "El servidor no pudo abrir una conexión con esa dirección ({{error}}). Un servidor de Jahia Cloud, por ejemplo, no puede acceder a su propia dirección pública: solicite que se permita o defina PUBLIC_BASE_URL con una dirección a la que el servidor pueda acceder.",
@@ -1056,7 +1058,8 @@
         "readability": "Legibilidad",
         "ecodesign": "Ecodiseño",
         "badgeTooltip": "{{count}} problemas por revisar",
-        "aiNotConfigured": "No hay ningún proveedor de IA configurado en este servidor."
+        "aiNotConfigured": "No hay ningún modelo de IA disponible en este servidor.",
+        "aiNoAccess": "No tiene acceso a la IA en este sitio (genaiAccess)."
       },
       "eco": {
         "score": "Criterios de página cumplidos",
@@ -1179,7 +1182,7 @@
         "done": "Copiado"
       },
       "ai": {
-        "intro": "Envía el texto de la página y los hallazgos de la auditoría a {{provider}} ({{model}}) y devuelve recomendaciones priorizadas y fáciles de aplicar para los editores. La clave de API permanece en el servidor.",
+        "intro": "Envía el texto de la página y los hallazgos de la auditoría a {{provider}} ({{model}}) a través de genai-connector, y devuelve recomendaciones priorizadas y fáciles de aplicar. Este módulo no guarda ninguna clave de API.",
         "generate": "Generar la revisión por IA",
         "regenerate": "Volver a generar",
         "generating": "Analizando la página con IA… tarda unos segundos.",
@@ -1187,7 +1190,7 @@
         "error": "La revisión por IA falló",
         "poweredBy": "Generado por {{provider}} · {{model}}",
         "usage": "Tokens: {{input}} de entrada / {{output}} de salida",
-        "truncated": "La respuesta se cortó por el límite AI_MAX_TOKENS - pueden faltar algunas recomendaciones. Pida a un administrador que aumente AI_MAX_TOKENS en la configuración del módulo.",
+        "truncated": "La respuesta alcanzó su límite de longitud. Pueden faltar algunas recomendaciones.",
         "cost": "Coste estimado: ${{cost}}",
         "disclaimer": "Sugerencias generadas por IA: revíselas antes de aplicarlas.",
         "fix": "Corrección sugerida",
@@ -1210,11 +1213,12 @@
           "crossOrigin": "La petición se rechazó porque no procedía de este Jahia. Vuelva a cargar la página e inténtelo de nuevo.",
           "noAccess": "Ya no puede leer esta página, por lo que la IA no puede revisarla.",
           "switchedOff": "Un administrador del sitio ha desactivado esta función para este sitio.",
-          "notConfigured": "No hay ningún proveedor de IA configurado en este servidor.",
+          "notConfigured": "No hay ningún modelo de IA disponible en este servidor.",
           "rateLimited": "Ha alcanzado el número de peticiones de IA permitidas en diez minutos. Vuelva a intentarlo un poco más tarde.",
           "invalidRequest": "No se pudo leer la petición. Vuelva a cargar la página e inténtelo de nuevo.",
           "upstream": "El proveedor de IA no respondió. Vuelva a intentarlo en un momento; si persiste, avise a un administrador del servidor.",
-          "budget": "El modelo de IA agotó todo su presupuesto de salida antes de responder. Un administrador del servidor debe aumentar AI_MAX_TOKENS en la configuración de IA del módulo."
+          "budget": "El modelo de IA alcanzó su límite de longitud antes de terminar la respuesta. Vuelva a intentarlo; si persiste, avise a un administrador del servidor.",
+          "genaiAccess": "No tiene acceso a la IA en este sitio. Un administrador del sitio concede el permiso genaiAccess."
         }
       },
       "jahia": {
@@ -1410,7 +1414,7 @@
           "error": "Las sugerencias de texto alternativo fallaron",
           "decorative": "Decorativa - use un alt vacío",
           "noPicture": "descrita solo a partir del contexto",
-          "noVision": "Nota: {{provider}} no procesa imágenes - las sugerencias se deducen únicamente de los nombres de archivo y del texto circundante. Los modelos de Anthropic y OpenAI ven la imagen real.",
+          "noVision": "Nota: ningún modelo lee imágenes en este servidor, así que las sugerencias solo se basan en los nombres de archivo y el texto cercano. El nivel vision de genai-connector permite que un modelo vea la imagen.",
           "noAnswer": "No se devolvió ninguna sugerencia para esta imagen.",
           "more": "{{count}} imagen(es) más sin alt no se enviaron (8 por petición) - corrija primero estas, vuelva a ejecutar la auditoría y pida sugerencias de nuevo."
         },
@@ -1688,7 +1692,7 @@
         "ecodesign": "Comprobaciones de ecodiseño del referencial francés RGESN: peso de la página, peticiones, imágenes, fuentes, multimedia y servicios de terceros.",
         "links": "Enlaces internos rotos, direcciones escritas completas, contenido mixto y enlaces que abren una ventana nueva sin protección.",
         "jahia": "Comprobaciones que solo Jahia puede hacer: contenido sin publicar en la página, traducciones que faltan, etiquetas sin traducir y texto de relleno.",
-        "ai": "Una revisión del texto de la página por el modelo de IA configurado en el servidor, con cada hallazgo y la redacción exacta que hay que cambiar."
+        "ai": "Una revisión del texto de la página por el modelo de IA que proporciona genai-connector, con cada hallazgo y la redacción exacta que hay que cambiar."
       }
     },
     "compliance": {
@@ -1817,7 +1821,8 @@
     "common": {
       "ai": {
         "generate": "Generar con IA",
-        "notConfigured": "La IA no está configurada en este servidor. Un administrador del servidor define un proveedor, un modelo y una clave en digital-factory-data/karaf/etc/org.jahia.community.contentgovernance.llm.cfg."
+        "notConfigured": "La IA no está disponible en este servidor. Un administrador del servidor instala genai-connector y asigna un modelo a su nivel balanced.",
+        "noAccess": "No tiene acceso a la IA en este sitio. Un administrador del sitio concede el permiso genaiAccess."
       },
       "sectionOff": {
         "title": "Desactivado para este sitio",
@@ -1873,7 +1878,7 @@
       "notEnabled": "Gobernanza de contenidos no está activado en este sitio, o usted no es administrador del sitio. Active el módulo en Configuración del sitio, Módulos.",
       "panelTab": {
         "features": "Funciones",
-        "ai": "Proveedor de IA",
+        "ai": "Modelo de IA",
         "botrank": "BotRank"
       },
       "save": "Guardar",
@@ -1893,20 +1898,22 @@
       "sectionSwitch": "Sección {{section}}",
       "on": "Activado",
       "off": "Desactivado",
-      "needsAi": "Requiere un proveedor de IA",
+      "needsAi": "IA no disponible",
       "needsBotRank": "Requiere una conexión con BotRank",
       "ai": {
-        "title": "Modelo compartido por las funciones de IA",
+        "title": "Modelo de las funciones de IA",
         "configured": "Configurado",
-        "notConfigured": "No configurado",
+        "notConfigured": "No disponible",
         "provider": "Proveedor",
         "model": "Modelo",
         "images": "Lee imágenes (texto alternativo)",
         "yes": "Sí",
         "no": "No",
-        "howTo": "Hasta que se definan un proveedor, un modelo y una clave, todas las funciones de IA aparecen atenuadas y nada sale del servidor. Solo un administrador del servidor puede definirlos.",
-        "file": "Archivo de configuración, en el servidor:",
-        "uses": "Lo usan la pestaña Revisión por IA, las asistencias de SEO, texto alternativo y lenguaje claro, y el informe escrito del panel Preparación GEO. La clave nunca se envía al navegador."
+        "howTo": "genai-connector proporciona el modelo de cada función de IA. Hasta que un administrador del servidor lo instale y asigne un modelo a su nivel balanced, todas las funciones de IA aparecen en gris y nada sale del servidor.",
+        "uses": "Lo usan la pestaña Revisión por IA, las asistencias de SEO, texto alternativo y lenguaje claro, y el informe escrito del panel Preparación GEO.",
+        "noAccess": "Sin acceso",
+        "howToAccess": "No tiene el permiso genaiAccess en este sitio, por eso las funciones de IA aparecen en gris para usted. Un administrador del sitio lo concede mediante un rol.",
+        "servedBy": "genai-connector guarda el proveedor, la clave y el modelo de cada nivel. Un administrador del servidor los define en su configuración, no en este módulo."
       }
     }
   }

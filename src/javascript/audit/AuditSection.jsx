@@ -132,7 +132,7 @@ const RESULT_KEYS = {
 // What a tab's tooltip adds to its help: why it is greyed out, or how many issues it holds
 const tabNote = (tab, t) => {
     if (tab.disabled) {
-        return t('tabs.aiNotConfigured');
+        return t(tab.reason === 'noAccess' ? 'tabs.aiNoAccess' : 'tabs.aiNotConfigured');
     }
     return tab.badge ? t('tabs.badgeTooltip', {count: tab.badge}) : undefined;
 };
@@ -314,10 +314,11 @@ export function AuditSection({path, language, isOn, ai, onCount, onFindings, req
     const [simplifyAssist, setSimplifyAssist] = useState(null);
     const [simplifyPhase, setSimplifyPhase] = useState('idle');
     const [simplifyError, setSimplifyError] = useState(null);
-    // {enabled, provider, model, vision}: the module's shared model, read with the site settings;
-    // shared by the AI tab and the assist sections
+    // {enabled, reason, provider, model, vision}: the model genai-connector serves to this user on the
+    // site, read with the site settings; shared by the AI tab and the assist sections
     const aiStatus = useMemo(() => ({
         enabled: Boolean(ai && ai.configured),
+        reason: ai ? ai.reason : 'absent',
         provider: ai ? ai.provider : '',
         model: ai ? ai.model : '',
         vision: Boolean(ai && ai.images)
@@ -620,14 +621,15 @@ export function AuditSection({path, language, isOn, ai, onCount, onFindings, req
 
     // Badge = number of issues to review in that tab; null-safe so a partial
     // result never breaks the tab bar. Tabs the site switched off are left out; the AI tab stays,
-    // greyed out, while no model is configured.
+    // greyed out, while no model answers this user on the site.
     const counts = tabCounts(results, aiReview);
     const tabs = TAB_IDS.filter(id => isOn(id)).map(id => ({
         key: id,
         label: t(`tabs.${id}`),
         badge: counts[id] ? counts[id].count : null,
         serious: Boolean(counts[id] && counts[id].serious),
-        disabled: id === 'ai' && !aiStatus.enabled
+        disabled: id === 'ai' && !aiStatus.enabled,
+        reason: aiStatus.reason
     }));
     const enabledTabs = tabs.filter(tab => !tab.disabled);
     const currentTab = enabledTabs.some(tab => tab.key === activeTab) ? activeTab : (enabledTabs[0] || {}).key;

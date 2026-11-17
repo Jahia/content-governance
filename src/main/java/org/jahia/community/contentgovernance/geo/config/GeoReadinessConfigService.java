@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * OSGi-managed configuration of the GEO readiness section: the crawler check and its fetches.
- * The model behind the written report is the module's shared one ({@code LlmConfigService}).
+ * genai-connector serves the model behind the written report ({@code AiService}).
  *
  * Edit digital-factory-data/karaf/etc/org.jahia.community.contentgovernance.geo.cfg at
  * runtime. Changes are picked up immediately through @Modified, with no

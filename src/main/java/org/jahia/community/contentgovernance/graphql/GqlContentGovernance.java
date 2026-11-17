@@ -5,7 +5,7 @@ import graphql.annotations.annotationTypes.GraphQLField;
 import graphql.annotations.annotationTypes.GraphQLName;
 import graphql.annotations.annotationTypes.GraphQLNonNull;
 import graphql.schema.DataFetchingEnvironment;
-import org.jahia.community.contentgovernance.ai.LlmConfigService;
+import org.jahia.community.contentgovernance.ai.AiService;
 import org.jahia.community.contentgovernance.audit.graphql.AuditFields;
 import org.jahia.community.contentgovernance.audit.graphql.GqlAuditRun;
 import org.jahia.community.contentgovernance.audit.graphql.GqlSiteAudits;
@@ -24,7 +24,7 @@ public class GqlContentGovernance {
 
     @Inject
     @GraphQLOsgiService
-    private LlmConfigService llm;
+    private AiService ai;
 
     // graphql-java-annotations injects OSGi services into fields only (@GraphQLOsgiService)
     @SuppressWarnings("java:S6813")
@@ -45,7 +45,7 @@ public class GqlContentGovernance {
     @GraphQLDescription("Sections and tabs of the module on a site, and whether AI is configured")
     public GqlSiteSettings siteSettings(
             @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey) {
-        return GqlSiteSettings.of(SiteAccess.site(siteKey), llm);
+        return GqlSiteSettings.of(SiteAccess.site(siteKey), ai);
     }
 
     /**

@@ -91,9 +91,13 @@ report the same failures.
 ### Report
 
 Everything else on this dashboard is measured. This tab asks a model to read those measurements and
-say what they add up to. It is always listed, but stays greyed out, with the tooltip *No AI provider
-is configured on this server.*, until a server administrator configures the model the module's AI
-features share (see [`architecture.md`](architecture.md#configuration)).
+say what they add up to. The **Report** tab is always listed, but stays greyed out until a model
+answers you on this site. While the tab is greyed out, its tooltip shows *No AI model is
+available for you on this site.* A model answers you when two things are true:
+
+- A server administrator configures a model in the `genai-connector` module (see
+  [`architecture.md`](architecture.md#configuration)).
+- You have the `genaiAccess` permission on the site. Without this permission, the tab says so.
 
 Press **Write the report**. You get a verdict, a status per area, a ranked list of what to fix first
 with who can fix it and how much effort, quick wins, and a now/next/later plan. **Export as
@@ -293,9 +297,9 @@ for when it comes back. A tab switched off disappears from the drawer. The **AI 
 also hides the dashboard's **AI citations** group and pauses the site's daily BotRank sync: its runs
 are skipped while the switch is off, and the first run after it is back on syncs again. Press **Save**; editors see the change the next time they open the drawer.
 
-**AI provider tab.** Shows whether the model shared by the AI features is configured, which
-provider and model, and the file a server administrator edits. The written report of this dashboard
-uses that model.
+**AI model tab.** Shows whether the model that genai-connector serves to the AI features answers
+you on this site, and which provider and model. The written report of this dashboard uses that
+model.
 
 **BotRank tab.** Connects the site to BotRank, which feeds the drawer's **AI citations** tab and the
 dashboard's **AI citations** group.

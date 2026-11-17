@@ -15,7 +15,7 @@ export function SeoAssist({aiStatus, assist, phase, error, language, onGenerate,
     const {t} = useGovernanceTranslation('audit');
 
     if (aiStatus && !aiStatus.enabled) {
-        return <AiUnavailable title={t('seo.assist.title')} actionLabel={t('seo.assist.generate')}/>;
+        return <AiUnavailable title={t('seo.assist.title')} actionLabel={t('seo.assist.generate')} reason={aiStatus.reason}/>;
     }
 
     if (!aiStatus || !aiStatus.enabled) {

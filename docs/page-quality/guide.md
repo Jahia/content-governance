@@ -316,10 +316,10 @@ the tab says **Repository checks could not run** and keeps the on-page checks.
 
 ### AI review
 
-Shown only when a model is configured (see [Greyed out](#greyed-out-missing-or-failing)).
+Shown only when a model answers you on this site (see [Greyed out](#greyed-out-missing-or-failing)).
 
 Click **Generate AI review**. The page text, its title, meta description and a summary of all the
-findings above go to the configured provider. After a few seconds you get:
+findings above go to the provider of that model. After a few seconds you get:
 
 - **Overall assessment**: two or three sentences.
 - **Recommendations**, most important first (the model is asked for 15 at most), each with a
@@ -335,8 +335,8 @@ suggested fixes are in the page language, since they would be published. **Regen
 
 ## AI assists
 
-When a model is configured, three tabs offer suggestions next to their findings. They share these
-rules:
+When a model answers you on this site, three tabs offer suggestions next to their findings. They
+share these rules:
 
 - **You start them.** Nothing is sent until you click.
 - **Nothing is written to the repository.** Each suggestion has a **Copy** button: paste it in
@@ -347,8 +347,8 @@ rules:
 - **Review before you paste.** Every answer ends with "AI-generated suggestions: review before acting
   on them." The model can be wrong; it is told to use only what the page says, but check names,
   numbers and facts.
-- Each answer shows the provider and model, the tokens used and, when the administrator set prices,
-  an estimated cost.
+- Each answer shows the provider and model, the tokens used and, when the provider reports one, the
+  cost.
 - Answers are kept with the results until the next **Re-run**.
 
 | Assist | Where | Button | What you get |
@@ -366,12 +366,12 @@ Where each suggestion goes:
 - Alt text: the alt field of the image in Content Editor.
 - Rewrites: paste over the original sentence.
 
-**Pictures or context only.** Anthropic and OpenAI models see a small copy of each picture. A
-DeepSeek model reads text only, so its alt texts are guessed from the file name, caption, nearby
-heading and text; the tab says so. Even with Anthropic or OpenAI, a picture served from another
-domain cannot be read by the browser and is described from context only ("described from context
-only"). To know which case applies, a site administrator can look at **Reads images (alt text)** in
-**Site Settings > Content governance**, **AI provider** tab.
+**Pictures or context only.** When the server has a model that reads images, that model sees a small
+copy of each picture. Without such a model, the alt texts are guessed from the file name, caption,
+nearby heading and text, and the tab says so. Even with a model that reads images, the browser
+cannot read a picture served from another domain. That picture is described from context only, and
+the tab shows "described from context only". To know which case applies, a site administrator can look at **Reads images
+(alt text)** in **Site Settings > Content governance**, **AI model** tab.
 
 If more images or sentences are waiting than one request takes, the tab says how many were not sent:
 fix the first ones, **Re-run**, then ask again.
@@ -380,19 +380,20 @@ fix the first ones, **Re-run**, then ask again.
 
 | What you see | Why | Who to ask |
 |---|---|---|
-| **AI review** tab greyed out, tooltip "No AI provider is configured on this server." | No model is configured on the server. | A server administrator. |
-| An AI assist box with a greyed button and "AI is not configured on this server..." | Same. | A server administrator. |
+| **AI review** tab greyed out, tooltip "No AI model is available on this server." | The genai-connector module is not installed, or it serves no model to the AI features. | A server administrator. |
+| An AI assist box with a greyed button and "AI is not available on this server..." | Same. | A server administrator. |
+| **AI review** tab or an AI assist greyed out, with a message about the `genaiAccess` permission | You do not have the `genaiAccess` permission on this site. | The person who manages rights. |
 | A tab missing | A site administrator switched it off for this site. The AI assists follow their own tab: with the **AI review** tab switched off, the SEO, alt text and plain-language assists still work. | A site administrator, in **Site Settings > Content governance**, **Features** tab. |
 | **Page quality** missing from the drawer | The section is switched off for this site. | A site administrator. |
 | No **Content governance** button | The module is not enabled on this site, every section is switched off, or the item is not a page or a content item with its own URL. | A site administrator. |
 | **Analysis failed** with "HTTP 404" | The page does not exist or does not render in this language. | Check the language; otherwise a developer. |
 | **Analysis failed** with "HTTP 500" or another error | The page fails to render. | A developer. |
-| "You have reached the number of AI requests allowed in ten minutes. Retry a little later." | You reached the limit of AI calls (30 per 10 minutes by default; a call the provider failed counts, a refused one does not). | Wait a few minutes. |
+| "You have reached the number of AI requests allowed in ten minutes. Retry a little later." | You reached the limit of AI calls (30 per 10 minutes by default; a call the provider failed counts, a refused one does not). genai-connector can also apply a limit of its own. | Wait a few minutes. |
 | "A site administrator has switched this feature off for this site." | The feature was switched off since the drawer opened. | A site administrator. |
 | "You cannot read this page any more, so the AI cannot review it." | Your rights on the page changed since the drawer opened. | The person who manages rights. |
-| "The AI model used its whole output budget before answering. A server administrator raises AI_MAX_TOKENS in the module's AI configuration." | A reasoning model spent its budget before writing the answer. | A server administrator. |
-| "The AI provider did not answer. Retry in a moment; if it persists, tell a server administrator." | The provider failed or answered something unreadable. | Try again later; if it persists, a server administrator (server log). |
-| "The answer was cut short by the AI_MAX_TOKENS limit..." | The answer hit the output limit; complete items are kept. | A server administrator can raise `AI_MAX_TOKENS`. |
+| "The AI model reached its output limit before it finished the answer..." | The answer reached its budget of 6000 tokens before it was complete. A reasoning model can spend the budget before it writes the answer. | A server administrator, who checks the `max.output.tokens.limit` of genai-connector and the model of its `balanced` tier. |
+| "The AI provider did not answer. Retry in a moment; if it persists, tell a server administrator." | The provider failed, or its answer was still unreadable after genai-connector asked again. | Try again later; if it persists, a server administrator (server log). |
+| "The answer reached its output limit, so some recommendations may be missing." | The answer hit the output limit; complete items are kept. | A server administrator, who checks the `max.output.tokens.limit` of genai-connector. |
 
 ## Limits to keep in mind
 

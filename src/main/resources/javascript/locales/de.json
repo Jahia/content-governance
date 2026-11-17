@@ -719,10 +719,10 @@
       "report": {
         "title": "Der schriftliche Bericht",
         "intro": "Alles andere auf diesem Dashboard ist gemessen und wird als solches gekennzeichnet. Diese Registerkarte lässt ein Modell diese Messungen lesen und zusammenfassen, was sie ergeben: wo die Website für KI-Crawler steht, was zuerst zu beheben ist, wer es beheben kann und in welcher Reihenfolge. Sie antwortet nur auf Anfrage, da jede Antwort kostenpflichtig ist und eine Weile dauert.",
-        "notConfiguredTitle": "Kein Anbieter konfiguriert",
-        "notConfigured": "Setzen Sie AI_PROVIDER, AI_MODEL und AI_API_KEY in digital-factory-data/karaf/etc/org.jahia.community.contentgovernance.llm.cfg, um diese Registerkarte zu aktivieren. Bis dahin verlässt nichts den Server.",
+        "notConfiguredTitle": "Kein KI-Modell verfügbar",
+        "notConfigured": "Installieren Sie genai-connector und weisen Sie seiner Stufe balanced ein Modell zu, um diese Registerkarte zu aktivieren. Bis dahin verlässt nichts den Server.",
         "provider": "Erstellt von {{provider}} · {{model}}",
-        "privacy": "Der Anbieter erhält die Messwerte dieser Website: Scores, IDs fehlgeschlagener Prüfungen, Seitenpfade und -titel, Anzahlen. Nie Seiteninhalte, nie den Schlüssel.",
+        "privacy": "Das Modell erhält die Messwerte dieser Website über genai-connector: Bewertungen, IDs fehlgeschlagener Prüfungen, Seitenpfade und -titel, Anzahlen. Niemals Seiteninhalte.",
         "generate": "Bericht erstellen",
         "regenerate": "Erneut erstellen",
         "generating": "Wird erstellt…",
@@ -736,7 +736,7 @@
         "otherLanguageTitle": "In einer anderen Sprache erstellt",
         "otherLanguage": "Dieser Bericht wurde auf {{have}} erstellt. Ihre Oberfläche ist auf {{want}}: Erstellen Sie ihn erneut, um ihn in Ihrer Sprache zu erhalten.",
         "truncatedTitle": "Abgebrochen",
-        "truncated": "Dem Modell ist vor dem Abschluss der Platz ausgegangen. Das Ende des Berichts fehlt möglicherweise; ein höherer Wert für AI_REPORT_MAX_TOKENS gibt ihm mehr Raum.",
+        "truncated": "Dem Modell ging vor dem Ende der Platz aus. Das Ende des Berichts fehlt möglicherweise.",
         "summary": "Wo die Website steht",
         "compliance": "Compliance nach Bereich",
         "priorities": "Was zu tun ist, in dieser Reihenfolge",
@@ -794,7 +794,9 @@
           "owner": "Zuständig: {{owner}}",
           "effort": "Aufwand: {{effort}}"
         },
-        "notConfiguredTab": "Auf diesem Server ist kein KI-Anbieter konfiguriert."
+        "notConfiguredTab": "Auf dieser Website ist für Sie kein KI-Modell verfügbar.",
+        "noAccessTitle": "Kein KI-Zugriff",
+        "noAccess": "Sie haben auf dieser Website keinen KI-Zugriff. Ein Website-Administrator vergibt die Berechtigung genaiAccess."
       },
       "fetchError": {
         "ConnectException": "Der Server konnte keine Verbindung zu dieser Adresse herstellen ({{error}}). Ein Jahia-Cloud-Server etwa kann seine eigene öffentliche Adresse nicht erreichen: Lassen Sie dies freischalten oder setzen Sie PUBLIC_BASE_URL auf eine Adresse, die der Server erreichen kann.",
@@ -1056,7 +1058,8 @@
         "readability": "Lesbarkeit",
         "ecodesign": "Ökodesign",
         "badgeTooltip": "{{count}} Probleme zu prüfen",
-        "aiNotConfigured": "Auf diesem Server ist kein KI-Anbieter konfiguriert."
+        "aiNotConfigured": "Auf diesem Server ist kein KI-Modell verfügbar.",
+        "aiNoAccess": "Sie haben auf dieser Website keinen KI-Zugriff (genaiAccess)."
       },
       "eco": {
         "score": "Erfüllte Seitenkriterien",
@@ -1179,7 +1182,7 @@
         "done": "Kopiert"
       },
       "ai": {
-        "intro": "Sendet den Seitentext und die Audit-Befunde an {{provider}} ({{model}}) und liefert priorisierte, redakteursfreundliche Empfehlungen zurück. Der API-Schlüssel bleibt auf dem Server.",
+        "intro": "Sendet den Seitentext und die Audit-Ergebnisse über genai-connector an {{provider}} ({{model}}) und liefert priorisierte, redaktionsgerechte Empfehlungen. Dieses Modul hält keinen API-Schlüssel.",
         "generate": "KI-Prüfung generieren",
         "regenerate": "Neu generieren",
         "generating": "Die Seite wird mit KI analysiert… dies dauert einige Sekunden.",
@@ -1187,7 +1190,7 @@
         "error": "KI-Prüfung fehlgeschlagen",
         "poweredBy": "Generiert von {{provider}} · {{model}}",
         "usage": "Tokens: {{input}} Eingabe / {{output}} Ausgabe",
-        "truncated": "Die Antwort wurde durch das Limit AI_MAX_TOKENS abgeschnitten - einige Empfehlungen fehlen möglicherweise. Bitten Sie einen Administrator, AI_MAX_TOKENS in der Modulkonfiguration zu erhöhen.",
+        "truncated": "Die Antwort hat ihre Längengrenze erreicht. Einige Empfehlungen fehlen möglicherweise.",
         "cost": "Geschätzte Kosten: ${{cost}}",
         "disclaimer": "KI-generierte Vorschläge: Prüfen Sie sie, bevor Sie danach handeln.",
         "fix": "Vorgeschlagene Korrektur",
@@ -1210,11 +1213,12 @@
           "crossOrigin": "Die Anfrage wurde abgelehnt, weil sie nicht von diesem Jahia stammt. Laden Sie die Seite neu und versuchen Sie es dann noch einmal.",
           "noAccess": "Sie können diese Seite nicht mehr lesen, daher kann die KI sie nicht prüfen.",
           "switchedOff": "Ein Website-Administrator hat diese Funktion für diese Website deaktiviert.",
-          "notConfigured": "Auf diesem Server ist kein KI-Anbieter konfiguriert.",
+          "notConfigured": "Auf diesem Server ist kein KI-Modell verfügbar.",
           "rateLimited": "Sie haben die Anzahl der in zehn Minuten zulässigen KI-Anfragen erreicht. Versuchen Sie es etwas später erneut.",
           "invalidRequest": "Die Anfrage konnte nicht gelesen werden. Laden Sie die Seite neu und versuchen Sie es dann noch einmal.",
           "upstream": "Der KI-Anbieter hat nicht geantwortet. Versuchen Sie es gleich noch einmal; tritt der Fehler weiterhin auf, informieren Sie einen Server-Administrator.",
-          "budget": "Das KI-Modell hat sein gesamtes Ausgabebudget verbraucht, bevor es geantwortet hat. Ein Server-Administrator kann AI_MAX_TOKENS in der KI-Konfiguration des Moduls erhöhen."
+          "budget": "Das KI-Modell hat seine Längengrenze erreicht, bevor die Antwort fertig war. Versuchen Sie es erneut; wenn das Problem bleibt, informieren Sie einen Server-Administrator.",
+          "genaiAccess": "Sie haben auf dieser Website keinen KI-Zugriff. Ein Website-Administrator vergibt die Berechtigung genaiAccess."
         }
       },
       "jahia": {
@@ -1410,7 +1414,7 @@
           "error": "Vorschläge für Alternativtexte fehlgeschlagen",
           "decorative": "Dekorativ - leeres alt verwenden",
           "noPicture": "nur aus dem Kontext beschrieben",
-          "noVision": "Hinweis: {{provider}} verarbeitet keine Bilder - die Vorschläge werden nur aus Dateinamen und umgebendem Text abgeleitet. Modelle von Anthropic und OpenAI sehen das eigentliche Bild.",
+          "noVision": "Hinweis: Auf diesem Server liest kein Modell Bilder, daher stammen die Vorschläge nur aus Dateinamen und umgebendem Text. Mit der Stufe vision von genai-connector sieht ein Modell das Bild.",
           "noAnswer": "Für dieses Bild wurde kein Vorschlag zurückgegeben.",
           "more": "{{count}} weitere Bild(er) ohne alt wurden nicht gesendet (8 pro Anfrage) - beheben Sie zuerst diese, führen Sie das Audit erneut aus und lassen Sie erneut Vorschläge erstellen."
         },
@@ -1688,7 +1692,7 @@
         "ecodesign": "Ökodesign-Prüfungen nach dem französischen Referenzrahmen RGESN: Seitengewicht, Anfragen, Bilder, Schriften, Medien und Drittanbieter.",
         "links": "Defekte interne Links, vollständig ausgeschriebene Adressen, gemischte Inhalte und Links, die ohne Schutz ein neues Fenster öffnen.",
         "jahia": "Prüfungen, die nur Jahia durchführen kann: unveröffentlichte Inhalte auf der Seite, fehlende Übersetzungen, technische Bezeichnungen und Platzhaltertext.",
-        "ai": "Eine Prüfung des Seitentextes durch das auf dem Server konfigurierte KI-Modell, mit jedem Befund und der genauen zu ändernden Formulierung."
+        "ai": "Eine Prüfung des Seitentextes durch das KI-Modell, das genai-connector bereitstellt, mit jedem Befund und der genauen zu ändernden Formulierung."
       }
     },
     "compliance": {
@@ -1817,7 +1821,8 @@
     "common": {
       "ai": {
         "generate": "Mit KI generieren",
-        "notConfigured": "KI ist auf diesem Server nicht konfiguriert. Ein Server-Administrator legt Anbieter, Modell und Schlüssel in digital-factory-data/karaf/etc/org.jahia.community.contentgovernance.llm.cfg fest."
+        "notConfigured": "KI ist auf diesem Server nicht verfügbar. Ein Server-Administrator installiert genai-connector und weist seiner Stufe balanced ein Modell zu.",
+        "noAccess": "Sie haben auf dieser Website keinen KI-Zugriff. Ein Website-Administrator vergibt die Berechtigung genaiAccess."
       },
       "sectionOff": {
         "title": "Für diese Website deaktiviert",
@@ -1873,7 +1878,7 @@
       "notEnabled": "Content-Governance ist auf dieser Website nicht aktiviert, oder Sie sind kein Website-Administrator. Aktivieren Sie das Modul in den Website-Einstellungen unter Module.",
       "panelTab": {
         "features": "Funktionen",
-        "ai": "KI-Anbieter",
+        "ai": "KI-Modell",
         "botrank": "BotRank"
       },
       "save": "Speichern",
@@ -1893,20 +1898,22 @@
       "sectionSwitch": "Bereich {{section}}",
       "on": "An",
       "off": "Aus",
-      "needsAi": "Erfordert einen KI-Anbieter",
+      "needsAi": "KI nicht verfügbar",
       "needsBotRank": "Erfordert eine BotRank-Verbindung",
       "ai": {
-        "title": "Gemeinsames Modell der KI-Funktionen",
+        "title": "Modell der KI-Funktionen",
         "configured": "Konfiguriert",
-        "notConfigured": "Nicht konfiguriert",
+        "notConfigured": "Nicht verfügbar",
         "provider": "Anbieter",
         "model": "Modell",
         "images": "Liest Bilder (Alternativtext)",
         "yes": "Ja",
         "no": "Nein",
-        "howTo": "Solange Anbieter, Modell und Schlüssel nicht festgelegt sind, werden alle KI-Funktionen ausgegraut angezeigt und nichts verlässt den Server. Nur ein Server-Administrator kann sie festlegen.",
-        "file": "Konfigurationsdatei auf dem Server:",
-        "uses": "Verwendet von der Registerkarte KI-Prüfung, den Assistenten für SEO, Alternativtext und einfache Sprache sowie vom schriftlichen Bericht des Dashboards GEO-Bereitschaft. Der Schlüssel wird nie an den Browser gesendet."
+        "howTo": "genai-connector stellt das Modell jeder KI-Funktion bereit. Solange ein Server-Administrator es nicht installiert und seiner Stufe balanced kein Modell zugewiesen hat, ist jede KI-Funktion ausgegraut und nichts verlässt den Server.",
+        "uses": "Verwendet von der Registerkarte KI-Prüfung, den Assistenten für SEO, Alternativtext und einfache Sprache sowie vom schriftlichen Bericht des Dashboards GEO-Bereitschaft.",
+        "noAccess": "Kein Zugriff",
+        "howToAccess": "Sie haben auf dieser Website nicht die Berechtigung genaiAccess, daher sind die KI-Funktionen für Sie ausgegraut. Ein Website-Administrator vergibt sie über eine Rolle.",
+        "servedBy": "genai-connector hält Anbieter, Schlüssel und Modell jeder Stufe. Ein Server-Administrator legt sie in dessen Konfiguration fest, nicht in diesem Modul."
       }
     }
   }
