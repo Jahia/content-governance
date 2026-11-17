@@ -165,7 +165,8 @@ configuration (PID `org.jahia.modules.genai`), not in this module.
 
 - Every feature asks for the `balanced` tier.
 - The alt text assist asks for the `vision` tier when the browser could read at least one picture.
-  Otherwise it asks for `balanced`, and the alt texts come from the context alone.
+  Otherwise it asks for `balanced`, or for `vision` when only that tier has a model, and the alt
+  texts come from the context alone.
 - A tier with no model of its own uses genai-connector's shared model. The model of the `vision`
   tier must read images.
 - DeepSeek, a proxy or another compatible gateway: genai-connector's `openai-compatible` provider and

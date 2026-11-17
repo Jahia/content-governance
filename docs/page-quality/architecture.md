@@ -345,7 +345,8 @@ no key and no model.
 | `AiException` | A call with no answer, and its `Reason`: `NO_ACCESS`, `QUOTA`, `NOT_CONFIGURED`, `OUTPUT_LIMIT`, `INVALID_OUTPUT` or `PROVIDER`. The endpoints answer the browser from the reason, and the message goes to the server log only. |
 
 Tiers: every task asks for the `balanced` tier. The `alt` task asks for the `vision` tier when it
-attaches at least one picture, and for `balanced` otherwise. A tier with no model of its own uses
+attaches at least one picture, and for `balanced` otherwise, or for `vision` when only that tier
+has a model. A tier with no model of its own uses
 genai-connector's shared model. `settings.ai` is the status of `REVIEW`, because every page task runs
 on the same tier.
 

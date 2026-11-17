@@ -126,6 +126,22 @@ class GenAiModelTest {
     }
 
     @Test
+    void altTextRunsOnVisionWhenOnlyVisionHasAModel() throws AiException {
+        when(genAi.isAvailable(ModelTier.BALANCED)).thenReturn(false);
+        when(genAi.isAvailable(ModelTier.VISION)).thenReturn(true);
+        when(genAi.info(ModelTier.VISION)).thenReturn(Optional.of(new GenAiInfo(ModelTier.VISION, "mistral", "mistral-medium")));
+        when(genAi.complete(any())).thenReturn(result(StopReason.COMPLETE));
+
+        AiStatus status = model.status(AiFeature.ALT_TEXT);
+        model.complete(request(AiFeature.ALT_TEXT, List.of()));
+
+        assertThat(status.ready()).isTrue();
+        assertThat(status.model()).isEqualTo("mistral-medium");
+        assertThat(sent().tier()).isEqualTo(ModelTier.VISION);
+        assertThat(model.status(AiFeature.REVIEW).availability()).isEqualTo(AiStatus.Availability.NOT_CONFIGURED);
+    }
+
+    @Test
     void anAnswerCutByItsBudgetIsTruncated() throws AiException {
         when(genAi.complete(any())).thenReturn(result(StopReason.MAX_TOKENS));
 

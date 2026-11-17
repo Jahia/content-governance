@@ -49,9 +49,22 @@ public class GenAiModel implements AiModel {
         return feature == AiFeature.ALT_TEXT && withImages ? ModelTier.VISION : ModelTier.BALANCED;
     }
 
+    /**
+     * The tier that serves a call: {@link #tierOf}, except that the alternative text with no picture
+     * runs on vision when only vision has a model.
+     */
+    private ModelTier servingTier(AiFeature feature, boolean withImages) {
+        ModelTier tier = tierOf(feature, withImages);
+        if (feature == AiFeature.ALT_TEXT && tier == ModelTier.BALANCED && !genAi.isAvailable(ModelTier.BALANCED)
+                && genAi.isAvailable(ModelTier.VISION)) {
+            return ModelTier.VISION;
+        }
+        return tier;
+    }
+
     @Override
     public AiStatus status(AiFeature feature) {
-        ModelTier tier = tierOf(feature, false);
+        ModelTier tier = servingTier(feature, false);
         Optional<GenAiInfo> info = genAi.isAvailable(tier) ? genAi.info(tier) : Optional.empty();
         if (info.isEmpty()) {
             return AiStatus.unavailable(AiStatus.Availability.NOT_CONFIGURED);
@@ -65,7 +78,7 @@ public class GenAiModel implements AiModel {
         CompletionResult result;
         try {
             result = genAi.complete(CompletionRequest.builder()
-                    .tier(tierOf(request.feature(), !request.images().isEmpty()))
+                    .tier(servingTier(request.feature(), !request.images().isEmpty()))
                     .site(request.siteKey())
                     .instructions(request.instructions())
                     .input(request.input())

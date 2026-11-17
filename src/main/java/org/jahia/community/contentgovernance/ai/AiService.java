@@ -157,7 +157,12 @@ public class AiService {
             JCRSessionWrapper session = JCRSessionFactory.getInstance().getCurrentUserSession();
             String path = "/sites/" + siteKey;
             return session.nodeExists(path) && session.getNode(path).hasPermission(GENAI_ACCESS);
-        } catch (RepositoryException | RuntimeException | LinkageError e) {
+        } catch (RepositoryException | RuntimeException e) {
+            // Refused, as genai-connector refuses; the log tells a repository error from a missing permission.
+            logger.warn("The {} check on the site {} failed, so the AI features stay unavailable there: {}",
+                    GENAI_ACCESS, siteKey, e.toString());
+            return false;
+        } catch (LinkageError e) {
             return false;
         }
     }

@@ -374,7 +374,7 @@ public class AiReviewServlet extends HttpServlet {
         }
     }
 
-    private static AiFeature featureOf(String task) {
+    static AiFeature featureOf(String task) {
         switch (task) {
             case "seo":
                 return AiFeature.SEO;
@@ -388,7 +388,7 @@ public class AiReviewServlet extends HttpServlet {
     }
 
     /** The tab of the drawer that a task belongs to, which the site switches on or off. */
-    private static String tabOf(String task) {
+    static String tabOf(String task) {
         switch (task) {
             case "seo":
                 return "seo";
