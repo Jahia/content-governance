@@ -17,6 +17,7 @@ import org.jahia.services.usermanager.JahiaUser;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
@@ -215,34 +216,39 @@ public class AiReviewServlet extends HttpServlet {
      * heading, surrounding text, link target) and, when the browser could read
      * its pixels (same-origin, not tainted), a downscaled copy for vision models.
      */
-    private static final String ALT_TEXT_PROMPT =
-            "You write alternative text for images on a CMS page, for screen reader users and search engines. "
-            + "For each IMAGE #n you receive its file name, rendered size, whether it is a link, nearby text "
-            + "(caption, nearest heading, surrounding paragraph) and, when available, the picture itself: "
-            + "\"attached picture k\" is the k-th picture attached to the message.\n\n"
-            + "Reply ONLY with a valid JSON object. No markdown, no code fences, no comments, no trailing commas.\n"
-            + "JSON structure:\n"
-            + "{\n"
-            + "  \"images\": [\n"
-            + "    {\n"
-            + "      \"id\": <the image number n>,\n"
-            + "      \"decorative\": true | false,\n"
-            + "      \"alt\": \"the alternative text, or empty string when decorative\",\n"
-            + "      \"reason\": \"one sentence explaining the choice\"\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}\n"
-            + "Rules: alt is at most 125 characters; it conveys the image's content or, for a linked image, its "
-            + "purpose/destination; never starts with 'image of' / 'picture of' / 'photo of'; no keyword stuffing; "
-            + "does not repeat an adjacent caption or heading verbatim. Mark decorative=true (with alt \"\") when the "
-            + "image is purely aesthetic (background, divider, flourish) or fully redundant with adjacent text. "
-            + "When the picture itself is not provided, infer from the context and say so in the reason (lower confidence). "
-            + "Answer for every image id you received, in the same order.\n"
-            + "LANGUAGE RULES: every \"alt\" MUST be written in %1$s (it is published to the page's visitors); "
-            + "every \"reason\" MUST be written in %2$s (it is read by the editor).";
+    private static final String ALT_TEXT_PROMPT = """
+            You write alternative text for images on a CMS page, for screen reader users and search engines. \
+            For each IMAGE #n you receive its file name, rendered size, whether it is a link, nearby text \
+            (caption, nearest heading, surrounding paragraph) and, when available, the picture itself: \
+            "attached picture k" is the k-th picture attached to the message.
 
-    @Reference
-    private AiService ai;
+            Reply ONLY with a valid JSON object. No markdown, no code fences, no comments, no trailing commas.
+            JSON structure:
+            {
+              "images": [
+                {
+                  "id": <the image number n>,
+                  "decorative": true | false,
+                  "alt": "the alternative text, or empty string when decorative",
+                  "reason": "one sentence explaining the choice"
+                }
+              ]
+            }
+            Rules: alt is at most 125 characters; it conveys the image's content or, for a linked image, its \
+            purpose/destination; never starts with 'image of' / 'picture of' / 'photo of'; no keyword stuffing; \
+            does not repeat an adjacent caption or heading verbatim. Mark decorative=true (with alt "") when the \
+            image is purely aesthetic (background, divider, flourish) or fully redundant with adjacent text. \
+            When the picture itself is not provided, infer from the context and say so in the reason (lower confidence). \
+            Answer for every image id you received, in the same order.
+            LANGUAGE RULES: every "alt" MUST be written in %1$s (it is published to the page's visitors); \
+            every "reason" MUST be written in %2$s (it is read by the editor).""";
+
+    private final transient AiService ai;
+
+    @Activate
+    public AiReviewServlet(@Reference AiService ai) {
+        this.ai = ai;
+    }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse res) {

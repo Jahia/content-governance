@@ -15,7 +15,6 @@ import org.mockito.ArgumentCaptor;
 import javax.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.lang.reflect.Field;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -90,12 +89,8 @@ class AiReviewServletTasksTest {
         assertThat(new JSONObject(body.toString()).getString("code")).isEqualTo("genaiAccess");
     }
 
-    private AiReviewServlet servlet() throws ReflectiveOperationException {
-        AiReviewServlet servlet = new AiReviewServlet();
-        Field field = AiReviewServlet.class.getDeclaredField("ai");
-        field.setAccessible(true);
-        field.set(servlet, ai);
-        return servlet;
+    private AiReviewServlet servlet() {
+        return new AiReviewServlet(ai);
     }
 
     private static HttpServletResponse response(StringWriter body) throws Exception {

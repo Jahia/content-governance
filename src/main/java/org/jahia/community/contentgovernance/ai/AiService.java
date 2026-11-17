@@ -58,7 +58,7 @@ public class AiService {
 
     private final AtomicReference<AiModel> model = new AtomicReference<>();
     private final Predicate<String> access;
-    private volatile Settings settings = Settings.from(Collections.emptyMap());
+    private final AtomicReference<Settings> settings = new AtomicReference<>(Settings.from(Collections.emptyMap()));
 
     public AiService() {
         this(AiService::currentUserMayUse);
@@ -72,7 +72,7 @@ public class AiService {
     @Activate
     @Modified
     protected void activate(Map<String, Object> properties) {
-        this.settings = Settings.from(properties);
+        settings.set(Settings.from(properties));
         List<String> retired = RETIRED_KEYS.stream()
                 .filter(key -> properties.get(key) instanceof String value && !value.isBlank())
                 .toList();
@@ -129,16 +129,16 @@ public class AiService {
 
     /** Page reviews and assists allowed per user per ten minutes. */
     public int rateMaxCalls() {
-        return settings.rateMaxCalls();
+        return settings.get().rateMaxCalls();
     }
 
     /** Site reports allowed per user per ten minutes. */
     public int reportRateMaxCalls() {
-        return settings.reportRateMaxCalls();
+        return settings.get().reportRateMaxCalls();
     }
 
     private String withAppendix(String system) {
-        String appendix = settings.promptAppendix();
+        String appendix = settings.get().promptAppendix();
         return appendix.isEmpty() ? system
                 : system + "\n\nAdditional instructions from this site's administrator:\n" + appendix;
     }
