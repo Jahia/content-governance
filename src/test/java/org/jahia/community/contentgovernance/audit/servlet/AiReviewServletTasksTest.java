@@ -6,6 +6,13 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * The feature and the tab of each task. The site key that a call sends is not covered here: {@code allowed}
+ * and {@code run} read the repository through {@code JCRSessionFactory}, which these tests cannot mock, because
+ * the pom excludes every dependency of jahia-impl (Mockito fails on {@code javax.validation.ValidatorFactory}).
+ * {@code run} sends {@code site.getSiteKey()} of the page, the key that {@code allowed} asked the status for, and
+ * genai-connector refuses a key on which the user lacks genaiAccess.
+ */
 class AiReviewServletTasksTest {
 
     @ParameterizedTest

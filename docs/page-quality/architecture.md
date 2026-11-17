@@ -275,7 +275,7 @@ support from `contentGovernance.siteSettings.ai`.
 | Body parses as JSON | 400 `invalidRequest` |
 | `path` is absolute, exists and has `jcr:read` for the caller's session | 403 `noAccess` |
 | The site of the page enables the feature of the task (`SiteFeatures.isEnabled`) | 403 `switchedOff` |
-| `AiService.status`: genai-connector runs and serves a model on the `balanced` tier | 503 `notConfigured` |
+| `AiService.status`: genai-connector runs and serves a model on the tier of the task (see Tiers below) | 503 `notConfigured` |
 | `AiService.status`: the caller has `genaiAccess` on the site of the page | 403 `genaiAccess` |
 | Per-user rate limit: `AI_RATE_MAX_CALLS` per 10-minute sliding window | 429 `rateLimited` |
 | The call: genai-connector's own rate limit refuses it | 429 `rateLimited` |
