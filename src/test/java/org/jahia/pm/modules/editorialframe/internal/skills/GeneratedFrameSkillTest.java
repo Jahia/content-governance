@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -33,6 +34,25 @@ class GeneratedFrameSkillTest {
         assertTrue(skill.body.contains("- Rules: Never promise a return."), skill.body);
         assertFalse(skill.body.contains("Details of the rules."), skill.body);
         assertTrue(skill.body.contains("The file voices.md holds every voice in full, personas.md"), skill.body);
+    }
+
+    @Test
+    void aCsvValueIsQuotedWhenItHoldsACommaAQuoteOrOneLineFeed() {
+        assertEquals("", GeneratedFrameSkill.csv(null));
+        assertEquals("", GeneratedFrameSkill.csv(""));
+        assertEquals("plain", GeneratedFrameSkill.csv("plain"));
+        assertEquals("\"a,b\"", GeneratedFrameSkill.csv("a,b"));
+        assertEquals("\"say \"\"hi\"\"\"", GeneratedFrameSkill.csv("say \"hi\""));
+        assertEquals("\"one break\"", GeneratedFrameSkill.csv("one\nbreak"));
+        assertEquals("\"a, b\"", GeneratedFrameSkill.csv("a,\nb"));
+        assertEquals("\" \"", GeneratedFrameSkill.csv("\n"));
+    }
+
+    @Test
+    void aCsvValueWithTwoLineBreaksOrAnotherLineTerminatorIsLeftAsItIs() {
+        for (String value : List.of("two\nline\nbreaks", "a,b\r", "a\r\nb", "a,b\u2028c", "x\u0085y,", "a\u2029")) {
+            assertEquals(value, GeneratedFrameSkill.csv(value));
+        }
     }
 
     @Test

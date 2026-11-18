@@ -17,6 +17,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SkillDocumentTest {
@@ -39,6 +40,23 @@ class SkillDocumentTest {
             + "    - Write me a survey about pizza.\n"
             + "---\n"
             + "Create a form with content.create, as a child of the area that the user names.\n";
+
+    @Test
+    void aNameThatBreaksTheRuleIsFixedAndCutWithoutADashAtItsEnd() {
+        SkillDocument cut = SkillDocument.parse("---\nname: " + "a".repeat(63) + " x\ndescription: D.\n---\nBody", "folder");
+        SkillDocument fromFolder = SkillDocument.parse("---\nname: \"%%%\"\ndescription: D.\n---\nBody",
+                "b".repeat(63) + "_c");
+        SkillDocument long64 = SkillDocument.parse("---\nname: " + "a".repeat(65) + "\ndescription: D.\n---\nBody", null);
+
+        assertEquals("a".repeat(63), cut.name);
+        assertEquals(List.of("The name '" + "a".repeat(63) + " x' breaks the naming rule: '" + "a".repeat(63) + "' is used",
+                "The name '" + "a".repeat(63) + "' differs from the folder 'folder'"), cut.warnings);
+        assertEquals("b".repeat(63), fromFolder.name);
+        assertEquals("a".repeat(64), long64.name);
+        IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+                () -> SkillDocument.parse("---\nname: \"%%%\"\ndescription: D.\n---\nBody", null));
+        assertEquals("The name '%%%' gives no valid skill name", refused.getMessage());
+    }
 
     @Test
     void theJahiaKeysGiveTheLabelTheCoverageAndTheTools() {

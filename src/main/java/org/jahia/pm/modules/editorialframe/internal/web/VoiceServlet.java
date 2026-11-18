@@ -102,7 +102,7 @@ public class VoiceServlet extends HttpServlet {
                     "The voice is longer than " + MAX_VOICE + " characters or holds invisible characters");
             return;
         }
-        if (voiceSkill != null && !voiceSkill.isEmpty() && !SkillDocument.NAME.matcher(voiceSkill).matches()) {
+        if (voiceSkill != null && !voiceSkill.isEmpty() && !SkillDocument.NAME_PATTERN.matcher(voiceSkill).matches()) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "voiceSkill is not a skill name");
             return;
         }
