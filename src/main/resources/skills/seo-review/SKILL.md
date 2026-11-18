@@ -20,8 +20,8 @@ metadata:
 
 1. Find the page that the user names: currentPage when the user says "this page". Call page.outline on it with fullValues true.
 2. Check these points, and note each finding with the path of the content item it concerns:
-   - the title of the page: 30 to 60 characters, the main subject first;
-   - the description of the page, when the page has one: 70 to 160 characters, one sentence that makes a reader want to click;
+   - the title of the page: 30 to 60 characters, the main subject first (the default of the rule seo.title);
+   - the description of the page, when the page has one: 50 to 160 characters, one sentence that makes a reader want to click (the default of the rule seo.metaDescription);
    - the headings: one main heading, then lower levels in order, and no heading that says nothing, such as "Introduction";
    - each image: an alternative text that says what the image shows;
    - the internal links: at least two links to other pages of the site, with a link text that says where it leads.

@@ -263,6 +263,14 @@
     word-break: break-word;
 }
 
+/* The id of the rule of a finding, as the catalog names it. */
+.recRule {
+    display: inline-block;
+    margin-top: 4px;
+    color: #6b7a86;
+    font-size: 11px;
+}
+
 .okMark {
     color: #1b7d3e;
     font-weight: 700;

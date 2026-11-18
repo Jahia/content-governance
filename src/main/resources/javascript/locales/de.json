@@ -242,7 +242,7 @@
           },
           "title": {
             "label": "Titel vorhanden und von geeigneter Länge",
-            "fix": "Ein Titel unter 10 oder über 70 Zeichen ist entweder nichtssagend oder wird überall, wo er zitiert wird, abgeschnitten."
+            "fix": "Ein Titel unter {{min}} oder über {{max}} Zeichen ist entweder nichtssagend oder wird überall, wo er zitiert wird, abgeschnitten."
           },
           "singleH1": {
             "label": "Genau eine H1",
@@ -253,8 +253,8 @@
             "fix": "Beim Abruf werden Seiten an Überschriften aufgeteilt. Eine Seite ohne H2 ist ein einziger ungegliederter Block."
           },
           "metaDescription": {
-            "label": "Meta-Beschreibung vorhanden",
-            "fix": "Ohne sie wird die Zusammenfassung neben einer Antwort aus dem Text erzeugt, der zuerst kommt."
+            "label": "Meta-Beschreibung vorhanden und von geeigneter Länge",
+            "fix": "Ohne sie wird die Zusammenfassung neben einer Antwort aus dem Text erzeugt, der zuerst kommt. Halten Sie sie zwischen {{min}} und {{max}} Zeichen."
           },
           "canonical": {
             "label": "Kanonische URL deklariert",
@@ -1322,7 +1322,7 @@
           },
           "noDescription": {
             "title": "Keine Meta-Beschreibung",
-            "detail": "Suchmaschinen wählen dann einen beliebigen Textausschnitt. Schreiben Sie eine Zusammenfassung mit 50-160 Zeichen, die zum Klicken einlädt."
+            "detail": "Suchmaschinen wählen dann einen beliebigen Textausschnitt. Schreiben Sie eine Zusammenfassung mit {{min}}-{{max}} Zeichen, die zum Klicken einlädt."
           },
           "descriptionLength": {
             "title": "Die Meta-Beschreibung hat {{length}} Zeichen",
@@ -1622,7 +1622,7 @@
         "words": "Wörter",
         "sentences": "Sätze",
         "avgSentenceLength": "Ø Wörter pro Satz",
-        "longSentences": "Lange Sätze (>25 Wörter)",
+        "longSentences": "Lange Sätze (>{{max}} Wörter)",
         "longSentencesHint": "erwägen Sie, sie aufzuteilen",
         "paragraphs": "Absätze",
         "avgWordsPerParagraph": "Ø Wörter",
@@ -1680,7 +1680,7 @@
           },
           "thinContent": {
             "title": "Wenig Text auf der Seite ({{count}} Wörter)",
-            "detail": "Seiten mit weniger als ca. 300 Wörtern informieren schlecht und ranken schlecht. Erwägen Sie, den Inhalt zu erweitern oder mit einer anderen Seite zusammenzulegen."
+            "detail": "Seiten mit weniger als {{min}} Wörtern informieren schlecht und ranken schlecht. Erwägen Sie, den Inhalt zu erweitern oder mit einer anderen Seite zusammenzulegen."
           }
         }
       },

@@ -296,7 +296,7 @@ export const SiteScorePanel = ({path, language}) => {
                             .map(([id, count]) => ({
                                 id,
                                 count,
-                                label: t(`score.check.${id}.label`),
+                                label: [t(`score.check.${id}.label`), (agg.rules || {})[id]].filter(Boolean).join(' · '),
                                 severity: (agg.severities || {})[id] || 'advisory'
                             }))}
                         legend={{

@@ -170,8 +170,8 @@ best-practice rules.
 
 ### SEO
 
-- **Recommendations**: missing or badly sized title (aim for 30 to 60 characters), missing or badly
-  sized meta description (50 to 160), page excluded from search engines (`noindex`) or links not
+- **Recommendations**: missing or badly sized title (`seo.title`, 30 to 60 characters by default),
+  missing or badly sized meta description (`seo.metaDescription`, 50 to 160), page excluded from search engines (`noindex`) or links not
   followed (`nofollow`), no canonical URL, incomplete Open Graph tags, invalid or missing structured
   data, missing or wrong `lang` attribute, images without alt, generic link texts such as "click
   here" or "read more".
@@ -226,7 +226,8 @@ Measures how easy the main text is to read. Navigation, header and footer are le
   difficult** (55 and up); aim for 40 or less for a general audience.
 - **Grade level** (Flesch-Kincaid, English only) and **Reading time** (at 200 words a minute).
 - **Recommendations**: hard text, sentences over 25 words, dense paragraphs (over 80 words on
-  average), not exactly one H1, skipped heading levels (H2 then H4), less than 300 words.
+  average), not exactly one H1, skipped heading levels (H2 then H4), less than 300 words. These are
+  the defaults of the catalog of content rules.
 - **Text statistics** and **Structure** (the number of H1 headings and of skipped levels).
 - **Heading outline**: every heading of the main content, in page order, indented by its level, so
   you see the page as a screen reader user or a search engine does. A heading that skips a level
@@ -254,9 +255,9 @@ Page-level checks inspired by the French eco-design referential RGESN 2024.
 
 | Check | Passes when |
 |---|---|
-| Page weight | 1 MB or less (poor above 2.5 MB) |
-| HTTP requests | 40 or fewer (poor above 70) |
-| DOM nodes | 1,000 or fewer (poor above 1,500) |
+| Page weight | 1 MB or less |
+| HTTP requests | 70 or fewer |
+| DOM nodes | 1,500 or fewer |
 | Below-the-fold images not lazy-loaded | none |
 | Web font files | at most 2, all WOFF2 |
 | Autoplay media | none |
@@ -269,9 +270,8 @@ Page-level checks inspired by the French eco-design referential RGESN 2024.
   and features, for the team responsible for the platform.
 
 This is not an RGESN conformity score. RGESN assesses a whole service, most of it outside a single
-page. The figures come from the editing version of the page and are indicative. The thresholds
-differ from **Web Vitals**: requests are flagged above 40 here and above 80 there, and page weight
-becomes serious above 2.5 MB here and above 2 MB there.
+page. The figures come from the editing version of the page and are indicative. The limits are the
+defaults of the rules `ecodesign.*`, which **Web Vitals** applies too.
 
 Yours: image formats and sizes, autoplaying videos, embeds you added. A developer's: fonts, lazy
 loading in templates, third-party scripts.

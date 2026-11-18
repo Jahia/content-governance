@@ -242,7 +242,7 @@
           },
           "title": {
             "label": "Título presente y de longitud adecuada",
-            "fix": "Un título de menos de 10 o más de 70 caracteres resulta poco informativo o aparece truncado allí donde se cita."
+            "fix": "Un título de menos de {{min}} o más de {{max}} caracteres resulta poco informativo o aparece truncado allí donde se cita."
           },
           "singleH1": {
             "label": "Exactamente un H1",
@@ -253,8 +253,8 @@
             "fix": "La recuperación divide las páginas por encabezados. Una página sin H2 es un único bloque indiferenciado."
           },
           "metaDescription": {
-            "label": "Metadescripción presente",
-            "fix": "Sin ella, el resumen que acompaña a una respuesta se genera a partir del primer texto que aparezca."
+            "label": "Metadescripción presente y de longitud adecuada",
+            "fix": "Sin ella, el resumen que acompaña a una respuesta se genera a partir del primer texto que aparezca. Manténgala entre {{min}} y {{max}} caracteres."
           },
           "canonical": {
             "label": "URL canónica declarada",
@@ -1322,7 +1322,7 @@
           },
           "noDescription": {
             "title": "Sin metadescripción",
-            "detail": "Los buscadores elegirán un fragmento de texto cualquiera. Escriba un resumen de 50 a 160 caracteres que invite a hacer clic."
+            "detail": "Los buscadores elegirán un fragmento de texto cualquiera. Escriba un resumen de {{min}} a {{max}} caracteres que invite a hacer clic."
           },
           "descriptionLength": {
             "title": "La metadescripción tiene {{length}} caracteres",
@@ -1622,7 +1622,7 @@
         "words": "Palabras",
         "sentences": "Frases",
         "avgSentenceLength": "Media de palabras por frase",
-        "longSentences": "Frases largas (>25 palabras)",
+        "longSentences": "Frases largas (>{{max}} palabras)",
         "longSentencesHint": "considere dividirlas",
         "paragraphs": "Párrafos",
         "avgWordsPerParagraph": "palabras de media",
@@ -1680,7 +1680,7 @@
           },
           "thinContent": {
             "title": "Poco texto en la página ({{count}} palabras)",
-            "detail": "Las páginas de menos de ~300 palabras informan poco y se posicionan mal. Considere ampliar el contenido o fusionarlo con otra página."
+            "detail": "Las páginas de menos de {{min}} palabras informan poco y se posicionan mal. Considere ampliar el contenido o fusionarlo con otra página."
           }
         }
       },

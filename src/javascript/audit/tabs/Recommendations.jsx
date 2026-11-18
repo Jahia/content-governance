@@ -7,10 +7,11 @@ import styles from './Tabs.module.css';
 import {impactClass} from './impactClass';
 
 /**
- * Shared recommendations block: severity chip + what to fix + how, and the actions other modules
- * add to the finding.
- * Items come from the analyzers as {key, severity, params}; text lives in
- * the locale bundles under <ns>.recs.<key>.title / .detail.
+ * Shared recommendations block: severity chip + what to fix + how, the id of the rule, and the
+ * actions other modules add to the finding.
+ * Items come from the analyzers as {key, rule, severity, params}; text lives in
+ * the locale bundles under <ns>.recs.<key>.title / .detail, and the id of the rule is shown as is.
+ * An audit stored before the catalog has no rule.
  */
 export function Recommendations({items, ns, tab}) {
     const {t} = useGovernanceTranslation('audit');
@@ -29,6 +30,7 @@ export function Recommendations({items, ns, tab}) {
                     <div className={styles.recBody}>
                         <div className={styles.recTitle}>{t(`${ns}.recs.${rec.key}.title`, rec.params)}</div>
                         <div className={styles.recDetail}>{t(`${ns}.recs.${rec.key}.detail`, rec.params)}</div>
+                        {rec.rule && <code className={styles.recRule}>{rec.rule}</code>}
                         <FindingActions findingKey={auditFindingKey(tab, rec.key)}/>
                     </div>
                 </div>

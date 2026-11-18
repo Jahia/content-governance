@@ -27,7 +27,7 @@ export function SeoTab({result, assist}) {
         <div>
             <Recommendations items={result.recommendations} ns="seo" tab="seo"/>
 
-            <SeoAssist {...assist}/>
+            <SeoAssist {...assist} ranges={result.ranges}/>
 
             <h4 className={styles.sectionTitle}>{t('seo.preview')}</h4>
             {(result.og.title || result.title.text) ? (

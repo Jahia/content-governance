@@ -7,6 +7,8 @@ import org.jahia.community.contentgovernance.ai.AiImage;
 import org.jahia.community.contentgovernance.ai.AiRequest;
 import org.jahia.community.contentgovernance.ai.AiService;
 import org.jahia.community.contentgovernance.ai.AiStatus;
+import org.jahia.community.contentgovernance.rules.ContentRule;
+import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jahia.community.contentgovernance.settings.Features;
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
 import org.jahia.services.content.JCRNodeWrapper;
@@ -154,8 +156,8 @@ public class AiReviewServlet extends HttpServlet {
             + "Reply ONLY with a valid JSON object. No markdown, no code fences, no comments, no trailing commas.\n"
             + "JSON structure:\n"
             + "{\n"
-            + "  \"titles\": [\"2 alternative <title> tags, 30-60 characters, primary keyword near the start\"],\n"
-            + "  \"metaDescriptions\": [\"3 alternative meta descriptions, 120-155 characters each, one clear benefit + implicit call to click\"],\n"
+            + "  \"titles\": [\"2 alternative <title> tags, {{titleRange}} characters, primary keyword near the start\"],\n"
+            + "  \"metaDescriptions\": [\"3 alternative meta descriptions, {{descriptionRange}} characters each, one clear benefit + implicit call to click\"],\n"
             + "  \"social\": {\n"
             + "    \"title\": \"og:title for social sharing cards, max 60 characters, catchier than the <title>, no brand suffix needed\",\n"
             + "    \"description\": \"og:description, 80-150 characters, written to make people stop scrolling and click\"\n"
@@ -376,11 +378,22 @@ public class AiReviewServlet extends HttpServlet {
         }
     }
 
+    /** The SEO assist prompt, with the length ranges of the title and the description that the site applies. */
+    static String seoAssistPrompt(ContentRules rules) {
+        return SEO_ASSIST_PROMPT
+                .replace("{{titleRange}}", range(rules.get("seo.title")))
+                .replace("{{descriptionRange}}", range(rules.get("seo.metaDescription")));
+    }
+
+    private static String range(ContentRule rule) {
+        return Math.round(rule.min()) + "-" + Math.round(rule.max());
+    }
+
     private Prompt promptFor(String task, JSONObject payload, boolean vision) {
         switch (task) {
             case "seo":
-                return new Prompt(task, languagePrompt(SEO_ASSIST_PROMPT, payload), buildSeoAssistContent(payload),
-                        List.of());
+                return new Prompt(task, languagePrompt(seoAssistPrompt(ContentRules.forPath(payload.optString("path", ""))), payload),
+                        buildSeoAssistContent(payload), List.of());
             case "alt": {
                 // The pictures, when the vision tier is served, are filled in while the content is built.
                 List<AiImage> images = new ArrayList<>();

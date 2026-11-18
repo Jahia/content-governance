@@ -35,6 +35,8 @@ every tab shows, which findings are yours to fix and which belong to a developer
 
 - **[`settings-guide.md`](settings-guide.md)**: **Site Settings > Content governance**: switching
   sections and tabs, the AI model, connecting BotRank.
+- **[`content-rules/catalog.md`](content-rules/catalog.md)**: the rules the checks apply, and how
+  a site turns one off or changes its severity or its limits.
 
 ## If you want to know what it checks, or how it works
 
@@ -44,6 +46,7 @@ every tab shows, which findings are yours to fix and which belong to a developer
 | GEO readiness | [`geo-readiness/checks.md`](geo-readiness/checks.md) | [`geo-readiness/architecture.md`](geo-readiness/architecture.md) |
 | Compliance | [`compliance/glossary-guide.md`](compliance/glossary-guide.md) (matching rules) | [`compliance/architecture.md`](compliance/architecture.md) |
 | Editorial frame (no section of the drawer yet) | [`editorial-frame/guide.md`](editorial-frame/guide.md) | [`editorial-frame/architecture.md`](editorial-frame/architecture.md) |
+| Content rules (the id, severity and limits of each check) | [`content-rules/catalog.md`](content-rules/catalog.md) | [`content-rules/catalog.md`](content-rules/catalog.md#how-a-check-reads-the-rules) |
 
 Agents read [`../.agents/README.md`](../.agents/README.md) first: invariants, the legacy storage
 kept on purpose, traps already hit once, known leftovers.

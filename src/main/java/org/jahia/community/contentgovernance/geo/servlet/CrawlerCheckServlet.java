@@ -19,6 +19,7 @@ import org.jahia.community.contentgovernance.geo.check.SiteFilesChecker;
 import org.jahia.community.contentgovernance.geo.config.GeoReadinessConfigService;
 import org.jahia.community.contentgovernance.geo.util.PublicUrls;
 import org.jahia.community.contentgovernance.geo.util.SiteScope;
+import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jahia.community.contentgovernance.settings.Features;
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
 import org.jahia.services.content.JCRNodeWrapper;
@@ -306,7 +307,7 @@ public class CrawlerCheckServlet extends GeoServlet {
         }
 
         // The score reads only what is already in the report. It adds no requests.
-        JSONObject score = GeoScore.compute(out);
+        JSONObject score = GeoScore.compute(out, ContentRules.forPath(path));
         out.put("score", score);
 
         boolean storedScanAllowed = mayReadStoredScan(path, language);

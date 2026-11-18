@@ -11,15 +11,9 @@
  * autoplay media, modern image formats, third-party origins).
  */
 
-// Google/RGESN-aligned budgets. Page weight in bytes; the rest are counts.
-const WEIGHT_GOOD = 1_000_000;
-const WEIGHT_POOR = 2_500_000;
-const REQUESTS_GOOD = 40;
-const REQUESTS_POOR = 70;
-const DOM_GOOD = 1000;
-const DOM_POOR = 1500;
-const FONT_FILES_MAX = 2;
-const THIRD_PARTY_MAX = 5;
+import {findings} from '../rules';
+
+const KILOBYTE = 1024;
 
 const LEGACY_IMAGE = /\.(jpe?g|png|gif|bmp|tiff?)($|\?)/i;
 const MODERN_IMAGE = /\.(webp|avif)($|\?)/i;
@@ -33,7 +27,13 @@ function sizeOf(entry) {
  * @param frame   the preview iframe element
  * @param vitals  the Web Vitals analyzer result (diagnostics reused here)
  */
-export function runEcodesign(frame, vitals) {
+/**
+ * @param {HTMLIFrameElement} frame the preview frame
+ * @param {object} vitals the result of the Web Vitals analyzer
+ * @param {{get: function(string): object}} rules the rules of the site
+ * @returns {object} the criteria and their findings
+ */
+export function runEcodesign(frame, vitals, rules) {
     const win = frame.contentWindow;
     const doc = frame.contentDocument;
     if (!win || !doc) {
@@ -83,32 +83,28 @@ export function runEcodesign(frame, vitals) {
     const oversized = d.oversized || 0;
     const missingDims = d.missingDims || 0;
 
-    const band = (value, good, poor) => {
-        if (value <= good) {
-            return 'good';
-        }
-        return value <= poor ? 'ni' : 'poor';
-    };
+    const max = id => rules.get(id).maximum;
+    const band = (value, limit) => (value <= limit ? 'good' : 'poor');
     const legacyNote = legacyFonts > 0 ? ` (${legacyFonts} legacy)` : '';
 
     // --- criteria ----------------------------------------------------------
     const criteria = [
         {
             key: 'pageWeight', family: 'frontend',
-            ok: totalBytes <= WEIGHT_GOOD,
-            band: band(totalBytes, WEIGHT_GOOD, WEIGHT_POOR),
+            ok: totalBytes <= max('ecodesign.pageWeight') * KILOBYTE,
+            band: band(totalBytes, max('ecodesign.pageWeight') * KILOBYTE),
             value: `${(totalBytes / 1024 / 1024).toFixed(2)} MB`
         },
         {
             key: 'requests', family: 'frontend',
-            ok: requests <= REQUESTS_GOOD,
-            band: band(requests, REQUESTS_GOOD, REQUESTS_POOR),
+            ok: requests <= max('ecodesign.requests'),
+            band: band(requests, max('ecodesign.requests')),
             value: `${requests}`
         },
         {
             key: 'domSize', family: 'frontend',
-            ok: domNodes <= DOM_GOOD,
-            band: band(domNodes, DOM_GOOD, DOM_POOR),
+            ok: domNodes <= max('ecodesign.domSize'),
+            band: band(domNodes, max('ecodesign.domSize')),
             value: `${domNodes}`
         },
         {
@@ -118,7 +114,7 @@ export function runEcodesign(frame, vitals) {
         },
         {
             key: 'webFonts', family: 'frontend',
-            ok: fontFiles.length <= FONT_FILES_MAX && legacyFonts === 0,
+            ok: fontFiles.length <= max('ecodesign.webFonts') && legacyFonts === 0,
             value: `${fontFiles.length}${legacyNote}`
         },
         {
@@ -143,7 +139,7 @@ export function runEcodesign(frame, vitals) {
         },
         {
             key: 'thirdParty', family: 'architecture',
-            ok: thirdParty.size <= THIRD_PARTY_MAX,
+            ok: thirdParty.size <= max('ecodesign.thirdParty'),
             value: `${thirdParty.size}`
         }
     ];
@@ -164,59 +160,27 @@ export function runEcodesign(frame, vitals) {
         }
     };
 
-    result.recommendations = buildEcoRecommendations({criteria, belowFoldEager, legacyFonts,
+    result.recommendations = buildEcoRecommendations(criteria, {belowFoldEager, legacyFonts,
         autoplay, legacyImages, oversized, missingDims, thirdParty: thirdParty.size,
-        fontFiles: fontFiles.length, totalBytes, requests, domNodes});
+        fontFiles: fontFiles.length, totalBytes, requests, domNodes}, rules);
     return result;
 }
 
-function buildEcoRecommendations(x) {
-    const recs = [];
-    const push = (key, severity, params) => recs.push({key, severity, params: params || {}});
-
-    if (x.totalBytes > WEIGHT_POOR) {
-        push('pageWeight', 'serious', {size: `${(x.totalBytes / 1024 / 1024).toFixed(1)} MB`});
-    } else if (x.totalBytes > WEIGHT_GOOD) {
-        push('pageWeight', 'moderate', {size: `${(x.totalBytes / 1024 / 1024).toFixed(1)} MB`});
-    }
-
-    if (x.requests > REQUESTS_POOR) {
-        push('requests', 'serious', {count: x.requests});
-    } else if (x.requests > REQUESTS_GOOD) {
-        push('requests', 'moderate', {count: x.requests});
-    }
-
-    if (x.domNodes > DOM_POOR) {
-        push('domSize', 'moderate', {count: x.domNodes});
-    }
-
-    if (x.belowFoldEager > 0) {
-        push('lazyLoading', 'moderate', {count: x.belowFoldEager});
-    }
-
-    if (x.legacyImages > 0) {
-        push('imageFormats', 'moderate', {count: x.legacyImages});
-    }
-
-    if (x.oversized > 0) {
-        push('oversizedImages', 'moderate', {count: x.oversized});
-    }
-
-    if (x.missingDims > 0) {
-        push('imageDimensions', 'minor', {count: x.missingDims});
-    }
-
-    if (x.fontFiles > FONT_FILES_MAX || x.legacyFonts > 0) {
-        push('webFonts', 'minor', {count: x.fontFiles, legacy: x.legacyFonts});
-    }
-
-    if (x.autoplay > 0) {
-        push('autoplay', 'moderate', {count: x.autoplay});
-    }
-
-    if (x.thirdParty > THIRD_PARTY_MAX) {
-        push('thirdParty', 'moderate', {count: x.thirdParty});
-    }
-
+/** One finding for each criterion that fails, under the rule of the same name. */
+function buildEcoRecommendations(criteria, x, rules) {
+    const {recs, push} = findings(rules);
+    const params = {
+        pageWeight: {size: `${(x.totalBytes / KILOBYTE / KILOBYTE).toFixed(1)} MB`},
+        requests: {count: x.requests},
+        domSize: {count: x.domNodes},
+        lazyLoading: {count: x.belowFoldEager},
+        imageFormats: {count: x.legacyImages},
+        oversizedImages: {count: x.oversized},
+        imageDimensions: {count: x.missingDims},
+        webFonts: {count: x.fontFiles, legacy: x.legacyFonts},
+        autoplay: {count: x.autoplay},
+        thirdParty: {count: x.thirdParty}
+    };
+    criteria.filter(c => !c.ok).forEach(c => push(`ecodesign.${c.key}`, c.key, params[c.key]));
     return recs;
 }

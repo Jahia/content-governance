@@ -7,6 +7,7 @@ import {runWebVitals} from './analyzers/webVitals';
 import {runReadability} from './analyzers/readability';
 import {runEcodesign} from './analyzers/ecodesign';
 import {runSeo} from './analyzers/seo';
+import {fetchRules} from './rules';
 import {runLinks} from './analyzers/links';
 import {runJahiaHealth, fetchPageLastModified} from './analyzers/jahiaHealth';
 import {removeToolingElements} from './analyzers/tooling';
@@ -207,6 +208,9 @@ async function auditFrame(frame, {isOn, language, path, apolloClient}) {
     // before any analyzer sees the DOM.
     removeToolingElements(frame.contentDocument);
 
+    // Read once per audit, so that a rule the site changed applies at the next run.
+    const rules = await fetchRules(apolloClient, path);
+
     // Only the tabs the site keeps on are measured. Eco-design reads the vitals
     // measurement, so vitals run as its input; the SEO read is a cheap DOM pass that
     // always runs, for the page facts the AI tasks need (title, description, images
@@ -225,25 +229,25 @@ async function auditFrame(frame, {isOn, language, path, apolloClient}) {
         }
         return outcome.value;
     };
-    const vitals = isOn('vitals') || isOn('ecodesign') ? await step('vitals', () => runWebVitals(frame)) : null;
+    const vitals = isOn('vitals') || isOn('ecodesign') ? await step('vitals', () => runWebVitals(frame, rules)) : null;
     let ecodesign = null;
     if (isOn('ecodesign')) {
         if (vitals) {
-            ecodesign = runEcodesign(frame, vitals);
+            ecodesign = runEcodesign(frame, vitals, rules);
         } else {
             incomplete.ecodesign = incomplete.vitals;
         }
     }
-    const readability = isOn('readability') ? runReadability(frame, language) : null;
-    const seo = runSeo(frame, language);
+    const readability = isOn('readability') ? runReadability(frame, language, rules) : null;
+    const seo = runSeo(frame, language, rules);
     const page = {
         title: seo.title ? seo.title.text : '',
         description: seo.description ? (seo.description.text || '') : '',
         imagesWithoutAlt: seo.imagesWithoutAlt || 0
     };
     const a11y = isOn('accessibility') ? await step('a11y', () => runAccessibility(frame)) : null;
-    const links = isOn('links') ? await step('links', () => runLinks(frame)) : null;
-    const jahia = isOn('jahia') ? await step('jahia', () => runJahiaHealth(frame, {client: apolloClient, path, language})) : null;
+    const links = isOn('links') ? await step('links', () => runLinks(frame, rules)) : null;
+    const jahia = isOn('jahia') ? await step('jahia', () => runJahiaHealth(frame, {client: apolloClient, path, language, rules})) : null;
     return measuredResults({a11y, vitals, ecodesign, readability, seo, links, jahia}, page, incomplete, isOn);
 }
 

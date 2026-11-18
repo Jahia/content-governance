@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {tabCounts} from '../../javascript/audit/tabCounts.js';
 import {buildVitalsRecommendations} from '../../javascript/audit/analyzers/webVitals.js';
+import {BASE_RULES} from './baseRules.js';
 import {withoutTimingFindings} from '../../javascript/audit/vitalsFindings.js';
 import {auditFindings, isSerious} from '../../javascript/drawer/findings.js';
 
@@ -46,7 +47,7 @@ describe('Web Vitals findings', () => {
     const diagnostics = {missingDims: 0, oversized: 0, totalBytes: 100, requests: 5, domNodes: 100, largest: []};
 
     it('raises nothing on a timing, however slow', () => {
-        const recs = buildVitalsRecommendations({metrics: {lcp: 9000, cls: 0.9, ttfb: 5000}, diagnostics});
+        const recs = buildVitalsRecommendations({metrics: {lcp: 9000, cls: 0.9, ttfb: 5000}, diagnostics}, BASE_RULES);
         expect(recs).toEqual([]);
     });
 
@@ -54,7 +55,7 @@ describe('Web Vitals findings', () => {
         const recs = buildVitalsRecommendations({
             metrics: {lcp: 100, cls: 0, ttfb: 10},
             diagnostics: {...diagnostics, missingDims: 2, totalBytes: 3 * 1024 * 1024, requests: 120, domNodes: 2000}
-        });
+        }, BASE_RULES);
         expect(recs.map(rec => rec.key)).toEqual(['missingDims', 'heavyPage', 'manyRequests', 'largeDom']);
     });
 

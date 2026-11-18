@@ -7,6 +7,8 @@
  * URLs are the normal shape of internal links here - not a defect.
  */
 
+import {findings} from '../rules';
+
 const MAX_CHECKED = 60;
 const BATCH_SIZE = 6;
 
@@ -45,7 +47,7 @@ async function checkUrl(url) {
     }
 }
 
-export async function runLinks(frame) {
+export async function runLinks(frame, rules) {
     const doc = frame.contentDocument;
     const win = frame.contentWindow;
     if (!doc || !win) {
@@ -127,28 +129,27 @@ export async function runLinks(frame) {
         mixedContent
     };
 
-    result.recommendations = buildLinksRecommendations(result);
+    result.recommendations = buildLinksRecommendations(result, rules);
     return result;
 }
 
-function buildLinksRecommendations(r) {
-    const recs = [];
-    const push = (key, severity, params) => recs.push({key, severity, params: params || {}});
+function buildLinksRecommendations(r, rules) {
+    const {recs, push} = findings(rules);
 
     if (r.broken.length > 0) {
-        push('brokenLinks', 'critical', {count: r.broken.length});
+        push('links.broken', 'brokenLinks', {count: r.broken.length});
     }
 
     if (r.hardcodedHost > 0) {
-        push('hardcodedUrls', 'moderate', {count: r.hardcodedHost});
+        push('links.hardcodedUrls', 'hardcodedUrls', {count: r.hardcodedHost});
     }
 
     if (r.mixedContent > 0) {
-        push('mixedContent', 'serious', {count: r.mixedContent});
+        push('links.mixedContent', 'mixedContent', {count: r.mixedContent});
     }
 
     if (r.blankNoopener > 0) {
-        push('blankNoopener', 'minor', {count: r.blankNoopener});
+        push('links.blankNoopener', 'blankNoopener', {count: r.blankNoopener});
     }
 
     return recs;

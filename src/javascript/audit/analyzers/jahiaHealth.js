@@ -1,3 +1,4 @@
+import {findings} from '../rules';
 import {gql} from '@apollo/client';
 
 /**
@@ -125,7 +126,7 @@ function scanTextNodes(doc) {
     return {rawKeys, placeholders};
 }
 
-export async function runJahiaHealth(frame, {client, path, language}) {
+export async function runJahiaHealth(frame, {client, path, language, rules}) {
     const doc = frame.contentDocument;
     if (!doc || !doc.body) {
         throw new Error('Preview frame is not accessible');
@@ -196,34 +197,33 @@ export async function runJahiaHealth(frame, {client, path, language}) {
         placeholders: {count: placeholders.length, samples: placeholders.slice(0, MAX_SAMPLES)}
     };
 
-    result.recommendations = buildHealthRecommendations(result);
+    result.recommendations = buildHealthRecommendations(result, rules);
     return result;
 }
 
-function buildHealthRecommendations(r) {
-    const recs = [];
-    const push = (key, severity, params) => recs.push({key, severity, params: params || {}});
+function buildHealthRecommendations(r, rules) {
+    const {recs, push} = findings(rules);
 
     if (r.rawKeys.count > 0) {
-        push('rawI18nKeys', 'critical', {count: r.rawKeys.count});
+        push('health.rawI18nKeys', 'rawI18nKeys', {count: r.rawKeys.count});
     }
 
     const pageUnpublished = r.pageStatus && BAD_STATUSES.has(r.pageStatus);
     if (r.unpublished.length > 0 || pageUnpublished) {
-        push('unpublishedChanges', 'serious', {count: r.unpublished.length + (pageUnpublished ? 1 : 0)});
+        push('health.unpublishedChanges', 'unpublishedChanges', {count: r.unpublished.length + (pageUnpublished ? 1 : 0)});
     }
 
     if (r.untranslated.length > 0) {
         const languages = Array.from(new Set(r.untranslated.flatMap(n => n.missing))).join(', ');
-        push('missingTranslations', 'serious', {count: r.untranslated.length, languages});
+        push('health.missingTranslations', 'missingTranslations', {count: r.untranslated.length, languages});
     }
 
     if (r.placeholders.count > 0) {
-        push('placeholderText', 'serious', {count: r.placeholders.count});
+        push('health.placeholderText', 'placeholderText', {count: r.placeholders.count});
     }
 
     if (r.graphqlUnavailable) {
-        push('graphqlUnavailable', 'minor');
+        push('health.graphqlUnavailable', 'graphqlUnavailable');
     }
 
     return recs;

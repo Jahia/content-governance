@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.check;
 
+import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
@@ -16,6 +17,7 @@ import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -117,6 +119,8 @@ public final class SiteScorer {
         /** Fetched once for the whole site: the same file for every row. */
         private JSONObject siteFiles;
         private RobotsRules rules;
+        /** The content rules of the site, read once: a change during the scan applies to the next one. */
+        private final ContentRules contentRules;
         /** GEO-21, kept because the link report reads it as well as storing it. */
         private JSONObject sitemap;
 
@@ -126,6 +130,7 @@ public final class SiteScorer {
         private final JSONArray failures = new JSONArray();
         private final Map<String, Integer> failCounts = new TreeMap<>();
         private final Map<String, String> severities = new LinkedHashMap<>();
+        private final Map<String, String> ruleIds = new LinkedHashMap<>();
         private final Map<String, int[]> bySection = new LinkedHashMap<>();
         private final TemplateRollup.Accumulator byTemplate = new TemplateRollup.Accumulator();
 
@@ -140,6 +145,7 @@ public final class SiteScorer {
             this.language = language;
             this.opts = opts;
             this.siteBase = baseFor(sitePath, language, opts);
+            this.contentRules = ContentRules.forPath(sitePath);
         }
 
         JSONObject execute() throws RepositoryException {
@@ -185,8 +191,7 @@ public final class SiteScorer {
             for (int i = 0; i < paths.size(); i++) {
                 String path = paths.get(i);
                 try {
-                    fold(path, scorePage(sitePath, path, language, rules, siteFiles, opts,
-                            links, canonicals, siteBase));
+                    fold(path, scorePage(path));
                 } catch (Exception e) {
                     logger.debug("scoring failed for {}", path, e);
                 }
@@ -247,6 +252,10 @@ public final class SiteScorer {
             for (String k : sev.keySet()) {
                 severities.put(k, sev.getString(k));
             }
+            JSONObject ids = one.optJSONObject("rules");
+            for (String k : ids == null ? Collections.<String>emptySet() : ids.keySet()) {
+                ruleIds.put(k, ids.getString(k));
+            }
         }
 
         /**
@@ -281,6 +290,7 @@ public final class SiteScorer {
             aggregate.put("percent", totalChecks == 0 ? 0 : Math.round(totalPassed * 100.0 / totalChecks));
             aggregate.put("failCounts", new JSONObject(failCounts));
             aggregate.put("severities", new JSONObject(severities));
+            aggregate.put("rules", new JSONObject(ruleIds));
 
             JSONArray sections = new JSONArray();
             bySection.forEach((name, agg) -> {
@@ -432,9 +442,7 @@ public final class SiteScorer {
 
         /** One page: is it readable, what does its HTML contain, what does that score. */
 
-        private static JSONObject scorePage(String sitePath, String path, String language,
-                RobotsRules rules, JSONObject siteFiles, Options opts, LinkGraph.Accumulator links,
-                Map<String, String> canonicals, String siteBase) throws RepositoryException {
+        private JSONObject scorePage(String path) throws RepositoryException {
             JSONObject visibility = GuestVisibility.forPage(path, language);
             if (!visibility.optBoolean("published", false)) {
                 return null;
@@ -451,7 +459,7 @@ public final class SiteScorer {
             JSONObject agent = fetch(url, visibility, siteBase, opts, links);
             recordCanonical(url, agent, canonicals);
 
-            JSONObject score = GeoScore.compute(drawerReport(url, agent, visibility, siteFiles, rules));
+            JSONObject score = GeoScore.compute(drawerReport(url, agent, visibility, siteFiles, rules), contentRules);
             return summarise(out, score);
         }
 
@@ -556,6 +564,7 @@ public final class SiteScorer {
         private static JSONObject summarise(JSONObject out, JSONObject score) {
             JSONArray failed = new JSONArray();
             JSONObject severities = new JSONObject();
+            JSONObject ruleIds = new JSONObject();
             JSONArray checks = score.getJSONArray("checks");
             int passed = 0;
             int total = 0;
@@ -566,6 +575,7 @@ public final class SiteScorer {
                     continue;
                 }
                 severities.put(c.getString("id"), c.getString(SEVERITY));
+                ruleIds.put(c.getString("id"), c.getString("rule"));
                 total++;
                 if (c.getBoolean(PASSED)) {
                     passed++;
@@ -583,6 +593,7 @@ public final class SiteScorer {
             out.put("score", trimmed);
             out.put("failed", failed);
             out.put("severities", severities);
+            out.put("rules", ruleIds);
             return out;
         }
 
