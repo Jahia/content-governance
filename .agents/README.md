@@ -13,7 +13,7 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 
 | Path | What |
 |---|---|
-| `src/javascript/drawer/` | The header action and the one drawer: header, section bar, sections mounted on first visit; `useDock.js` docks it beside the page under jContent's header |
+| `src/javascript/drawer/` | The header action and the one drawer: header, section bar, sections mounted on first visit; `useDock.js` docks it beside the page under jContent's header; `entries.js` and `FindingActions.jsx` read the tabs and finding actions other modules add (`docs/drawer-entries.md`) |
 | `src/javascript/audit/` | Page quality section: preview frame, analyzers (`analyzers/`), tabs, AI assists, shared audits (`auditHistory.js`), the Page quality dashboard (`dashboard/`) |
 | `src/main/java/.../audit/` | Shared audits: `service/spi/AuditHistoryService` and its DS component, `AuditResults` (input check), `model/`, `graphql/` (`AuditAccess`, `AuditFields`, types) |
 | `src/javascript/publish/` | The line at the top of jContent's Publish menu (`PublishCheckAction`) |
@@ -146,6 +146,11 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   `onFindings`, with an axe-core severity (`critical serious moderate minor`) and a translated title,
   and the tab that shows it (`drawer/findings.js`). Sections report every change of their results;
   the drawer ignores an identical list, so a section never needs to deduplicate.
+- **Other modules add tabs and finding actions through jContent's registry** (#71): with none
+  added, the drawer renders as before. `docs/drawer-entries.md` is the contract: what an entry
+  declares, and the `path`, `language` and `findings` it receives (each finding with `rule`, its key
+  until #70). A change to what an entry receives changes that page and `drawerEntries.test.js`. A
+  new place that lists findings renders `FindingActions` with the finding's key.
 
 ## Configuration
 

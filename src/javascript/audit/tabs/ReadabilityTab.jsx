@@ -92,7 +92,7 @@ export function ReadabilityTab({result, assist, onHighlight}) {
                 </div>
             )}
 
-            <Recommendations items={result.recommendations} ns="readability"/>
+            <Recommendations items={result.recommendations} ns="readability" tab="readability"/>
 
             <SimplifyAssist {...assist}/>
 

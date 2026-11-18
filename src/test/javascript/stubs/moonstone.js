@@ -1,0 +1,14 @@
+import React from 'react';
+
+// @jahia/moonstone reads `document` when it loads, and unit tests run in Node with no DOM. The
+// components the drawer tests render are plain elements here; any other is undefined.
+const h = React.createElement;
+
+export const Button = ({label, icon, isDisabled, onClick, size, variant, ...rest}) => h('button', {type: 'button', disabled: isDisabled, ...rest}, icon, label);
+export const Typography = ({children, id, title, className}) => h('span', {id, title, className}, children);
+export const Tab = ({children, ...rest}) => h('div', rest, children);
+export const TabItem = ({label, icon, isSelected, isDisabled, size, onClick, ...rest}) => h('button', {type: 'button', disabled: isDisabled, ...rest}, icon, label);
+export const Tooltip = ({children}) => children;
+export const Loader = () => h('span', null, 'loading');
+export const Close = () => null;
+export const Chip = ({label}) => h('span', null, label);

@@ -1,15 +1,18 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../../common/i18n';
+import {auditFindingKey} from '../../drawer/findings';
+import {FindingActions} from '../../drawer/FindingActions';
 import styles from './Tabs.module.css';
 import {impactClass} from './impactClass';
 
 /**
- * Shared recommendations block: severity chip + what to fix + how.
+ * Shared recommendations block: severity chip + what to fix + how, and the actions other modules
+ * add to the finding.
  * Items come from the analyzers as {key, severity, params}; text lives in
  * the locale bundles under <ns>.recs.<key>.title / .detail.
  */
-export function Recommendations({items, ns}) {
+export function Recommendations({items, ns, tab}) {
     const {t} = useGovernanceTranslation('audit');
 
     return (
@@ -26,6 +29,7 @@ export function Recommendations({items, ns}) {
                     <div className={styles.recBody}>
                         <div className={styles.recTitle}>{t(`${ns}.recs.${rec.key}.title`, rec.params)}</div>
                         <div className={styles.recDetail}>{t(`${ns}.recs.${rec.key}.detail`, rec.params)}</div>
+                        <FindingActions findingKey={auditFindingKey(tab, rec.key)}/>
                     </div>
                 </div>
             ))}
@@ -35,5 +39,7 @@ export function Recommendations({items, ns}) {
 
 Recommendations.propTypes = {
     items: PropTypes.array.isRequired,
-    ns: PropTypes.string.isRequired
+    ns: PropTypes.string.isRequired,
+    // The tab's key in the results (`ecodesign` for the namespace `eco`)
+    tab: PropTypes.string.isRequired
 };

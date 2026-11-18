@@ -37,7 +37,7 @@ export function EcodesignTab({result}) {
 
             <p className={styles.note}>{t('eco.disclaimer')}</p>
 
-            <Recommendations items={result.recommendations} ns="eco"/>
+            <Recommendations items={result.recommendations} ns="eco" tab="ecodesign"/>
 
             <h4 className={styles.sectionTitle}>{t('eco.criteria')}</h4>
             <ul className={styles.statList}>

@@ -307,6 +307,9 @@ compliance scans stay under `complianceScan { scanPage, scanSite }`. Servlets li
 OSGi service `org.jahia.community.contentgovernance.html.HtmlCheck`, and
 [`docs/page-quality/html-rules.md`](docs/page-quality/html-rules.md) lists its rules.
 
+Another module adds a tab to the drawer, or an action on a finding, through jContent's registry:
+[`docs/drawer-entries.md`](docs/drawer-entries.md) states what an entry declares and receives.
+
 ## Known gaps
 
 The main ones; each section's architecture page has the full list.

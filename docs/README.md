@@ -49,6 +49,12 @@ every tab shows, which findings are yours to fix and which belong to a developer
 Agents read [`../.agents/README.md`](../.agents/README.md) first: invariants, the legacy storage
 kept on purpose, traps already hit once, known leftovers.
 
+## If you build a module that adds to the drawer
+
+- **[`drawer-entries.md`](drawer-entries.md)**: how another module adds a tab to the drawer, or an
+  action on a finding, and what the drawer gives to each entry: the page, the language and the
+  findings.
+
 ## If you are deciding what to build next
 
 - **[`geo-readiness/geo-backlog.md`](geo-readiness/geo-backlog.md)** and

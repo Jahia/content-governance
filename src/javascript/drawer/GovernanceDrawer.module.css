@@ -169,3 +169,11 @@
     min-width: 0;
     overflow-wrap: anywhere;
 }
+
+/* The actions that other modules add to a finding, on one line */
+.findingActions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    gap: var(--moon-spacing-small, 8px);
+}
