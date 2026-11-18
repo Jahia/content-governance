@@ -121,35 +121,16 @@ public class RuleSeeder extends DefaultEventListener {
                 || !SiteFeatures.moduleEnabled(site) || !site.hasNode("contents")) {
             return 0;
         }
-        JCRNodeWrapper folder = site;
-        String[] names = ContentRules.FOLDER.split("/");
-        for (int i = 0; i < names.length; i++) {
-            String type = i == names.length - 1 ? ContentRules.FOLDER_TYPE : FOLDER_TYPE;
-            folder = folder.hasNode(names[i]) ? folder.getNode(names[i]) : folder.addNode(names[i], type);
-        }
+        JCRNodeWrapper folder = rulesFolder(site);
         if (!folder.isNodeType(ContentRules.FOLDER_TYPE)) {
             logger.warn("{} is not a {}, so it cannot take the content rules", folder.getPath(), ContentRules.FOLDER_TYPE);
             return 0;
         }
-        Set<String> present = new HashSet<>();
-        for (JCRNodeWrapper node : folder.getNodes()) {
-            if (node.isNodeType(ContentRules.TYPE) && node.hasProperty(ContentRules.RULE_ID)) {
-                present.add(node.getProperty(ContentRules.RULE_ID).getString());
-            }
-        }
+        Set<String> present = presentIds(folder);
         int added = 0;
         for (ContentRule rule : RuleCatalog.base().values()) {
             if (!present.contains(rule.id()) && !folder.hasNode(rule.id())) {
-                JCRNodeWrapper node = folder.addNode(rule.id(), ContentRules.TYPE);
-                node.setProperty(ContentRules.RULE_ID, rule.id());
-                node.setProperty(ContentRules.ENABLED, rule.enabled());
-                node.setProperty(ContentRules.SEVERITY, rule.severity());
-                if (rule.minimum() != null) {
-                    node.setProperty(ContentRules.MINIMUM, rule.minimum());
-                }
-                if (rule.maximum() != null) {
-                    node.setProperty(ContentRules.MAXIMUM, rule.maximum());
-                }
+                addRule(folder, rule);
                 added++;
             }
         }
@@ -157,5 +138,40 @@ public class RuleSeeder extends DefaultEventListener {
             session.save();
         }
         return added;
+    }
+
+    /** The folder of the rules, created with its parents when it is missing. */
+    private static JCRNodeWrapper rulesFolder(JCRNodeWrapper site) throws RepositoryException {
+        JCRNodeWrapper folder = site;
+        String[] names = ContentRules.FOLDER.split("/");
+        for (int i = 0; i < names.length; i++) {
+            String type = i == names.length - 1 ? ContentRules.FOLDER_TYPE : FOLDER_TYPE;
+            folder = folder.hasNode(names[i]) ? folder.getNode(names[i]) : folder.addNode(names[i], type);
+        }
+        return folder;
+    }
+
+    /** The ids of the rules that the folder holds. */
+    private static Set<String> presentIds(JCRNodeWrapper folder) throws RepositoryException {
+        Set<String> present = new HashSet<>();
+        for (JCRNodeWrapper node : folder.getNodes()) {
+            if (node.isNodeType(ContentRules.TYPE) && node.hasProperty(ContentRules.RULE_ID)) {
+                present.add(node.getProperty(ContentRules.RULE_ID).getString());
+            }
+        }
+        return present;
+    }
+
+    private static void addRule(JCRNodeWrapper folder, ContentRule rule) throws RepositoryException {
+        JCRNodeWrapper node = folder.addNode(rule.id(), ContentRules.TYPE);
+        node.setProperty(ContentRules.RULE_ID, rule.id());
+        node.setProperty(ContentRules.ENABLED, rule.enabled());
+        node.setProperty(ContentRules.SEVERITY, rule.severity());
+        if (rule.minimum() != null) {
+            node.setProperty(ContentRules.MINIMUM, rule.minimum());
+        }
+        if (rule.maximum() != null) {
+            node.setProperty(ContentRules.MAXIMUM, rule.maximum());
+        }
     }
 }

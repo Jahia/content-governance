@@ -92,23 +92,23 @@ public final class GeoScore {
             }
             out.put(c);
         }
+
+        /** A whole number as an integer, so that the UI shows 30 and not 30.0. */
+        private static Object limit(double value) {
+            if (value == Math.rint(value)) {
+                return (long) value;
+            }
+            return value;
+        }
     }
 
     /** The word GEO readiness shows for the severity of a rule. */
     static String severity(String ruleSeverity) {
         return switch (ruleSeverity) {
-            case "critical" -> CRITICAL;
+            case CRITICAL -> CRITICAL;
             case "minor" -> ADVISORY;
             default -> IMPORTANT;
         };
-    }
-
-    /** A whole number as an integer, so that the UI shows 30 and not 30.0. */
-    private static Object limit(double value) {
-        if (value == Math.rint(value)) {
-            return (long) value;
-        }
-        return value;
     }
 
     /**
