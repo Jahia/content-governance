@@ -126,8 +126,8 @@ also come in the four languages.
 - Optional: the `genai-connector` module ([Jahia/genai-connector](https://github.com/Jahia/genai-connector)),
   for the AI features, and the `genaiAccess` permission on the site for each user of these features.
   Without genai-connector, the AI features show greyed out and the rest of the module works.
-- Optional: the `mcp-server` module, which serves the four tools of the editorial frame to AI
-  agents. Without it the module starts and adds no tool.
+- Optional: the `mcp-server` module, which serves the four tools of the editorial frame and the two
+  tools of the HTML check to AI agents. Without it the module starts and adds no tool.
 - Optional: a BotRank organisation API key, for AI citations.
 
 ## Install
@@ -290,6 +290,9 @@ store their results there.
   `genaiAccess` on the site. The prompts are fixed on the server, and the answers are validated
   before they reach the browser.
 - **BotRank** is called by the daily sync only, with the organisation's key.
+- **The link check for AI agents** (`audit.links`) sends a `HEAD` request to each external link of
+  the page that an agent checks, and never to a private or local address. It runs only when an agent
+  calls the tool.
 
 ## API
 
@@ -317,7 +320,9 @@ compliance scans stay under `complianceScan { scanPage, scanSite }`. Servlets li
 `/modules/content-governance/` (`geo/crawler-check`, `geo/report`, `geo/site-scan`, `geo/site-files`,
 `geo/citations`, `audit/ai-review`). The endpoints of the editorial frame stay under
 `/modules/editorial-frame/` (`import`, `setup`, `voice`), and its Java API is the OSGi service
-`org.jahia.pm.modules.editorialframe.api.EditorialFrameService`.
+`org.jahia.pm.modules.editorialframe.api.EditorialFrameService`. The HTML check on the server is the
+OSGi service `org.jahia.community.contentgovernance.html.HtmlCheck`, and
+[`docs/page-quality/html-rules.md`](docs/page-quality/html-rules.md) lists its rules.
 
 Another module adds a tab to the drawer, or an action on a finding, through jContent's registry:
 [`docs/drawer-entries.md`](docs/drawer-entries.md) states what an entry declares and receives.
@@ -367,7 +372,7 @@ curl -u root:<password> http://localhost:8080/modules/api/provisioning \
   -F file=@target/content-governance-<version>.jar
 ```
 
-`mvn clean install` runs the unit tests: 574 in Java and the front-end ones (`yarn test`, Vitest, in
+`mvn clean install` runs the unit tests: 592 in Java and the front-end ones (`yarn test`, Vitest, in
 `src/test/javascript/`); `-DskipTests` skips both. `test-fixtures/` holds a local site and a BotRank stub
 for the GEO checks.
 

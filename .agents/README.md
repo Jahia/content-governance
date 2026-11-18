@@ -27,6 +27,7 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 | `src/main/java/.../{audit,geo,compliance}/` | Each section's server side, as in the original modules |
 | `src/main/resources/ccs_glossaryTerm/html/` | The glossary term's default view, which jContent's Preview shows |
 | `src/main/java/org/jahia/pm/modules/editorialframe/` | The editorial frame, moved from the module editorial-frame (1.12.0): the exported `api`, the service, the checkers, the skill registry, the importer, three servlets and four tools for AI agents |
+| `src/main/java/.../html/` | The HTML check on the server: the DS service `HtmlCheck`, `render/` (a page or one item rendered with no HTTP request), `rules/`, `links/` (the guard against internal addresses is in `ExternalLinkChecker`) and `tools/`, the two tools for AI agents. `tools/` is the only package of `html/` that names a type of mcp-server; `docs/page-quality/html-rules.md` lists the rules |
 | `src/main/resources/META-INF/editorial-frame.cnd`, `src/main/resources/skills/` | The content types of the frame (`efnt`, `efmix`) and the two skills the module ships |
 
 ## Invariants
