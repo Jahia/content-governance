@@ -13,6 +13,7 @@ import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -76,6 +77,6 @@ class InProcessHttpTest {
         assertEquals(HttpServletResponse.SC_FOUND, response.getStatus());
         assertEquals("/x", response.encodeURL("/x"));
         assertFalse(response.isCommitted());
-        assertEquals(response, response);
+        assertNotEquals(response, InProcessHttp.response(Locale.ENGLISH));
     }
 }
