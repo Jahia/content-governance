@@ -50,6 +50,9 @@ import java.util.concurrent.ConcurrentHashMap;
 final class InProcessHttp {
 
     private static final String UTF_8 = StandardCharsets.UTF_8.name();
+    private static final String TO_STRING = "toString";
+    private static final String HASH_CODE = "hashCode";
+    private static final String EQUALS = "equals";
 
     private InProcessHttp() {
     }
@@ -97,6 +100,21 @@ final class InProcessHttp {
         return null;
     }
 
+    /** {@code setAttribute} of a request or a session: a null value removes the attribute. */
+    private static Object setAttribute(Map<String, Object> attributes, Object[] args) {
+        if (args[1] == null) {
+            attributes.remove(args[0]);
+        } else {
+            attributes.put((String) args[0], args[1]);
+        }
+        return null;
+    }
+
+    private static Object removeAttribute(Map<String, Object> attributes, Object[] args) {
+        attributes.remove(args[0]);
+        return null;
+    }
+
     private static final class RequestHandler implements InvocationHandler {
         private final Target target;
         private final Map<String, Object> attributes = new ConcurrentHashMap<>();
@@ -107,116 +125,64 @@ final class InProcessHttp {
         }
 
         @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            switch (method.getName()) {
-                case "getAttribute":
-                    return attributes.get((String) args[0]);
-                case "getAttributeNames":
-                    return Collections.enumeration(List.copyOf(attributes.keySet()));
-                case "setAttribute":
-                    if (args[1] == null) {
-                        attributes.remove((String) args[0]);
-                    } else {
-                        attributes.put((String) args[0], args[1]);
-                    }
-                    return null;
-                case "removeAttribute":
-                    attributes.remove((String) args[0]);
-                    return null;
-                case "getMethod":
-                    return "GET";
-                case "getProtocol":
-                    return "HTTP/1.1";
-                case "getScheme":
-                    return "http";
-                case "getServerName":
-                case "getLocalName":
-                case "getRemoteHost":
-                    return target.serverName();
-                case "getServerPort":
-                case "getLocalPort":
-                case "getRemotePort":
-                    return 80;
-                case "getLocalAddr":
-                case "getRemoteAddr":
-                    return "127.0.0.1";
-                case "getContextPath":
-                    return Jahia.getContextPath();
-                case "getServletPath":
-                    return target.servletPath();
-                case "getPathInfo":
-                    return target.pathInfo();
-                case "getPathTranslated":
-                    return null;
-                case "getRequestURI":
-                    return requestUri();
-                case "getRequestURL":
-                    return new StringBuffer("http://" + target.serverName() + requestUri());
-                case "getQueryString":
-                    return null;
-                case "getLocale":
-                    return target.locale();
-                case "getLocales":
-                    return Collections.enumeration(List.of(target.locale()));
-                case "getCharacterEncoding":
-                    return UTF_8;
-                case "setCharacterEncoding":
-                    return null;
-                case "getParameterMap":
-                    return Map.of();
-                case "getParameterValues":
-                case "getParameter":
-                case "getHeader":
-                case "getContentType":
-                case "getCookies":
-                case "getAuthType":
-                    return null;
-                case "getUserPrincipal":
-                    return target.user();
-                case "getRemoteUser":
-                    return target.user() == null ? null : target.user().getName();
-                case "isUserInRole":
-                case "isSecure":
-                case "isAsyncStarted":
-                case "isAsyncSupported":
-                case "isRequestedSessionIdFromCookie":
-                case "isRequestedSessionIdFromURL":
-                case "isRequestedSessionIdFromUrl":
-                    return false;
-                case "isRequestedSessionIdValid":
-                    return session != null;
-                case "getRequestedSessionId":
-                    return session == null ? null : session.getId();
-                case "getSession":
-                    return session(args == null || args.length == 0 || (Boolean) args[0]);
-                case "changeSessionId":
-                    return session(true).getId();
-                case "getServletContext":
-                    return servletContext();
-                case "getRequestDispatcher":
-                    return dispatcher((String) args[0]);
-                case "getDispatcherType":
-                    return DispatcherType.REQUEST;
-                case "getInputStream":
-                    return emptyInput();
-                case "getReader":
-                    return new BufferedReader(new StringReader(""));
-                case "getRealPath":
-                    return servletContext().getRealPath((String) args[0]);
-                case "toString":
-                    return "InProcessHttpRequest[" + requestUri() + "]";
-                case "hashCode":
-                    return System.identityHashCode(proxy);
-                case "equals":
-                    return proxy == args[0];
-                default:
-                    if (method.getName().startsWith("startAsync") || "upgrade".equals(method.getName())
-                            || "authenticate".equals(method.getName()) || "login".equals(method.getName())) {
-                        throw new IllegalStateException("A request rendered in process does not support "
-                                + method.getName() + ".");
-                    }
-                    return defaultValue(method.getReturnType());
+        public Object invoke(Object proxy, Method method, Object[] args) {
+            return switch (method.getName()) {
+                case "getAttribute" -> attributes.get(args[0]);
+                case "getAttributeNames" -> Collections.enumeration(List.copyOf(attributes.keySet()));
+                case "setAttribute" -> setAttribute(attributes, args);
+                case "removeAttribute" -> removeAttribute(attributes, args);
+                case "isRequestedSessionIdValid" -> session != null;
+                case "getRequestedSessionId" -> session == null ? null : session.getId();
+                case "getSession" -> session(args == null || args.length == 0 || (Boolean) args[0]);
+                case "changeSessionId" -> session(true).getId();
+                case "getServletContext" -> servletContext();
+                case "getRequestDispatcher" -> dispatcher((String) args[0]);
+                case "getDispatcherType" -> DispatcherType.REQUEST;
+                case "getInputStream" -> emptyInput();
+                case "getReader" -> new BufferedReader(new StringReader(""));
+                case "getRealPath" -> servletContext().getRealPath((String) args[0]);
+                case TO_STRING -> "InProcessHttpRequest[" + requestUri() + "]";
+                case HASH_CODE -> System.identityHashCode(proxy);
+                case EQUALS -> proxy == args[0];
+                default -> describe(method);
+            };
+        }
+
+        /** What the request states about itself: its address, its user, its language and its encoding. */
+        private Object describe(Method method) {
+            return switch (method.getName()) {
+                case "getMethod" -> "GET";
+                case "getProtocol" -> "HTTP/1.1";
+                case "getScheme" -> "http";
+                case "getServerName", "getLocalName", "getRemoteHost" -> target.serverName();
+                case "getServerPort", "getLocalPort", "getRemotePort" -> 80;
+                case "getLocalAddr", "getRemoteAddr" -> "127.0.0.1";
+                case "getContextPath" -> Jahia.getContextPath();
+                case "getServletPath" -> target.servletPath();
+                case "getPathInfo" -> target.pathInfo();
+                case "getRequestURI" -> requestUri();
+                case "getRequestURL" -> new StringBuffer("http://" + target.serverName() + requestUri());
+                case "getLocale" -> target.locale();
+                case "getLocales" -> Collections.enumeration(List.of(target.locale()));
+                case "getCharacterEncoding" -> UTF_8;
+                case "getParameterMap" -> Map.of();
+                case "getUserPrincipal" -> target.user();
+                case "getRemoteUser" -> target.user() == null ? null : target.user().getName();
+                case "getPathTranslated", "getQueryString", "setCharacterEncoding", "getParameterValues",
+                     "getParameter", "getHeader", "getContentType", "getCookies", "getAuthType" -> null;
+                case "isUserInRole", "isSecure", "isAsyncStarted", "isAsyncSupported", "isRequestedSessionIdFromCookie",
+                     "isRequestedSessionIdFromURL", "isRequestedSessionIdFromUrl" -> false;
+                default -> fallback(method);
+            };
+        }
+
+        private static Object fallback(Method method) {
+            String name = method.getName();
+            if (name.startsWith("startAsync") || "upgrade".equals(name) || "authenticate".equals(name)
+                    || "login".equals(name)) {
+                throw new IllegalStateException("A request rendered in process does not support " + name + ".");
             }
+            return defaultValue(method.getReturnType());
         }
 
         private String requestUri() {
@@ -238,15 +204,15 @@ final class InProcessHttp {
             }
             return session;
         }
-    }
 
-    private static ServletInputStream emptyInput() {
-        return new ServletInputStream() {
-            @Override public boolean isFinished() { return true; }
-            @Override public boolean isReady() { return true; }
-            @Override public void setReadListener(ReadListener readListener) { /* nothing to read */ }
-            @Override public int read() { return -1; }
-        };
+        private static ServletInputStream emptyInput() {
+            return new ServletInputStream() {
+                @Override public boolean isFinished() { return true; }
+                @Override public boolean isReady() { return true; }
+                @Override public void setReadListener(ReadListener readListener) { /* nothing to read */ }
+                @Override public int read() { return -1; }
+            };
+        }
     }
 
     private static final class SessionHandler implements InvocationHandler {
@@ -256,49 +222,26 @@ final class InProcessHttp {
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) {
-            switch (method.getName()) {
-                case "getId":
-                    return id;
-                case "getCreationTime":
-                case "getLastAccessedTime":
-                    return created;
-                case "getAttribute":
-                case "getValue":
-                    return attributes.get((String) args[0]);
-                case "getAttributeNames":
-                    return Collections.enumeration(List.copyOf(attributes.keySet()));
-                case "getValueNames":
-                    return attributes.keySet().toArray(new String[0]);
-                case "setAttribute":
-                case "putValue":
-                    if (args[1] == null) {
-                        attributes.remove((String) args[0]);
-                    } else {
-                        attributes.put((String) args[0], args[1]);
-                    }
-                    return null;
-                case "removeAttribute":
-                case "removeValue":
-                    attributes.remove((String) args[0]);
-                    return null;
-                case "getServletContext":
-                    return servletContext();
-                case "getMaxInactiveInterval":
-                    return 60;
-                case "isNew":
-                    return true;
-                case "invalidate":
+            return switch (method.getName()) {
+                case "getId" -> id;
+                case "getCreationTime", "getLastAccessedTime" -> created;
+                case "getAttribute", "getValue" -> attributes.get(args[0]);
+                case "getAttributeNames" -> Collections.enumeration(List.copyOf(attributes.keySet()));
+                case "getValueNames" -> attributes.keySet().toArray(new String[0]);
+                case "setAttribute", "putValue" -> setAttribute(attributes, args);
+                case "removeAttribute", "removeValue" -> removeAttribute(attributes, args);
+                case "getServletContext" -> servletContext();
+                case "getMaxInactiveInterval" -> 60;
+                case "isNew" -> true;
+                case "invalidate" -> {
                     attributes.clear();
-                    return null;
-                case "toString":
-                    return "InProcessHttpSession[" + id + "]";
-                case "hashCode":
-                    return System.identityHashCode(proxy);
-                case "equals":
-                    return proxy == args[0];
-                default:
-                    return defaultValue(method.getReturnType());
-            }
+                    yield null;
+                }
+                case TO_STRING -> "InProcessHttpSession[" + id + "]";
+                case HASH_CODE -> System.identityHashCode(proxy);
+                case EQUALS -> proxy == args[0];
+                default -> defaultValue(method.getReturnType());
+            };
         }
     }
 
@@ -320,50 +263,37 @@ final class InProcessHttp {
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) {
-            switch (method.getName()) {
-                case "getWriter":
-                    return writer;
-                case "getOutputStream":
-                    return output;
-                case "getStatus":
-                    return status;
-                case "setStatus":
-                case "sendError":
+            return switch (method.getName()) {
+                case "getWriter" -> writer;
+                case "getOutputStream" -> output;
+                case "getStatus" -> status;
+                case "setStatus", "sendError" -> {
                     status = (Integer) args[0];
-                    return null;
-                case "sendRedirect":
+                    yield null;
+                }
+                case "sendRedirect" -> {
                     status = HttpServletResponse.SC_FOUND;
-                    return null;
-                case "getContentType":
-                    return contentType;
-                case "setContentType":
+                    yield null;
+                }
+                case "getContentType" -> contentType;
+                case "setContentType" -> {
                     contentType = (String) args[0];
-                    return null;
-                case "getCharacterEncoding":
-                    return UTF_8;
-                case "getLocale":
-                    return locale;
-                case "setLocale":
+                    yield null;
+                }
+                case "getCharacterEncoding" -> UTF_8;
+                case "getLocale" -> locale;
+                case "setLocale" -> {
                     locale = (Locale) args[0];
-                    return null;
-                case "encodeURL":
-                case "encodeUrl":
-                case "encodeRedirectURL":
-                case "encodeRedirectUrl":
-                    return args[0];
-                case "isCommitted":
-                    return false;
-                case "getBufferSize":
-                    return 8192;
-                case "toString":
-                    return "InProcessHttpResponse[" + status + "]";
-                case "hashCode":
-                    return System.identityHashCode(proxy);
-                case "equals":
-                    return proxy == args[0];
-                default:
-                    return defaultValue(method.getReturnType());
-            }
+                    yield null;
+                }
+                case "encodeURL", "encodeUrl", "encodeRedirectURL", "encodeRedirectUrl" -> args[0];
+                case "isCommitted" -> false;
+                case "getBufferSize" -> 8192;
+                case TO_STRING -> "InProcessHttpResponse[" + status + "]";
+                case HASH_CODE -> System.identityHashCode(proxy);
+                case EQUALS -> proxy == args[0];
+                default -> defaultValue(method.getReturnType());
+            };
         }
     }
 }
