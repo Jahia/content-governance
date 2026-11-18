@@ -16,7 +16,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * Writes the frame of a site as a text for the instructions of a model, within a token budget.
@@ -55,35 +54,9 @@ public final class ContextBuilder {
         boolean truncated = false;
         StringBuilder text = new StringBuilder(HEADER);
 
-        List<FrameText> voices = frame.voices();
-        boolean voiceAbridged = false;
-        if (!voices.isEmpty()) {
-            text.append("\n## Voice of the brand\n");
-            for (FrameText voice : voices) {
-                Essentials essentials = Essentials.of(voice.essentials(), voice.text());
-                voiceAbridged |= essentials.abridged;
-                text.append("\n### ").append(voice.title())
-                        .append("group".equals(voice.scope()) ? " (whole group)" : "")
-                        .append(essentials.abridged ? ": essentials" : "").append('\n')
-                        .append(essentials.text).append('\n');
-            }
-        }
-
-        Optional<Persona> chosen = frame.persona(request.persona());
-        if (chosen.isEmpty() && !frame.personas().isEmpty() && request.persona() != null) {
-            // An unknown name: the default persona, and the model sees the names below.
-            chosen = frame.persona(null);
-        }
-        boolean personaAbridged = false;
-        if (chosen.isPresent()) {
-            Persona persona = chosen.get();
-            Essentials essentials = Essentials.of(persona.essentials(), persona.text());
-            personaAbridged = essentials.abridged;
-            text.append("\n## Reader: ").append(persona.title()).append(essentials.abridged ? ", essentials" : "")
-                    .append('\n')
-                    .append("Write for this reader, unless the user names another reader of the site.\n")
-                    .append(essentials.text).append('\n');
-        }
+        boolean voiceAbridged = appendVoices(text, frame.voices());
+        Optional<Persona> chosen = chosenPersona(frame, request);
+        boolean personaAbridged = chosen.map(persona -> appendPersona(text, persona)).orElse(false);
 
         List<GlossaryTerm> glossary = glossaryFor(frame.glossary(), request.text());
         String note = fullTexts(request.siteKey(), voiceAbridged, personaAbridged,
@@ -93,7 +66,7 @@ public final class ContextBuilder {
         }
 
         List<WritingRule> rules = rulesFor(frame.rules(), frame.language(), request.text());
-        List<String> ruleLines = rules.stream().map(rule -> "- " + describe(rule) + '\n').collect(Collectors.toList());
+        List<String> ruleLines = rules.stream().map(rule -> "- " + describe(rule) + '\n').toList();
         String examples = rules.stream().anyMatch(rule -> !rule.wrongExamples().isEmpty() || !rule.rightExamples().isEmpty())
                 ? "A Wrong example breaks its rule, and a Right example keeps it: write like the Right ones.\n"
                 : "";
@@ -105,7 +78,7 @@ public final class ContextBuilder {
                 + "Code checks every proposed change, and the editor sees each broken rule and decides.\n"
                 + examples, ruleLines, budget);
 
-        List<String> termLines = glossary.stream().map(term -> "- " + describe(term) + '\n').collect(Collectors.toList());
+        List<String> termLines = glossary.stream().map(term -> "- " + describe(term) + '\n').toList();
         truncated |= appendWithin(text, "\n## Glossary\n"
                 + "When you write or translate into this language a term of this list, write it as the "
                 + "glossary says. Code checks each translation against it.\n", termLines, budget);
@@ -113,14 +86,52 @@ public final class ContextBuilder {
         Persona current = chosen.orElse(null);
         List<String> otherLines = frame.personas().stream().filter(p -> p != current)
                 .map(other -> "- " + other.title() + " (" + other.name() + "): " + Texts.firstLine(other.text()) + '\n')
-                .collect(Collectors.toList());
+                .toList();
         truncated |= appendWithin(text, "\n## Other readers of the site\n"
                 + "When the user names one of them, write for that reader.\n", otherLines, budget);
 
-        List<String> names = frame.personas().stream().map(Persona::name).collect(Collectors.toList());
+        List<String> names = frame.personas().stream().map(Persona::name).toList();
         String result = text.toString();
         return new FrameContext(result, frame.fingerprint(), current == null ? null : current.name(), names,
                 Texts.tokens(result), truncated);
+    }
+
+    /** Appends the essentials of each voice. True when the essentials of a voice leave out part of it. */
+    private static boolean appendVoices(StringBuilder text, List<FrameText> voices) {
+        if (voices.isEmpty()) {
+            return false;
+        }
+        boolean abridged = false;
+        text.append("\n## Voice of the brand\n");
+        for (FrameText voice : voices) {
+            Essentials essentials = Essentials.of(voice.essentials(), voice.text());
+            abridged |= essentials.abridged;
+            text.append("\n### ").append(voice.title())
+                    .append("group".equals(voice.scope()) ? " (whole group)" : "")
+                    .append(essentials.abridged ? ": essentials" : "").append('\n')
+                    .append(essentials.text).append('\n');
+        }
+        return abridged;
+    }
+
+    /** The persona that the request names, or the default persona when the name is unknown. */
+    private static Optional<Persona> chosenPersona(Frame frame, FrameRequest request) {
+        Optional<Persona> chosen = frame.persona(request.persona());
+        if (chosen.isEmpty() && !frame.personas().isEmpty() && request.persona() != null) {
+            // An unknown name: the default persona, and the model sees the names below.
+            chosen = frame.persona(null);
+        }
+        return chosen;
+    }
+
+    /** Appends the essentials of the persona. True when they leave out part of it. */
+    private static boolean appendPersona(StringBuilder text, Persona persona) {
+        Essentials essentials = Essentials.of(persona.essentials(), persona.text());
+        text.append("\n## Reader: ").append(persona.title()).append(essentials.abridged ? ", essentials" : "")
+                .append('\n')
+                .append("Write for this reader, unless the user names another reader of the site.\n")
+                .append(essentials.text).append('\n');
+        return essentials.abridged;
     }
 
     /**
@@ -187,7 +198,7 @@ public final class ContextBuilder {
         }
         return all.stream()
                 .filter(term -> RuleChecker.termPattern(term.allTermForms()).matcher(plain).find())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

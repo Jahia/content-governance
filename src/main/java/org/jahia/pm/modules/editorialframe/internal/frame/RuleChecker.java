@@ -43,40 +43,42 @@ public final class RuleChecker {
             text = text.substring(0, MAX_TEXT);
         }
         for (WritingRule rule : rules) {
-            if (!rule.appliesTo(language)) {
-                continue;
-            }
-            Pattern pattern = compile(rule);
-            if (pattern == null) {
-                continue;
-            }
-            Matcher matcher = pattern.matcher(new Deadline(text, System.nanoTime() + MAX_RULE_NANOS));
-            if (rule.kind() == Kind.MANDATORY) {
-                // The part of a cut text that is left out may hold the term, so only a whole text lacks it.
-                if (document && !cut && !findWithin(matcher, rule)) {
-                    found.add(new RuleViolation(rule.id(), rule.kind(), rule.severity(), rule.pattern(), null,
-                            rule.replacement(), rule.justification(), null));
-                }
-                continue;
-            }
-            List<int[]> allowed = replacementSpans(rule, text);
-            int matches = 0;
-            try {
-                while (matcher.find() && matches < MAX_MATCHES_PER_RULE) {
-                    if (inside(allowed, matcher.start(), matcher.end())) {
-                        // "mail" inside "e-mail", when the rule says to write "e-mail" instead of "mail".
-                        continue;
-                    }
-                    matches++;
-                    found.add(new RuleViolation(rule.id(), rule.kind(), rule.severity(), rule.pattern(), matcher.group(),
-                            rule.replacement(), rule.justification(), excerpt(text, matcher.start(), matcher.end())));
-                }
-            } catch (Deadline.Expired | StackOverflowError e) {
-                // A pattern that backtracks without end either runs out of time or out of stack.
-                logger.warn("The writing rule {} is too costly on a text, so it is skipped", rule.id());
+            Pattern pattern = rule.appliesTo(language) ? compile(rule) : null;
+            if (pattern != null) {
+                checkRule(rule, pattern, text, cut, document, found);
             }
         }
         return found;
+    }
+
+    /** Adds the violations of one rule on a text, which is cut when {@code cut} is true. */
+    private static void checkRule(WritingRule rule, Pattern pattern, String text, boolean cut, boolean document,
+                                  List<RuleViolation> found) {
+        Matcher matcher = pattern.matcher(new Deadline(text, System.nanoTime() + MAX_RULE_NANOS));
+        if (rule.kind() == Kind.MANDATORY) {
+            // The part of a cut text that is left out may hold the term, so only a whole text lacks it.
+            if (document && !cut && !findWithin(matcher, rule)) {
+                found.add(new RuleViolation(rule.id(), rule.kind(), rule.severity(), rule.pattern(), null,
+                        rule.replacement(), rule.justification(), null));
+            }
+            return;
+        }
+        List<int[]> allowed = replacementSpans(rule, text);
+        int matches = 0;
+        try {
+            while (matcher.find() && matches < MAX_MATCHES_PER_RULE) {
+                if (inside(allowed, matcher.start(), matcher.end())) {
+                    // "mail" inside "e-mail", when the rule says to write "e-mail" instead of "mail".
+                    continue;
+                }
+                matches++;
+                found.add(new RuleViolation(rule.id(), rule.kind(), rule.severity(), rule.pattern(), matcher.group(),
+                        rule.replacement(), rule.justification(), excerpt(text, matcher.start(), matcher.end())));
+            }
+        } catch (Deadline.Expired | StackOverflowError e) {
+            // A pattern that backtracks without end either runs out of time or out of stack.
+            logger.warn("The writing rule {} is too costly on a text, so it is skipped", rule.id());
+        }
     }
 
     private static boolean findWithin(Matcher matcher, WritingRule rule) {
