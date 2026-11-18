@@ -17,17 +17,22 @@ public enum HtmlRule {
     PAGE_TITLE_MISSING("page-title-missing", "2.4.2", Scope.PAGE),
     PAGE_DESCRIPTION_MISSING("page-description-missing", "none", Scope.PAGE),
     IMAGE_ALT_MISSING("image-alt-missing", "1.1.1", Scope.ITEM),
-    HEADING_LEVEL_SKIPPED("heading-level-skipped", "1.3.1", Scope.ITEM),
+    HEADING_LEVEL_SKIPPED("heading-level-skipped", Wcag.INFO_AND_RELATIONSHIPS, Scope.ITEM),
     HEADING_EMPTY("heading-empty", "2.4.6", Scope.ITEM),
-    HEADING_H1_MISSING("heading-h1-missing", "1.3.1", Scope.PAGE),
-    HEADING_H1_MULTIPLE("heading-h1-multiple", "1.3.1", Scope.PAGE),
+    HEADING_H1_MISSING("heading-h1-missing", Wcag.INFO_AND_RELATIONSHIPS, Scope.PAGE),
+    HEADING_H1_MULTIPLE("heading-h1-multiple", Wcag.INFO_AND_RELATIONSHIPS, Scope.PAGE),
     LINK_NAME_MISSING("link-name-missing", "2.4.4", Scope.ITEM),
     LINK_TEXT_VAGUE("link-text-vague", "2.4.4", Scope.ITEM),
     BUTTON_NAME_MISSING("button-name-missing", "4.1.2", Scope.ITEM),
-    FORM_LABEL_MISSING("form-label-missing", "1.3.1", Scope.ITEM),
+    FORM_LABEL_MISSING("form-label-missing", Wcag.INFO_AND_RELATIONSHIPS, Scope.ITEM),
     FRAME_TITLE_MISSING("frame-title-missing", "4.1.2", Scope.ITEM),
-    TABLE_HEADER_MISSING("table-header-missing", "1.3.1", Scope.ITEM),
+    TABLE_HEADER_MISSING("table-header-missing", Wcag.INFO_AND_RELATIONSHIPS, Scope.ITEM),
     DUPLICATE_ID("duplicate-id", "none", Scope.PAGE);
+
+    /** A WCAG criterion that several rules check. An enum constant cannot read a static field of its own enum. */
+    private static final class Wcag {
+        static final String INFO_AND_RELATIONSHIPS = "1.3.1";
+    }
 
     private final String id;
     private final String wcag;
