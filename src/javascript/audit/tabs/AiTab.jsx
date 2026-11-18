@@ -11,7 +11,7 @@ export function AiTab({status, review, phase, error, onGenerate, onHighlightText
     const {t} = useGovernanceTranslation('audit');
 
     if (!status.enabled) {
-        return <AiUnavailable title={t('ai.summary')} actionLabel={t('ai.generate')}/>;
+        return <AiUnavailable title={t('ai.summary')} actionLabel={t('ai.generate')} reason={status.reason}/>;
     }
 
     return (

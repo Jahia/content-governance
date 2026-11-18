@@ -5,7 +5,7 @@ for whom. The entry needs the `site-admin` permission on the site, and the modul
 site (**Administration > Server > Modules and Extensions > Modules**, **Usage in sites**). Without
 either, the screen says so and changes nothing.
 
-The screen has three tabs: **Features**, **AI provider** and **BotRank**.
+The screen has three tabs: **Features**, **AI model** and **BotRank**.
 
 ## Features
 
@@ -25,8 +25,8 @@ tabs as they were.
 
 Two tabs also depend on something outside the site, and say so with a chip next to their switch:
 
-- **AI review** (Page quality) shows **Needs an AI provider** while no model is configured on the
-  server. It stays greyed out in the drawer whatever its switch says. The AI assists inside the
+- **AI review** (Page quality) shows **AI unavailable** while no model answers you on this
+  site. It stays greyed out in the drawer whatever its switch says. The AI assists inside the
   **Accessibility**, **SEO** and **Readability** tabs follow their tab's switch and are greyed out
   the same way.
 - **AI citations** (GEO readiness) shows **Needs a BotRank connection**. It stays greyed out in the
@@ -37,16 +37,22 @@ site's `content-governance` node (`/sites/<key>/content-governance`, never publi
 `audit`, `geo` and `compliance`; tab ids are `<section>.<tab>`, for example `geo.citations` or
 `audit.vitals`. A script sets them with the `saveSiteSettings` mutation (see the root `README.md`).
 
-## AI provider
+## AI model
 
-Read only. It shows whether the model shared by every AI feature is configured, and if so the
-provider, the model and whether it reads images (for the alt text assist). A server administrator
-sets it in `digital-factory-data/karaf/etc/org.jahia.community.contentgovernance.llm.cfg`; the root
-`README.md` lists the keys. The key is never shown, not even here.
+Read only. The tab shows whether a model answers you on this site. If a model answers, the tab also
+shows the provider, the model and whether it reads images (for the alt text assist). The
+`genai-connector` module serves this model to every AI feature. A server administrator configures
+it in genai-connector, not in Content Governance, and the root `README.md` describes the setup.
 
-Until provider, model and key are all set, every AI feature is greyed out for editors and nothing
-leaves the server. The model serves every site of the instance; a site that must not use it switches
-off the **AI review** tab, and the tabs whose assists it does not want.
+Every AI feature is greyed out, and nothing leaves the server, in three cases:
+
+- genai-connector is not installed or not started.
+- genai-connector serves no model on its `balanced` tier.
+- The user does not have the `genaiAccess` permission on the site. The features are then greyed
+  out for that user only, with a message.
+
+The model serves every site of the instance. A site that must not use it switches off the **AI
+review** tab, and the tabs whose assists it does not want.
 
 ## BotRank
 

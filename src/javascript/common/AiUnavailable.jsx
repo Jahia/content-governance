@@ -6,16 +6,18 @@ import styles from './AiUnavailable.module.css';
 
 /**
  * An AI feature shown greyed out: its title, its button disabled, and why. Used wherever the
- * module would call a model while no model is configured on the server.
+ * module would call a model while genai-connector serves none, or the user lacks genaiAccess.
  */
-export const AiUnavailable = ({title, actionLabel}) => {
+export const AiUnavailable = ({title, actionLabel, reason}) => {
     const {t} = useGovernanceTranslation('common');
     return (
         <div className={styles.box}>
             <Typography component="h4" variant="subheading" weight="bold" className={styles.title}>{title}</Typography>
             <div className={styles.row}>
                 <Button size="small" variant="outlined" label={actionLabel || t('ai.generate')} isDisabled/>
-                <Typography variant="caption" className={styles.hint}>{t('ai.notConfigured')}</Typography>
+                <Typography variant="caption" className={styles.hint}>
+                    {reason === 'noAccess' ? t('ai.noAccess') : t('ai.notConfigured')}
+                </Typography>
             </div>
         </div>
     );
@@ -23,5 +25,7 @@ export const AiUnavailable = ({title, actionLabel}) => {
 
 AiUnavailable.propTypes = {
     title: PropTypes.string.isRequired,
-    actionLabel: PropTypes.string
+    actionLabel: PropTypes.string,
+    // absent, notConfigured or noAccess, as the server's AI status names it
+    reason: PropTypes.string
 };

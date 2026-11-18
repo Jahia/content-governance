@@ -4,14 +4,14 @@
     <parent>
         <artifactId>jahia-modules</artifactId>
         <groupId>org.jahia.modules</groupId>
-        <version>8.2.0.0</version>
+        <version>8.2.2.0</version>
     </parent>
     <groupId>org.jahia.community</groupId>
     <artifactId>content-governance</artifactId>
     <name>Content Governance</name>
     <version>1.12.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
-    <description>One jContent drawer for content authors with three sections - Page quality (accessibility, SEO, vitals, readability, eco-design, links, AI review), GEO readiness (AI crawlers, site files, schema, BotRank citations) and Compliance (glossaries of non-authorised terms) - switched on per site and tab, with one shared LLM configuration and the GEO and compliance site dashboards.</description>
+    <description>One jContent drawer for content authors with three sections - Page quality (accessibility, SEO, vitals, readability, eco-design, links, AI review), GEO readiness (AI crawlers, site files, schema, BotRank citations) and Compliance (glossaries of non-authorised terms) - switched on per site and tab, with AI features served by genai-connector and the GEO and compliance site dashboards.</description>
 
     <licenses>
         <license>
@@ -32,9 +32,11 @@
         <!-- jcontent hosts the drawer and the dashboards; graphql-dxm-provider serves the settings and
              compliance queries. robots owns the mixin the GEO robots.txt editor writes, llms the file
              the GEO llms.txt tab shows read only: optional, so Page quality and Compliance never need
-             them; without them those tabs say why and every other check works. mcp-server serves the
-             tools of the editorial frame to AI agents, optional too: without it the module adds no tool. -->
-        <jahia-depends>default,jcontent=[3.7,4),graphql-dxm-provider,robots=optional,llms=optional,mcp-server=optional</jahia-depends>
+             them; without them those tabs say why and every other check works. genai-connector serves
+             the model of the AI features, optional too: without it they show greyed out. mcp-server
+             serves the tools of the editorial frame to AI agents, optional too: without it the module
+             adds no tool. -->
+        <jahia-depends>default,jcontent=[3.7,4),graphql-dxm-provider,robots=optional,llms=optional,genai-connector=optional,mcp-server=optional</jahia-depends>
         <jahia-module-type>module</jahia-module-type>
         <yarn.arguments>build:production</yarn.arguments>
         <!-- The 8.2 parent sets <source>11</source> on the compiler plugin: release takes precedence. -->
@@ -47,12 +49,12 @@
 
     <dependencies>
         <!-- Jahia's own classes without the ~310 libraries jahia-impl depends on; the APIs this module
-             compiles against are declared below at the versions jahia-impl 8.2.0.0 uses. The parent
+             compiles against are declared below at the versions Jahia 8.2.0.0 used. The parent
              declares jahia-impl too; this declaration replaces it. -->
         <dependency>
             <groupId>org.jahia.server</groupId>
             <artifactId>jahia-impl</artifactId>
-            <version>8.2.0.0</version>
+            <version>8.2.2.0</version>
             <scope>provided</scope>
             <exclusions>
                 <exclusion>
@@ -64,7 +66,7 @@
         <dependency>
             <groupId>org.jahia.server</groupId>
             <artifactId>jahia-api</artifactId>
-            <version>8.2.0.0</version>
+            <version>8.2.2.0</version>
             <scope>provided</scope>
             <exclusions>
                 <exclusion>
@@ -175,6 +177,20 @@
             <version>1</version>
             <scope>provided</scope>
         </dependency>
+        <!-- The model of the AI features. Jahia/genai-connector has no release yet: each merge to its
+             main branch publishes the snapshot to the Jahia Nexus. Its packages export 0.1.0. -->
+        <dependency>
+            <groupId>org.jahia.modules</groupId>
+            <artifactId>genai-connector</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <!-- The tool SPI that the four tools of the editorial frame implement. mcp-server has no
              release yet: each merge to its main branch publishes the snapshot to the Jahia Nexus. -->
         <dependency>
@@ -189,8 +205,9 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!-- The tools and the servlets of the editorial frame read and write JSON with it. Jahia
-             exports it: 2.15.2 is the version of Jahia 8.2.0.0. -->
+        <!-- The tools and the servlets of the editorial frame read and write JSON with it, and so does
+             genai-connector's CompletionRequest. Jahia exports it: 2.15.2 is the version of Jahia
+             8.2.0.0. -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -325,14 +342,16 @@
                             org.jahia.modules.graphql.provider.dxm.osgi.annotations,
                             graphql.annotations.annotationTypes,
                             org.quartz,
+                            !org.jahia.modules.genai.api,
                             !org.jahia.modules.mcp.spi.tool,
                             *
                         </Import-Package>
-                        <!-- mcp-server may be absent, or installed after this module, and Jahia does not
-                             refresh this module then: a static optional import would stay unwired. A
-                             dynamic import wires when mcp-server first asks for a tool, and never
-                             without mcp-server. -->
-                        <DynamicImport-Package>org.jahia.modules.mcp.spi.tool;version="[0.5,1)"</DynamicImport-Package>
+                        <!-- genai-connector and mcp-server may be absent, or installed after this module,
+                             and Jahia does not refresh this module then: a static optional import would
+                             stay unwired. A dynamic import wires when the bridge class ai.genai.GenAiModel
+                             first loads, which happens only once genai-connector's service is there, and
+                             when mcp-server first asks for a tool, never without mcp-server. -->
+                        <DynamicImport-Package>org.jahia.modules.genai.api;version="[0.1,1)",org.jahia.modules.mcp.spi.tool;version="[0.5,1)"</DynamicImport-Package>
                     </instructions>
                 </configuration>
             </plugin>

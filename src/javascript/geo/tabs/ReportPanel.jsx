@@ -66,7 +66,13 @@ export const ReportPanel = ({path, language, reportLanguage, siteKey, siteName})
             setReport(r.report);
             setPhase('idle');
         } catch (e) {
-            setError(e.code === 429 ? t('report.rateLimited') : (e.message || t('report.errorGeneric')));
+            if (e.code === 429) {
+                setError(t('report.rateLimited'));
+            } else if (e.code === 403) {
+                setError(t('report.noAccess'));
+            } else {
+                setError(e.message || t('report.errorGeneric'));
+            }
             setPhase('error');
         }
     }, [path, language, reportLanguage, t]);
@@ -105,7 +111,13 @@ export const ReportPanel = ({path, language, reportLanguage, siteKey, siteName})
                 )}
             </PanelHeader>
 
-            {status && !status.enabled && (
+            {status && !status.enabled && status.reason === 'noAccess' && (
+                <Banner variant="info" title={t('report.noAccessTitle')}>
+                    {t('report.noAccess')}
+                </Banner>
+            )}
+
+            {status && !status.enabled && status.reason !== 'noAccess' && (
                 <Banner variant="info" title={t('report.notConfiguredTitle')}>
                     {t('report.notConfigured')}
                 </Banner>

@@ -392,10 +392,11 @@ instantly afterwards. The prose is written in the interface language, which may 
 content language being measured; the tab says so when a stored report was written for another.
 Export produces Markdown built from the parsed shape, or the shape itself as JSON.
 
-Anthropic, OpenAI and DeepSeek are supported, through the one model every AI feature of Content
-Governance shares (`org.jahia.community.contentgovernance.llm.cfg`, the same connection the Page
-quality AI review and assists use). Without a configured model the **Report** tab is shown greyed
-out and nothing leaves the server. Configuration keys: [`architecture.md`](architecture.md#configuration).
+The `genai-connector` module serves the model of the report, as it serves the Page quality AI review
+and assists. The provider and the model are those of its `balanced` tier, configured in
+genai-connector. The **Report** tab is shown greyed out while genai-connector serves no model, or
+while the user does not have `genaiAccess` on the site. Nothing leaves the server then.
+Configuration keys: [`architecture.md`](architecture.md#configuration).
 
 ## What the drawer says about where a page stands
 

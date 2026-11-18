@@ -19,9 +19,9 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 | `src/javascript/publish/` | The line at the top of jContent's Publish menu (`PublishCheckAction`) |
 | `src/javascript/geo/` | GEO readiness section (`GeoSection`), its tabs, the GEO dashboard, the BotRank screen |
 | `src/javascript/compliance/` | Compliance section and the compliance dashboard |
-| `src/javascript/settings/` | Site Settings > Content governance: Features, AI provider, BotRank |
+| `src/javascript/settings/` | Site Settings > Content governance: Features, AI model, BotRank |
 | `src/javascript/common/` | i18n hook, settings query and hook, `SectionGate`, `AiUnavailable`, URL helper |
-| `src/main/java/.../ai/` | The provider layer and `LlmConfigService`, shared by every AI feature |
+| `src/main/java/.../ai/` | `AiService`, the entry point of every AI feature, and `genai/GenAiModel`, the only class that names a type of genai-connector |
 | `src/main/java/.../settings/` | `Features` (section and tab ids) and `SiteFeatures` (the server-side gate) |
 | `src/main/java/.../graphql/` | `contentGovernance { siteSettings }`, `saveSiteSettings`, `complianceScan` |
 | `src/main/java/.../{audit,geo,compliance}/` | Each section's server side, as in the original modules |
@@ -69,6 +69,9 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   servlet per task (`review` = `audit.ai`, `seo` = `audit.seo`, `alt` = `audit.accessibility`,
   `simplify` = `audit.readability`), compliance in `GqlComplianceScan.requireModuleEnabled`, BotRank
   in `CitationsAccess` (`geo.citations`). Client gates only hide.
+- Only `ai/genai/GenAiModel` names a type of genai-connector (`org.jahia.modules.genai.api`). The
+  bundle imports that package dynamically (`DynamicImport-Package` in `pom.xml`), so the module
+  starts without genai-connector. A genai-connector type in any other class breaks that start.
 - Legacy storage, kept on purpose so the three old modules can be replaced in place: GEO scans and
   the BotRank binding under `/sites/<key>/geo-readiness`, BotRank factory PID
   `org.jahia.se.modules.georeadiness.botrank-<id>`, CND namespaces `ccs`/`ccsmix`. The old modules
@@ -153,8 +156,11 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 
 ## Configuration
 
-- `org.jahia.community.contentgovernance.llm.cfg`: the one model connection (provider, model, key,
-  budgets, rate limits, cost, prompt appendix). Empty by default: every AI feature greyed out.
+- `org.jahia.community.contentgovernance.llm.cfg`: the rate limits and the prompt appendix of the AI
+  features. genai-connector (optional dependency, PID `org.jahia.modules.genai`) configures the
+  provider, the key and the model of each tier. Without it, or without `genaiAccess` on the site,
+  every AI feature is greyed out. The keys of the module's own client up to 1.11.0 (`AI_PROVIDER`,
+  `AI_API_KEY`...) are ignored, with a WARN at start.
 - `org.jahia.community.contentgovernance.geo.cfg`: crawler fetch settings of the GEO section.
 - `org.jahia.se.modules.georeadiness.botrank-<id>.cfg`: one per BotRank organisation (legacy PID).
 
@@ -163,7 +169,7 @@ overwrites them; BotRank files are created by a server administrator, never ship
 
 ## Verify
 
-- `mvn clean install` runs 497+ Java unit tests (GEO, compliance, settings, LLM config) and the
+- `mvn clean install` runs 497+ Java unit tests (GEO, compliance, settings, AI service) and the
   front-end unit tests (`yarn test`: Vitest, `src/test/javascript/`: readability, findings, locales,
   the CSRF fetch; `@apollo/client`, a host library, is a stub in `stubs/`).
 - **`yarn lint` before every push** (ESLint, `eslint.config.mjs`, about 3 s): the rules the SonarQube

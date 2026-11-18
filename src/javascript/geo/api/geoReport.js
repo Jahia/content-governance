@@ -9,11 +9,11 @@ const ENDPOINT = moduleUrl('/geo/report');
  */
 
 /**
- * Whether a provider is configured, and which one.
+ * Whether genai-connector serves a model to this caller on the site, which one,
+ * or why not: {enabled, reason, provider, model}.
  *
- * The site and language are sent although the answer is the same for every
- * site: they are what the server resolves to decide whether this caller may be
- * told. The endpoint used to answer any logged-in account (JAHIA-SEC-432), so
+ * The site and language are what the server resolves to decide whether this
+ * caller may be told, and whether the caller holds genaiAccess there. The endpoint used to answer any logged-in account (JAHIA-SEC-432), so
  * these are not optional - omitting them is a 400, and holding no `publish` on
  * the named site is a 403.
  *

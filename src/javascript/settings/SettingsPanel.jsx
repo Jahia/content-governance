@@ -12,7 +12,6 @@ import {CitationsSettings} from '../geo/settings/CitationsSettings';
 import styles from './SettingsPanel.module.css';
 
 const PANEL_TABS = ['features', 'ai', 'botrank'];
-const LLM_CFG = 'digital-factory-data/karaf/etc/org.jahia.community.contentgovernance.llm.cfg';
 
 /** The switched-off ids of a draft: a section off hides its tabs, which keep their own state. */
 const toggle = (draft, id, on) => {
@@ -132,6 +131,12 @@ FeaturesScreen.propTypes = {
 const AiScreen = ({settings, toolbarLeft, title}) => {
     const {t} = useGovernanceTranslation('settings');
     const {ai} = settings;
+    const noAccess = ai.reason === 'noAccess';
+    let chip = <Chip color="success" label={t('ai.configured')}/>;
+    if (!ai.configured) {
+        chip = <Chip color="warning" label={noAccess ? t('ai.noAccess') : t('ai.notConfigured')}/>;
+    }
+
     return (
         <LayoutContent
             hasPadding
@@ -141,7 +146,7 @@ const AiScreen = ({settings, toolbarLeft, title}) => {
                     <Paper className={styles.card}>
                         <div className={styles.cardHeader}>
                             <Typography component="h3" variant="heading">{t('ai.title')}</Typography>
-                            {ai.configured ? <Chip color="success" label={t('ai.configured')}/> : <Chip color="warning" label={t('ai.notConfigured')}/>}
+                            {chip}
                         </div>
                         {ai.configured ? (
                             <dl className={styles.facts}>
@@ -153,10 +158,9 @@ const AiScreen = ({settings, toolbarLeft, title}) => {
                                 <dd>{ai.images ? t('ai.yes') : t('ai.no')}</dd>
                             </dl>
                         ) : (
-                            <Typography>{t('ai.howTo')}</Typography>
+                            <Typography>{noAccess ? t('ai.howToAccess') : t('ai.howTo')}</Typography>
                         )}
-                        <Typography variant="caption" className={styles.muted}>{t('ai.file')}</Typography>
-                        <code className={styles.code}>{LLM_CFG}</code>
+                        <Typography variant="caption" className={styles.muted}>{t('ai.servedBy')}</Typography>
                         <Typography variant="caption" className={styles.muted}>{t('ai.uses')}</Typography>
                     </Paper>
                 </div>

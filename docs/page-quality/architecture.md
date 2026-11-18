@@ -11,8 +11,8 @@ editing tooling from its DOM, and runs seven analyzers against the frame's docum
 entries. One of them (Jahia) also queries GraphQL through jContent's Apollo client. Results are kept
 in the editor's `localStorage` and, once complete, stored on the site for every editor (see
 [Shared audits](#shared-audits-and-the-site-dashboard)). The other server code specific to the section is one servlet,
-`/modules/content-governance/audit/ai-review`, which runs four server-defined AI tasks on the
-module's shared model connection (`org.jahia.community.contentgovernance.ai`).
+`/modules/content-governance/audit/ai-review`. It runs four server-defined AI tasks through
+`AiService` (`org.jahia.community.contentgovernance.ai`), on the model that genai-connector serves.
 
 ```
 jContent / Page Builder header
@@ -24,7 +24,7 @@ jContent / Page Builder header
           -> accessibility (axe-core injected) -> links (HEAD/GET) -> jahiaHealth (GraphQL)
         localStorage  content-governance:audit:{lang}:{path}
         POST /modules/content-governance/audit/ai-review  {task: review|seo|alt|simplify}
-          AiReviewServlet -> LlmConfigService -> LlmProvider -> Anthropic / OpenAI / DeepSeek
+          AiReviewServlet -> AiService -> GenAiModel -> genai-connector GenAiService
 ```
 
 ## Where the code lives
@@ -40,9 +40,9 @@ jContent / Page Builder header
 | `src/javascript/audit/analyzers/` | One file per analyzer, plus `tooling.js` (DOM cleanup), `aiReview.js` (AI client), `headingOutline.js` (the heading outline of the Readability tab) and `cssPath.js` (the selector a highlight finds an element by). |
 | `src/javascript/audit/tabs/` | One component per tab, the three assist components, the shared `Recommendations` list, the two manual checklists. |
 | `src/javascript/common/useSiteSettings.js`, `settings.gql.js` | Site switches and AI status, from `contentGovernance.siteSettings`. |
-| `src/javascript/common/AiUnavailable.jsx` | The greyed-out box shown in place of an AI feature when no model is configured. |
+| `src/javascript/common/AiUnavailable.jsx` | The greyed-out box shown in place of an AI feature when no model answers the user on the site, with a message for the reason. |
 | `src/main/java/org/jahia/community/contentgovernance/audit/servlet/AiReviewServlet.java` | The AI endpoint. |
-| `src/main/java/org/jahia/community/contentgovernance/ai/` | Shared model connection and providers. |
+| `src/main/java/org/jahia/community/contentgovernance/ai/` | `AiService`, the entry point of every AI feature, and `genai/GenAiModel`, the bridge to genai-connector. |
 | `src/main/java/org/jahia/community/contentgovernance/settings/Features.java`, `SiteFeatures.java` | Feature ids and the server-side gate. |
 | `src/main/resources/javascript/locales/{en,fr}.json` | Labels, under `content-governance.audit`, `content-governance.drawer` and `content-governance.common`. |
 | `webpack.config.js` | Copies `node_modules/axe-core/axe.min.js` to `javascript/apps/axe.min.js`. |
@@ -54,7 +54,8 @@ jContent / Page Builder header
   the language jContent is in.
 - `useSiteSettings(siteKey)` runs `ContentGovernanceSiteSettings` with `fetchPolicy: 'network-only'`
   on every mount, so a switch changed by an administrator applies the next time the drawer opens. It
-  returns `isOn(section, tab)` and `settings.ai` (`configured`, `provider`, `model`, `images`).
+  returns `isOn(section, tab)` and `settings.ai` (`configured`, `reason`, `provider`, `model`,
+  `images`).
 - The drawer is a non-modal `<dialog open>` (not `showModal()`, which would make it modal, in the top
   layer above Content Editor and jContent's menus) rendered by a portal into `document.body`.
   `drawer/useDock.js` docks it in jContent's content area (`main .moonstone-layoutContent`), under
@@ -71,8 +72,9 @@ jContent / Page Builder header
   press on the page leaves it open, and it returns focus where it was on close.
 - `AuditSection` receives `isOn(tab)` for the `audit` section. `TAB_IDS` (`accessibility`, `seo`,
   `vitals`, `readability`, `ecodesign`, `links`, `jahia`, `ai`) is filtered by it. The `ai` tab is
-  kept but disabled while `settings.ai.configured` is false; its tooltip (Moonstone `Tooltip`,
-  `common/HelpTab.jsx`) says what it is for, then `audit.tabs.aiNotConfigured`.
+  kept but disabled while `settings.ai.configured` is false. Its tooltip (Moonstone `Tooltip`,
+  `common/HelpTab.jsx`) says what it is for, then `audit.tabs.aiNoAccess` when `settings.ai.reason`
+  is `noAccess`, else `audit.tabs.aiNotConfigured`.
 
 A tab switched off is not measured. Its analyzer does not run, and its result is not cached,
 exported or sent to the AI review (`keepEnabled` in `AuditSection.jsx`). Web Vitals still runs as the
@@ -273,16 +275,18 @@ support from `contentGovernance.siteSettings.ai`.
 | Body parses as JSON | 400 `invalidRequest` |
 | `path` is absolute, exists and has `jcr:read` for the caller's session | 403 `noAccess` |
 | The site of the page enables the feature of the task (`SiteFeatures.isEnabled`) | 403 `switchedOff` |
-| `LlmConfigService.isEnabled()` | 503 `notConfigured` |
+| `AiService.status`: genai-connector runs and serves a model on the tier of the task (see Tiers below) | 503 `notConfigured` |
+| `AiService.status`: the caller has `genaiAccess` on the site of the page | 403 `genaiAccess` |
 | Per-user rate limit: `AI_RATE_MAX_CALLS` per 10-minute sliding window | 429 `rateLimited` |
-| Provider call: the output budget spent before any answer | 502 `budget` |
-| Provider call and parse | 502 `upstream`; detail and the first 500 characters of an unparseable answer are logged server-side only |
+| The call: genai-connector's own rate limit refuses it | 429 `rateLimited` |
+| The call: the answer reached its output budget before it was one complete JSON object | 502 `budget` |
+| The call and the parse | 502 `upstream`; detail and the first 500 characters of an unparseable answer are logged server-side only |
 
-Page tasks ask the provider for a JSON answer (`LlmSettings.withJsonAnswer`): OpenAI-compatible
-providers add `response_format: json_object`, and `reasoning_effort: low` on OpenAI's reasoning
-models, and send the request again without them when the API answers 400 or 422. An answer the
-parser cannot read is asked for once more with a correction appended to the user message; both
-calls' tokens are added up.
+Every task asks genai-connector for a JSON answer (`ResponseFormat.JSON`), with an output budget of
+6000 tokens (`MAX_OUTPUT_TOKENS`). A reasoning model spends part of that budget before it answers.
+genai-connector caps the budget with its
+`max.output.tokens.limit` key, and it retries an answer that is not JSON. The servlet does not
+retry: an answer that is still not JSON gives `upstream`.
 
 Every refusal is JSON, `{"code": "...", "error": "<English message>"}`. The drawer shows the code in
 the editor's language (`audit.ai.errors.<code>`) and falls back to the message. The rate limit is
@@ -301,60 +305,69 @@ The client sends `task` and data; the server owns the prompts. An unknown task r
 |---|---|---|---|---|
 | `review` (default) | `audit.ai` | `language`, `uiLanguage`, `path`, `title`, `description`, `findings` (digest from `buildDigest`), `text` | text 15,000 chars, digest 60 lines, 20 recommendations kept | `summary`, `recommendations[{severity, category, title, detail, wording, fix}]` |
 | `seo` | `audit.seo` | the above plus `headings` (h1-h3, max 20) and `ctas` (weak CTAs) | 3 titles, 3 descriptions, 8 secondary keywords, 8 headings, 10 CTAs of 3 suggestions | `titles`, `metaDescriptions`, `social{title, description}`, `keywords{focus, secondary}`, `headings[{level, current, suggested, reason}]`, `ctas[{current, suggestions, reason}]` |
-| `alt` | `audit.accessibility` | `images[]`: selector, filename, size, link target, caption, nearest heading, context, and a JPEG thumbnail (max 512 px, quality 0.7) only when `settings.ai.images` is true and the canvas is not tainted | 8 images; a picture is attached only if the provider reads images, the type is JPEG, PNG or WebP, the base64 is valid and at most 400,000 chars | `images[{id, decorative, alt, reason}]`, `vision` (true when at least one picture was attached) |
+| `alt` | `audit.accessibility` | `images[]`: selector, filename, size, link target, caption, nearest heading, context, and a JPEG thumbnail (max 512 px, quality 0.7) only when `settings.ai.images` is true and the canvas is not tainted | 8 images. A picture is attached only if genai-connector serves the `vision` tier. Its type must be JPEG, PNG or WebP, and its base64 valid and at most 400,000 chars. | `images[{id, decorative, alt, reason}]`, `vision` (true when at least one picture was attached) |
 | `simplify` | `audit.readability` | `sentences[{id, text, words}]`: the longest sentences of 22 words or more in `p, li, td, blockquote, dd` of the main content, outside nav, header, footer | 8 sentences, 1,500 chars each (the client sends 6) | `sentences[{id, rewrite, reason}]` |
 
 - Prompts: `SYSTEM_PROMPT`, `SEO_ASSIST_PROMPT`, `ALT_TEXT_PROMPT`, `SIMPLIFY_PROMPT`. Each requires
-  a JSON-only answer of a fixed shape. `LlmConfigService.withAppendix` adds `AI_PROMPT_APPENDIX`
-  after every prompt.
+  a JSON-only answer of a fixed shape. `AiService.complete` adds `AI_PROMPT_APPENDIX` after every
+  prompt.
 - Languages: `language` is the audited page language, `uiLanguage` is `contextJsParameters.uilang`.
   Both are turned into a language name (French, German, Spanish, Italian, Portuguese, Dutch, English;
   any other code is passed as is). Content to publish (fixes, titles, alt texts, rewrites) is written
   in the page language; prose for the editor (summary, details, reasons) in the UI language.
-- Parsing: the answer is read from its first `{`. `parseLenient` first tries up to the last `}`;
-  if that fails (an answer cut by the output budget), it cuts back to the last complete `},` and
-  closes `]}`, so complete items survive. Each task has its own parser that copies only the expected
-  fields, normalises enums (severity, category, heading level, with a fallback), caps array lengths
+- Parsing: genai-connector returns one JSON object, or refuses an answer cut before it is complete
+  JSON (`budget` error). `parseJson` reads the object from its first `{`. Each task has its own
+  parser that copies only the expected fields, normalises enums (severity, category, heading level, with a fallback), caps array lengths
   and clips suggestions and reasons to 300 characters (rewrites to 1,500; the review's title, detail
   and wording are not clipped). Nothing else from the model reaches the browser, and the tabs render
   it as React text (no `innerHTML`).
-- Response extras: `provider`, `model`, `truncated` (the provider reported the output limit),
-  `usage{inputTokens, outputTokens}` and, when `AI_COST_INPUT_PER_MTOKENS` or
-  `AI_COST_OUTPUT_PER_MTOKENS` is set, `usage.cost` in USD (rounded to 4 decimals).
+- Response extras: `provider`, `model`, `truncated` (the provider reported the output limit) and
+  `usage{inputTokens, outputTokens}`. When the provider reports a cost through genai-connector, the
+  response also has `usage.cost` in USD (rounded to 4 decimals).
 - Every task is started by a click (`runAiTask`), never automatically, to control cost.
 
-## The shared model connection
+## The AI service and genai-connector
 
 Package `org.jahia.community.contentgovernance.ai`, used by this servlet and by the GEO site report
-(`GeoReportServlet`, `GeoReport`), and read by the settings GraphQL types for the status.
+(`GeoReportServlet`, `GeoReport`), and read by the settings GraphQL types for the status. The
+`genai-connector` module serves the model through its `GenAiService`. This module has no provider,
+no key and no model.
 
 | Class | Role |
 |---|---|
-| `LlmConfigService` | DS component, PID `org.jahia.community.contentgovernance.llm`. Holds one immutable `Snapshot` in a volatile field, replaced by `@Activate`/`@Modified`, so an edit of the `.cfg` applies at once. `isEnabled()` is true when `AI_PROVIDER` names a known provider and `AI_MODEL` and `AI_API_KEY` are set. Provider name and model are empty when disabled; the key is never exposed. |
-| `Providers` | Looks up `anthropic`, `openai`, `deepseek` by name. |
-| `LlmProvider` | `name()`, `defaultBaseUrl()`, `supportsImages()` (default false), `complete(system, user, images, settings)`. Implementations are stateless. |
-| `AnthropicProvider` | `POST {base}/v1/messages`, `x-api-key`, `max_tokens`; reads images (base64 `image` parts, each after an `IMAGE #id:` text part); truncated when `stop_reason` is `max_tokens`. |
-| `OpenAiCompatibleProvider` | `POST {base}/v1/chat/completions`, Bearer token; images as `image_url` data URLs when the subclass reads images; truncated when `finish_reason` is `length`; an empty answer with `reasoning_content` raises an explicit error. |
-| `OpenAiProvider` | `max_completion_tokens`, reads images. |
-| `DeepSeekProvider` | `max_tokens`, text only, and `thinking: {type: disabled}`: V4 models otherwise spend the budget on hidden reasoning and drift from the JSON-only instruction. |
-| `HttpJson` | JDK `HttpClient`, connect timeout 10 s, request timeout 150 s, no redirects; a non-2xx status becomes an `IOException` with the status and 400 characters of the body. Endpoints come from configuration only. |
-| `LlmSettings`, `Completion`, `LlmImage` | Per-call settings (its `toString` masks the key), answer (text, truncated, token counts or -1), picture. |
+| `AiService` | DS component, PID `org.jahia.community.contentgovernance.llm`, and the one entry point of the AI features. `status(feature, siteKey)` tells whether a model answers the current user on the site. `complete(request)` sends one call and adds `AI_PROMPT_APPENDIX` after the instructions. |
+| `AiModel` | The model behind the features. Its interface names no type of genai-connector, so the module loads without genai-connector. `AiService` binds it with an optional, dynamic reference and answers `ABSENT` while it is missing. |
+| `genai/GenAiModel` | The only class that names a type of genai-connector. It starts once `GenAiService` is there, and the module loads it through a dynamic import of `org.jahia.modules.genai.api;version="[0.1,1)"`. It picks the tier, asks for `ResponseFormat.JSON` and turns each exception of genai-connector into an `AiException.Reason`. |
+| `AiStatus` | `READY`, `ABSENT`, `NOT_CONFIGURED` or `NO_ACCESS`, with the provider and the model of the `balanced` tier and whether the `vision` tier is served. `reason()` gives the value of GraphQL and of `geo/report`: `absent`, `notConfigured`, `noAccess`, or empty when ready. |
+| `AiFeature` | `REVIEW`, `SEO`, `SIMPLIFY`, `ALT_TEXT` and `GEO_REPORT`. |
+| `AiRequest`, `AiAnswer`, `AiImage` | One call, its answer and one picture. The request has the feature, the site key, the instructions, the input, the pictures and the output budget. The answer has the text, `truncated`, the token counts (or -1), the cost when the provider reports one, the provider and the model. Their `toString` leaves out the prompt, the answer and the picture bytes. |
+| `AiException` | A call with no answer, and its `Reason`: `NO_ACCESS`, `QUOTA`, `NOT_CONFIGURED`, `OUTPUT_LIMIT`, `INVALID_OUTPUT` or `PROVIDER`. The endpoints answer the browser from the reason, and the message goes to the server log only. |
+
+Tiers: every task asks for the `balanced` tier. The `alt` task asks for the `vision` tier when it
+attaches at least one picture, and for `balanced` otherwise, or for `vision` when only that tier
+has a model. A tier with no model of its own uses
+genai-connector's shared model. `settings.ai` is the status of `REVIEW`, because every page task runs
+on the same tier.
+
+Access: `AiService` checks `genaiAccess` on `/sites/<key>` with the session of the current user, as
+genai-connector checks it. No user, a site that does not exist and a site the user cannot read all
+give `NO_ACCESS`. genai-connector checks the permission again on each call.
 
 Configuration, in `digital-factory-data/karaf/etc/org.jahia.community.contentgovernance.llm.cfg`
-(shipped empty, first line `# default configuration - won't be overridden`, so a redeploy keeps the
-operator's values):
+(first line `# default configuration - won't be overridden`, so a redeploy keeps the operator's
+values):
 
 | Key | Default | Use |
 |---|---|---|
-| `AI_PROVIDER` | empty | `anthropic`, `openai` or `deepseek` |
-| `AI_MODEL` | empty | the provider's model id |
-| `AI_API_KEY` | empty | server-side only |
-| `AI_BASE_URL` | the provider's API | a proxy or compatible gateway; trailing slashes removed |
-| `AI_MAX_TOKENS` | 6000 (min 256) | output budget of a page task; reasoning models spend part of it before answering |
 | `AI_RATE_MAX_CALLS` | 30 (min 1) | page tasks per user per 10 minutes |
-| `AI_COST_INPUT_PER_MTOKENS`, `AI_COST_OUTPUT_PER_MTOKENS` | empty | USD per million tokens; no cost shown when both are empty |
 | `AI_PROMPT_APPENDIX` | empty | instructions appended to every prompt, of every site |
-| `AI_REPORT_MAX_TOKENS`, `AI_REPORT_RATE_MAX_CALLS` | 6000, 5 | GEO site report only |
+| `AI_REPORT_RATE_MAX_CALLS` | 5 (min 1) | GEO site report only |
+
+The provider, the key and the model of each tier are set in genai-connector (PID
+`org.jahia.modules.genai`). Up to 1.11.0, the module had its own client, configured by
+`AI_PROVIDER`, `AI_MODEL`, `AI_API_KEY`, `AI_BASE_URL`, `AI_MAX_TOKENS`, `AI_REPORT_MAX_TOKENS`,
+`AI_COST_INPUT_PER_MTOKENS` and `AI_COST_OUTPUT_PER_MTOKENS`. `AiService` ignores these keys, and
+it logs a WARN at start while the file sets one of them.
 
 The rate-limit windows are kept in memory per servlet instance: they reset on restart and are not
 shared across cluster nodes.

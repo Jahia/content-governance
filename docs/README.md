@@ -34,7 +34,7 @@ every tab shows, which findings are yours to fix and which belong to a developer
 ## If you are a site administrator
 
 - **[`settings-guide.md`](settings-guide.md)**: **Site Settings > Content governance**: switching
-  sections and tabs, the AI provider, connecting BotRank.
+  sections and tabs, the AI model, connecting BotRank.
 
 ## If you want to know what it checks, or how it works
 

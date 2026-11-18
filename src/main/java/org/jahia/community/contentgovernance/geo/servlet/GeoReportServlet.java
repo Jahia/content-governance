@@ -3,7 +3,10 @@ package org.jahia.community.contentgovernance.geo.servlet;
 import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.community.contentgovernance.geo.check.GeoReport;
 import org.jahia.community.contentgovernance.geo.check.ScanStore;
-import org.jahia.community.contentgovernance.ai.LlmConfigService;
+import org.jahia.community.contentgovernance.ai.AiException;
+import org.jahia.community.contentgovernance.ai.AiFeature;
+import org.jahia.community.contentgovernance.ai.AiService;
+import org.jahia.community.contentgovernance.ai.AiStatus;
 import org.jahia.community.contentgovernance.geo.config.GeoReadinessConfigService;
 import org.jahia.community.contentgovernance.geo.util.PublicUrls;
 import org.jahia.community.contentgovernance.geo.util.SiteScope;
@@ -30,9 +33,9 @@ import java.io.IOException;
 /**
  * The written report, generated on request and read back afterwards.
  *
- * GET  /modules/content-governance/geo/report            -> {enabled, provider, model}; never the key
+ * GET  /modules/content-governance/geo/report            -> {enabled, reason, provider, model}
  * POST {"action":"read", path, language}        -> the stored report, or {"report": null}
- * POST {"action":"generate", path, language, reportLanguage} -> asks the provider, stores, returns
+ * POST {"action":"generate", path, language, reportLanguage} -> asks genai-connector, stores, returns
  *
  * Same gate as the dashboard's other endpoints: the caller must hold the
  * permission the dashboard route declares, on the site the path resolves to.
@@ -62,12 +65,12 @@ public class GeoReportServlet extends GeoServlet {
      * the container shares between threads holds nothing mutable.
      */
     private final transient GeoReadinessConfigService config;
-    private final transient LlmConfigService llm;
+    private final transient AiService ai;
 
     @Activate
-    public GeoReportServlet(@Reference GeoReadinessConfigService config, @Reference LlmConfigService llm) {
+    public GeoReportServlet(@Reference GeoReadinessConfigService config, @Reference AiService ai) {
         this.config = config;
-        this.llm = llm;
+        this.ai = ai;
     }
 
     /**
@@ -75,26 +78,27 @@ public class GeoReportServlet extends GeoServlet {
      * may administer.
      *
      * The gate is {@link #requireDashboard}, not a guest check. The answer names
-     * the AI provider and model the operator configured - which third party this
-     * site's content is sent to - so it is site settings, and it is read with
+     * the AI provider and model that genai-connector serves - which third party
+     * this site's content is sent to - so it is site settings, and it is read with
      * the same `publish` permission the POST below requires. Before
      * JAHIA-SEC-432 this asked only whether the caller was logged in, and any
      * account on the platform could read it.
      *
-     * The values are global to the module rather than per-site, so the site here
-     * is what the caller must hold the permission ON, not what is looked up.
+     * The caller must also hold genaiAccess on the site, as genai-connector checks it.
      */
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
         try {
-            if (requireDashboard(req, resp) == null) {
+            String sitePath = requireDashboard(req, resp);
+            if (sitePath == null) {
                 return;
             }
+            AiStatus status = ai.status(AiFeature.GEO_REPORT, SiteScope.keyOf(sitePath));
             JSONObject out = new JSONObject();
-            boolean enabled = GeoReport.enabled(llm);
-            out.put("enabled", enabled);
-            out.put("provider", llm.providerName());
-            out.put("model", llm.model());
+            out.put("enabled", status.ready());
+            out.put("reason", status.reason());
+            out.put("provider", status.provider());
+            out.put("model", status.model());
             writeJson(resp, HttpServletResponse.SC_OK, out);
         } catch (IOException | RuntimeException e) {
             // Nothing may leave a servlet method: the container would answer with
@@ -165,14 +169,14 @@ public class GeoReportServlet extends GeoServlet {
             } else {
                 deny(resp, HttpServletResponse.SC_BAD_REQUEST, "unknown action");
             }
+        } catch (AiException e) {
+            // The provider's own words stay in the log. The browser learns why there is no report.
+            logger.warn("GEO report for {} [{}] gave no answer ({}): {}", sitePath, ask.language, e.reason(),
+                    e.getMessage());
+            denyAi(resp, e.reason());
         } catch (IOException e) {
-            // The provider's own words stay in the log. The browser learns that
-            // the provider failed, and how, in a form that names no secret.
             logger.warn("GEO report for {} [{}] failed: {}", sitePath, ask.language, e.getMessage());
             deny(resp, HttpServletResponse.SC_BAD_GATEWAY, "provider failed: " + safe(e.getMessage()));
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            deny(resp, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "interrupted");
         } catch (RepositoryException | RuntimeException e) {
             logger.warn("GEO report {} failed for {}: {}", ask.action, sitePath, e.getMessage());
             logger.debug("GEO report failure", e);
@@ -208,23 +212,45 @@ public class GeoReportServlet extends GeoServlet {
         return null;
     }
 
-    /** The paid path: a provider must exist and the caller must be within their budget. */
+    /** The paid path: a model must answer for the caller on the site, within their budget. */
     private void generate(String sitePath, String language, String reportLanguage, JahiaUser user,
             HttpServletRequest req, HttpServletResponse resp)
-            throws IOException, InterruptedException, RepositoryException {
-        if (!GeoReport.enabled(llm)) {
-            deny(resp, HttpServletResponse.SC_CONFLICT, "no provider configured");
+            throws IOException, RepositoryException, AiException {
+        AiStatus status = ai.status(AiFeature.GEO_REPORT, SiteScope.keyOf(sitePath));
+        if (!status.ready()) {
+            denyAi(resp, status.availability() == AiStatus.Availability.NO_ACCESS
+                    ? AiException.Reason.NO_ACCESS : AiException.Reason.NOT_CONFIGURED);
             return;
         }
-        if (!rateLimitOk(user.getUserKey(), RATE_WINDOW_MS, llm.reportRateMaxCalls())) {
+        if (!rateLimitOk(user.getUserKey(), RATE_WINDOW_MS, ai.reportRateMaxCalls())) {
             deny(resp, TOO_MANY_REQUESTS, "rate limit");
             return;
         }
         String base = baseUrlFor(sitePath, language, req);
-        JSONObject report = GeoReport.generate(sitePath, language, reportLanguage, base, llm);
+        JSONObject report = GeoReport.generate(sitePath, language, reportLanguage, base, ai);
         JSONObject out = new JSONObject();
         out.put("report", report);
         writeJson(resp, HttpServletResponse.SC_OK, out);
+    }
+
+    /** The refusal of a report that genai-connector did not write. */
+    private static void denyAi(HttpServletResponse resp, AiException.Reason reason) throws IOException {
+        switch (reason) {
+            case NO_ACCESS:
+                deny(resp, HttpServletResponse.SC_FORBIDDEN, "genaiAccess required");
+                break;
+            case QUOTA:
+                deny(resp, TOO_MANY_REQUESTS, "rate limit");
+                break;
+            case NOT_CONFIGURED:
+                deny(resp, HttpServletResponse.SC_CONFLICT, "no provider configured");
+                break;
+            case OUTPUT_LIMIT:
+                deny(resp, HttpServletResponse.SC_BAD_GATEWAY, "provider failed: the answer reached its output budget");
+                break;
+            default:
+                deny(resp, HttpServletResponse.SC_BAD_GATEWAY, "provider failed");
+        }
     }
 
     private String baseUrlFor(String sitePath, String language, HttpServletRequest req) throws RepositoryException {

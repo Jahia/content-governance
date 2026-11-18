@@ -32,7 +32,7 @@ import styles from './GeoDashboard.module.css';
  * The site score sits outside them because it is the summary of all three.
  */
 const GROUPS = [
-    // The written report is always listed, greyed out while no model is configured.
+    // The written report is always listed, greyed out while no model answers this user on the site.
     {id: 'overview', tabs: ['score', 'report']},
     {id: 'reach', tabs: ['visibility', 'links', 'vanity']},
     {id: 'usable', tabs: ['schema', 'languages', 'freshness']},
@@ -64,8 +64,8 @@ export const GeoDashboard = ({isOn}) => {
     const [hasScan, setHasScan] = useState(false);
     const [exporting, setExporting] = useState(false);
 
-    // The written report needs a configured provider. The answer never carries
-    // the key, only whether there is one.
+    // The written report needs a model that genai-connector serves to this user
+    // on the site.
     //
     // Asked per site rather than once, because the server now resolves the site
     // to decide whether this caller may be told at all (JAHIA-SEC-432). A

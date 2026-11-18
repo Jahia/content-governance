@@ -88,8 +88,9 @@ review, opening the drawer. It never blocks publishing; jContent's own publish a
   its drawer section and switches its dashboard off (the entry stays and says so); a tab off
   disappears from the drawer. The server refuses the calls of what is switched off. Each tab's switch
   says what the tab is for.
-- **AI provider**: whether the shared model is configured, which provider and model, and whether it
-  reads images. Read only: only a server administrator sets it.
+- **AI model**: whether genai-connector serves a model to the AI features on this site, which
+  provider and model, and whether it reads images. Read only: a server administrator configures the
+  model in genai-connector.
 - **BotRank**: connect the site to a BotRank project, map cited addresses to pages, and set the time
   of the daily sync.
 
@@ -117,14 +118,16 @@ also come in the four languages.
 
 ## Requirements
 
-- Jahia 8.2 (tested on 8.2.3.2) with jContent 3.7 or later (`jcontent=[3.7,4)`; UI tested on 3.7.1,
+- Jahia 8.2.2.0 or later (tested on 8.2.3.2) with jContent 3.7 or later (`jcontent=[3.7,4)`; UI tested on 3.7.1,
   API also on 3.8.0) and graphql-dxm-provider. React 18 and Moonstone 2.20 come from jContent.
 - Optional: the `robots` module, for the GEO `robots.txt` editor, and the `llms` module, which writes
   and serves `llms.txt` (Content Governance shows it read only and checks its links). Without them
   the rest of the module works and those tabs say why they cannot.
+- Optional: the `genai-connector` module ([Jahia/genai-connector](https://github.com/Jahia/genai-connector)),
+  for the AI features, and the `genaiAccess` permission on the site for each user of these features.
+  Without genai-connector, the AI features show greyed out and the rest of the module works.
 - Optional: the `mcp-server` module, which serves the four tools of the editorial frame to AI
   agents. Without it the module starts and adds no tool.
-- Optional: an Anthropic, OpenAI or DeepSeek API key, for the AI features.
 - Optional: a BotRank organisation API key, for AI citations.
 
 ## Install
@@ -137,7 +140,8 @@ also come in the four languages.
    `content-governance-<version>.jar`. Then open **Content Governance** in the list and, under
    **Usage in sites**, enable it on each site.
 3. Open **Administration > Sites > (site) > Content governance** to choose the sections and tabs.
-4. For the AI features, a server administrator fills in the shared model (below).
+4. For the AI features, a server administrator installs genai-connector and configures its model
+   (below). Each user of these features needs the `genaiAccess` permission on the site.
 5. For compliance, enabling the module on a site creates **Content Folders > Compliance glossaries**
    with an example glossary in the site's default language and one example term. Add a
    **Compliance glossary** per language there, or anywhere under the site's `contents`.
@@ -153,8 +157,8 @@ first time the module starts on a site's existing GEO data, it keeps their setti
 off, with a note on the dashboard and in **Site Settings > Content governance > BotRank**; saving them
 from there turns them back on.
 
-What does not carry over: the AI settings. Page Quality Audit and GEO Readiness each had their own; copy the
-provider, model and key into `org.jahia.community.contentgovernance.llm.cfg`, then delete the old
+What does not carry over: the AI settings. Page Quality Audit and GEO Readiness each had their own.
+Set the provider, model and key in genai-connector's configuration instead, then delete the old
 files (`org.jahia.se.modules.pageaudit.cfg` and the `AI_*` keys of
 `org.jahia.se.modules.georeadiness.cfg`).
 
@@ -185,34 +189,45 @@ untranslated, until an administrator removes the definitions that editorial-fram
 Files in `digital-factory-data/karaf/etc/`. Edits apply at once with no redeploy, and a redeploy
 never overwrites them (`# default configuration` first line).
 
-### `org.jahia.community.contentgovernance.llm.cfg`: the shared AI model
+### `org.jahia.community.contentgovernance.llm.cfg`: the AI features
 
-Used by the **AI review** tab, the SEO, alt text and plain-language assists, and the written report
-of the GEO dashboard. Until provider, model and key are all set, these features are greyed out and
-nothing leaves the server.
+The module has no AI client of its own. genai-connector serves the model of the **AI review** tab,
+the SEO, alt text and plain-language assists, and the written report of the GEO dashboard. A server
+administrator chooses the provider, the key and the model of each tier in genai-connector's
+configuration (PID `org.jahia.modules.genai`), not in this module.
+
+- Every feature asks for the `balanced` tier.
+- The alt text assist asks for the `vision` tier when the browser could read at least one picture.
+  Otherwise it asks for `balanced`, or for `vision` when only that tier has a model, and the alt
+  texts come from the context alone.
+- A tier with no model of its own uses genai-connector's shared model. The model of the `vision`
+  tier must read images.
+- DeepSeek, a proxy or another compatible gateway: genai-connector's `openai-compatible` provider and
+  its `base.url` key.
+
+The AI features show greyed out while genai-connector is absent, not started, or serves no model on
+the `balanced` tier. Nothing leaves the server then. The AI features also show greyed out, with a
+message, for a user who does not have the `genaiAccess` permission on the site.
+
+Each call asks for one JSON object, with an output budget of 6000 tokens. A full review needs 3000 to
+4000, and a reasoning model spends part of the budget thinking first. genai-connector caps that
+budget with its `max.output.tokens.limit` key (16384 by default). genai-connector retries an answer
+that is not JSON. An answer cut by its budget gives the error `budget`. Editors see the cost of a call
+only when the provider reports one through genai-connector, for example the Jahia AI gateway.
+
+This file keeps what the module still sets itself:
 
 | Key | Default | What |
 |---|---|---|
-| `AI_PROVIDER` | empty | `anthropic`, `openai` or `deepseek` |
-| `AI_MODEL` | empty | The provider's model id |
-| `AI_API_KEY` | empty | Used on the server only, never sent to the browser or logged |
-| `AI_BASE_URL` | empty | The provider's API base, for a proxy or a compatible gateway |
-| `AI_MAX_TOKENS` | `6000` | Output budget of a page review or assist; a full review needs 3000 to 4000, and a reasoning model spends part of it thinking first |
-| `AI_REPORT_MAX_TOKENS` | `6000` | Output budget of a GEO site report |
 | `AI_RATE_MAX_CALLS` | `30` | Page calls allowed per user per ten minutes |
 | `AI_REPORT_RATE_MAX_CALLS` | `5` | GEO reports allowed per user per ten minutes |
-| `AI_COST_INPUT_PER_MTOKENS`, `AI_COST_OUTPUT_PER_MTOKENS` | empty | Price in USD per million tokens; when set, editors see the cost of each review |
 | `AI_PROMPT_APPENDIX` | empty | Instructions added to every prompt: brand, tone, editorial rules |
 
-Anthropic and OpenAI read the pictures of the alt text assist; DeepSeek is text only, and the assist
-then infers from file names and surrounding text, and says so.
-
-Any chat model works. The page tasks need a JSON answer: they ask OpenAI-compatible APIs for JSON
-mode (`response_format`), and OpenAI's reasoning models (o1, o3, o4, gpt-5) for short reasoning
-(`reasoning_effort: low`); a model or gateway that refuses either is asked again without it. An
-answer that is still not JSON gets one retry with a correction, and its tokens count in the cost. A
-reasoning model that spends the whole budget before answering is reported as such: raise
-`AI_MAX_TOKENS` (or `AI_REPORT_MAX_TOKENS` for the GEO report).
+Up to 1.11.0, this file also had the keys of the module's own AI client: `AI_PROVIDER`, `AI_MODEL`,
+`AI_API_KEY`, `AI_BASE_URL`, `AI_MAX_TOKENS`, `AI_REPORT_MAX_TOKENS`, `AI_COST_INPUT_PER_MTOKENS` and
+`AI_COST_OUTPUT_PER_MTOKENS`. The module ignores these keys now. At start, it logs a WARN while the
+file on the server still sets one of them. Move their values to genai-connector, then remove them
+from the file, `AI_API_KEY` first.
 
 ### `org.jahia.community.contentgovernance.geo.cfg`: the GEO crawler check
 
@@ -254,6 +269,7 @@ call to BotRank: a daily sync, on the processing server, stores the citations of
 | Page quality dashboard and the shared audits | `jContentAccess` on the site, read on the page | always listed; says it is switched off when the Page quality section is off |
 | Compliance dashboard | `jContentAccess` on the site | always listed; says it is switched off when the Compliance section is off |
 | Site Settings > Content governance | `site-admin` on the site | always; the server checks every save |
+| AI review, AI assists, GEO written report | `genaiAccess` on the site (declared by genai-connector), plus the permission of the surface | genai-connector serves a model; greyed out otherwise |
 
 Switches in the browser only hide. Every servlet and GraphQL field checks the permission, the module
 on the site and the site's switches on the server. The page checks and the compliance scans read with
@@ -267,11 +283,12 @@ store their results there.
 
 - **Nothing by default.** Page quality runs in the editor's browser against the editing workspace.
 - **GEO readiness** fetches the site's own public pages and files, as each AI crawler would.
-- **AI features**, once configured, send to the configured provider: the page text, its metadata and
-  a digest of the automated findings (page tasks); a digest of site measurements (GEO report);
-  pictures only for the alt text assist with a provider that reads images. Each call is started by
-  an editor; the prompts are fixed on the server and the answers are validated before they reach the
-  browser.
+- **AI features** send data only once genai-connector serves a model, and only to the provider of
+  that model. Page tasks send the page text, its metadata and a digest of the automated findings.
+  The GEO report sends a digest of site measurements. Only the alt text assist sends pictures, and
+  only when genai-connector serves the `vision` tier. Each call is started by an editor who has
+  `genaiAccess` on the site. The prompts are fixed on the server, and the answers are validated
+  before they reach the browser.
 - **BotRank** is called by the daily sync only, with the organisation's key.
 
 ## API
@@ -282,7 +299,7 @@ query {
     siteSettings(siteKey: "mysite") {
       moduleEnabled canEdit disabled
       sections { id enabled tabs { id enabled } }
-      ai { configured provider model images }
+      ai { configured reason provider model images }
     }
   }
 }
@@ -304,6 +321,12 @@ compliance scans stay under `complianceScan { scanPage, scanSite }`. Servlets li
 
 Another module adds a tab to the drawer, or an action on a finding, through jContent's registry:
 [`docs/drawer-entries.md`](docs/drawer-entries.md) states what an entry declares and receives.
+
+`ai.configured` is true when a model answers the caller on this site. Otherwise `ai.reason` says why:
+`absent` (no genai-connector), `notConfigured` (no model on the `balanced` tier) or `noAccess` (no
+`genaiAccess` on the site). `ai.images` is true when genai-connector serves the `vision` tier, and
+`provider` and `model` are those of the `balanced` tier. `GET geo/report` answers `{enabled, reason,
+provider, model}` with the same values.
 
 ## Known gaps
 

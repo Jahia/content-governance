@@ -1,9 +1,12 @@
 package org.jahia.community.contentgovernance.audit.servlet;
 
-import org.jahia.community.contentgovernance.ai.Completion;
-import org.jahia.community.contentgovernance.ai.LlmConfigService;
-import org.jahia.community.contentgovernance.ai.LlmImage;
-import org.jahia.community.contentgovernance.ai.LlmProvider;
+import org.jahia.community.contentgovernance.ai.AiAnswer;
+import org.jahia.community.contentgovernance.ai.AiException;
+import org.jahia.community.contentgovernance.ai.AiFeature;
+import org.jahia.community.contentgovernance.ai.AiImage;
+import org.jahia.community.contentgovernance.ai.AiRequest;
+import org.jahia.community.contentgovernance.ai.AiService;
+import org.jahia.community.contentgovernance.ai.AiStatus;
 import org.jahia.community.contentgovernance.settings.Features;
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
 import org.jahia.services.content.JCRNodeWrapper;
@@ -14,6 +17,7 @@ import org.jahia.services.usermanager.JahiaUser;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
@@ -28,6 +32,7 @@ import java.io.Reader;
 import java.net.URL;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
@@ -44,8 +49,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * The prompt is built server-side from a constrained payload (page text +
  * audit digest), so this endpoint cannot be abused as a general-purpose LLM
- * proxy. The model connection is the module's shared one ({@link LlmConfigService}); its key is
- * never sent to the browser. Each task runs only where the site enables its tab: the review on the
+ * proxy. genai-connector serves the model ({@link AiService}): the module holds no provider key, and
+ * a task runs only for a user who holds genaiAccess on the site. Each task runs only where the site enables its tab: the review on the
  * AI tab, the assists on the SEO, Accessibility and Readability tabs. Inspired by Jahia/ai-content-sentinel (structured JSON-only
  * output) and jahia-mcp-chat (provider proxying).
  */
@@ -75,6 +80,9 @@ public class AiReviewServlet extends HttpServlet {
     // Per-user sliding-window rate limit: protects the shared provider quota / cost
     // from a single caller (AI_RATE_MAX_CALLS per 10 minutes per user).
     private static final long RATE_WINDOW_MS = 600_000L;
+    // Output budget of a page task. A full review needs 3000-4000 tokens, and a reasoning model spends
+    // part of it thinking first; genai-connector's default of 1024 would cut it.
+    private static final int MAX_OUTPUT_TOKENS = 6000;
     // The largest body a task sends is the alt text assist: 8 pictures of 512 px as JPEG, well
     // under 1 MB in base64. Anything past this is refused before it is parsed.
     private static final int MAX_BODY_CHARS = 4 * 1024 * 1024;
@@ -83,12 +91,7 @@ public class AiReviewServlet extends HttpServlet {
     private static final String TRUNCATED = "truncated";
     private static final String INPUT_TOKENS = "inputTokens";
     private static final String OUTPUT_TOKENS = "outputTokens";
-    /** Appended to the user message when an answer was not the JSON object asked for. */
-    private static final String CORRECTION = """
-
-
-            YOUR PREVIOUS ANSWER WAS NOT A VALID JSON OBJECT. Answer again with the JSON object only: \
-            no prose before or after it, no code fence.""";
+    private static final String UPSTREAM = "upstream";
     private final Map<String, Deque<Long>> callWindows = new ConcurrentHashMap<>();
 
     private static final String SYSTEM_PROMPT =
@@ -213,33 +216,39 @@ public class AiReviewServlet extends HttpServlet {
      * heading, surrounding text, link target) and, when the browser could read
      * its pixels (same-origin, not tainted), a downscaled copy for vision models.
      */
-    private static final String ALT_TEXT_PROMPT =
-            "You write alternative text for images on a CMS page, for screen reader users and search engines. "
-            + "For each IMAGE #n you receive its file name, rendered size, whether it is a link, nearby text "
-            + "(caption, nearest heading, surrounding paragraph) and, when available, the picture itself.\n\n"
-            + "Reply ONLY with a valid JSON object. No markdown, no code fences, no comments, no trailing commas.\n"
-            + "JSON structure:\n"
-            + "{\n"
-            + "  \"images\": [\n"
-            + "    {\n"
-            + "      \"id\": <the image number n>,\n"
-            + "      \"decorative\": true | false,\n"
-            + "      \"alt\": \"the alternative text, or empty string when decorative\",\n"
-            + "      \"reason\": \"one sentence explaining the choice\"\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}\n"
-            + "Rules: alt is at most 125 characters; it conveys the image's content or, for a linked image, its "
-            + "purpose/destination; never starts with 'image of' / 'picture of' / 'photo of'; no keyword stuffing; "
-            + "does not repeat an adjacent caption or heading verbatim. Mark decorative=true (with alt \"\") when the "
-            + "image is purely aesthetic (background, divider, flourish) or fully redundant with adjacent text. "
-            + "When the picture itself is not provided, infer from the context and say so in the reason (lower confidence). "
-            + "Answer for every image id you received, in the same order.\n"
-            + "LANGUAGE RULES: every \"alt\" MUST be written in %1$s (it is published to the page's visitors); "
-            + "every \"reason\" MUST be written in %2$s (it is read by the editor).";
+    private static final String ALT_TEXT_PROMPT = """
+            You write alternative text for images on a CMS page, for screen reader users and search engines. \
+            For each IMAGE #n you receive its file name, rendered size, whether it is a link, nearby text \
+            (caption, nearest heading, surrounding paragraph) and, when available, the picture itself: \
+            "attached picture k" is the k-th picture attached to the message.
 
-    @Reference
-    private LlmConfigService llm;
+            Reply ONLY with a valid JSON object. No markdown, no code fences, no comments, no trailing commas.
+            JSON structure:
+            {
+              "images": [
+                {
+                  "id": <the image number n>,
+                  "decorative": true | false,
+                  "alt": "the alternative text, or empty string when decorative",
+                  "reason": "one sentence explaining the choice"
+                }
+              ]
+            }
+            Rules: alt is at most 125 characters; it conveys the image's content or, for a linked image, its \
+            purpose/destination; never starts with 'image of' / 'picture of' / 'photo of'; no keyword stuffing; \
+            does not repeat an adjacent caption or heading verbatim. Mark decorative=true (with alt "") when the \
+            image is purely aesthetic (background, divider, flourish) or fully redundant with adjacent text. \
+            When the picture itself is not provided, infer from the context and say so in the reason (lower confidence). \
+            Answer for every image id you received, in the same order.
+            LANGUAGE RULES: every "alt" MUST be written in %1$s (it is published to the page's visitors); \
+            every "reason" MUST be written in %2$s (it is read by the editor).""";
+
+    private final transient AiService ai;
+
+    @Activate
+    public AiReviewServlet(@Reference AiService ai) {
+        this.ai = ai;
+    }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse res) {
@@ -265,8 +274,9 @@ public class AiReviewServlet extends HttpServlet {
         // Server-defined tasks share the endpoint and its guards; the client
         // only picks which one, never the prompt.
         String task = payload.optString("task", "review").toLowerCase();
-        if (allowed(res, user, payload, task)) {
-            run(res, payload, task);
+        Grant grant = allowed(res, user, payload, task);
+        if (grant != null) {
+            run(res, payload, grant);
         }
     }
 
@@ -302,30 +312,53 @@ public class AiReviewServlet extends HttpServlet {
         }
     }
 
-    /** True when the caller may run this task now; otherwise the refusal is written. */
-    private boolean allowed(HttpServletResponse res, JahiaUser user, JSONObject payload, String task) throws IOException {
+    /**
+     * What a call runs with: the task, its feature, its site and whether pictures go, or why AiService refuses it.
+     *
+     * @param refusal null when the model answers the caller on the site
+     */
+    record Grant(String task, AiFeature feature, String siteKey, boolean vision, AiException.Reason refusal) {
+    }
+
+    /** Asks AiService whether a task can run on a site; it reads no repository. */
+    static Grant grantOf(AiService ai, String task, String siteKey) {
+        AiFeature feature = featureOf(task);
+        AiStatus status = ai.status(feature, siteKey);
+        AiException.Reason refusal = null;
+        if (status.availability() == AiStatus.Availability.NO_ACCESS) {
+            refusal = AiException.Reason.NO_ACCESS;
+        } else if (!status.ready()) {
+            refusal = AiException.Reason.NOT_CONFIGURED;
+        }
+        return new Grant(task, feature, siteKey, status.vision(), refusal);
+    }
+
+    /** The grant of a call the caller may run now, or null once the refusal is written. */
+    private Grant allowed(HttpServletResponse res, JahiaUser user, JSONObject payload, String task) throws IOException {
         String path = payload.optString("path", "");
         // Authorization: only run a review for a page the caller may actually read,
         // so the endpoint cannot be abused as an open LLM proxy by any authenticated principal.
         if (!canRead(path)) {
             writeError(res, HttpServletResponse.SC_FORBIDDEN, "noAccess", "You must have read access to the audited page");
-            return false;
+            return null;
         }
-        if (!featureEnabled(path, task)) {
+        JCRSiteNode site = siteOf(path);
+        if (site == null || !SiteFeatures.isEnabled(site.getPath(), Features.AUDIT + "." + tabOf(task))) {
             writeError(res, HttpServletResponse.SC_FORBIDDEN, "switchedOff", "This feature is switched off on the site");
-            return false;
+            return null;
         }
-        if (!llm.isEnabled()) {
-            writeError(res, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "notConfigured", "AI review is not configured");
-            return false;
+        Grant grant = grantOf(ai, task, site.getSiteKey());
+        if (grant.refusal() != null) {
+            writeFailure(res, grant.refusal());
+            return null;
         }
         // Counted last, once every refusal that costs nothing is behind: a call that reaches this
         // point goes to the provider.
         if (isRateLimited(user.getUsername())) {
             writeError(res, 429, "rateLimited", "Too many AI review requests; please retry later");
-            return false;
+            return null;
         }
-        return true;
+        return grant;
     }
 
     /** The server-defined prompt of a task: never chosen by the client beyond the task name. */
@@ -333,9 +366,9 @@ public class AiReviewServlet extends HttpServlet {
         final String task;
         final String system;
         final String user;
-        final JSONArray images;
+        final List<AiImage> images;
 
-        Prompt(String task, String system, String user, JSONArray images) {
+        Prompt(String task, String system, String user, List<AiImage> images) {
             this.task = task;
             this.system = system;
             this.user = user;
@@ -343,22 +376,49 @@ public class AiReviewServlet extends HttpServlet {
         }
     }
 
-    private Prompt promptFor(String task, JSONObject payload) {
+    private Prompt promptFor(String task, JSONObject payload, boolean vision) {
         switch (task) {
             case "seo":
                 return new Prompt(task, languagePrompt(SEO_ASSIST_PROMPT, payload), buildSeoAssistContent(payload),
-                        new JSONArray());
+                        List.of());
             case "alt": {
-                // The pictures, when the provider reads them, are filled in while the content is built.
-                JSONArray images = new JSONArray();
-                String content = buildAltContent(payload, images, llm.supportsImages());
+                // The pictures, when the vision tier is served, are filled in while the content is built.
+                List<AiImage> images = new ArrayList<>();
+                String content = buildAltContent(payload, images, vision);
                 return new Prompt(task, languagePrompt(ALT_TEXT_PROMPT, payload), content, images);
             }
             case TASK_SIMPLIFY:
                 return new Prompt(task, languagePrompt(SIMPLIFY_PROMPT, payload), buildSimplifyContent(payload),
-                        new JSONArray());
+                        List.of());
             default:
-                return new Prompt("review", SYSTEM_PROMPT, buildUserContent(payload), new JSONArray());
+                return new Prompt("review", SYSTEM_PROMPT, buildUserContent(payload), List.of());
+        }
+    }
+
+    static AiFeature featureOf(String task) {
+        switch (task) {
+            case "seo":
+                return AiFeature.SEO;
+            case "alt":
+                return AiFeature.ALT_TEXT;
+            case TASK_SIMPLIFY:
+                return AiFeature.SIMPLIFY;
+            default:
+                return AiFeature.REVIEW;
+        }
+    }
+
+    /** The tab of the drawer that a task belongs to, which the site switches on or off. */
+    static String tabOf(String task) {
+        switch (task) {
+            case "seo":
+                return "seo";
+            case "alt":
+                return "accessibility";
+            case TASK_SIMPLIFY:
+                return "readability";
+            default:
+                return "ai";
         }
     }
 
@@ -367,7 +427,7 @@ public class AiReviewServlet extends HttpServlet {
             case "seo":
                 return parseSeoAssist(rawAnswer);
             case "alt":
-                return parseAltText(rawAnswer).put("vision", prompt.images.length() > 0);
+                return parseAltText(rawAnswer).put("vision", !prompt.images.isEmpty());
             case TASK_SIMPLIFY:
                 return parseSimplify(rawAnswer);
             default:
@@ -375,99 +435,78 @@ public class AiReviewServlet extends HttpServlet {
         }
     }
 
-    /** Token counts of an answer, with its cost when the price is configured; null when unknown. */
-    private JSONObject usageOf(JSONObject providerResult) {
-        long inputTokens = providerResult.optLong(INPUT_TOKENS, -1);
-        long outputTokens = providerResult.optLong(OUTPUT_TOKENS, -1);
-        if (inputTokens < 0 || outputTokens < 0) {
+    /** Token counts of an answer, with its cost when the provider reported one; null when unknown. */
+    private static JSONObject usageOf(AiAnswer answer) {
+        if (answer.inputTokens() < 0 || answer.outputTokens() < 0) {
             return null;
         }
         JSONObject usage = new JSONObject();
-        usage.put(INPUT_TOKENS, inputTokens);
-        usage.put(OUTPUT_TOKENS, outputTokens);
-        // Rates are configured per million tokens (AI_COST_*_PER_MTOKENS); none set, no cost shown
-        if (llm.costInputPerMTokens() > 0 || llm.costOutputPerMTokens() > 0) {
-            double cost = (inputTokens / 1_000_000.0) * llm.costInputPerMTokens()
-                    + (outputTokens / 1_000_000.0) * llm.costOutputPerMTokens();
-            usage.put("cost", Math.round(cost * 10_000.0) / 10_000.0);
+        usage.put(INPUT_TOKENS, answer.inputTokens());
+        usage.put(OUTPUT_TOKENS, answer.outputTokens());
+        if (answer.costUsd() != null) {
+            usage.put("cost", Math.round(answer.costUsd() * 10_000.0) / 10_000.0);
             usage.put("currency", "USD");
         }
         return usage;
     }
 
     /** Calls the model with the task's prompt and answers with its validated result. */
-    private void run(HttpServletResponse res, JSONObject payload, String task) throws IOException {
-        Prompt prompt = promptFor(task, payload);
-        StringBuilder lastAnswer = new StringBuilder();
-        String rawAnswer = null;
+    void run(HttpServletResponse res, JSONObject payload, Grant grant) throws IOException {
+        Prompt prompt = promptFor(grant.task(), payload, grant.vision());
+        AiAnswer answer = null;
         try {
-            Answer answer = answer(prompt, lastAnswer);
-            JSONObject review = answer.review();
-            JSONObject providerResult = answer.result();
-            review.put("provider", llm.providerName());
-            review.put("model", llm.model());
-            if (providerResult.optBoolean(TRUNCATED, false)) {
+            answer = ai.complete(new AiRequest(grant.feature(), grant.siteKey(), prompt.system, prompt.user,
+                    prompt.images, MAX_OUTPUT_TOKENS));
+            JSONObject review = parse(prompt, answer.text());
+            review.put("provider", answer.provider());
+            review.put("model", answer.model());
+            if (answer.truncated()) {
                 review.put(TRUNCATED, true);
-                logger.warn("AI {} answer truncated by AI_MAX_TOKENS ({}); complete items were salvaged",
-                        prompt.task, llm.maxTokens());
+                logger.warn("AI {} answer reached its output budget ({} tokens) as complete JSON; it may miss items",
+                        prompt.task, MAX_OUTPUT_TOKENS);
             }
-            JSONObject usage = usageOf(providerResult);
+            JSONObject usage = usageOf(answer);
             if (usage != null) {
                 review.put("usage", usage);
             }
             writeJson(res, HttpServletResponse.SC_OK, review);
-        } catch (Exception e) {
-            logger.error("AI {} failed", prompt.task, e);
-            rawAnswer = lastAnswer.isEmpty() ? null : lastAnswer.toString();
-            if (rawAnswer != null) {
+        } catch (AiException e) {
+            logger.warn("AI {} gave no answer ({}): {}", prompt.task, e.reason(), e.getMessage());
+            logger.debug("AI {} failure", prompt.task, e);
+            writeFailure(res, e.reason());
+        } catch (RuntimeException e) {
+            logger.error("AI {} answer could not be read", prompt.task, e);
+            if (answer != null) {
                 // Server-side only: the start of the unparseable answer is the one
-                // clue to a prompt/model mismatch (prose preamble, refusal, empty content)
-                logger.warn("Unparseable model answer ({} chars) starts with: {}", rawAnswer.length(),
-                        rawAnswer.substring(0, Math.min(rawAnswer.length(), 500)).replaceAll("\\s+", " "));
+                // clue to a prompt/model mismatch (refusal, empty content)
+                String raw = answer.text();
+                logger.warn("Unparseable model answer ({} chars) starts with: {}", raw.length(),
+                        raw.substring(0, Math.min(raw.length(), 500)).replaceAll("\\s+", " "));
             }
-            if (e.getMessage() != null && e.getMessage().startsWith(Completion.EMPTY_BUDGET)) {
-                writeError(res, HttpServletResponse.SC_BAD_GATEWAY, "budget", Completion.EMPTY_BUDGET);
-            } else {
-                writeError(res, HttpServletResponse.SC_BAD_GATEWAY, "upstream", "AI review temporarily unavailable");
-            }
+            writeError(res, HttpServletResponse.SC_BAD_GATEWAY, UPSTREAM, "AI review temporarily unavailable");
         }
     }
 
-    /** A validated answer and the provider result it came from (token counts of every call included). */
-    private record Answer(JSONObject review, JSONObject result) {
-    }
-
-    /**
-     * Calls the model and parses its answer; an answer that is not the JSON asked for is asked for once
-     * more, with a correction. {@code lastAnswer} holds the last raw text, for the log when parsing fails.
-     */
-    private Answer answer(Prompt prompt, StringBuilder lastAnswer) throws IOException {
-        JSONObject first = callProvider(prompt.system, prompt.user, prompt.images);
-        String text = first.getString("text");
-        lastAnswer.setLength(0);
-        lastAnswer.append(text);
-        try {
-            return new Answer(parse(prompt, text), first);
-        } catch (IllegalStateException notJson) {
-            // Some models wrap the object in prose or ignore the format once: ask once more, saying why.
-            logger.info("AI {} answer was not JSON ({} chars); asking again once", prompt.task, text.length());
+    /** The answer to a call that gave none, as the drawer translates it. */
+    private void writeFailure(HttpServletResponse res, AiException.Reason reason) throws IOException {
+        switch (reason) {
+            case NO_ACCESS:
+                writeError(res, HttpServletResponse.SC_FORBIDDEN, "genaiAccess",
+                        "The permission genaiAccess is required on this site");
+                break;
+            case QUOTA:
+                writeError(res, 429, "rateLimited", "Too many AI requests; please retry later");
+                break;
+            case NOT_CONFIGURED:
+                writeError(res, HttpServletResponse.SC_SERVICE_UNAVAILABLE, "notConfigured", "AI review is not configured");
+                break;
+            case OUTPUT_LIMIT:
+                writeError(res, HttpServletResponse.SC_BAD_GATEWAY, "budget",
+                        "The answer reached its output budget before it was complete");
+                break;
+            default:
+                writeError(res, HttpServletResponse.SC_BAD_GATEWAY, UPSTREAM, "AI review temporarily unavailable");
         }
-        JSONObject retry = callProvider(prompt.system, prompt.user + CORRECTION, prompt.images);
-        String retried = retry.getString("text");
-        lastAnswer.setLength(0);
-        lastAnswer.append(retried);
-        return new Answer(parse(prompt, retried), addUsage(first, retry));
-    }
-
-    /** The token counts of two calls added up, so the cost shown covers the retry too. */
-    private static JSONObject addUsage(JSONObject first, JSONObject second) {
-        JSONObject sum = new JSONObject(second.toMap());
-        for (String key : new String[]{INPUT_TOKENS, OUTPUT_TOKENS}) {
-            long a = first.optLong(key, -1);
-            long b = second.optLong(key, -1);
-            sum.put(key, a < 0 || b < 0 ? -1 : a + b);
-        }
-        return sum;
     }
 
     private String buildUserContent(JSONObject payload) {
@@ -510,11 +549,11 @@ public class AiReviewServlet extends HttpServlet {
 
     /**
      * Input for the alt text task. When {@code vision} is true, fills
-     * {@code images} with the validated inline pictures ({id, mediaType, data})
-     * in the same order as the IMAGE #n blocks; otherwise every image is
+     * {@code images} with the validated inline pictures, in the order of the
+     * IMAGE #n blocks that name an attached picture; otherwise every image is
      * described from context only.
      */
-    private String buildAltContent(JSONObject payload, JSONArray images, boolean vision) {
+    private String buildAltContent(JSONObject payload, List<AiImage> images, boolean vision) {
         StringBuilder sb = new StringBuilder();
         sb.append("PAGE PATH: ").append(payload.optString("path", "")).append('\n');
         sb.append("PAGE TITLE: ").append(payload.optString("title", "")).append("\n\n");
@@ -539,12 +578,10 @@ public class AiReviewServlet extends HttpServlet {
             appendIfPresent(sb, "nearest heading", img.optString("heading", ""));
             appendIfPresent(sb, "surrounding text", img.optString("context", ""));
 
-            String data = img.optString("data", "");
-            String mediaType = img.optString("mediaType", "");
-            boolean validType = mediaType.equals("image/jpeg") || mediaType.equals("image/png") || mediaType.equals("image/webp");
-            if (vision && !data.isBlank() && validType && data.length() <= MAX_IMAGE_BASE64_CHARS && data.matches("[A-Za-z0-9+/=]+")) {
-                images.put(new JSONObject().put("id", id).put("mediaType", mediaType).put("data", data));
-                sb.append("- picture: attached below as IMAGE #").append(id).append('\n');
+            AiImage picture = vision ? pictureOf(img) : null;
+            if (picture != null) {
+                images.add(picture);
+                sb.append("- picture: attached picture ").append(images.size()).append('\n');
             } else {
                 sb.append("- picture: not available (infer from context)\n");
             }
@@ -553,6 +590,21 @@ public class AiReviewServlet extends HttpServlet {
         }
 
         return sb.toString();
+    }
+
+    /** The inline picture of an image: null when absent, too large, of another type, or not base64. */
+    private static AiImage pictureOf(JSONObject img) {
+        String data = img.optString("data", "");
+        String mediaType = img.optString("mediaType", "");
+        boolean validType = mediaType.equals("image/jpeg") || mediaType.equals("image/png") || mediaType.equals("image/webp");
+        if (data.isBlank() || !validType || data.length() > MAX_IMAGE_BASE64_CHARS) {
+            return null;
+        }
+        try {
+            return new AiImage(mediaType, Base64.getDecoder().decode(data));
+        } catch (IllegalArgumentException notBase64) {
+            return null;
+        }
     }
 
     /** Input for the plain-language task: the hardest sentences, numbered. */
@@ -694,40 +746,6 @@ public class AiReviewServlet extends HttpServlet {
     }
 
     /**
-     * Returns {text, inputTokens, outputTokens, truncated} from the shared provider.
-     * {@code images} ({id, mediaType, data}) follow the text when the provider reads
-     * images; buildAltContent only fills them in that case.
-     */
-    private JSONObject callProvider(String basePrompt, String userContent, JSONArray images) throws IOException {
-        LlmProvider provider = llm.provider();
-        if (provider == null) {
-            throw new IOException("AI is not configured");
-        }
-
-        List<LlmImage> pictures = new ArrayList<>();
-        for (int i = 0; i < images.length(); i++) {
-            JSONObject img = images.getJSONObject(i);
-            pictures.add(new LlmImage(img.getInt("id"), img.getString("mediaType"), img.getString("data")));
-        }
-
-        Completion answer;
-        try {
-            answer = provider.complete(llm.withAppendix(basePrompt), userContent, pictures,
-                    llm.settings(llm.maxTokens()).withJsonAnswer());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("interrupted while waiting for the provider", e);
-        }
-
-        JSONObject result = new JSONObject();
-        result.put("text", answer.text());
-        result.put(TRUNCATED, answer.truncated());
-        result.put(INPUT_TOKENS, answer.inputTokens());
-        result.put(OUTPUT_TOKENS, answer.outputTokens());
-        return result;
-    }
-
-    /**
      * Parses the model answer defensively (code fences, leading prose) and
      * re-serializes only whitelisted fields, so a malformed or malicious
      * answer can never inject unexpected structure into the client.
@@ -739,7 +757,7 @@ public class AiReviewServlet extends HttpServlet {
             throw new IllegalStateException("model did not return JSON");
         }
 
-        JSONObject parsed = parseLenient(cleaned.substring(start));
+        JSONObject parsed = parseJson(cleaned.substring(start));
 
         JSONObject safe = new JSONObject();
         safe.put("summary", parsed.optString("summary", ""));
@@ -782,7 +800,7 @@ public class AiReviewServlet extends HttpServlet {
             throw new IllegalStateException("model did not return JSON");
         }
 
-        JSONObject parsed = parseLenient(cleaned.substring(start));
+        JSONObject parsed = parseJson(cleaned.substring(start));
 
         JSONObject safe = new JSONObject();
         safe.put("titles", safeStrings(parsed.optJSONArray("titles"), MAX_SUGGESTIONS));
@@ -854,7 +872,7 @@ public class AiReviewServlet extends HttpServlet {
             throw new IllegalStateException("model did not return JSON");
         }
 
-        JSONObject parsed = parseLenient(cleaned.substring(start));
+        JSONObject parsed = parseJson(cleaned.substring(start));
         JSONArray safeSentences = new JSONArray();
         JSONArray sentences = parsed.optJSONArray("sentences");
         if (sentences != null) {
@@ -885,7 +903,7 @@ public class AiReviewServlet extends HttpServlet {
             throw new IllegalStateException("model did not return JSON");
         }
 
-        JSONObject parsed = parseLenient(cleaned.substring(start));
+        JSONObject parsed = parseJson(cleaned.substring(start));
         JSONArray safeImages = new JSONArray();
         JSONArray images = parsed.optJSONArray("images");
         if (images != null) {
@@ -932,31 +950,15 @@ public class AiReviewServlet extends HttpServlet {
     }
 
     /**
-     * Parses the model JSON, salvaging answers truncated by the max_tokens
-     * limit: cut back to the last complete recommendation object and close
-     * the array and root object. Complete recommendations are recovered
-     * instead of failing the whole review.
+     * Parses the model JSON up to its last closing brace. genai-connector returns one JSON object and refuses
+     * an answer cut before it is complete, so no salvage of a cut answer is needed.
      */
-    private JSONObject parseLenient(String raw) {
-        int end = raw.lastIndexOf('}');
-        if (end > 0) {
-            try {
-                return new JSONObject(raw.substring(0, end + 1));
-            } catch (Exception e) {
-                // Fall through to truncation salvage
-            }
+    private JSONObject parseJson(String raw) {
+        try {
+            return new JSONObject(raw.substring(0, raw.lastIndexOf('}') + 1));
+        } catch (JSONException e) {
+            throw new IllegalStateException("model returned malformed JSON", e);
         }
-
-        int idx = raw.lastIndexOf("},");
-        while (idx > 0) {
-            try {
-                return new JSONObject(raw.substring(0, idx + 1) + "]}");
-            } catch (Exception e) {
-                idx = raw.lastIndexOf("},", idx - 1);
-            }
-        }
-
-        throw new IllegalStateException("model returned malformed JSON");
     }
 
     private String normalize(String value, String[] allowed, String fallback) {
@@ -984,30 +986,15 @@ public class AiReviewServlet extends HttpServlet {
     }
 
     /**
-     * True when the site of the audited page enables the tab the task belongs to. Read with a system
-     * session after {@link #canRead} confirmed the caller may read the page.
+     * The site of the audited page, or null. Read after {@link #canRead} confirmed the caller may read
+     * the page.
      */
-    private boolean featureEnabled(String path, String task) {
-        String tab;
-        switch (task) {
-            case "seo":
-                tab = "seo";
-                break;
-            case "alt":
-                tab = "accessibility";
-                break;
-            case TASK_SIMPLIFY:
-                tab = "readability";
-                break;
-            default:
-                tab = "ai";
-        }
+    private static JCRSiteNode siteOf(String path) {
         try {
             JCRNodeWrapper node = JCRSessionFactory.getInstance().getCurrentUserSession().getNode(path);
-            JCRSiteNode site = node.getResolveSite();
-            return site != null && SiteFeatures.isEnabled(site.getPath(), Features.AUDIT + "." + tab);
+            return node.getResolveSite();
         } catch (Exception e) {
-            return false;
+            return null;
         }
     }
 
@@ -1041,7 +1028,7 @@ public class AiReviewServlet extends HttpServlet {
                 window.pollFirst();
             }
 
-            if (window.size() >= llm.rateMaxCalls()) {
+            if (window.size() >= ai.rateMaxCalls()) {
                 return true;
             }
 
