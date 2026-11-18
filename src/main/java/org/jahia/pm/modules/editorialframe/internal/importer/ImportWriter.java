@@ -70,109 +70,13 @@ public final class ImportWriter {
         report.put("language", session.getLocale() == null ? null : session.getLocale().toString());
         ArrayNode written = report.putArray("written");
 
-        if (plan.voice != null) {
-            JCRNodeWrapper voice = node(base.getNode("voice"), plan.voice.name, "efnt:brandVoice");
-            voice.setProperty("jcr:title", plan.voice.title);
-            voice.setProperty("body", plan.voice.body);
-            written.add(voice.getPath());
-        }
-        if (!plan.personas.isEmpty()) {
-            JCRNodeWrapper personas = base.getNode(PERSONAS_FOLDER);
-            for (ImportPlan.TextItem item : plan.personas) {
-                JCRNodeWrapper persona = node(personas, item.name, "efnt:persona");
-                persona.setProperty("jcr:title", item.title);
-                persona.setProperty("body", item.body);
-                persona.setProperty("isDefault", item.isDefault);
-                written.add(persona.getPath());
-            }
-        }
-        if (!plan.rules.isEmpty()) {
-            JCRNodeWrapper rulesFolder = base.getNode("rules");
-            Map<String, List<WritingRule>> bySource = new LinkedHashMap<>();
-            for (ImportPlan.RuleItem item : plan.rules) {
-                bySource.computeIfAbsent(item.source, key -> new ArrayList<>()).add(item.rule);
-            }
-            for (Map.Entry<String, List<WritingRule>> source : bySource.entrySet()) {
-                // A new import of a rule file replaces the rules of its last import. The rules sit
-                // in the rules folder itself, which accepts rules only, and carry their file.
-                String slug = ImportPlan.slug(source.getKey());
-                removeRulesOf(rulesFolder, source.getKey(), slug);
-                int index = 0;
-                for (WritingRule rule : source.getValue()) {
-                    JCRNodeWrapper node = rulesFolder.addNode(String.format("%s-%03d", slug, ++index), RULE_TYPE);
-                    node.setProperty("source", source.getKey());
-                    node.setProperty("kind", rule.kind().name().toLowerCase(Locale.ROOT));
-                    node.setProperty("pattern", rule.pattern());
-                    node.setProperty("matchMode", rule.matchMode().name().toLowerCase(Locale.ROOT));
-                    if (rule.replacement() != null) {
-                        node.setProperty("replacement", rule.replacement());
-                    }
-                    if (rule.language() != null) {
-                        node.setProperty("ruleLanguage", rule.language());
-                    }
-                    node.setProperty("severity", rule.severity().name().toLowerCase(Locale.ROOT));
-                    if (rule.justification() != null) {
-                        node.setProperty("justification", rule.justification());
-                    }
-                    if (!rule.wrongExamples().isEmpty()) {
-                        node.setProperty("wrongExamples", rule.wrongExamples().toArray(new String[0]));
-                    }
-                    if (!rule.rightExamples().isEmpty()) {
-                        node.setProperty("rightExamples", rule.rightExamples().toArray(new String[0]));
-                    }
-                    setOptional(node, "owner", rule.owner());
-                    setDay(node, "decidedOn", rule.decidedOn());
-                    setDay(node, "validFrom", rule.validFrom());
-                    setDay(node, "validUntil", rule.validUntil());
-                }
-                written.add(rulesFolder.getPath() + " (" + index + " rules of " + source.getKey() + ")");
-            }
-        }
-        if (!plan.glossary.isEmpty()) {
-            JCRNodeWrapper glossaryFolder = base.getNode("glossary");
-            Map<String, List<GlossaryTerm>> bySource = new LinkedHashMap<>();
-            for (ImportPlan.TermItem item : plan.glossary) {
-                bySource.computeIfAbsent(item.source, key -> new ArrayList<>()).add(item.term);
-            }
-            for (Map.Entry<String, List<GlossaryTerm>> source : bySource.entrySet()) {
-                // A new import of a glossary file replaces the terms of its last import.
-                String slug = ImportPlan.slug(source.getKey());
-                removeOfSource(glossaryFolder, "efnt:glossaryTerm", source.getKey());
-                int index = 0;
-                for (GlossaryTerm term : source.getValue()) {
-                    JCRNodeWrapper node = glossaryFolder.addNode(String.format("%s-%04d", slug, ++index), "efnt:glossaryTerm");
-                    node.setProperty("source", source.getKey());
-                    node.setProperty("term", term.term());
-                    node.setProperty("termLanguage", term.termLanguage());
-                    node.setProperty("translation", term.translation());
-                    node.setProperty("translationLanguage", term.translationLanguage());
-                    if (term.note() != null) {
-                        node.setProperty("note", term.note());
-                    }
-                    if (!term.termForms().isEmpty()) {
-                        node.setProperty("termForms", term.termForms().toArray(new String[0]));
-                    }
-                    if (!term.translationForms().isEmpty()) {
-                        node.setProperty("translationForms", term.translationForms().toArray(new String[0]));
-                    }
-                    if (term.definition() != null) {
-                        node.setProperty("definition", term.definition());
-                    }
-                    node.setProperty("status", term.status().name().toLowerCase(Locale.ROOT));
-                }
-                written.add(glossaryFolder.getPath() + " (" + index + " terms of " + source.getKey() + ")");
-            }
-        }
+        writeVoice(base, plan.voice, written);
+        writePersonas(base, plan.personas, written);
+        writeRules(base, plan.rules, written);
+        writeGlossary(base, plan.glossary, written);
         session.save();
+        writeSkills(session, base, plan.skills, sourceRef, mapper, written);
 
-        if (!plan.skills.isEmpty()) {
-            JCRNodeWrapper skills = base.getNode("skills");
-            for (ImportPlan.SkillItem item : plan.skills) {
-                written.add(writeSkill(skills, item, sourceRef, mapper).getPath());
-                // One save a skill keeps the memory of a large import low.
-                session.save();
-            }
-        }
         report.put("skills", plan.skills.size());
         report.put("personas", plan.personas.size());
         report.put("rules", plan.rules.size());
@@ -181,6 +85,141 @@ public final class ImportWriter {
         report.set("warnings", mapper.valueToTree(plan.warnings));
         report.set("skipped", mapper.valueToTree(plan.skipped));
         return report;
+    }
+
+    private static void writeVoice(JCRNodeWrapper base, ImportPlan.TextItem item, ArrayNode written)
+            throws RepositoryException {
+        if (item == null) {
+            return;
+        }
+        JCRNodeWrapper voice = node(base.getNode("voice"), item.name, "efnt:brandVoice");
+        voice.setProperty("jcr:title", item.title);
+        voice.setProperty("body", item.body);
+        written.add(voice.getPath());
+    }
+
+    private static void writePersonas(JCRNodeWrapper base, List<ImportPlan.TextItem> items, ArrayNode written)
+            throws RepositoryException {
+        if (items.isEmpty()) {
+            return;
+        }
+        JCRNodeWrapper personas = base.getNode(PERSONAS_FOLDER);
+        for (ImportPlan.TextItem item : items) {
+            JCRNodeWrapper persona = node(personas, item.name, "efnt:persona");
+            persona.setProperty("jcr:title", item.title);
+            persona.setProperty("body", item.body);
+            persona.setProperty("isDefault", item.isDefault);
+            written.add(persona.getPath());
+        }
+    }
+
+    private static void writeRules(JCRNodeWrapper base, List<ImportPlan.RuleItem> items, ArrayNode written)
+            throws RepositoryException {
+        if (items.isEmpty()) {
+            return;
+        }
+        JCRNodeWrapper rulesFolder = base.getNode("rules");
+        Map<String, List<WritingRule>> bySource = new LinkedHashMap<>();
+        for (ImportPlan.RuleItem item : items) {
+            bySource.computeIfAbsent(item.source, key -> new ArrayList<>()).add(item.rule);
+        }
+        for (Map.Entry<String, List<WritingRule>> source : bySource.entrySet()) {
+            // A new import of a rule file replaces the rules of its last import. The rules sit
+            // in the rules folder itself, which accepts rules only, and carry their file.
+            String slug = ImportPlan.slug(source.getKey());
+            removeRulesOf(rulesFolder, source.getKey(), slug);
+            int index = 0;
+            for (WritingRule rule : source.getValue()) {
+                index++;
+                writeRule(rulesFolder.addNode(String.format("%s-%03d", slug, index), RULE_TYPE), source.getKey(), rule);
+            }
+            written.add(rulesFolder.getPath() + " (" + index + " rules of " + source.getKey() + ")");
+        }
+    }
+
+    private static void writeRule(JCRNodeWrapper node, String source, WritingRule rule) throws RepositoryException {
+        node.setProperty("source", source);
+        node.setProperty("kind", rule.kind().name().toLowerCase(Locale.ROOT));
+        node.setProperty("pattern", rule.pattern());
+        node.setProperty("matchMode", rule.matchMode().name().toLowerCase(Locale.ROOT));
+        if (rule.replacement() != null) {
+            node.setProperty("replacement", rule.replacement());
+        }
+        if (rule.language() != null) {
+            node.setProperty("ruleLanguage", rule.language());
+        }
+        node.setProperty("severity", rule.severity().name().toLowerCase(Locale.ROOT));
+        if (rule.justification() != null) {
+            node.setProperty("justification", rule.justification());
+        }
+        if (!rule.wrongExamples().isEmpty()) {
+            node.setProperty("wrongExamples", rule.wrongExamples().toArray(new String[0]));
+        }
+        if (!rule.rightExamples().isEmpty()) {
+            node.setProperty("rightExamples", rule.rightExamples().toArray(new String[0]));
+        }
+        setOptional(node, "owner", rule.owner());
+        setDay(node, "decidedOn", rule.decidedOn());
+        setDay(node, "validFrom", rule.validFrom());
+        setDay(node, "validUntil", rule.validUntil());
+    }
+
+    private static void writeGlossary(JCRNodeWrapper base, List<ImportPlan.TermItem> items, ArrayNode written)
+            throws RepositoryException {
+        if (items.isEmpty()) {
+            return;
+        }
+        JCRNodeWrapper glossaryFolder = base.getNode("glossary");
+        Map<String, List<GlossaryTerm>> bySource = new LinkedHashMap<>();
+        for (ImportPlan.TermItem item : items) {
+            bySource.computeIfAbsent(item.source, key -> new ArrayList<>()).add(item.term);
+        }
+        for (Map.Entry<String, List<GlossaryTerm>> source : bySource.entrySet()) {
+            // A new import of a glossary file replaces the terms of its last import.
+            String slug = ImportPlan.slug(source.getKey());
+            removeOfSource(glossaryFolder, "efnt:glossaryTerm", source.getKey());
+            int index = 0;
+            for (GlossaryTerm term : source.getValue()) {
+                index++;
+                writeTerm(glossaryFolder.addNode(String.format("%s-%04d", slug, index), "efnt:glossaryTerm"),
+                        source.getKey(), term);
+            }
+            written.add(glossaryFolder.getPath() + " (" + index + " terms of " + source.getKey() + ")");
+        }
+    }
+
+    private static void writeTerm(JCRNodeWrapper node, String source, GlossaryTerm term) throws RepositoryException {
+        node.setProperty("source", source);
+        node.setProperty("term", term.term());
+        node.setProperty("termLanguage", term.termLanguage());
+        node.setProperty("translation", term.translation());
+        node.setProperty("translationLanguage", term.translationLanguage());
+        if (term.note() != null) {
+            node.setProperty("note", term.note());
+        }
+        if (!term.termForms().isEmpty()) {
+            node.setProperty("termForms", term.termForms().toArray(new String[0]));
+        }
+        if (!term.translationForms().isEmpty()) {
+            node.setProperty("translationForms", term.translationForms().toArray(new String[0]));
+        }
+        if (term.definition() != null) {
+            node.setProperty("definition", term.definition());
+        }
+        node.setProperty("status", term.status().name().toLowerCase(Locale.ROOT));
+    }
+
+    private static void writeSkills(JCRSessionWrapper session, JCRNodeWrapper base, List<ImportPlan.SkillItem> items,
+                                    String sourceRef, ObjectMapper mapper, ArrayNode written) throws RepositoryException {
+        if (items.isEmpty()) {
+            return;
+        }
+        JCRNodeWrapper skills = base.getNode("skills");
+        for (ImportPlan.SkillItem item : items) {
+            written.add(writeSkill(skills, item, sourceRef, mapper).getPath());
+            // One save a skill keeps the memory of a large import low.
+            session.save();
+        }
     }
 
     private static JCRNodeWrapper writeSkill(JCRNodeWrapper parent, ImportPlan.SkillItem item, String sourceRef,
