@@ -190,14 +190,13 @@ public final class ImportWriter {
         removeChildren(skill, "efnt:skillFile");
         skill.setProperty("description", document.description);
         skill.setProperty("body", document.body.isEmpty() ? " " : document.body);
-        // A key of the archive replaces the option of the request only with a value that Jahia knows.
-        String activation = document.metadata.get(JahiaSkillKeys.ACTIVATION);
-        skill.setProperty("activation", ACTIVATIONS.contains(activation) ? activation : item.activation());
+        skill.setProperty("activation", known(ACTIVATIONS, document.metadata.get(JahiaSkillKeys.ACTIVATION),
+                item.activation()));
         List<String> consumers = document.metadataList(JahiaSkillKeys.CONSUMERS);
         skill.setProperty("consumers", (!consumers.isEmpty() && CONSUMERS.containsAll(consumers) ? consumers
                 : item.consumers()).toArray(new String[0]));
-        String action = document.metadata.get(JahiaSkillKeys.ACTION);
-        skill.setProperty("assistantAction", ACTIONS.contains(action) ? action : item.action());
+        skill.setProperty("assistantAction", known(ACTIONS, document.metadata.get(JahiaSkillKeys.ACTION),
+                item.action()));
         setOptional(skill, "license", document.license);
         setOptional(skill, "compatibility", document.compatibility);
         setOptional(skill, "allowedTools", document.allowedTools);
@@ -213,6 +212,14 @@ public final class ImportWriter {
             child.setProperty("text", file.getValue());
         }
         return skill;
+    }
+
+    /**
+     * A key of the archive replaces the option of the request only with a value that Jahia knows. An
+     * absent key keeps the option: {@code List.of(...).contains(null)} throws.
+     */
+    static String known(List<String> knownValues, String value, String option) {
+        return value != null && knownValues.contains(value) ? value : option;
     }
 
     /**

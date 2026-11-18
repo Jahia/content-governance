@@ -35,4 +35,21 @@ class ImportWriterTest {
         assertEquals("Write a new news item.", coverage.outOfScope().get(0).message());
         assertTrue(warnings.isEmpty(), warnings.toString());
     }
+
+    @Test
+    void aSkillWithNoActivationOrActionKeyTakesTheOptionsOfTheRequest() {
+        SkillDocument document = SkillDocument.parse("---\nname: teaser\ndescription: Refresh a teaser.\n---\nBody",
+                "teaser");
+
+        assertEquals("manual", ImportWriter.known(ImportWriter.ACTIVATIONS,
+                document.metadata.get(JahiaSkillKeys.ACTIVATION), "manual"));
+        assertEquals("edit", ImportWriter.known(ImportWriter.ACTIONS,
+                document.metadata.get(JahiaSkillKeys.ACTION), "edit"));
+    }
+
+    @Test
+    void onlyAValueThatJahiaKnowsReplacesTheOptionOfTheRequest() {
+        assertEquals("auto", ImportWriter.known(ImportWriter.ACTIVATIONS, "auto", "manual"));
+        assertEquals("edit", ImportWriter.known(ImportWriter.ACTIONS, "publish", "edit"));
+    }
 }
