@@ -32,6 +32,27 @@ export function rankFindings(findings, max = 5) {
 }
 
 /**
+ * The key of a Page quality finding.
+ *
+ * @param {string} resultKey the key of its tab in the results (`a11y`, `seo`, `ecodesign`...)
+ * @param {string} id the axe-core rule or the recommendation
+ * @returns {string} the key, such as `audit.seo.shortTitle`
+ */
+export const auditFindingKey = (resultKey, id) => `audit.${resultKey}.${id}`;
+
+/**
+ * The findings that the drawer hands to the entries of other modules: those of the given sections,
+ * in the drawer's order. Each has `rule`, the id of the rule it reports: today, its key.
+ *
+ * @param {object} bySection the findings of each section, by section id
+ * @param {Array<string>} sectionIds the sections the page can use, in the drawer's order
+ * @returns {Array<object>} findings
+ */
+export function entryFindings(bySection, sectionIds) {
+    return sectionIds.flatMap(id => bySection[id] || []).map(finding => ({...finding, rule: finding.key}));
+}
+
+/**
  * The findings of a Page quality audit: every accessibility violation, then the recommendations of
  * the other tabs.
  *
@@ -46,7 +67,7 @@ export function auditFindings(results, t) {
     const out = [];
     (results.a11y?.violations || []).forEach(rule => {
         out.push({
-            key: `audit.a11y.${rule.id}`,
+            key: auditFindingKey('a11y', rule.id),
             section: 'audit',
             tab: 'accessibility',
             severity: rule.impact || 'minor',
@@ -59,7 +80,7 @@ export function auditFindings(results, t) {
         const recommendations = results[tab]?.recommendations || [];
         (tab === 'vitals' ? withoutTimingFindings(recommendations) : recommendations).forEach(rec => {
             out.push({
-                key: `audit.${tab}.${rec.key}`,
+                key: auditFindingKey(tab, rec.key),
                 section: 'audit',
                 tab,
                 severity: rec.severity || 'minor',

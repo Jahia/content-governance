@@ -49,7 +49,7 @@ export function VitalsTab({result}) {
                 })}
             </div>
 
-            <Recommendations items={result.recommendations} ns="vitals"/>
+            <Recommendations items={result.recommendations} ns="vitals" tab="vitals"/>
 
             <h4 className={styles.sectionTitle}>{t('vitals.diagnostics')}</h4>
             <ul className={styles.statList}>

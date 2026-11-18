@@ -1861,6 +1861,7 @@
       },
       "resize": "Panelbreite ändern: ziehen oder die Pfeiltasten links und rechts verwenden",
       "nothingAvailable": "Kein Bereich von Content-Governance ist für diesen Inhalt verfügbar.",
+      "entryFailed": "Dieser Reiter eines anderen Moduls konnte nicht angezeigt werden.",
       "sectionHelp": {
         "audit": "Prüft die Seite, die Sie bearbeiten: Barrierefreiheit, SEO, Geschwindigkeit, Lesbarkeit, Ökodesign, Links und Jahia-Inhalte, mit KI-Vorschlägen auf Anfrage.",
         "geo": "Ob KI-Assistenten und ihre Crawler die veröffentlichte Seite lesen und zitieren können: Score, Crawler-Zugriff, Website-Dateien, strukturierte Daten und KI-Zitate.",

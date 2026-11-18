@@ -25,7 +25,7 @@ export function SeoTab({result, assist}) {
 
     return (
         <div>
-            <Recommendations items={result.recommendations} ns="seo"/>
+            <Recommendations items={result.recommendations} ns="seo" tab="seo"/>
 
             <SeoAssist {...assist}/>
 

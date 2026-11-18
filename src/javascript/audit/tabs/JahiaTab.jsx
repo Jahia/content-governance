@@ -10,7 +10,7 @@ export function JahiaTab({result, onHighlightText}) {
 
     return (
         <div>
-            <Recommendations items={result.recommendations} ns="jahia"/>
+            <Recommendations items={result.recommendations} ns="jahia" tab="jahia"/>
 
             <h4 className={styles.sectionTitle}>{t('jahia.summary')}</h4>
             <ul className={styles.statList}>

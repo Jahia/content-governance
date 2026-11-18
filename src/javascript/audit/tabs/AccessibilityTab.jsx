@@ -4,6 +4,8 @@ import {Button} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../../common/i18n';
 import {MANUAL_CHECKLIST} from './a11yChecklist';
 import {AltAssist} from './AltAssist';
+import {auditFindingKey} from '../../drawer/findings';
+import {FindingActions} from '../../drawer/FindingActions';
 import styles from './Tabs.module.css';
 import {impactClass} from './impactClass';
 
@@ -30,7 +32,7 @@ function levelScore(level, summary, violations) {
     };
 }
 
-function RuleDetails({rule, chip, onHighlight}) {
+function RuleDetails({rule, chip, onHighlight, findingKey}) {
     const {t} = useGovernanceTranslation('audit');
 
     return (
@@ -43,6 +45,7 @@ function RuleDetails({rule, chip, onHighlight}) {
             </summary>
             <div className={styles.violationBody}>
                 <p>{rule.description} (<a href={rule.helpUrl} target="_blank" rel="noreferrer">{rule.id}</a>)</p>
+                {findingKey && <FindingActions findingKey={findingKey}/>}
                 {rule.nodes.map((node, i) => (
                     /* eslint-disable-next-line react/no-array-index-key */
                     <div key={i} className={styles.node}>
@@ -66,7 +69,9 @@ function RuleDetails({rule, chip, onHighlight}) {
 RuleDetails.propTypes = {
     rule: PropTypes.object.isRequired,
     chip: PropTypes.node.isRequired,
-    onHighlight: PropTypes.func.isRequired
+    onHighlight: PropTypes.func.isRequired,
+    // The key of the finding of a violation, for the actions other modules add to it
+    findingKey: PropTypes.string
 };
 
 export function AccessibilityTab({result, onHighlight, assist}) {
@@ -127,6 +132,7 @@ export function AccessibilityTab({result, onHighlight, assist}) {
                         </span>
                     }
                     onHighlight={onHighlight}
+                    findingKey={auditFindingKey('a11y', v.id)}
                 />
             ))}
 
