@@ -23,3 +23,18 @@
  - matchMode (string, choicelist[resourceBundle]) = 'word' autocreated mandatory < 'word', 'prefix', 'anywhere'
  - reason (string, textarea)
  - alternative (string)
+
+// A rule of the catalog of the module, as a site applies it. The module seeds one node per rule under
+// contents/content-insights/jahia/rules, and the checks read the switch, the severity and the limits
+// of that node. A limit counts only for a rule that has one in the catalog.
+[ccs:contentRule] > jnt:content
+ - ruleId (string) mandatory primary nofulltext
+ - enabled (boolean) = 'true' autocreated
+ - severity (string, choicelist[resourceBundle]) mandatory < 'critical', 'serious', 'moderate', 'minor'
+ - minimum (double)
+ - maximum (double)
+
+// The folder of the rules that the module seeds, contents/content-insights/jahia/rules. A content
+// folder takes droppable content only, and a rule is not droppable: a customer writes no rule of its own.
+[ccs:contentRuleFolder] > jnt:contentFolder
+ + * (ccs:contentRule)

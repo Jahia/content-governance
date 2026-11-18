@@ -10,6 +10,7 @@ import org.jahia.community.contentgovernance.audit.graphql.AuditFields;
 import org.jahia.community.contentgovernance.audit.graphql.GqlAuditRun;
 import org.jahia.community.contentgovernance.audit.graphql.GqlSiteAudits;
 import org.jahia.community.contentgovernance.audit.service.spi.AuditHistoryService;
+import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jahia.modules.graphql.provider.dxm.osgi.annotations.GraphQLOsgiService;
 
 import javax.inject.Inject;
@@ -84,5 +85,22 @@ public class GqlContentGovernance {
             @GraphQLName("language") @GraphQLNonNull @GraphQLDescription("Content language") String language,
             DataFetchingEnvironment environment) {
         return AuditFields.site(audits, siteKey, language, environment);
+    }
+
+    /**
+     * The rules of a site, as the checks apply them. Any signed-in user who can read the site may ask:
+     * the drawer of every editor needs them.
+     *
+     * @param siteKey key of the site
+     * @return every rule of the catalog, with what the site changed, in the order of the catalog
+     */
+    @GraphQLField
+    @GraphQLName("contentRules")
+    @GraphQLNonNull
+    @GraphQLDescription("The rules of the catalog as a site applies them")
+    public List<GqlContentRule> contentRules(
+            @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey) {
+        SiteAccess.site(siteKey);
+        return ContentRules.forSite(siteKey).all().stream().map(GqlContentRule::new).toList();
     }
 }

@@ -242,7 +242,7 @@
           },
           "title": {
             "label": "Title present and a usable length",
-            "fix": "A title under 10 or over 70 characters is either uninformative or truncated wherever it is quoted."
+            "fix": "A title under {{min}} or over {{max}} characters is either uninformative or truncated wherever it is quoted."
           },
           "singleH1": {
             "label": "Exactly one H1",
@@ -253,8 +253,8 @@
             "fix": "Retrieval splits pages on headings. A page with no H2 is one undifferentiated block."
           },
           "metaDescription": {
-            "label": "Meta description present",
-            "fix": "Without it the summary shown alongside an answer is generated from whatever text comes first."
+            "label": "Meta description present and a usable length",
+            "fix": "Without one, the summary shown alongside an answer is generated from whatever text comes first. Keep it between {{min}} and {{max}} characters."
           },
           "canonical": {
             "label": "Canonical URL declared",
@@ -1322,7 +1322,7 @@
           },
           "noDescription": {
             "title": "No meta description",
-            "detail": "Search engines will pick an arbitrary text snippet. Write a 50-160 character summary that makes people want to click."
+            "detail": "Search engines will pick an arbitrary text snippet. Write a {{min}}-{{max}} character summary that makes people want to click."
           },
           "descriptionLength": {
             "title": "Meta description is {{length}} characters",
@@ -1622,7 +1622,7 @@
         "words": "Words",
         "sentences": "Sentences",
         "avgSentenceLength": "Avg. words per sentence",
-        "longSentences": "Long sentences (>25 words)",
+        "longSentences": "Long sentences (>{{max}} words)",
         "longSentencesHint": "consider splitting them",
         "paragraphs": "Paragraphs",
         "avgWordsPerParagraph": "avg. words",
@@ -1680,7 +1680,7 @@
           },
           "thinContent": {
             "title": "Little text on the page ({{count}} words)",
-            "detail": "Pages under ~300 words inform and rank poorly. Consider expanding the content or merging it elsewhere."
+            "detail": "Pages under {{min}} words inform and rank poorly. Consider expanding the content or merging it elsewhere."
           }
         }
       },

@@ -4,6 +4,10 @@ Eighteen checks, in three groups, behind the **Score** tab of the GEO readiness 
 drawer and the **Site score** tab of the GEO readiness dashboard. This is the reference; the module
 itself shows the same text in the interface, in English, French, German and Spanish.
 
+Each check applies one rule of the [catalog of content rules](../content-rules/catalog.md), and
+shows its id. The rule gives the limits, the severity and the switch of the check. A site that turns
+a rule off has one check less. The limits and severities below are the defaults of the catalog.
+
 **Severity** is about consequence, not effort.
 
 | Severity | Meaning |
@@ -78,7 +82,7 @@ Read from the initial HTML, before any JavaScript runs.
 
 **Critical.** Crawlers do not run JavaScript. A page whose content only appears afterwards is perfect to an editor and empty to a model.
 
-*Fails when:* Fewer than 50 words of real text.
+*Fails when:* Fewer than 50 words of real text. Rule `geo.contentInInitialHtml`.
 
 *Shown in the interface as:* “The page returns almost no text before JavaScript runs. Server-side rendering is the fix, not a robots.txt change.”
 
@@ -94,9 +98,9 @@ Read from the initial HTML, before any JavaScript runs.
 
 **Important.** The title is what gets quoted. Too short says nothing, too long is truncated wherever it appears.
 
-*Fails when:* Missing, under 10 characters, or over 70.
+*Fails when:* Missing, under 30 characters, or over 60. Rule `seo.title`, the same rule as the SEO tab of Page quality.
 
-*Shown in the interface as:* “A title under 10 or over 70 characters is either uninformative or truncated wherever it is quoted.”
+*Shown in the interface as:* “A title under 30 or over 60 characters is either uninformative or truncated wherever it is quoted.”
 
 ### `singleH1` · Exactly one H1
 
@@ -114,11 +118,13 @@ Read from the initial HTML, before any JavaScript runs.
 
 *Shown in the interface as:* “Retrieval splits pages on headings. A page with no H2 is one undifferentiated block.”
 
-### `metaDescription` · Meta description present
+### `metaDescription` · Meta description present and a usable length
 
 **Important.** Without one, the summary shown beside an answer is generated from whatever text happens to come first.
 
-*Shown in the interface as:* “Without it the summary shown alongside an answer is generated from whatever text comes first.”
+*Fails when:* Missing, under 50 characters, or over 160. Rule `seo.metaDescription`, the same rule as the SEO tab of Page quality. A report stored before the length was read judges the presence only.
+
+*Shown in the interface as:* “Without one, the summary shown alongside an answer is generated from whatever text comes first. Keep it between 50 and 160 characters.”
 
 ### `canonical` · Canonical URL declared
 
@@ -148,7 +154,7 @@ Read from the initial HTML, before any JavaScript runs.
 
 **Advisory.** To a crawler that reads only text, an image with no alt text does not exist.
 
-*Fails when:* Fewer than 80% of images carry non-empty alt text. A page with no images passes.
+*Fails when:* Fewer than 80% of images carry non-empty alt text. A page with no images passes. Rule `geo.imageAlt`.
 
 *Shown in the interface as:* “Some images have no alt text. To a text-only crawler those images simply do not exist.”
 

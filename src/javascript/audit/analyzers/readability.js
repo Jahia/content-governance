@@ -22,6 +22,7 @@
  * have no word count either: characters and sentences are counted instead.
  */
 
+import {findings} from '../rules';
 import {buildOutline, collectHeadings} from './headingOutline';
 
 const FORMULAS = {
@@ -56,7 +57,6 @@ const HIATUS = {fr: /[aeiouy][ëïü]/g, nl: /[aeiouy][ëïü]/g};
 // Written without spaces between words: a word count means nothing there.
 const UNSPACED = new Set(['ja', 'zh', 'th', 'lo', 'km', 'my']);
 
-const LONG_SENTENCE_WORDS = 25;
 const MIN_WORDS = 30;
 const READING_WPM = 200;
 
@@ -133,11 +133,13 @@ function scoreBand(score) {
  *
  * @param {string} text the text, whitespace already collapsed
  * @param {string} lang two-letter language code, lower case
+ * @param {number} [maxSentenceWords] the most words a sentence has before it counts as long; with
+ *     none, `longSentences` is `null`
  * @returns {object} `{lang, spaced, empty, scored, formula, score, band, gradeLevel, words,
  *     characters, sentences, avgSentenceLength, avgSyllablesPerWord, longSentences, readingMinutes}`;
  *     the fields a language cannot measure are `null`
  */
-export function analyzeText(text, lang) {
+export function analyzeText(text, lang, maxSentenceWords) {
     if (UNSPACED.has(lang)) {
         const sentences = text.split(/[。．！？!?]+/).map(s => s.trim()).filter(Boolean);
         const characters = (text.match(/[\p{L}\p{N}]/gu) || []).length;
@@ -194,12 +196,19 @@ export function analyzeText(text, lang) {
         sentences: sentences.length,
         avgSentenceLength: Math.round(asl * 10) / 10,
         avgSyllablesPerWord: asw === null ? null : Math.round(asw * 100) / 100,
-        longSentences: sentences.filter(s => s.split(/\s+/).length > LONG_SENTENCE_WORDS).length,
+        longSentences: maxSentenceWords === undefined ? null :
+            sentences.filter(s => s.split(/\s+/).length > maxSentenceWords).length,
         readingMinutes: Math.max(1, Math.round(words.length / READING_WPM))
     };
 }
 
-export function runReadability(frame, language) {
+/**
+ * @param {HTMLIFrameElement} frame the preview frame
+ * @param {string} language the content language
+ * @param {{get: function(string): object}} rules the rules of the site
+ * @returns {object} the statistics, the score and the structure of the text, and their findings
+ */
+export function runReadability(frame, language, rules) {
     const doc = frame.contentDocument;
     if (!doc || !doc.body) {
         throw new Error('Preview frame is not accessible');
@@ -226,7 +235,8 @@ export function runReadability(frame, language) {
     }
 
     const text = parts.join(' ').replaceAll(/\s+/g, ' ').trim();
-    const stats = analyzeText(text, lang);
+    const longSentenceWords = rules.get('readability.longSentences').maximum;
+    const stats = {...analyzeText(text, lang, longSentenceWords), longSentenceWords};
     // Heading structure (whole page for h1, main content for the outline and its skipped levels)
     const {outline, skips: headingSkips, total: headingCount} = buildOutline(collectHeadings(rootEl));
     const structure = {h1Count: doc.querySelectorAll('h1').length, headingSkips, headingCount, outline};
@@ -248,7 +258,7 @@ export function runReadability(frame, language) {
         avgWordsPerParagraph: stats.spaced && paragraphs.length > 0 ? Math.round(paragraphWords / paragraphs.length) : null
     };
 
-    result.recommendations = buildReadabilityRecommendations(result);
+    result.recommendations = buildReadabilityRecommendations(result, rules);
     return result;
 }
 
@@ -258,39 +268,38 @@ export function runReadability(frame, language) {
  * language cannot take (no formula, no word count) gives no advice.
  *
  * @param {object} r the readability result
- * @returns {Array<{key: string, severity: string, params: object}>}
+ * @param {{get: function(string): object}} rules the rules of the site
+ * @returns {Array<{key: string, rule: string, severity: string, params: object}>}
  */
-export function buildReadabilityRecommendations(r) {
-    const recs = [];
-    const push = (key, severity, params) => recs.push({key, severity, params: params || {}});
+export function buildReadabilityRecommendations(r, rules) {
+    const {recs, push} = findings(rules);
 
     // By band, so it reads right whatever the direction of the scale; LIX has its own targets
     const suffix = r.scale === 'lix' ? 'Lix' : '';
     if (r.scored && r.band === 'veryDifficult') {
-        push(`veryHardText${suffix}`, 'serious', {score: r.score});
+        push('readability.veryHardText', `veryHardText${suffix}`, {score: r.score});
     } else if (r.scored && r.band === 'difficult') {
-        push(`hardText${suffix}`, 'moderate', {score: r.score});
+        push('readability.hardText', `hardText${suffix}`, {score: r.score});
     }
 
     if (r.longSentences > 0) {
-        push('longSentences', r.longSentences / r.sentences > 0.2 ? 'moderate' : 'minor',
-            {count: r.longSentences});
+        push('readability.longSentences', 'longSentences', {count: r.longSentences});
     }
 
-    if (r.avgWordsPerParagraph > 80) {
-        push('longParagraphs', 'moderate', {count: r.avgWordsPerParagraph});
+    if (r.avgWordsPerParagraph > rules.get('readability.longParagraphs').maximum) {
+        push('readability.longParagraphs', 'longParagraphs', {count: r.avgWordsPerParagraph});
     }
 
     if (r.h1Count !== 1) {
-        push('h1Count', 'serious', {count: r.h1Count});
+        push('seo.singleH1', 'h1Count', {count: r.h1Count});
     }
 
     if (r.headingSkips > 0) {
-        push('headingSkips', 'moderate', {count: r.headingSkips});
+        push('readability.headingSkips', 'headingSkips', {count: r.headingSkips});
     }
 
-    if (r.spaced && r.words < 300) {
-        push('thinContent', 'minor', {count: r.words});
+    if (r.spaced && r.words < rules.get('readability.thinContent').minimum) {
+        push('readability.thinContent', 'thinContent', {count: r.words});
     }
 
     return recs;

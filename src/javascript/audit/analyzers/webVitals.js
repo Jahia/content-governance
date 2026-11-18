@@ -8,6 +8,10 @@
  * as null.
  */
 
+import {findings} from '../rules';
+
+const KILOBYTE = 1024;
+
 const OBSERVE_WINDOW_MS = 700;
 
 // Resources injected by the audit itself (axe-core script) must not
@@ -55,7 +59,12 @@ function shortName(url) {
     }
 }
 
-export async function runWebVitals(frame) {
+/**
+ * @param {HTMLIFrameElement} frame the preview frame
+ * @param {{get: function(string): object}} rules the rules of the site
+ * @returns {Promise<object>} the timings, the diagnostics and their findings
+ */
+export async function runWebVitals(frame, rules) {
     const win = frame.contentWindow;
     const doc = frame.contentDocument;
 
@@ -152,48 +161,47 @@ export async function runWebVitals(frame) {
         }
     };
 
-    result.recommendations = buildVitalsRecommendations(result);
+    result.recommendations = buildVitalsRecommendations(result, rules);
     return result;
 }
 
 /**
  * Turns what weighs the page down into recommendations. Each item carries
- * an i18n key (vitals.recs.<key>.title / .detail), a severity aligned with
- * the accessibility impact scale, and interpolation params.
+ * an i18n key (vitals.recs.<key>.title / .detail), the id and the severity of its
+ * rule, and interpolation params.
  *
  * The timings (LCP, CLS, TTFB) give none: measured on the editing preview in the editor's browser,
  * they cannot match the live site, and are shown as indicative figures only. Weight, requests,
  * image sizes and DOM size are the same wherever the page is rendered.
  */
-export function buildVitalsRecommendations({diagnostics}) {
-    const recs = [];
-    const push = (key, severity, params) => recs.push({key, severity, params: params || {}});
+export function buildVitalsRecommendations({diagnostics}, rules) {
+    const {recs, push} = findings(rules);
+    const max = id => rules.get(id).maximum;
 
     if (diagnostics.missingDims > 0) {
-        push('missingDims', 'serious', {count: diagnostics.missingDims});
+        push('ecodesign.imageDimensions', 'missingDims', {count: diagnostics.missingDims});
     }
 
     if (diagnostics.oversized > 0) {
-        push('oversizedImages', 'moderate', {count: diagnostics.oversized});
+        push('ecodesign.oversizedImages', 'oversizedImages', {count: diagnostics.oversized});
     }
 
-    const megabytes = diagnostics.totalBytes / (1024 * 1024);
-    if (megabytes > 1) {
-        push('heavyPage', megabytes > 2 ? 'serious' : 'moderate', {size: `${megabytes.toFixed(1)} MB`});
+    if (diagnostics.totalBytes > max('ecodesign.pageWeight') * KILOBYTE) {
+        push('ecodesign.pageWeight', 'heavyPage', {size: `${(diagnostics.totalBytes / (KILOBYTE * KILOBYTE)).toFixed(1)} MB`});
     }
 
-    if (diagnostics.requests > 80) {
-        push('manyRequests', 'moderate', {count: diagnostics.requests});
+    if (diagnostics.requests > max('ecodesign.requests')) {
+        push('ecodesign.requests', 'manyRequests', {count: diagnostics.requests});
     }
 
-    if (diagnostics.domNodes > 1500) {
-        push('largeDom', 'moderate', {count: diagnostics.domNodes});
+    if (diagnostics.domNodes > max('ecodesign.domSize')) {
+        push('ecodesign.domSize', 'largeDom', {count: diagnostics.domNodes});
     }
 
     const heavyAssets = diagnostics.largest.filter(r =>
-        r.bytes > 300 * 1024 && ['script', 'link', 'css'].includes(r.type));
+        r.bytes > max('ecodesign.heavyAssets') * KILOBYTE && ['script', 'link', 'css'].includes(r.type));
     if (heavyAssets.length > 0) {
-        push('heavyAssets', 'moderate', {count: heavyAssets.length, name: heavyAssets[0].name});
+        push('ecodesign.heavyAssets', 'heavyAssets', {count: heavyAssets.length, name: heavyAssets[0].name});
     }
 
     return recs;

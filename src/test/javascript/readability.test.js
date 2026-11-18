@@ -1,9 +1,10 @@
 import {describe, expect, it} from 'vitest';
 import {analyzeText, buildReadabilityRecommendations, countSyllables} from '../../javascript/audit/analyzers/readability.js';
+import {BASE_RULES} from './baseRules.js';
 
 // Three sentences of ten words, every word of two syllables: ASL 10, ASW 2.
 const textOf = word => Array.from({length: 3}, () => `${Array.from({length: 10}, () => word).join(' ')}.`).join(' ');
-const keys = r => buildReadabilityRecommendations(r).map(rec => rec.key);
+const keys = r => buildReadabilityRecommendations(r, BASE_RULES).map(rec => rec.key);
 const base = {spaced: true, scored: true, score: 60, band: 'standard', words: 400, sentences: 10, longSentences: 0, avgWordsPerParagraph: 40, h1Count: 1, headingSkips: 0};
 
 describe('readability score per language', () => {
@@ -77,7 +78,7 @@ describe('syllables', () => {
 
 describe('languages without a formula', () => {
     it('measures a spaced language without scoring it', () => {
-        const r = analyzeText(textOf('текст'), 'ru');
+        const r = analyzeText(textOf('текст'), 'ru', 25);
         expect(r).toMatchObject({spaced: true, empty: false, scored: false, formula: null, score: null, band: null, words: 30, sentences: 3, longSentences: 0});
     });
 

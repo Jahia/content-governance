@@ -1,5 +1,7 @@
 package org.jahia.community.contentgovernance.geo.check;
 
+import org.jahia.community.contentgovernance.rules.ContentRule;
+import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -16,20 +18,15 @@ import org.json.JSONObject;
  *   important - it can read it, but materially less well than it should
  *   advisory  - worth doing, not worth blocking on
  *
+ * Each check applies one rule of the site's catalog, and carries its id. The rule gives the
+ * limits, the switch and the severity: serious and moderate show as important, minor as advisory.
+ *
  * One rule is deliberately absent: being disallowed in robots.txt is NOT a
  * failure. Refusing a crawler is a legitimate decision. What IS reported is a
  * disagreement between the policy and what the server actually does, because
  * one of the two is then wrong and somebody owns the fix.
  */
 public final class GeoScore {
-
-    /** Below this, the initial html is a shell whoever asks for it. Matches the UI constant. */
-    private static final int MIN_WORDS = 50;
-    /** A crawler receiving less than half the control's text is looking at a different page. */
-    private static final double THIN_RATIO = 0.5;
-    private static final int TITLE_MIN = 10;
-    private static final int TITLE_MAX = 70;
-    private static final double ALT_COVERAGE = 0.8;
 
     private static final String CRITICAL = "critical";
     private static final String IMPORTANT = "important";
@@ -47,13 +44,71 @@ public final class GeoScore {
     private GeoScore() {
     }
 
-    public static JSONObject compute(JSONObject report) {
-        JSONArray checks = new JSONArray();
+    /**
+     * @param report what the fetches of one page found
+     * @param rules  the rules of the site of the page
+     * @return the checks, and the counts the dashboard and the drawer quote
+     */
+    public static JSONObject compute(JSONObject report, ContentRules rules) {
+        Checks checks = new Checks(rules);
         Facts facts = Facts.of(report);
         access(checks, facts);
         content(checks, facts);
         files(checks, facts);
-        return tally(checks);
+        return tally(checks.out);
+    }
+
+    /** The checks of one page, each added only when the site keeps its rule on. */
+    private static final class Checks {
+        private final ContentRules rules;
+        private final JSONArray out = new JSONArray();
+
+        Checks(ContentRules rules) {
+            this.rules = rules;
+        }
+
+        ContentRule rule(String ruleId) {
+            return rules.get(ruleId);
+        }
+
+        /** `value` is the observed fact the UI shows next to the verdict. Never a sentence: the UI translates. */
+        void add(String id, String group, String ruleId, boolean passed, Object value) {
+            ContentRule rule = rules.get(ruleId);
+            if (!rule.enabled()) {
+                return;
+            }
+            JSONObject c = new JSONObject();
+            c.put("id", id);
+            c.put("rule", ruleId);
+            c.put("group", group);
+            c.put(SEVERITY, severity(rule.severity()));
+            c.put(PASSED, passed);
+            c.put("value", value == null ? JSONObject.NULL : value);
+            if (rule.minimum() != null) {
+                c.put("min", limit(rule.minimum()));
+            }
+            if (rule.maximum() != null) {
+                c.put("max", limit(rule.maximum()));
+            }
+            out.put(c);
+        }
+    }
+
+    /** The word GEO readiness shows for the severity of a rule. */
+    static String severity(String ruleSeverity) {
+        return switch (ruleSeverity) {
+            case "critical" -> CRITICAL;
+            case "minor" -> ADVISORY;
+            default -> IMPORTANT;
+        };
+    }
+
+    /** A whole number as an integer, so that the UI shows 30 and not 30.0. */
+    private static Object limit(double value) {
+        if (value == Math.rint(value)) {
+            return (long) value;
+        }
+        return value;
     }
 
     /**
@@ -132,23 +187,23 @@ public final class GeoScore {
     }
 
     /** Can a crawler get the bytes at all. */
-    private static void access(JSONArray checks, Facts f) {
+    private static void access(Checks checks, Facts f) {
         // A fetch with no answer proves neither access nor refusal. Say that the server could not
         // reach the page, and only judge "every crawler gets the page" on answers that came back.
         if (f.unreachable > 0) {
-            add(checks, "fetched", ACCESS, CRITICAL, false, f.unreachableError);
+            checks.add("fetched", ACCESS, "geo.fetched", false, f.unreachableError);
         }
         if (f.unreachable == 0 || f.blocked > 0) {
-            add(checks, "reachable", ACCESS, CRITICAL, f.blocked == 0, f.blocked);
+            checks.add("reachable", ACCESS, "geo.reachable", f.blocked == 0, f.blocked);
         }
-        add(checks, "policyMatchesReality", ACCESS, IMPORTANT, f.mismatches == 0, f.mismatches);
+        checks.add("policyMatchesReality", ACCESS, "geo.policyMatchesReality", f.mismatches == 0, f.mismatches);
 
         boolean redirect = f.has("metaRefresh");
-        add(checks, "noClientRedirect", ACCESS, CRITICAL, !redirect,
+        checks.add("noClientRedirect", ACCESS, "geo.noClientRedirect", !redirect,
                 redirect ? f.text("metaRefresh") : null);
 
         int named = f.robots == null ? 0 : f.robots.optInt("namedAiBotCount", 0);
-        add(checks, "namedInRobots", ACCESS, ADVISORY, named > 0, named);
+        checks.add("namedInRobots", ACCESS, "geo.namedInRobots", named > 0, named);
 
         // GEO-19. A page a guest cannot read is unreadable to every crawler for
         // good, whatever the fetch returned: some servers answer a gated page
@@ -157,72 +212,78 @@ public final class GeoScore {
         // which is why this asks has() rather than taking a default.
         if (f.visibility != null && f.visibility.has(GUEST_READABLE)) {
             boolean guestReadable = f.visibility.optBoolean(GUEST_READABLE, true);
-            add(checks, GUEST_READABLE, ACCESS, CRITICAL, guestReadable,
+            checks.add(GUEST_READABLE, ACCESS, "geo.guestReadable", guestReadable,
                     guestReadable ? null : f.visibility.optString("kind", null));
         }
     }
 
     /** Is what arrives actually usable. */
-    private static void content(JSONArray checks, Facts f) {
-        add(checks, "contentInInitialHtml", CONTENT, CRITICAL, f.controlWords >= MIN_WORDS, f.controlWords);
+    private static void content(Checks checks, Facts f) {
+        checks.add("contentInInitialHtml", CONTENT, "geo.contentInInitialHtml",
+                f.controlWords >= checks.rule("geo.contentInInitialHtml").min(), f.controlWords);
 
-        int thin = thinCount(f);
-        add(checks, "sameContentForCrawlers", CONTENT, CRITICAL, thin == 0, thin);
+        int thin = thinCount(f, checks.rule("geo.sameContentForCrawlers").min());
+        checks.add("sameContentForCrawlers", CONTENT, "geo.sameContentForCrawlers", thin == 0, thin);
 
         String title = f.text(TITLE);
         int titleLen = title == null ? 0 : title.length();
-        add(checks, TITLE, CONTENT, IMPORTANT,
-                title != null && titleLen >= TITLE_MIN && titleLen <= TITLE_MAX, titleLen);
+        checks.add(TITLE, CONTENT, "seo.title", title != null && checks.rule("seo.title").accepts(titleLen), titleLen);
 
         int h1 = f.number("h1Count");
-        add(checks, "singleH1", CONTENT, IMPORTANT, h1 == 1, h1);
+        checks.add("singleH1", CONTENT, "seo.singleH1", h1 == 1, h1);
 
         int h2 = f.number("h2Count");
-        add(checks, "headingOutline", CONTENT, ADVISORY, h2 > 0, h2);
+        checks.add("headingOutline", CONTENT, "geo.headingOutline", h2 > 0, h2);
 
-        add(checks, "metaDescription", CONTENT, IMPORTANT, f.flag("metaDescription"), null);
-        add(checks, "canonical", CONTENT, IMPORTANT, f.flag("canonical"), null);
+        // A report stored before the length was read has none: the presence alone then decides.
+        boolean description = f.flag("metaDescription");
+        boolean measured = f.has("metaDescriptionLength");
+        int descriptionLen = f.number("metaDescriptionLength");
+        checks.add("metaDescription", CONTENT, "seo.metaDescription",
+                description && (!measured || checks.rule("seo.metaDescription").accepts(descriptionLen)),
+                description && measured ? descriptionLen : null);
+        checks.add("canonical", CONTENT, "seo.canonical", f.flag("canonical"), null);
 
         String lang = f.text("lang");
-        add(checks, "langDeclared", CONTENT, IMPORTANT, lang != null, lang);
+        checks.add("langDeclared", CONTENT, "seo.lang", lang != null, lang);
 
         JSONArray types = f.control == null ? null : f.control.optJSONArray("jsonLdTypes");
         boolean hasSchema = types != null && types.length() > 0;
-        add(checks, "structuredData", CONTENT, IMPORTANT, hasSchema, hasSchema ? join(types) : null);
+        checks.add("structuredData", CONTENT, "seo.structuredData", hasSchema, hasSchema ? join(types) : null);
 
         boolean fresh = f.has("dateModified");
-        add(checks, "freshness", CONTENT, ADVISORY, fresh, fresh ? f.text("dateModified") : null);
+        checks.add("freshness", CONTENT, "geo.dateModified", fresh, fresh ? f.text("dateModified") : null);
 
         imageAlt(checks, f);
     }
 
     /** No images is not a failure. It is simply nothing to describe. */
-    private static void imageAlt(JSONArray checks, Facts f) {
+    private static void imageAlt(Checks checks, Facts f) {
         int images = f.number("images");
         int withAlt = f.number("imagesWithAlt");
-        boolean altOk = images == 0 || withAlt >= images * ALT_COVERAGE;
-        add(checks, "imageAlt", CONTENT, ADVISORY, altOk, images == 0 ? null : withAlt + "/" + images);
+        boolean altOk = images == 0 || withAlt >= images * checks.rule("geo.imageAlt").min();
+        checks.add("imageAlt", CONTENT, "geo.imageAlt", altOk, images == 0 ? null : withAlt + "/" + images);
     }
 
-    /** How many agents received materially less text than the control did. */
-    private static int thinCount(Facts f) {
+    /** How many agents received less than {@code ratio} of the text of the control. */
+    private static int thinCount(Facts f, double ratio) {
         if (f.agents == null || f.controlWords <= 0) {
             return 0;
         }
         int thin = 0;
         for (int i = 0; i < f.agents.length(); i++) {
             JSONObject h = f.agents.getJSONObject(i).optJSONObject("html");
-            if (h != null && h.optInt("words", 0) < f.controlWords * THIN_RATIO) {
+            if (h != null && h.optInt("words", 0) < f.controlWords * ratio) {
                 thin++;
             }
         }
         return thin;
     }
 
-    private static void files(JSONArray checks, Facts f) {
-        add(checks, "robotsPresent", FILES, IMPORTANT,
+    private static void files(Checks checks, Facts f) {
+        checks.add("robotsPresent", FILES, "geo.robotsPresent",
                 f.robots != null && f.robots.optBoolean("present", false), null);
-        add(checks, "llmsPresent", FILES, ADVISORY,
+        checks.add("llmsPresent", FILES, "geo.llmsPresent",
                 f.llms != null && f.llms.optBoolean("present", false), null);
     }
 
@@ -260,16 +321,5 @@ public final class GeoScore {
             sb.append(a.getString(i));
         }
         return sb.toString();
-    }
-
-    /** `value` is the observed fact the UI shows next to the verdict. Never a sentence: the UI translates. */
-    private static void add(JSONArray checks, String id, String group, String severity, boolean passed, Object value) {
-        JSONObject c = new JSONObject();
-        c.put("id", id);
-        c.put("group", group);
-        c.put(SEVERITY, severity);
-        c.put(PASSED, passed);
-        c.put("value", value == null ? JSONObject.NULL : value);
-        checks.put(c);
     }
 }

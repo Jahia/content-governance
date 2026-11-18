@@ -11,7 +11,7 @@ import styles from './Tabs.module.css';
  * heading rewrites, ready to copy into Content Editor. Rendered only when a
  * provider is configured; nothing is written back to the repository.
  */
-export function SeoAssist({aiStatus, assist, phase, error, language, onGenerate, onHighlightText}) {
+export function SeoAssist({aiStatus, assist, phase, error, language, ranges, onGenerate, onHighlightText}) {
     const {t} = useGovernanceTranslation('audit');
 
     if (aiStatus && !aiStatus.enabled) {
@@ -22,9 +22,10 @@ export function SeoAssist({aiStatus, assist, phase, error, language, onGenerate,
         return null;
     }
 
-    const lengthHint = (text, min, max) => {
+    // A range is missing from an audit stored before the catalog: the length then shows as fine.
+    const lengthHint = (text, range) => {
         const len = text.length;
-        const ok = len >= min && len <= max;
+        const ok = !range || ((range.min === undefined || len >= range.min) && (range.max === undefined || len <= range.max));
         return (
             <span className={ok ? styles.charCount : `${styles.charCount} ${styles.warn}`}>
                 {t('seo.chars', {count: len})}
@@ -32,13 +33,13 @@ export function SeoAssist({aiStatus, assist, phase, error, language, onGenerate,
         );
     };
 
-    const suggestionList = (items, min, max) => (
+    const suggestionList = (items, range) => (
         <ul className={styles.suggestionList}>
             {items.map(text => (
                 <li key={text} className={styles.suggestion}>
                     <span className={styles.suggestionText}>{text}</span>
                     <span className={styles.suggestionMeta}>
-                        {lengthHint(text, min, max)}
+                        {lengthHint(text, range)}
                         <CopyButton text={text}/>
                     </span>
                 </li>
@@ -81,14 +82,14 @@ export function SeoAssist({aiStatus, assist, phase, error, language, onGenerate,
                     {assist.titles.length > 0 && (
                         <>
                             <h5 className={styles.subTitle}>{t('seo.assist.titles')}</h5>
-                            {suggestionList(assist.titles, 30, 60)}
+                            {suggestionList(assist.titles, ranges?.title)}
                         </>
                     )}
 
                     {assist.metaDescriptions.length > 0 && (
                         <>
                             <h5 className={styles.subTitle}>{t('seo.assist.descriptions')}</h5>
-                            {suggestionList(assist.metaDescriptions, 50, 160)}
+                            {suggestionList(assist.metaDescriptions, ranges?.description)}
                         </>
                     )}
 
@@ -96,8 +97,8 @@ export function SeoAssist({aiStatus, assist, phase, error, language, onGenerate,
                         <>
                             <h5 className={styles.subTitle}>{t('seo.assist.social')}</h5>
                             <p className={styles.note}>{t('seo.assist.socialHint')}</p>
-                            {assist.social.title && suggestionList([assist.social.title], 30, 60)}
-                            {assist.social.description && suggestionList([assist.social.description], 80, 150)}
+                            {assist.social.title && suggestionList([assist.social.title], ranges?.title)}
+                            {assist.social.description && suggestionList([assist.social.description], {min: 80, max: 150})}
                         </>
                     )}
 
@@ -204,6 +205,8 @@ SeoAssist.propTypes = {
     phase: PropTypes.string.isRequired,
     error: PropTypes.string,
     language: PropTypes.string.isRequired,
+    // The length ranges of the rules seo.title and seo.metaDescription, as {title: {min, max}, description: {min, max}}
+    ranges: PropTypes.object,
     onGenerate: PropTypes.func.isRequired,
     onHighlightText: PropTypes.func.isRequired
 };

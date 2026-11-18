@@ -249,6 +249,14 @@
     overflow-wrap: anywhere;
 }
 
+/* The id of the rule of a check, as the catalog names it. */
+.checkRule {
+    display: block;
+    margin-top: 0.2rem;
+    opacity: 0.6;
+    font-size: 0.75rem;
+}
+
 .checkMeta {
     flex: 0 0 auto;
     display: flex;

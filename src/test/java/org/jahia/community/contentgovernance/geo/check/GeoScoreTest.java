@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.check;
 
+import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +28,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * update the test with a reason, rather than adjusting it to go green.
  */
 class GeoScoreTest {
+
+    private static final ContentRules RULES = ContentRules.base();
 
     /** The eighteen check ids, in the order compute emits them. */
     private static final String[] ALL_CHECKS = {
@@ -77,7 +80,7 @@ class GeoScoreTest {
         @Test
         @DisplayName("an empty report still produces all seventeen unconditional checks")
         void emptyReport_emitsSeventeenChecks() {
-            JSONObject score = GeoScore.compute(emptyReport());
+            JSONObject score = GeoScore.compute(emptyReport(), RULES);
 
             assertThat(score.getInt("total")).isEqualTo(17);
             assertThat(score.getJSONArray("checks").length()).isEqualTo(17);
@@ -86,7 +89,7 @@ class GeoScoreTest {
         @Test
         @DisplayName("checks come out in a fixed order, which the UI relies on")
         void checkOrder_isStable() {
-            JSONArray checks = GeoScore.compute(emptyReport()).getJSONArray("checks");
+            JSONArray checks = GeoScore.compute(emptyReport(), RULES).getJSONArray("checks");
 
             String[] ids = new String[checks.length()];
             for (int i = 0; i < checks.length(); i++) {
@@ -96,15 +99,16 @@ class GeoScoreTest {
         }
 
         @Test
-        @DisplayName("every check carries id, group, severity, passed and value")
+        @DisplayName("every check carries id, rule, group, severity, passed and value, and the limits of its rule")
         void everyCheck_hasTheFullShape() {
-            JSONArray checks = GeoScore.compute(emptyReport()).getJSONArray("checks");
+            JSONArray checks = GeoScore.compute(emptyReport(), RULES).getJSONArray("checks");
 
             for (int i = 0; i < checks.length(); i++) {
                 JSONObject c = checks.getJSONObject(i);
                 assertThat(c.keySet())
                         .as("check %s", c.optString("id"))
-                        .containsExactlyInAnyOrder("id", "group", "severity", "passed", "value");
+                        .contains("id", "rule", "group", "severity", "passed", "value")
+                        .isSubsetOf("id", "rule", "group", "severity", "passed", "value", "min", "max");
                 assertThat(c.getString("group")).isIn("access", "content", "files");
                 assertThat(c.getString("severity")).isIn("critical", "important", "advisory");
             }
@@ -132,7 +136,7 @@ class GeoScoreTest {
         })
         @DisplayName("each check keeps its group and severity")
         void groupAndSeverity_arePinned(String id, String group, String severity) {
-            JSONObject c = check(GeoScore.compute(emptyReport()), id);
+            JSONObject c = check(GeoScore.compute(emptyReport(), RULES), id);
 
             assertThat(c.getString("group")).isEqualTo(group);
             assertThat(c.getString("severity")).isEqualTo(severity);
@@ -141,7 +145,7 @@ class GeoScoreTest {
         @Test
         @DisplayName("a value the report cannot supply is JSON null, never absent")
         void missingValue_isJsonNull() {
-            JSONObject score = GeoScore.compute(emptyReport());
+            JSONObject score = GeoScore.compute(emptyReport(), RULES);
 
             assertThat(check(score, "metaDescription").isNull("value")).isTrue();
             assertThat(check(score, "imageAlt").isNull("value")).isTrue();
@@ -157,7 +161,7 @@ class GeoScoreTest {
         @Test
         @DisplayName("is absent when the repository did not answer, so the total stays seventeen")
         void absentVisibility_omitsTheCheck() {
-            JSONObject score = GeoScore.compute(emptyReport());
+            JSONObject score = GeoScore.compute(emptyReport(), RULES);
 
             assertThat(score.getInt("total")).isEqualTo(17);
             assertThat(score.getJSONArray("checks").toString()).doesNotContain("guestReadable");
@@ -169,7 +173,7 @@ class GeoScoreTest {
             JSONObject report = emptyReport();
             report.put("visibility", new JSONObject().put("guestReadable", true));
 
-            JSONObject score = GeoScore.compute(report);
+            JSONObject score = GeoScore.compute(report, RULES);
 
             assertThat(score.getInt("total")).isEqualTo(18);
             assertThat(passed(score, "guestReadable")).isTrue();
@@ -183,7 +187,7 @@ class GeoScoreTest {
             JSONObject report = emptyReport();
             report.put("visibility", new JSONObject().put("kind", "unknown"));
 
-            assertThat(GeoScore.compute(report).getInt("total")).isEqualTo(17);
+            assertThat(GeoScore.compute(report, RULES).getInt("total")).isEqualTo(17);
         }
 
         @Test
@@ -194,7 +198,7 @@ class GeoScoreTest {
                     .put("guestReadable", false)
                     .put("kind", "acl"));
 
-            JSONObject score = GeoScore.compute(report);
+            JSONObject score = GeoScore.compute(report, RULES);
 
             assertThat(passed(score, "guestReadable")).isFalse();
             assertThat(check(score, "guestReadable").getString("value")).isEqualTo("acl");
@@ -210,11 +214,11 @@ class GeoScoreTest {
         @Test
         @DisplayName("reachable passes only when nothing was blocked, and reports the count")
         void reachable_countsBlocked() {
-            assertThat(passed(GeoScore.compute(emptyReport()), "reachable")).isTrue();
+            assertThat(passed(GeoScore.compute(emptyReport(), RULES), "reachable")).isTrue();
 
             JSONObject report = emptyReport();
             report.put("blockedCount", 3);
-            JSONObject score = GeoScore.compute(report);
+            JSONObject score = GeoScore.compute(report, RULES);
 
             assertThat(passed(score, "reachable")).isFalse();
             assertThat(check(score, "reachable").getInt("value")).isEqualTo(3);
@@ -226,7 +230,7 @@ class GeoScoreTest {
             JSONObject report = emptyReport();
             report.put("unreachableCount", 16);
             report.put("unreachableError", "ConnectException");
-            JSONObject score = GeoScore.compute(report);
+            JSONObject score = GeoScore.compute(report, RULES);
 
             assertThat(passed(score, "fetched")).isFalse();
             assertThat(check(score, "fetched").getString("value")).isEqualTo("ConnectException");
@@ -234,7 +238,7 @@ class GeoScoreTest {
 
             // A real refusal next to the failures is still reported as one.
             report.put("blockedCount", 2);
-            score = GeoScore.compute(report);
+            score = GeoScore.compute(report, RULES);
             assertThat(passed(score, "reachable")).isFalse();
             assertThat(check(score, "reachable").getInt("value")).isEqualTo(2);
         }
@@ -246,7 +250,7 @@ class GeoScoreTest {
             report.put("blockedButAllowedCount", 2);
             report.put("reachableButDisallowedCount", 1);
 
-            JSONObject score = GeoScore.compute(report);
+            JSONObject score = GeoScore.compute(report, RULES);
 
             assertThat(passed(score, "policyMatchesReality")).isFalse();
             assertThat(check(score, "policyMatchesReality").getInt("value")).isEqualTo(3);
@@ -263,7 +267,7 @@ class GeoScoreTest {
             report.put("blockedButAllowedCount", 0);
             report.put("reachableButDisallowedCount", 0);
 
-            JSONObject score = GeoScore.compute(report);
+            JSONObject score = GeoScore.compute(report, RULES);
 
             assertThat(passed(score, "policyMatchesReality")).isTrue();
             assertThat(passed(score, "reachable")).isTrue();
@@ -273,7 +277,7 @@ class GeoScoreTest {
         @DisplayName("a meta refresh fails critically and reports the target")
         void metaRefresh_failsCritically() {
             JSONObject score = GeoScore.compute(withControl(
-                    new JSONObject().put("metaRefresh", "0;url=/elsewhere")));
+                    new JSONObject().put("metaRefresh", "0;url=/elsewhere")), RULES);
 
             assertThat(passed(score, "noClientRedirect")).isFalse();
             assertThat(check(score, "noClientRedirect").getString("value")).isEqualTo("0;url=/elsewhere");
@@ -286,7 +290,7 @@ class GeoScoreTest {
             report.put("siteFiles", new JSONObject()
                     .put("robots", new JSONObject().put("namedAiBotCount", 1)));
 
-            assertThat(passed(GeoScore.compute(report), "namedInRobots")).isTrue();
+            assertThat(passed(GeoScore.compute(report, RULES), "namedInRobots")).isTrue();
         }
     }
 
@@ -310,7 +314,7 @@ class GeoScoreTest {
             JSONObject report = new JSONObject();
             report.put("agents", agents);
 
-            assertThat(check(GeoScore.compute(report), "singleH1").getInt("value")).isEqualTo(1);
+            assertThat(check(GeoScore.compute(report, RULES), "singleH1").getInt("value")).isEqualTo(1);
         }
 
         @ParameterizedTest(name = "{0} words -> passed={1}")
@@ -320,19 +324,19 @@ class GeoScoreTest {
             JSONObject report = emptyReport();
             report.put("controlWords", words);
 
-            assertThat(passed(GeoScore.compute(report), "contentInInitialHtml")).isEqualTo(expected);
+            assertThat(passed(GeoScore.compute(report, RULES), "contentInInitialHtml")).isEqualTo(expected);
         }
 
         @ParameterizedTest(name = "title of {0} chars -> passed={1}")
-        @CsvSource({"9, false", "10, true", "70, true", "71, false"})
-        @DisplayName("title is inclusive at both ends, ten to seventy")
+        @CsvSource({"29, false", "30, true", "60, true", "61, false"})
+        @DisplayName("title is inclusive at both ends, thirty to sixty, the range of seo.title")
         void title_boundsAreInclusive(int length, boolean expected) {
             StringBuilder t = new StringBuilder();
             for (int i = 0; i < length; i++) {
                 t.append('x');
             }
             JSONObject score = GeoScore.compute(withControl(
-                    new JSONObject().put("title", t.toString())));
+                    new JSONObject().put("title", t.toString())), RULES);
 
             assertThat(passed(score, "title")).isEqualTo(expected);
             assertThat(check(score, "title").getInt("value")).isEqualTo(length);
@@ -341,7 +345,7 @@ class GeoScoreTest {
         @Test
         @DisplayName("an absent title fails and reports length zero")
         void absentTitle_failsWithZero() {
-            JSONObject score = GeoScore.compute(withControl(new JSONObject()));
+            JSONObject score = GeoScore.compute(withControl(new JSONObject()), RULES);
 
             assertThat(passed(score, "title")).isFalse();
             assertThat(check(score, "title").getInt("value")).isZero();
@@ -352,7 +356,7 @@ class GeoScoreTest {
         @DisplayName("singleH1 wants exactly one, so none and two both fail")
         void singleH1_wantsExactlyOne(int count, boolean expected) {
             JSONObject score = GeoScore.compute(withControl(
-                    new JSONObject().put("h1Count", count)));
+                    new JSONObject().put("h1Count", count)), RULES);
 
             assertThat(passed(score, "singleH1")).isEqualTo(expected);
         }
@@ -372,7 +376,7 @@ class GeoScoreTest {
             report.put("agents", agents);
             report.put("controlWords", 100);
 
-            JSONObject score = GeoScore.compute(report);
+            JSONObject score = GeoScore.compute(report, RULES);
 
             assertThat(passed(score, "sameContentForCrawlers")).isFalse();
             assertThat(check(score, "sameContentForCrawlers").getInt("value")).isEqualTo(1);
@@ -393,7 +397,7 @@ class GeoScoreTest {
             report.put("agents", agents);
             report.put("controlWords", 0);
 
-            assertThat(passed(GeoScore.compute(report), "sameContentForCrawlers")).isTrue();
+            assertThat(passed(GeoScore.compute(report, RULES), "sameContentForCrawlers")).isTrue();
         }
 
         @ParameterizedTest(name = "{0} images, {1} with alt -> passed={2}")
@@ -408,7 +412,7 @@ class GeoScoreTest {
         void imageAlt_coverageIsEightyPercent(int images, int withAlt, boolean expected) {
             JSONObject score = GeoScore.compute(withControl(new JSONObject()
                     .put("images", images)
-                    .put("imagesWithAlt", withAlt)));
+                    .put("imagesWithAlt", withAlt)), RULES);
 
             assertThat(passed(score, "imageAlt")).isEqualTo(expected);
         }
@@ -417,10 +421,10 @@ class GeoScoreTest {
         @DisplayName("imageAlt reports the ratio, or null when there is nothing to describe")
         void imageAlt_valueIsTheRatio() {
             JSONObject some = GeoScore.compute(withControl(new JSONObject()
-                    .put("images", 4).put("imagesWithAlt", 3)));
+                    .put("images", 4).put("imagesWithAlt", 3)), RULES);
             assertThat(check(some, "imageAlt").getString("value")).isEqualTo("3/4");
 
-            JSONObject none = GeoScore.compute(withControl(new JSONObject().put("images", 0)));
+            JSONObject none = GeoScore.compute(withControl(new JSONObject().put("images", 0)), RULES);
             assertThat(check(none, "imageAlt").isNull("value")).isTrue();
         }
 
@@ -428,7 +432,7 @@ class GeoScoreTest {
         @DisplayName("structuredData joins the JSON-LD types with a comma")
         void structuredData_joinsTypes() {
             JSONObject score = GeoScore.compute(withControl(new JSONObject()
-                    .put("jsonLdTypes", new JSONArray().put("WebPage").put("Article"))));
+                    .put("jsonLdTypes", new JSONArray().put("WebPage").put("Article"))), RULES);
 
             assertThat(passed(score, "structuredData")).isTrue();
             assertThat(check(score, "structuredData").getString("value")).isEqualTo("WebPage, Article");
@@ -438,7 +442,7 @@ class GeoScoreTest {
         @DisplayName("an empty JSON-LD array is not structured data")
         void structuredData_emptyArrayFails() {
             JSONObject score = GeoScore.compute(withControl(new JSONObject()
-                    .put("jsonLdTypes", new JSONArray())));
+                    .put("jsonLdTypes", new JSONArray())), RULES);
 
             assertThat(passed(score, "structuredData")).isFalse();
         }
@@ -446,7 +450,7 @@ class GeoScoreTest {
         @Test
         @DisplayName("langDeclared reports the language it found")
         void langDeclared_reportsTheValue() {
-            JSONObject score = GeoScore.compute(withControl(new JSONObject().put("lang", "fr")));
+            JSONObject score = GeoScore.compute(withControl(new JSONObject().put("lang", "fr")), RULES);
 
             assertThat(passed(score, "langDeclared")).isTrue();
             assertThat(check(score, "langDeclared").getString("value")).isEqualTo("fr");
@@ -462,7 +466,7 @@ class GeoScoreTest {
         @Test
         @DisplayName("both fail when siteFiles is absent entirely")
         void absentSiteFiles_bothFail() {
-            JSONObject score = GeoScore.compute(emptyReport());
+            JSONObject score = GeoScore.compute(emptyReport(), RULES);
 
             assertThat(passed(score, "robotsPresent")).isFalse();
             assertThat(passed(score, "llmsPresent")).isFalse();
@@ -476,7 +480,7 @@ class GeoScoreTest {
                     .put("robots", new JSONObject().put("present", true))
                     .put("llms", new JSONObject().put("present", false)));
 
-            JSONObject score = GeoScore.compute(report);
+            JSONObject score = GeoScore.compute(report, RULES);
 
             assertThat(passed(score, "robotsPresent")).isTrue();
             assertThat(passed(score, "llmsPresent")).isFalse();
@@ -509,7 +513,7 @@ class GeoScoreTest {
             // Only contentInInitialHtml fails. A page that could not be fetched at
             // all therefore scores better than a page that was fetched and found
             // wanting. Pinned as today's behaviour, not endorsed.
-            JSONObject score = GeoScore.compute(emptyReport());
+            JSONObject score = GeoScore.compute(emptyReport(), RULES);
 
             assertThat(score.getInt("total")).isEqualTo(17);
             assertThat(score.getInt("passed")).isEqualTo(5);
@@ -522,7 +526,7 @@ class GeoScoreTest {
         void absenceOfEvidence_passesThreeCriticalChecks() {
             // Pinned individually so a refactor that changes any ONE of them is
             // identified, rather than only showing up as a moved total above.
-            JSONObject score = GeoScore.compute(emptyReport());
+            JSONObject score = GeoScore.compute(emptyReport(), RULES);
 
             assertThat(passed(score, "reachable")).isTrue();
             assertThat(passed(score, "noClientRedirect")).isTrue();
@@ -533,7 +537,7 @@ class GeoScoreTest {
         @Test
         @DisplayName("passed plus the two failure counts plus advisory failures equals the total")
         void counts_accountForEveryCheck() {
-            JSONObject score = GeoScore.compute(emptyReport());
+            JSONObject score = GeoScore.compute(emptyReport(), RULES);
 
             int advisoryFailed = 0;
             JSONArray checks = score.getJSONArray("checks");
@@ -575,12 +579,77 @@ class GeoScoreTest {
                     .put("llms", new JSONObject().put("present", true)));
             report.put("visibility", new JSONObject().put("guestReadable", true));
 
-            JSONObject score = GeoScore.compute(report);
+            JSONObject score = GeoScore.compute(report, RULES);
 
             assertThat(score.getInt("total")).isEqualTo(18);
             assertThat(score.getInt("passed")).isEqualTo(18);
             assertThat(score.getInt("criticalFailed")).isZero();
             assertThat(score.getInt("importantFailed")).isZero();
+        }
+    }
+
+    @Nested
+    @DisplayName("the content rules of the site")
+    class SiteRules {
+
+        private JSONObject titled(int length, ContentRules rules) {
+            return GeoScore.compute(withControl(new JSONObject().put("title", "x".repeat(length))), rules);
+        }
+
+        @Test
+        @DisplayName("every check carries the id of its rule")
+        void everyCheck_carriesItsRule() {
+            JSONArray checks = GeoScore.compute(withControl(new JSONObject()), RULES).getJSONArray("checks");
+
+            for (int i = 0; i < checks.length(); i++) {
+                String rule = checks.getJSONObject(i).getString("rule");
+                assertThat(RULES.get(rule).id()).isEqualTo(rule);
+            }
+            assertThat(check(GeoScore.compute(withControl(new JSONObject()), RULES), "title").getString("rule"))
+                    .isEqualTo("seo.title");
+        }
+
+        @Test
+        @DisplayName("a site that changes the range of seo.title changes the verdict, and the check states the range")
+        void changedTitleRange_changesTheVerdict() {
+            ContentRules site = RULES.changed("seo.title", null, null, 40.0, null);
+
+            assertThat(passed(titled(35, RULES), "title")).isTrue();
+            assertThat(passed(titled(35, site), "title")).isFalse();
+            assertThat(check(titled(35, site), "title").getInt("min")).isEqualTo(40);
+            assertThat(check(titled(35, site), "title").getInt("max")).isEqualTo(60);
+        }
+
+        @Test
+        @DisplayName("a rule the site turns off removes its check from the score")
+        void disabledRule_removesTheCheck() {
+            ContentRules site = RULES.changed("seo.title", false, null, null, null);
+            JSONObject score = titled(5, site);
+
+            JSONArray checks = score.getJSONArray("checks");
+            for (int i = 0; i < checks.length(); i++) {
+                assertThat(checks.getJSONObject(i).getString("id")).isNotEqualTo("title");
+            }
+            assertThat(score.getInt("total")).isEqualTo(titled(5, RULES).getInt("total") - 1);
+        }
+
+        @Test
+        @DisplayName("the severity of the rule decides the severity of the check")
+        void severity_comesFromTheRule() {
+            ContentRules site = RULES.changed("seo.title", null, "critical", null, null);
+
+            assertThat(check(titled(5, RULES), "title").getString("severity")).isEqualTo("important");
+            assertThat(check(titled(5, site), "title").getString("severity")).isEqualTo("critical");
+        }
+
+        @ParameterizedTest(name = "description of {0} chars -> passed={1}")
+        @CsvSource({"49, false", "50, true", "160, true", "161, false"})
+        @DisplayName("the meta description follows the range of seo.metaDescription when its length is known")
+        void metaDescription_followsTheRange(int length, boolean expected) {
+            JSONObject score = GeoScore.compute(withControl(new JSONObject()
+                    .put("metaDescription", true).put("metaDescriptionLength", length)), RULES);
+
+            assertThat(passed(score, "metaDescription")).isEqualTo(expected);
         }
     }
 }

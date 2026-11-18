@@ -207,14 +207,16 @@ public final class PageFetch {
         o.put("h2Count", h2Count[0]);
     }
 
-    /** The description, what robots are told, and any client-side redirect. */
+    /** The description and its length, what robots are told, and any client-side redirect. */
     private static void metaTags(String html, JSONObject o) {
         boolean[] hasDescription = {false};
+        int[] descriptionLength = {0};
         String[] robots = {null};
         String[] refresh = {null};
         Markup.forEachTag(html, "meta", (tag, at, end) -> {
-            if (NAME_DESCRIPTION.matcher(tag).find()) {
+            if (!hasDescription[0] && NAME_DESCRIPTION.matcher(tag).find()) {
                 hasDescription[0] = true;
+                descriptionLength[0] = attribute(CONTENT, tag, "").trim().length();
             }
             if (robots[0] == null && NAME_ROBOTS.matcher(tag).find()) {
                 robots[0] = clip(attribute(CONTENT, tag, "").trim(), 60);
@@ -229,6 +231,7 @@ public final class PageFetch {
             }
         });
         o.put("metaDescription", hasDescription[0]);
+        o.put("metaDescriptionLength", descriptionLength[0]);
         o.put("metaRobots", robots[0] == null ? JSONObject.NULL : robots[0]);
         o.put("metaRefresh", refresh[0] == null ? JSONObject.NULL : refresh[0]);
     }

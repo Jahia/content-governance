@@ -114,8 +114,11 @@ export const ScoreTab = ({report}) => {
                                         </Typography>
                                         {!c.passed && (
                                             <Typography variant="caption" className={styles.checkFix}>
-                                                {t(`score.check.${c.id}.fix`)}
+                                                {t(`score.check.${c.id}.fix`, {min: c.min, max: c.max})}
                                             </Typography>
+                                        )}
+                                        {c.rule && (
+                                            <code className={styles.checkRule}>{c.rule}</code>
                                         )}
                                         {!c.passed && shared.has(c.id) && (
                                             <Typography variant="caption" className={styles.fromTemplate}>

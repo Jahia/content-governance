@@ -6,8 +6,7 @@
  * content-health analyzer.
  */
 
-const TITLE_RANGE = [30, 60];
-const DESCRIPTION_RANGE = [50, 160];
+import {accepts, findings, limits} from '../rules';
 
 // Link / button labels that say nothing about the destination or the action.
 // Compared after stripping decorations ("Read More +", "En savoir plus »").
@@ -74,7 +73,13 @@ function collectWeakCtas(doc) {
     return Array.from(seen.values()).slice(0, MAX_WEAK_CTAS);
 }
 
-export function runSeo(frame, language) {
+/**
+ * @param {HTMLIFrameElement} frame the preview frame
+ * @param {string} language the content language
+ * @param {{get: function(string): object}} rules the rules of the site
+ * @returns {object} the SEO facts of the page and their findings
+ */
+export function runSeo(frame, language, rules) {
     const doc = frame.contentDocument;
     const win = frame.contentWindow;
     if (!doc || !win) {
@@ -156,58 +161,65 @@ export function runSeo(frame, language) {
         weakCtas
     };
 
-    result.recommendations = buildSeoRecommendations(result);
+    result.ranges = {title: limits(rules.get('seo.title')), description: limits(rules.get('seo.metaDescription'))};
+    result.recommendations = buildSeoRecommendations(result, rules);
     return result;
 }
 
-function buildSeoRecommendations(r) {
-    const recs = [];
-    const push = (key, severity, params) => recs.push({key, severity, params: params || {}});
+/**
+ * The findings of the SEO facts of a page.
+ *
+ * @param {object} r the SEO facts, as runSeo reads them
+ * @param {{get: function(string): object}} rules the rules of the site
+ * @returns {Array<{key: string, rule: string, severity: string, params: object}>} the findings
+ */
+export function buildSeoRecommendations(r, rules) {
+    const {recs, push} = findings(rules);
 
     if (!r.title.text) {
-        push('noTitle', 'critical');
-    } else if (r.title.length < TITLE_RANGE[0] || r.title.length > TITLE_RANGE[1]) {
-        push('titleLength', 'moderate', {length: r.title.length, min: TITLE_RANGE[0], max: TITLE_RANGE[1]});
+        push('seo.title', 'noTitle');
+    } else if (!accepts(rules.get('seo.title'), r.title.length)) {
+        push('seo.title', 'titleLength', {length: r.title.length});
     }
 
     if (!r.description.text) {
-        push('noDescription', 'serious');
-    } else if (r.description.length < DESCRIPTION_RANGE[0] || r.description.length > DESCRIPTION_RANGE[1]) {
-        push('descriptionLength', 'moderate', {length: r.description.length, min: DESCRIPTION_RANGE[0], max: DESCRIPTION_RANGE[1]});
+        push('seo.metaDescription', 'noDescription');
+    } else if (!accepts(rules.get('seo.metaDescription'), r.description.length)) {
+        push('seo.metaDescription', 'descriptionLength', {length: r.description.length});
     }
 
     if (r.robots.noindex) {
-        push('noindex', 'critical', {content: r.robots.content});
+        push('seo.indexable', 'noindex', {content: r.robots.content});
     } else if (r.robots.nofollow) {
-        push('nofollow', 'moderate', {content: r.robots.content});
+        push('seo.followLinks', 'nofollow', {content: r.robots.content});
     }
 
     if (!r.canonical) {
-        push('noCanonical', 'minor');
+        push('seo.canonical', 'noCanonical');
     }
 
     if (!r.og.title || !r.og.image) {
-        push('incompleteOg', 'moderate');
+        push('seo.openGraph', 'incompleteOg');
     }
 
     if (r.jsonLd.errors > 0) {
-        push('invalidStructuredData', 'serious', {count: r.jsonLd.errors});
+        push('seo.structuredDataValid', 'invalidStructuredData', {count: r.jsonLd.errors});
     } else if (r.jsonLd.count === 0) {
-        push('noStructuredData', 'minor');
+        push('seo.structuredData', 'noStructuredData');
     }
 
     if (!r.lang.htmlLang) {
-        push('noLang', 'moderate');
+        push('seo.lang', 'noLang');
     } else if (r.lang.expected && !r.lang.htmlLang.startsWith(r.lang.expected)) {
-        push('langMismatch', 'serious', {htmlLang: r.lang.htmlLang, expected: r.lang.expected});
+        push('seo.langMatches', 'langMismatch', {htmlLang: r.lang.htmlLang, expected: r.lang.expected});
     }
 
     if (r.imagesWithoutAlt > 0) {
-        push('missingAlt', 'moderate', {count: r.imagesWithoutAlt});
+        push('seo.imageAlt', 'missingAlt', {count: r.imagesWithoutAlt});
     }
 
     if (r.badAnchors > 0) {
-        push('genericAnchors', 'minor', {count: r.badAnchors});
+        push('seo.genericAnchors', 'genericAnchors', {count: r.badAnchors});
     }
 
     return recs;

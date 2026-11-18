@@ -10,10 +10,12 @@ const baseName = (siteKey, scan) => `geo-readiness-${siteKey}-${scan.language}-$
 /** When the scan finished, else when it started, else now: the export always has a date. */
 const producedAt = scan => scan.run?.finishedAt || scan.run?.startedAt || new Date().toISOString();
 
+/** A failed check is named by the id of its rule; a scan stored before the catalog names the check. */
 const scoreRows = (scan, t) => {
     const severities = scan.run?.aggregate?.severities || {};
+    const rules = scan.run?.aggregate?.rules || {};
     return (scan.run?.failures || []).flatMap(page => (page.failed || []).map(check => [
-        'score', check, t(`score.check.${check}.label`), severities[check], page.title, page.path, '', page.template
+        'score', rules[check] || check, t(`score.check.${check}.label`), severities[check], page.title, page.path, '', page.template
     ]));
 };
 

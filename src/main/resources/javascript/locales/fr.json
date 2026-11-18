@@ -242,7 +242,7 @@
           },
           "title": {
             "label": "Titre présent et de longueur exploitable",
-            "fix": "Un titre de moins de 10 ou plus de 70 caractères est soit peu informatif, soit tronqué partout où il est cité."
+            "fix": "Un titre de moins de {{min}} ou plus de {{max}} caractères est soit peu informatif, soit tronqué partout où il est cité."
           },
           "singleH1": {
             "label": "Exactement un H1",
@@ -253,8 +253,8 @@
             "fix": "La recherche découpe les pages sur les titres. Une page sans H2 forme un bloc indifférencié."
           },
           "metaDescription": {
-            "label": "Meta description présente",
-            "fix": "Sans elle, le résumé affiché à côté d'une réponse est généré à partir du premier texte venu."
+            "label": "Meta description présente et de longueur exploitable",
+            "fix": "Sans elle, le résumé affiché à côté d'une réponse est généré à partir du premier texte venu. Gardez-la entre {{min}} et {{max}} caractères."
           },
           "canonical": {
             "label": "URL canonique déclarée",
@@ -1322,7 +1322,7 @@
           },
           "noDescription": {
             "title": "Pas de meta description",
-            "detail": "Les moteurs choisiront un extrait arbitraire. Rédigez un résumé de 50 à 160 caractères qui donne envie de cliquer."
+            "detail": "Les moteurs choisiront un extrait arbitraire. Rédigez un résumé de {{min}} à {{max}} caractères qui donne envie de cliquer."
           },
           "descriptionLength": {
             "title": "La meta description fait {{length}} caractères",
@@ -1622,7 +1622,7 @@
         "words": "Mots",
         "sentences": "Phrases",
         "avgSentenceLength": "Mots par phrase (moy.)",
-        "longSentences": "Phrases longues (>25 mots)",
+        "longSentences": "Phrases longues (>{{max}} mots)",
         "longSentencesHint": "envisagez de les découper",
         "paragraphs": "Paragraphes",
         "avgWordsPerParagraph": "mots en moy.",
@@ -1680,7 +1680,7 @@
           },
           "thinContent": {
             "title": "Peu de texte sur la page ({{count}} mots)",
-            "detail": "Une page de moins de 300 mots informe mal et se référence mal. Étoffez le contenu ou fusionnez-le ailleurs."
+            "detail": "Une page de moins de {{min}} mots informe mal et se référence mal. Étoffez le contenu ou fusionnez-le ailleurs."
           }
         }
       },

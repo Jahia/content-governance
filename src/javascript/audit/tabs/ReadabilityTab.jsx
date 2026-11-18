@@ -103,7 +103,7 @@ export function ReadabilityTab({result, assist, onHighlight}) {
                         <li>{t('readability.words')}: <strong>{result.words}</strong></li>
                         <li>{t('readability.sentences')}: <strong>{result.sentences}</strong></li>
                         <li>{t('readability.avgSentenceLength')}: <strong>{result.avgSentenceLength}</strong></li>
-                        <li>{t('readability.longSentences')}: <strong>{result.longSentences}</strong></li>
+                        <li>{t('readability.longSentences', {max: result.longSentenceWords})}: <strong>{result.longSentences}</strong></li>
                         <li>{t('readability.paragraphs')}: <strong>{result.paragraphs}</strong>
                             {result.avgWordsPerParagraph !== null && ` (${t('readability.avgWordsPerParagraph')}: ${result.avgWordsPerParagraph})`}
                         </li>
