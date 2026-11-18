@@ -25,6 +25,12 @@ every tab shows, which findings are yours to fix and which belong to a developer
 - **[`compliance/glossary-guide.md`](compliance/glossary-guide.md)**: for the people who own the
   wording (Legal, compliance): writing glossaries and terms, how matching works.
 
+## If you own the voice and the writing rules of the brand
+
+- **[`editorial-frame/guide.md`](editorial-frame/guide.md)**: the editorial frame, which holds the
+  voice, the personas, the writing rules, the translation glossary and the skills. The guide states
+  where they live, who reads them, the import and the endpoints.
+
 ## If you are a site administrator
 
 - **[`settings-guide.md`](settings-guide.md)**: **Site Settings > Content governance**: switching
@@ -37,6 +43,7 @@ every tab shows, which findings are yours to fix and which belong to a developer
 | Page quality | [`page-quality/guide.md`](page-quality/guide.md) | [`page-quality/architecture.md`](page-quality/architecture.md) |
 | GEO readiness | [`geo-readiness/checks.md`](geo-readiness/checks.md) | [`geo-readiness/architecture.md`](geo-readiness/architecture.md) |
 | Compliance | [`compliance/glossary-guide.md`](compliance/glossary-guide.md) (matching rules) | [`compliance/architecture.md`](compliance/architecture.md) |
+| Editorial frame (no section of the drawer yet) | [`editorial-frame/guide.md`](editorial-frame/guide.md) | [`editorial-frame/architecture.md`](editorial-frame/architecture.md) |
 
 Agents read [`../.agents/README.md`](../.agents/README.md) first: invariants, the legacy storage
 kept on purpose, traps already hit once, known leftovers.

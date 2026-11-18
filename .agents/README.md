@@ -26,6 +26,8 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 | `src/main/java/.../graphql/` | `contentGovernance { siteSettings }`, `saveSiteSettings`, `complianceScan` |
 | `src/main/java/.../{audit,geo,compliance}/` | Each section's server side, as in the original modules |
 | `src/main/resources/ccs_glossaryTerm/html/` | The glossary term's default view, which jContent's Preview shows |
+| `src/main/java/org/jahia/pm/modules/editorialframe/` | The editorial frame, moved from the module editorial-frame (1.12.0): the exported `api`, the service, the checkers, the skill registry, the importer, three servlets and four tools for AI agents |
+| `src/main/resources/META-INF/editorial-frame.cnd`, `src/main/resources/skills/` | The content types of the frame (`efnt`, `efmix`) and the two skills the module ships |
 
 ## Invariants
 
@@ -100,6 +102,19 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   jContent does.
 - `robots` and `llms` are optional dependencies (`=optional`): only the GEO robots.txt editor and the
   read-only llms.txt tab need them. llms.txt is written in the `llms` module, never here.
+- **The editorial frame keeps the names of the module editorial-frame** (1.12.0): the Java packages
+  `org.jahia.pm.modules.editorialframe.*`, the export of `api` at version `0.1.0`, the namespaces
+  `efnt` and `efmix`, the servlets under `/modules/editorial-frame/`, the tool names and the folder
+  `contents/ai-assistant`. Its readers import `api` with the range `[0.1,1)`, and an import that no
+  longer matches shows no error. `docs/editorial-frame/architecture.md` has the wiring.
+- **`mcp-server` is optional, and only `editorialframe.internal.tools` names its types**: the bundle
+  imports `org.jahia.modules.mcp.spi.tool` with `DynamicImport-Package`, and each tool is a delayed
+  component. Never set `immediate = true` on a tool, and never name a class of that package from
+  another package: either one loads the class at start, which fails without mcp-server.
+- **The jar never imports `org.yaml.snakeyaml`**: snakeyaml is embedded, and the build removes the
+  optional imports that the Jahia plugin generates for it (`build-helper-maven-plugin` in
+  `pom.xml`). With them the frame service fails at start with a `LinkageError`, on a Jahia that
+  exports snakeyaml (8.2.4.0 does). Check the jar after a change of the parent or of the plugin.
 - **A readability score uses a formula published for the page language** (2026-10-31): one entry
   per language in `FORMULAS` (`audit/analyzers/readability.js`), an adaptation of Flesch on its
   0-100 scale so the bands and advice stay shared, its vowels in `VOWELS`, its source in the file
