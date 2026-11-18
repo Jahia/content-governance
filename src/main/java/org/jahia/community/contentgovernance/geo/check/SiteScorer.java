@@ -65,6 +65,8 @@ public final class SiteScorer {
     private static final String TOTAL = "total";
     private static final String CRITICAL_FAILED = "criticalFailed";
     private static final String SEVERITY = "severity";
+    /** The key of the map from the id of a check to the id of its rule. */
+    private static final String RULES = "rules";
     /** The HTTP status of the one fetch a site scan makes per page. */
     private static final String STATUS = "status";
 
@@ -252,7 +254,7 @@ public final class SiteScorer {
             for (String k : sev.keySet()) {
                 severities.put(k, sev.getString(k));
             }
-            JSONObject ids = one.optJSONObject("rules");
+            JSONObject ids = one.optJSONObject(RULES);
             for (String k : ids == null ? Collections.<String>emptySet() : ids.keySet()) {
                 ruleIds.put(k, ids.getString(k));
             }
@@ -290,7 +292,7 @@ public final class SiteScorer {
             aggregate.put("percent", totalChecks == 0 ? 0 : Math.round(totalPassed * 100.0 / totalChecks));
             aggregate.put("failCounts", new JSONObject(failCounts));
             aggregate.put("severities", new JSONObject(severities));
-            aggregate.put("rules", new JSONObject(ruleIds));
+            aggregate.put(RULES, new JSONObject(ruleIds));
 
             JSONArray sections = new JSONArray();
             bySection.forEach((name, agg) -> {
@@ -593,7 +595,7 @@ public final class SiteScorer {
             out.put("score", trimmed);
             out.put("failed", failed);
             out.put("severities", severities);
-            out.put("rules", ruleIds);
+            out.put(RULES, ruleIds);
             return out;
         }
 

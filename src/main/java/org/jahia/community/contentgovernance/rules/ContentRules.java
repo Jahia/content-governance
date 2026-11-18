@@ -38,6 +38,7 @@ public final class ContentRules {
     static final String MAXIMUM = "maximum";
 
     private static final String EDIT_WORKSPACE = "default";
+    private static final String SITES = "/sites/";
     private static final Pattern SITE_KEY = Pattern.compile("[A-Za-z0-9_.-]+");
     private static final Logger logger = LoggerFactory.getLogger(ContentRules.class);
 
@@ -64,7 +65,7 @@ public final class ContentRules {
         }
         try {
             return JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, EDIT_WORKSPACE, null,
-                    (JCRCallback<ContentRules>) session -> read(session, "/sites/" + siteKey + "/" + FOLDER));
+                    (JCRCallback<ContentRules>) session -> read(session, SITES + siteKey + "/" + FOLDER));
         } catch (RepositoryException | RuntimeException e) {
             // A check never fails for its rules: with no repository, it applies the defaults.
             logger.warn("The rules of the site {} could not be read, the defaults apply", siteKey, e);
@@ -79,11 +80,11 @@ public final class ContentRules {
      * @return the rules of that site, or the defaults when the path is not under a site
      */
     public static ContentRules forPath(String path) {
-        if (path == null || !path.startsWith("/sites/")) {
+        if (path == null || !path.startsWith(SITES)) {
             return base();
         }
-        int end = path.indexOf('/', "/sites/".length());
-        return forSite(end < 0 ? path.substring("/sites/".length()) : path.substring("/sites/".length(), end));
+        int end = path.indexOf('/', SITES.length());
+        return forSite(end < 0 ? path.substring(SITES.length()) : path.substring(SITES.length(), end));
     }
 
     private static ContentRules read(JCRSessionWrapper session, String folder) throws RepositoryException {
@@ -93,14 +94,23 @@ public final class ContentRules {
         }
         for (JCRNodeWrapper node : session.getNode(folder).getNodes()) {
             if (node.isNodeType(TYPE) && node.hasProperty(RULE_ID)) {
-                out = out.changed(node.getProperty(RULE_ID).getString(),
-                        node.hasProperty(ENABLED) ? node.getProperty(ENABLED).getBoolean() : null,
-                        node.hasProperty(SEVERITY) ? node.getProperty(SEVERITY).getString() : null,
-                        node.hasProperty(MINIMUM) ? node.getProperty(MINIMUM).getDouble() : null,
-                        node.hasProperty(MAXIMUM) ? node.getProperty(MAXIMUM).getDouble() : null);
+                out = out.changed(node.getProperty(RULE_ID).getString(), flag(node, ENABLED), text(node, SEVERITY),
+                        number(node, MINIMUM), number(node, MAXIMUM));
             }
         }
         return out;
+    }
+
+    private static Boolean flag(JCRNodeWrapper node, String name) throws RepositoryException {
+        return node.hasProperty(name) ? node.getProperty(name).getBoolean() : null;
+    }
+
+    private static String text(JCRNodeWrapper node, String name) throws RepositoryException {
+        return node.hasProperty(name) ? node.getProperty(name).getString() : null;
+    }
+
+    private static Double number(JCRNodeWrapper node, String name) throws RepositoryException {
+        return node.hasProperty(name) ? node.getProperty(name).getDouble() : null;
     }
 
     /**

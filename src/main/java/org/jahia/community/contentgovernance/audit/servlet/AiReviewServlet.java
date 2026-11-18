@@ -148,45 +148,46 @@ public class AiReviewServlet extends HttpServlet {
      * that will be PUBLISHED to visitors - they must be in the page's language.
      * Only the per-heading "reason" is editor-facing and follows the UI language.
      */
-    private static final String SEO_ASSIST_PROMPT =
-            "You are an SEO copywriter helping a CMS content editor optimize one page. "
-            + "You receive the page text, its current title, meta description and headings, and the automated SEO findings. "
-            + "Produce ready-to-paste suggestions grounded ONLY in what the page actually says - never invent facts, "
-            + "offers, numbers or names that are not in the text. Write naturally for humans, no keyword stuffing.\n\n"
-            + "Reply ONLY with a valid JSON object. No markdown, no code fences, no comments, no trailing commas.\n"
-            + "JSON structure:\n"
-            + "{\n"
-            + "  \"titles\": [\"2 alternative <title> tags, {{titleRange}} characters, primary keyword near the start\"],\n"
-            + "  \"metaDescriptions\": [\"3 alternative meta descriptions, {{descriptionRange}} characters each, one clear benefit + implicit call to click\"],\n"
-            + "  \"social\": {\n"
-            + "    \"title\": \"og:title for social sharing cards, max 60 characters, catchier than the <title>, no brand suffix needed\",\n"
-            + "    \"description\": \"og:description, 80-150 characters, written to make people stop scrolling and click\"\n"
-            + "  },\n"
-            + "  \"keywords\": {\n"
-            + "    \"focus\": \"the single primary keyword or phrase this page should rank for\",\n"
-            + "    \"secondary\": [\"3-6 related terms or long-tail phrases already supported by the page text\"]\n"
-            + "  },\n"
-            + "  \"headings\": [\n"
-            + "    {\n"
-            + "      \"level\": \"h1\" | \"h2\" | \"h3\",\n"
-            + "      \"current\": \"exact current heading text, or empty string when proposing a missing h1\",\n"
-            + "      \"suggested\": \"improved heading text\",\n"
-            + "      \"reason\": \"one sentence IN %2$s: why this is better (descriptive, keyword-aligned, consistent…)\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"ctas\": [\n"
-            + "    {\n"
-            + "      \"current\": \"the exact generic label given under WEAK CALLS TO ACTION\",\n"
-            + "      \"suggestions\": [\"2-3 specific labels (2-5 words, verb + what the visitor gets, fits a button) based on the CTA's context\"],\n"
-            + "      \"reason\": \"one sentence IN %2$s\"\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}\n"
-            + "Only include headings that genuinely benefit from a rewrite (maximum 6); keep good headings out. "
-            + "Answer \"ctas\" for every weak call to action listed (empty array when none is listed). "
-            + "LANGUAGE RULES: titles, metaDescriptions, social, keywords, every \"suggested\" heading and every CTA suggestion "
-            + "MUST be written in %1$s, because they will be published to the page's visitors. "
-            + "Every \"reason\" MUST be written in %2$s, because it is read by the editor.";
+    private static final String SEO_ASSIST_PROMPT = """
+            You are an SEO copywriter helping a CMS content editor optimize one page. \
+            You receive the page text, its current title, meta description and headings, and the automated SEO findings. \
+            Produce ready-to-paste suggestions grounded ONLY in what the page actually says - never invent facts, \
+            offers, numbers or names that are not in the text. Write naturally for humans, no keyword stuffing.
+
+            Reply ONLY with a valid JSON object. No markdown, no code fences, no comments, no trailing commas.
+            JSON structure:
+            {
+              "titles": ["2 alternative <title> tags, {{titleRange}} characters, primary keyword near the start"],
+              "metaDescriptions": ["3 alternative meta descriptions, {{descriptionRange}} characters each, one clear benefit + implicit call to click"],
+              "social": {
+                "title": "og:title for social sharing cards, max 60 characters, catchier than the <title>, no brand suffix needed",
+                "description": "og:description, 80-150 characters, written to make people stop scrolling and click"
+              },
+              "keywords": {
+                "focus": "the single primary keyword or phrase this page should rank for",
+                "secondary": ["3-6 related terms or long-tail phrases already supported by the page text"]
+              },
+              "headings": [
+                {
+                  "level": "h1" | "h2" | "h3",
+                  "current": "exact current heading text, or empty string when proposing a missing h1",
+                  "suggested": "improved heading text",
+                  "reason": "one sentence IN %2$s: why this is better (descriptive, keyword-aligned, consistent…)"
+                }
+              ],
+              "ctas": [
+                {
+                  "current": "the exact generic label given under WEAK CALLS TO ACTION",
+                  "suggestions": ["2-3 specific labels (2-5 words, verb + what the visitor gets, fits a button) based on the CTA's context"],
+                  "reason": "one sentence IN %2$s"
+                }
+              ]
+            }
+            Only include headings that genuinely benefit from a rewrite (maximum 6); keep good headings out. \
+            Answer "ctas" for every weak call to action listed (empty array when none is listed). \
+            LANGUAGE RULES: titles, metaDescriptions, social, keywords, every "suggested" heading and every CTA suggestion \
+            MUST be written in %1$s, because they will be published to the page's visitors. \
+            Every "reason" MUST be written in %2$s, because it is read by the editor.""";
 
     /**
      * Plain-language task: rewrite the page's hardest sentences (the ones the
