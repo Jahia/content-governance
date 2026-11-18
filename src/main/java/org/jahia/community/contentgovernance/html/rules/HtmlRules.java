@@ -24,6 +24,8 @@ public final class HtmlRules {
 
     public static final int MAX_FINDINGS = 50;
     private static final int SNIPPET_CHARS = 160;
+    private static final String ARIA_LABEL = "aria-label";
+    private static final String TITLE = "title";
     /** Link texts that say nothing about the target, in the three languages of the jContent screens. */
     private static final Set<String> VAGUE_LINK_TEXTS = Set.of("click here", "here", "read more", "more", "learn more",
             "cliquez ici", "ici", "en savoir plus", "lire la suite", "plus", "hier klicken", "hier", "mehr",
@@ -47,6 +49,20 @@ public final class HtmlRules {
             findings.add(HtmlRule.IMAGE_ALT_MISSING, image);
         }
         checkHeadings(html, findings);
+        checkLinks(html, findings);
+        checkButtons(html, findings);
+        checkFields(html, findings);
+        for (Element frame : html.select("iframe:not([title]), iframe[title='']")) {
+            findings.add(HtmlRule.FRAME_TITLE_MISSING, frame);
+        }
+        checkTables(html, findings);
+        if (scope == Scope.PAGE) {
+            checkDuplicateIds(html, findings);
+        }
+        return findings.list;
+    }
+
+    private static void checkLinks(Document html, Findings findings) {
         for (Element link : html.select("a[href]")) {
             String name = accessibleName(link);
             if (name.isEmpty()) {
@@ -55,31 +71,33 @@ public final class HtmlRules {
                 findings.add(HtmlRule.LINK_TEXT_VAGUE, link);
             }
         }
+    }
+
+    private static void checkButtons(Document html, Findings findings) {
         for (Element button : html.select("button, input[type=button], input[type=submit], input[type=reset]")) {
             String name = button.tagName().equals("input") ? button.attr("value").trim() : accessibleName(button);
-            if (name.isEmpty() && button.attr("aria-label").isBlank() && button.attr("title").isBlank()) {
+            if (name.isEmpty() && button.attr(ARIA_LABEL).isBlank() && button.attr(TITLE).isBlank()) {
                 findings.add(HtmlRule.BUTTON_NAME_MISSING, button);
             }
         }
+    }
+
+    private static void checkFields(Document html, Findings findings) {
         for (Element field : html.select("input:not([type=hidden]):not([type=button]):not([type=submit])"
                 + ":not([type=reset]):not([type=image]), select, textarea")) {
             if (!hasLabel(html, field)) {
                 findings.add(HtmlRule.FORM_LABEL_MISSING, field);
             }
         }
-        for (Element frame : html.select("iframe:not([title]), iframe[title='']")) {
-            findings.add(HtmlRule.FRAME_TITLE_MISSING, frame);
-        }
+    }
+
+    private static void checkTables(Document html, Findings findings) {
         for (Element table : html.select("table:not([role=presentation])")) {
             if (table.select("tr").size() > 1 && table.select("th").isEmpty()
                     && table.select("tr").first().select("td").size() > 1) {
                 findings.add(HtmlRule.TABLE_HEADER_MISSING, table);
             }
         }
-        if (scope == Scope.PAGE) {
-            checkDuplicateIds(html, findings);
-        }
-        return findings.list;
     }
 
     private static void checkPage(Document page, String expectedLanguage, Findings findings) {
@@ -139,7 +157,7 @@ public final class HtmlRules {
 
     /** The text that a screen reader reads for an element, from its content and its labels. */
     static String accessibleName(Element element) {
-        String label = element.attr("aria-label").trim();
+        String label = element.attr(ARIA_LABEL).trim();
         if (!label.isEmpty()) {
             return label;
         }
@@ -148,12 +166,12 @@ public final class HtmlRules {
             name.append(' ').append(image.attr("alt").trim());
         }
         String text = name.toString().trim();
-        return text.isEmpty() ? element.attr("title").trim() : text;
+        return text.isEmpty() ? element.attr(TITLE).trim() : text;
     }
 
     private static boolean hasLabel(Document html, Element field) {
-        if (!field.attr("aria-label").isBlank() || !field.attr("aria-labelledby").isBlank()
-                || !field.attr("title").isBlank()) {
+        if (!field.attr(ARIA_LABEL).isBlank() || !field.attr("aria-labelledby").isBlank()
+                || !field.attr(TITLE).isBlank()) {
             return true;
         }
         if (!field.id().isEmpty() && html.selectFirst("label[for=" + cssEscape(field.id()) + "]") != null) {

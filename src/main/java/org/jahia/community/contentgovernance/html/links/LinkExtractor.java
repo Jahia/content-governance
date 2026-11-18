@@ -42,26 +42,36 @@ final class LinkExtractor {
     static Links extract(Document html, Set<String> localHosts) {
         Links links = new Links();
         for (Element anchor : html.select("a[href]")) {
-            String href = anchor.attr("href").trim();
-            if (href.isEmpty() || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")
-                    || href.startsWith("javascript:")) {
-                continue;
+            URI uri = address(anchor.attr("href").trim());
+            if (uri != null) {
+                sort(uri, localHosts, links);
             }
-            URI uri;
-            try {
-                uri = new URI(href.replace(" ", "%20"));
-            } catch (URISyntaxException e) {
-                continue;
+        }
+        return links;
+    }
+
+    /** The address of a link, or {@code null} for a link to no page: an anchor, a mail, a phone or a script. */
+    private static URI address(String href) {
+        if (href.isEmpty() || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")
+                || href.startsWith("javascript:")) {
+            return null;
+        }
+        try {
+            return new URI(href.replace(" ", "%20"));
+        } catch (URISyntaxException e) {
+            return null;
+        }
+    }
+
+    private static void sort(URI uri, Set<String> localHosts, Links links) {
+        String scheme = uri.getScheme() == null ? null : uri.getScheme().toLowerCase(Locale.ROOT);
+        boolean external = scheme != null && uri.getHost() != null
+                && !localHosts.contains(uri.getHost().toLowerCase(Locale.ROOT));
+        if (external) {
+            if ("http".equals(scheme) || "https".equals(scheme)) {
+                links.externalUrls.add(uri.toString());
             }
-            String scheme = uri.getScheme() == null ? null : uri.getScheme().toLowerCase(Locale.ROOT);
-            boolean external = scheme != null && uri.getHost() != null
-                    && !localHosts.contains(uri.getHost().toLowerCase(Locale.ROOT));
-            if (external) {
-                if ("http".equals(scheme) || "https".equals(scheme)) {
-                    links.externalUrls.add(uri.toString());
-                }
-                continue;
-            }
+        } else {
             String path = jcrPath(uri.getRawPath());
             if (path == null) {
                 links.unresolved++;
@@ -69,7 +79,6 @@ final class LinkExtractor {
                 links.internalPaths.add(path);
             }
         }
-        return links;
     }
 
     /** The JCR path inside a Jahia URL, such as /cms/render/live/en/sites/digitall/home.html. */

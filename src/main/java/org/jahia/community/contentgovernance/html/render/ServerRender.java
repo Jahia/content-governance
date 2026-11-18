@@ -56,7 +56,8 @@ public final class ServerRender {
         JahiaUser user = session.getUser();
         Locale locale = session.getLocale() != null ? session.getLocale() : Locale.ENGLISH;
         String servletPath = Render.getRenderServletPath();
-        String pathInfo = "/" + session.getWorkspace().getName() + "/" + locale + node.getPath() + ".html";
+        // The path after the render servlet: /<workspace>/<locale><node path>.html
+        String pathInfo = String.join("/", "", session.getWorkspace().getName(), locale + node.getPath() + ".html");
         JCRSiteNode site = node.getResolveSite();
         String serverName = site == null || site.getServerName() == null || site.getServerName().isBlank()
                 ? LOCAL_SERVER : site.getServerName();

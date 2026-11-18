@@ -22,6 +22,7 @@ final class AuditTools {
     static final ObjectMapper MAPPER = new ObjectMapper();
     static final String PATH = "path";
     static final String LOCALE = "locale";
+    private static final String DESCRIPTION = "description";
     /** The permission to open jContent on a site, as the Page quality dashboard requires it. */
     static final String ACCESS = "jContentAccess";
     private static final Pattern SITE_PATH = Pattern.compile("^/sites/([A-Za-z0-9_-]{1,64})(/.*)?$");
@@ -37,13 +38,13 @@ final class AuditTools {
     static ObjectNode schema(String description) {
         ObjectNode schema = MAPPER.createObjectNode();
         schema.put("type", "object");
-        schema.put("description", description);
+        schema.put(DESCRIPTION, description);
         ObjectNode properties = schema.putObject("properties");
         properties.putObject(PATH).put("type", "string").put("pattern", "^/sites/")
-                .put("description", "Absolute JCR path of a page, such as /sites/digitall/home/about, or of a "
+                .put(DESCRIPTION, "Absolute JCR path of a page, such as /sites/digitall/home/about, or of a "
                         + "content item. A content item gets the rules that read one item only.");
         properties.putObject(LOCALE).put("type", "string").put("pattern", LANGUAGE.pattern())
-                .put("description", "Language of the content to check, such as en or fr_FR. "
+                .put(DESCRIPTION, "Language of the content to check, such as en or fr_FR. "
                         + "Find the languages of a site with site.get.");
         schema.putArray("required").add(PATH).add(LOCALE);
         schema.put("additionalProperties", false);
