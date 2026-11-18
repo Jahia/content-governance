@@ -4,6 +4,7 @@
 package org.jahia.pm.modules.editorialframe.internal.skills;
 
 import org.jahia.pm.modules.editorialframe.api.SkillSummary;
+import org.jahia.pm.modules.editorialframe.internal.frame.Texts;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleEvent;
@@ -81,7 +82,7 @@ public final class BundleSkills implements BundleTrackerCustomizer<Long> {
         if (folder == null || folder.isBlank()) {
             return null;
         }
-        List<LoadedSkill> skills = load(bundle, folder.trim().replaceAll("(?:^/+)|(?:/+$)", ""));
+        List<LoadedSkill> skills = load(bundle, Texts.trim(folder.trim(), '/'));
         byBundle.put(bundle.getBundleId(), skills);
         moduleOf.put(bundle.getBundleId(), bundle.getSymbolicName());
         logger.info("Read {} skills from the module {}", skills.size(), bundle.getSymbolicName());
@@ -100,7 +101,7 @@ public final class BundleSkills implements BundleTrackerCustomizer<Long> {
     }
 
     static List<LoadedSkill> load(Bundle bundle, String folder) {
-        Enumeration<URL> found = bundle.findEntries(folder, "SKILL.md", true);
+        Enumeration<URL> found = bundle.findEntries(folder, SkillPaths.SKILL_FILE, true);
         List<LoadedSkill> skills = new ArrayList<>();
         if (found == null) {
             return skills;
@@ -108,7 +109,7 @@ public final class BundleSkills implements BundleTrackerCustomizer<Long> {
         TreeSet<String> directories = new TreeSet<>();
         while (found.hasMoreElements()) {
             String path = found.nextElement().getPath();
-            directories.add(path.substring(0, path.length() - "SKILL.md".length()));
+            directories.add(path.substring(0, path.length() - SkillPaths.SKILL_FILE.length()));
         }
         List<String> roots = new ArrayList<>();
         for (String directory : directories) {
@@ -130,7 +131,7 @@ public final class BundleSkills implements BundleTrackerCustomizer<Long> {
     private static LoadedSkill loadOne(Bundle bundle, String root) throws IOException {
         String trimmed = root.endsWith("/") ? root.substring(0, root.length() - 1) : root;
         String folderName = trimmed.substring(trimmed.lastIndexOf('/') + 1);
-        SkillDocument document = SkillDocument.parse(read(bundle.getEntry(root + "SKILL.md")), folderName);
+        SkillDocument document = SkillDocument.parse(read(bundle.getEntry(root + SkillPaths.SKILL_FILE)), folderName);
         Map<String, String> files = new LinkedHashMap<>();
         Enumeration<URL> entries = bundle.findEntries(root, "*", true);
         while (entries != null && entries.hasMoreElements()) {
@@ -140,7 +141,7 @@ public final class BundleSkills implements BundleTrackerCustomizer<Long> {
                 continue;
             }
             String relative = path.substring(root.length());
-            if ("SKILL.md".equals(relative) || !SkillPaths.isSafeRelative(relative) || !SkillPaths.isKept(relative)) {
+            if (SkillPaths.SKILL_FILE.equals(relative) || !SkillPaths.isSafeRelative(relative) || !SkillPaths.isKept(relative)) {
                 continue;
             }
             files.put(relative, read(entry));

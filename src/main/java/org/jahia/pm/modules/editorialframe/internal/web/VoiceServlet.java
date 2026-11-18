@@ -38,6 +38,8 @@ public class VoiceServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LoggerFactory.getLogger(VoiceServlet.class);
     static final int MAX_VOICE = 4000;
+    private static final String VOICE = "voice";
+    private static final String VOICE_SKILL = "voiceSkill";
 
     private final transient ObjectMapper mapper = new ObjectMapper();
 
@@ -67,8 +69,8 @@ public class VoiceServlet extends HttpServlet {
         }
         ObjectNode body = mapper.createObjectNode();
         try {
-            body.put("voice", user.hasProperty("voice") ? user.getProperty("voice").getString() : null);
-            body.put("voiceSkill", user.hasProperty("voiceSkill") ? user.getProperty("voiceSkill").getString() : null);
+            body.put(VOICE, user.hasProperty(VOICE) ? user.getProperty(VOICE).getString() : null);
+            body.put(VOICE_SKILL, user.hasProperty(VOICE_SKILL) ? user.getProperty(VOICE_SKILL).getString() : null);
         } catch (RepositoryException e) {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "The voice cannot be read");
             return;
@@ -93,8 +95,8 @@ public class VoiceServlet extends HttpServlet {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "The body is not valid JSON");
             return;
         }
-        String voice = input.path("voice").isTextual() ? input.get("voice").asText().strip() : null;
-        String voiceSkill = input.path("voiceSkill").isTextual() ? input.get("voiceSkill").asText().strip() : null;
+        String voice = input.path(VOICE).isTextual() ? input.get(VOICE).asText().strip() : null;
+        String voiceSkill = input.path(VOICE_SKILL).isTextual() ? input.get(VOICE_SKILL).asText().strip() : null;
         if (voice != null && (voice.length() > MAX_VOICE || Texts.hasInvisibleCharacters(voice))) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST,
                     "The voice is longer than " + MAX_VOICE + " characters or holds invisible characters");
@@ -113,8 +115,8 @@ public class VoiceServlet extends HttpServlet {
                 if (!node.isNodeType("efmix:authorVoice")) {
                     node.addMixin("efmix:authorVoice");
                 }
-                setOrRemove(node, "voice", voice);
-                setOrRemove(node, "voiceSkill", voiceSkill);
+                setOrRemove(node, VOICE, voice);
+                setOrRemove(node, VOICE_SKILL, voiceSkill);
                 session.save();
                 return null;
             });
@@ -124,8 +126,8 @@ public class VoiceServlet extends HttpServlet {
             return;
         }
         ObjectNode body = mapper.createObjectNode();
-        body.put("voice", voice);
-        body.put("voiceSkill", voiceSkill);
+        body.put(VOICE, voice);
+        body.put(VOICE_SKILL, voiceSkill);
         write(response, body);
     }
 

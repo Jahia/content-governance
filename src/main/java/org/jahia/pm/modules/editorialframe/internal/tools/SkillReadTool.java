@@ -44,9 +44,9 @@ public class SkillReadTool implements JahiaMcpTool {
     @Override
     public JsonNode inputSchema() {
         ObjectNode schema = FrameTools.schema("One skill, or one file of a skill");
-        FrameTools.property(schema, "siteKey", "string", "The key of the site, such as digitall.", true);
-        FrameTools.property(schema, "name", "string", "The name of the skill, from skill.list.", true);
-        FrameTools.property(schema, "path", "string",
+        FrameTools.property(schema, FrameTools.SITE_KEY_INPUT, FrameTools.STRING_TYPE, "The key of the site, such as digitall.", true);
+        FrameTools.property(schema, "name", FrameTools.STRING_TYPE, "The name of the skill, from skill.list.", true);
+        FrameTools.property(schema, "path", FrameTools.STRING_TYPE,
                 "The path of a file of the skill, such as references/glossary.md. Leave it out to read the instructions.", false);
         return schema;
     }
@@ -63,7 +63,7 @@ public class SkillReadTool implements JahiaMcpTool {
 
     @Override
     public ToolResult execute(JsonNode input, ToolContext ctx) {
-        String siteKey = FrameTools.text(input, "siteKey");
+        String siteKey = FrameTools.text(input, FrameTools.SITE_KEY_INPUT);
         ToolResult denied = FrameTools.denied(siteKey, ctx);
         if (denied != null) {
             return denied;
@@ -100,7 +100,7 @@ public class SkillReadTool implements JahiaMcpTool {
                 files.addObject().put("path", info.path()).put("size", info.size());
             }
         }
-        ctx.audit().recordEvent("skill.read", Map.of("siteKey", siteKey, "skill", skill.get().summary().name(),
+        ctx.audit().recordEvent("skill.read", Map.of(FrameTools.SITE_KEY_INPUT, siteKey, "skill", skill.get().summary().name(),
                 "version", skill.get().digest(), "path", path == null ? "" : path));
         return ToolResult.ok(result);
     }

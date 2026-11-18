@@ -41,8 +41,8 @@ public class SkillListTool implements JahiaMcpTool {
     @Override
     public JsonNode inputSchema() {
         ObjectNode schema = FrameTools.schema("The skills of a site");
-        FrameTools.property(schema, "siteKey", "string", "The key of the site, such as digitall.", true);
-        FrameTools.property(schema, "consumer", "string", "Who uses the skills: mcp (the default) or chat.", false);
+        FrameTools.property(schema, FrameTools.SITE_KEY_INPUT, FrameTools.STRING_TYPE, "The key of the site, such as digitall.", true);
+        FrameTools.property(schema, "consumer", FrameTools.STRING_TYPE, "Who uses the skills: mcp (the default) or chat.", false);
         return schema;
     }
 
@@ -58,7 +58,7 @@ public class SkillListTool implements JahiaMcpTool {
 
     @Override
     public ToolResult execute(JsonNode input, ToolContext ctx) {
-        String siteKey = FrameTools.text(input, "siteKey");
+        String siteKey = FrameTools.text(input, FrameTools.SITE_KEY_INPUT);
         ToolResult denied = FrameTools.denied(siteKey, ctx);
         if (denied != null) {
             return denied;
@@ -75,7 +75,7 @@ public class SkillListTool implements JahiaMcpTool {
             skill.put("description", summary.description());
             skill.put("scope", summary.scope());
         }
-        ctx.audit().recordEvent("skill.list", java.util.Map.of("siteKey", siteKey, "count", skills.size()));
+        ctx.audit().recordEvent("skill.list", java.util.Map.of(FrameTools.SITE_KEY_INPUT, siteKey, "count", skills.size()));
         return ToolResult.ok(result);
     }
 }

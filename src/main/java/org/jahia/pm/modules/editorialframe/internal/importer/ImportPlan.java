@@ -385,7 +385,8 @@ public final class ImportPlan {
         String risk = stringOf(map.get("risk"));
         String reason = stringOf(map.get("reason"));
         String hint = stringOf(map.get("rewrite_hint"));
-        String justification = (reason == null ? "" : reason) + (hint == null ? "" : (reason == null ? "" : ". ") + hint)
+        String beforeHint = reason == null ? "" : ". ";
+        String justification = (reason == null ? "" : reason) + (hint == null ? "" : beforeHint + hint)
                 + (risk == null ? "" : " (" + risk + ")");
         rules.add(new RuleItem(path, new WritingRule(null, WritingRule.Kind.FORBIDDEN, "(?i)" + regex,
                 WritingRule.MatchMode.REGEX, null, null,
@@ -609,8 +610,8 @@ public final class ImportPlan {
     private void readSkills(Map<String, String> files, Options options, String voiceFolder, String personasFolder) {
         TreeSet<String> directories = new TreeSet<>();
         for (String path : files.keySet()) {
-            if (path.equals("SKILL.md") || path.endsWith("/SKILL.md")) {
-                directories.add(path.substring(0, path.length() - "SKILL.md".length()));
+            if (path.equals(SkillPaths.SKILL_FILE) || path.endsWith("/" + SkillPaths.SKILL_FILE)) {
+                directories.add(path.substring(0, path.length() - SkillPaths.SKILL_FILE.length()));
             }
         }
         List<String> roots = new ArrayList<>();
@@ -634,7 +635,7 @@ public final class ImportPlan {
             }
             Map<String, String> skillFiles = new LinkedHashMap<>();
             for (Map.Entry<String, String> file : files.entrySet()) {
-                if (!file.getKey().startsWith(root) || file.getKey().equals(root + "SKILL.md")) {
+                if (!file.getKey().startsWith(root) || file.getKey().equals(root + SkillPaths.SKILL_FILE)) {
                     continue;
                 }
                 String relative = file.getKey().substring(root.length());
@@ -662,6 +663,16 @@ public final class ImportPlan {
         }
     }
 
+    /** The first of the paths that the archive holds, or {@code null}. */
+    private static String firstHeld(Map<String, String> files, String... paths) {
+        for (String path : paths) {
+            if (files.containsKey(path)) {
+                return path;
+            }
+        }
+        return null;
+    }
+
     /**
      * Copies the files that the skill names in {@code depends_on}, a key that the marketing
      * repository uses and the Agent Skills format does not define, as {@code deps/<path>}. The
@@ -676,8 +687,7 @@ public final class ImportPlan {
                 continue;
             }
             String local = folder.isEmpty() ? path : folder + "/" + path;
-            String source = files.containsKey(local) ? local
-                    : files.containsKey(path) ? path : files.containsKey(path + "/SKILL.md") ? path + "/SKILL.md" : null;
+            String source = firstHeld(files, local, path, path + "/" + SkillPaths.SKILL_FILE);
             if (source != null && source.equals(local) && skillFiles.containsKey(path)) {
                 // A file of the skill itself, already among its files.
                 continue;
@@ -699,7 +709,7 @@ public final class ImportPlan {
     }
 
     private SkillDocument document(Map<String, String> files, String folder) {
-        String text = files.get(folder.isEmpty() ? "SKILL.md" : folder + "/SKILL.md");
+        String text = files.get(folder.isEmpty() ? SkillPaths.SKILL_FILE : folder + "/" + SkillPaths.SKILL_FILE);
         if (text == null) {
             warnings.add(folder + ": no SKILL.md");
             return null;
@@ -735,7 +745,7 @@ public final class ImportPlan {
         if (path == null || path.isBlank()) {
             return null;
         }
-        return path.trim().replaceAll("/SKILL\\.md$", "").replaceAll("(?:^/+)|(?:/+$)", "");
+        return Texts.trim(path.trim().replaceAll("/SKILL\\.md$", ""), '/');
     }
 
     static String title(String body, String fallback) {
@@ -748,9 +758,8 @@ public final class ImportPlan {
     }
 
     static String slug(String title) {
-        String slug = java.text.Normalizer.normalize(title, java.text.Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("(?:^-+)|(?:-+$)", "");
+        String slug = Texts.trim(java.text.Normalizer.normalize(title, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-"), '-');
         if (slug.length() > 48) {
             slug = slug.substring(0, 48).replaceAll("-+$", "");
         }

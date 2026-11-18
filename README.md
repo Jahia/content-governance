@@ -341,7 +341,7 @@ curl -u root:<password> http://localhost:8080/modules/api/provisioning \
   -F file=@target/content-governance-<version>.jar
 ```
 
-`mvn clean install` runs the unit tests: 571 in Java and the front-end ones (`yarn test`, Vitest, in
+`mvn clean install` runs the unit tests: 574 in Java and the front-end ones (`yarn test`, Vitest, in
 `src/test/javascript/`); `-DskipTests` skips both. `test-fixtures/` holds a local site and a BotRank stub
 for the GEO checks.
 

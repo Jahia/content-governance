@@ -21,6 +21,10 @@ final class FrameTools {
     static final ObjectMapper MAPPER = new ObjectMapper();
     /** The permission that the jContent of a site needs, which every editor of the site holds. */
     static final String ACCESS = "jContentAccess";
+    /** The name of the input that every tool of the frame takes. */
+    static final String SITE_KEY_INPUT = "siteKey";
+    /** The JSON Schema type of a text input. */
+    static final String STRING_TYPE = "string";
     private static final String REQUIRED = "required";
 
     private FrameTools() {
