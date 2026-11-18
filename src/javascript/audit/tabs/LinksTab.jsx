@@ -15,7 +15,7 @@ export function LinksTab({result, onHighlight}) {
 
     return (
         <div>
-            <Recommendations items={result.recommendations} ns="links"/>
+            <Recommendations items={result.recommendations} ns="links" tab="links"/>
 
             <h4 className={styles.sectionTitle}>{t('links.summary')}</h4>
             <ul className={styles.statList}>

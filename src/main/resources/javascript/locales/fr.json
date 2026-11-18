@@ -1866,6 +1866,7 @@
       },
       "resize": "Redimensionner le panneau : faites glisser, ou utilisez les flèches gauche et droite",
       "nothingAvailable": "Aucune section de Gouvernance des contenus ne peut être utilisée sur ce contenu.",
+      "entryFailed": "Cet onglet, ajouté par un autre module, n'a pas pu s'afficher.",
       "sectionHelp": {
         "audit": "Contrôle la page que vous modifiez : accessibilité, SEO, vitesse, lisibilité, écoconception, liens et contenus Jahia, avec des suggestions de l'IA à la demande.",
         "geo": "Si les assistants IA et leurs robots peuvent lire et citer la page publiée : score, accès des robots, fichiers du site, données structurées et citations par les IA.",

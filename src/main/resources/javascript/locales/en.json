@@ -1866,6 +1866,7 @@
       },
       "resize": "Resize the panel: drag, or use the left and right arrow keys",
       "nothingAvailable": "No section of Content governance can be used on this content.",
+      "entryFailed": "This tab, added by another module, could not be shown.",
       "sectionHelp": {
         "audit": "Checks the page you are editing: accessibility, SEO, speed, readability, eco-design, links and Jahia content, with AI suggestions on demand.",
         "geo": "Whether AI assistants and their crawlers can read and cite the published page: score, crawler access, site files, structured data and AI citations.",

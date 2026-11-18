@@ -94,6 +94,20 @@ review, opening the drawer. It never blocks publishing; jContent's own publish a
 - **BotRank**: connect the site to a BotRank project, map cited addresses to pages, and set the time
   of the daily sync.
 
+## The editorial frame
+
+The module also holds the editorial frame of a brand: its voice, its personas, its writing rules,
+its translation glossary and its skills. They are content of the site, which a brand manager edits
+in jContent and publishes. The AI features of Jahia read them through an OSGi service, and AI agents
+read them through four tools when the `mcp-server` module is installed. The drawer and the
+dashboards do not read the frame yet.
+
+Until version 1.12, a separate module named editorial-frame held this code. Its content types
+(`efnt:*`, `efmix:*`), its Java packages, its endpoints under `/modules/editorial-frame/` and its
+tool names keep their names. [`docs/editorial-frame/guide.md`](docs/editorial-frame/guide.md)
+describes the frame, and [`docs/editorial-frame/architecture.md`](docs/editorial-frame/architecture.md)
+how it sits in the module.
+
 ## Languages
 
 The drawer, the dashboards and Site Settings follow the editor's interface language: English, French,
@@ -112,12 +126,16 @@ also come in the four languages.
 - Optional: the `genai-connector` module ([Jahia/genai-connector](https://github.com/Jahia/genai-connector)),
   for the AI features, and the `genaiAccess` permission on the site for each user of these features.
   Without genai-connector, the AI features show greyed out and the rest of the module works.
+- Optional: the `mcp-server` module, which serves the four tools of the editorial frame to AI
+  agents. Without it the module starts and adds no tool.
 - Optional: a BotRank organisation API key, for AI citations.
 
 ## Install
 
 1. If GEO Readiness, Page Quality Audit or Content Compliance Scan are installed, uninstall them
-   first: this module reads their data and declares the same glossary types.
+   first: this module reads their data and declares the same glossary types. Uninstall the module
+   editorial-frame too: this module declares the same content types, exports the same Java package
+   and registers the same endpoints ([Moving from editorial-frame](#moving-from-editorial-frame)).
 2. **Administration > Server > Modules and Extensions > Modules**, **Upload module from file**:
    `content-governance-<version>.jar`. Then open **Content Governance** in the list and, under
    **Usage in sites**, enable it on each site.
@@ -150,6 +168,21 @@ registered to the uninstalled module. From 1.1.0, Content Governance takes them 
 over"). With 1.0.0 they stayed with the old module: **New content** did not offer **Compliance
 glossary** and **Non-authorised term**, and their names showed untranslated; installing 1.1.0 fixes
 it. Fresh installs were never affected.
+
+### Moving from editorial-frame
+
+The module editorial-frame was a prototype with no release, so this module ships no migration.
+
+1. In **Administration > Server > Modules and Extensions > Modules**, stop editorial-frame, then
+   uninstall each of its versions. With the provisioning API, the operation is
+   `uninstallBundle: "org.jahia.pm.modules/editorial-frame/<version>"`.
+2. Install this module.
+
+The content of the frame stays valid: the voices, the personas, the rules, the glossary terms and
+the skills keep their types. Jahia keeps the content types of an uninstalled module registered to
+that module, and it ignores the same types when another module declares them. On a Jahia that ran
+editorial-frame, **New content** does not offer the types of the frame and shows their names
+untranslated, until an administrator removes the definitions that editorial-frame left.
 
 ## Configuration
 
@@ -282,7 +315,12 @@ Feature ids: `audit` (`accessibility`, `seo`, `vitals`, `readability`, `ecodesig
 `jahia`, `ai`), `geo` (`score`, `crawler`, `files`, `schema`, `citations`), `compliance`. The
 compliance scans stay under `complianceScan { scanPage, scanSite }`. Servlets live under
 `/modules/content-governance/` (`geo/crawler-check`, `geo/report`, `geo/site-scan`, `geo/site-files`,
-`geo/citations`, `audit/ai-review`).
+`geo/citations`, `audit/ai-review`). The endpoints of the editorial frame stay under
+`/modules/editorial-frame/` (`import`, `setup`, `voice`), and its Java API is the OSGi service
+`org.jahia.pm.modules.editorialframe.api.EditorialFrameService`.
+
+Another module adds a tab to the drawer, or an action on a finding, through jContent's registry:
+[`docs/drawer-entries.md`](docs/drawer-entries.md) states what an entry declares and receives.
 
 `ai.configured` is true when a model answers the caller on this site. Otherwise `ai.reason` says why:
 `absent` (no genai-connector), `notConfigured` (no model on the `balanced` tier) or `noAccess` (no
@@ -306,7 +344,8 @@ The main ones; each section's architecture page has the full list.
 ## Documentation
 
 [`docs/README.md`](docs/README.md) indexes the guides: one for site administrators, and for each
-section a user guide, a reference of what it checks and an architecture page. The history of this
+section a user guide, a reference of what it checks and an architecture page. The editorial frame
+has a guide and an architecture page too. The history of this
 module and of the three it replaces is in [`CHANGELOG.md`](CHANGELOG.md). Agents start with
 [`.agents/README.md`](.agents/README.md).
 
@@ -328,7 +367,7 @@ curl -u root:<password> http://localhost:8080/modules/api/provisioning \
   -F file=@target/content-governance-<version>.jar
 ```
 
-`mvn clean install` runs the unit tests: 497 in Java and the front-end ones (`yarn test`, Vitest, in
+`mvn clean install` runs the unit tests: 574 in Java and the front-end ones (`yarn test`, Vitest, in
 `src/test/javascript/`); `-DskipTests` skips both. `test-fixtures/` holds a local site and a BotRank stub
 for the GEO checks.
 

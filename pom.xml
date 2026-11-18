@@ -33,8 +33,10 @@
              compliance queries. robots owns the mixin the GEO robots.txt editor writes, llms the file
              the GEO llms.txt tab shows read only: optional, so Page quality and Compliance never need
              them; without them those tabs say why and every other check works. genai-connector serves
-             the model of the AI features, optional too: without it they show greyed out. -->
-        <jahia-depends>default,jcontent=[3.7,4),graphql-dxm-provider,robots=optional,llms=optional,genai-connector=optional</jahia-depends>
+             the model of the AI features, optional too: without it they show greyed out. mcp-server
+             serves the tools of the editorial frame to AI agents, optional too: without it the module
+             adds no tool. -->
+        <jahia-depends>default,jcontent=[3.7,4),graphql-dxm-provider,robots=optional,llms=optional,genai-connector=optional,mcp-server=optional</jahia-depends>
         <jahia-module-type>module</jahia-module-type>
         <yarn.arguments>build:production</yarn.arguments>
         <!-- The 8.2 parent sets <source>11</source> on the compiler plugin: release takes precedence. -->
@@ -90,6 +92,12 @@
                     <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>osgi.core</artifactId>
+            <version>7.0.0</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
@@ -183,14 +191,36 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
-        <!-- genai-connector's CompletionRequest reads JSON with it; Jahia ships it at run time. -->
+        <!-- The tool SPI that the four tools of the editorial frame implement. mcp-server has no
+             release yet: each merge to its main branch publishes the snapshot to the Jahia Nexus. -->
+        <dependency>
+            <groupId>org.jahia.modules</groupId>
+            <artifactId>mcp-server</artifactId>
+            <version>0.5.0-SNAPSHOT</version>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- The tools and the servlets of the editorial frame read and write JSON with it, and so does
+             genai-connector's CompletionRequest. Jahia exports it: 2.15.2 is the version of Jahia
+             8.2.0.0. -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.19.0</version>
-            <scope>test</scope>
+            <version>2.15.2</version>
+            <scope>provided</scope>
         </dependency>
+        <!-- Embedded: the frontmatter of SKILL.md and the rule files of an import are YAML. -->
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>2.2</version>
+        </dependency>
+
         <!-- commons-text needs it at run time; Jahia exports both, so the tests alone declare it. -->
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -290,12 +320,22 @@
                     <instructions>
                         <Bundle-Name>Content Governance</Bundle-Name>
                         <_dsannotations>*</_dsannotations>
-                        <Export-Package>org.jahia.community.contentgovernance.compliance.model,org.jahia.community.contentgovernance.compliance.service.spi</Export-Package>
+                        <!-- The api of the editorial frame keeps the version 0.1.0 that the module
+                             editorial-frame exported, so the import range of its readers still matches. -->
+                        <Export-Package>
+                            org.jahia.community.contentgovernance.compliance.model,
+                            org.jahia.community.contentgovernance.compliance.service.spi,
+                            org.jahia.pm.modules.editorialframe.api;version="0.1.0"
+                        </Export-Package>
+                        <!-- The skills of this module, served by the skill registry of the editorial frame. -->
+                        <Jahia-Skills>skills</Jahia-Skills>
+                        <Embed-Dependency>snakeyaml;scope=compile;inline=false</Embed-Dependency>
                         <!-- Named explicitly: the GraphQL packages come from graphql-dxm-provider, whose
                              transitive dependencies are excluded, so the bundle plugin would not infer them.
                              The first line keeps the parent's: the packages jahia-maven-plugin finds in the
                              JSP views (their tag libraries), which bnd cannot see; without it a view fails
-                             "Unable to load tag handler class". -->
+                             "Unable to load tag handler class". The SPI of mcp-server is a dynamic
+                             import, below. -->
                         <Import-Package>
                             ${jahia.plugin.projectPackageImport},
                             org.jahia.modules.graphql.provider.dxm,
@@ -303,13 +343,15 @@
                             graphql.annotations.annotationTypes,
                             org.quartz,
                             !org.jahia.modules.genai.api,
+                            !org.jahia.modules.mcp.spi.tool,
                             *
                         </Import-Package>
-                        <!-- genai-connector may be absent, or installed after this module, and Jahia does
-                             not refresh this module then: a static optional import would stay unwired.
-                             A dynamic import wires when the bridge class ai.genai.GenAiModel first loads,
-                             which happens only once genai-connector's service is there. -->
-                        <DynamicImport-Package>org.jahia.modules.genai.api;version="[0.1,1)"</DynamicImport-Package>
+                        <!-- genai-connector and mcp-server may be absent, or installed after this module,
+                             and Jahia does not refresh this module then: a static optional import would
+                             stay unwired. A dynamic import wires when the bridge class ai.genai.GenAiModel
+                             first loads, which happens only once genai-connector's service is there, and
+                             when mcp-server first asks for a tool, never without mcp-server. -->
+                        <DynamicImport-Package>org.jahia.modules.genai.api;version="[0.1,1)",org.jahia.modules.mcp.spi.tool;version="[0.5,1)"</DynamicImport-Package>
                     </instructions>
                 </configuration>
             </plugin>
@@ -329,6 +371,33 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
+            </plugin>
+            <!-- snakeyaml is embedded, and its own manifest imports 16 of its 21 packages. The Jahia
+                 plugin copies these imports into jahia.plugin.projectPackageImport as optional ones.
+                 Jahia exports some of these packages, so the bundle would load a part of snakeyaml from
+                 Jahia and the rest from its embedded copy, which fails with a LinkageError. This
+                 execution removes them from the property before the bundle plugin reads it. It must
+                 run after the dependencies goal of the Jahia plugin, in the same phase. Keep this
+                 plugin below maven-surefire-plugin: the order then holds with the profile unit-tests
+                 of the parent too. -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <id>no-snakeyaml-import</id>
+                        <phase>prepare-package</phase>
+                        <goals><goal>regex-property</goal></goals>
+                        <configuration>
+                            <name>jahia.plugin.projectPackageImport</name>
+                            <value>${jahia.plugin.projectPackageImport}</value>
+                            <regex>(?:^|,)\s*org\.yaml\.snakeyaml[\w.]*(?:;[\w.:-]+=(?:"[^"]*"|[^;,"]*))*</regex>
+                            <replacement></replacement>
+                            <failIfNoMatch>false</failIfNoMatch>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>com.github.eirslett</groupId>
