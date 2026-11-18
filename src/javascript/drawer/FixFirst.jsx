@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import PropTypes from 'prop-types';
 import {Button, Chip, Typography} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../common/i18n';
+import {FindingActions} from './FindingActions';
 import styles from './GovernanceDrawer.module.css';
 
 const SEVERITY_COLORS = {critical: 'danger', serious: 'danger', moderate: 'warning', minor: 'default'};
@@ -41,6 +42,7 @@ export const FixFirst = ({findings, onGo}) => {
                         <li key={finding.key} className={styles.fixFirstItem}>
                             <Chip color={SEVERITY_COLORS[finding.severity] || 'default'} label={t(`fixFirst.severity.${finding.severity}`)}/>
                             <Typography className={styles.fixFirstText}>{finding.title}</Typography>
+                            <FindingActions findingKey={finding.key}/>
                             <Button variant="ghost"
                                     size="small"
                                     label={t('fixFirst.go')}
