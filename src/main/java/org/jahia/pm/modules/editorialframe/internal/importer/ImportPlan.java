@@ -15,6 +15,7 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 import org.yaml.snakeyaml.error.YAMLException;
 
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
@@ -25,8 +26,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * What an import writes, computed from the text files of an archive with no repository access:
@@ -48,25 +53,121 @@ public final class ImportPlan {
 
     /** The options of an import, from the query of the request. */
     public static final class Options {
-        public String language;
+        private String language;
         /** The folders whose skills are imported, such as skills/content. Empty: every folder. */
-        public List<String> skillRoots = new ArrayList<>();
+        private List<String> skillRoots = new ArrayList<>();
         /** The folder of the skill whose body becomes the voice of the brand. */
-        public String voice;
+        private String voice;
         /** The folder of the skill whose sections become personas. */
-        public String personas;
+        private String personas;
         /** The heading of the section that holds one persona per sub-heading. */
-        public String personasHeading = "persona";
+        private String personasHeading = "persona";
         /** The title of the default persona. Empty: the first one. */
-        public String defaultPersona;
+        private String defaultPersona;
         /** YAML files of rules. */
-        public List<String> rules = new ArrayList<>();
-        public String rulesSeverity = "warning";
+        private List<String> rules = new ArrayList<>();
+        private String rulesSeverity = "warning";
         /** CSV files of glossary terms. */
-        public List<String> glossary = new ArrayList<>();
-        public String activation = "manual";
-        public String action = "find";
-        public List<String> consumers = List.of("chat", "mcp");
+        private List<String> glossary = new ArrayList<>();
+        private String activation = "manual";
+        private String action = "find";
+        private List<String> consumers = List.of("chat", "mcp");
+
+        public String language() {
+            return language;
+        }
+
+        public void setLanguage(String language) {
+            this.language = language;
+        }
+
+        public List<String> skillRoots() {
+            return skillRoots;
+        }
+
+        public void setSkillRoots(List<String> skillRoots) {
+            this.skillRoots = skillRoots;
+        }
+
+        public String voice() {
+            return voice;
+        }
+
+        public void setVoice(String voice) {
+            this.voice = voice;
+        }
+
+        public String personas() {
+            return personas;
+        }
+
+        public void setPersonas(String personas) {
+            this.personas = personas;
+        }
+
+        public String personasHeading() {
+            return personasHeading;
+        }
+
+        public void setPersonasHeading(String personasHeading) {
+            this.personasHeading = personasHeading;
+        }
+
+        public String defaultPersona() {
+            return defaultPersona;
+        }
+
+        public void setDefaultPersona(String defaultPersona) {
+            this.defaultPersona = defaultPersona;
+        }
+
+        public List<String> rules() {
+            return rules;
+        }
+
+        public void setRules(List<String> rules) {
+            this.rules = rules;
+        }
+
+        public String rulesSeverity() {
+            return rulesSeverity;
+        }
+
+        public void setRulesSeverity(String rulesSeverity) {
+            this.rulesSeverity = rulesSeverity;
+        }
+
+        public List<String> glossary() {
+            return glossary;
+        }
+
+        public void setGlossary(List<String> glossary) {
+            this.glossary = glossary;
+        }
+
+        public String activation() {
+            return activation;
+        }
+
+        public void setActivation(String activation) {
+            this.activation = activation;
+        }
+
+        public String action() {
+            return action;
+        }
+
+        public void setAction(String action) {
+            this.action = action;
+        }
+
+        public List<String> consumers() {
+            return consumers;
+        }
+
+        public void setConsumers(List<String> consumers) {
+            this.consumers = consumers;
+        }
     }
 
     /** A skill to write. */
@@ -85,15 +186,15 @@ public final class ImportPlan {
 
         /** The activation of the options, which a key jahia-activation of the skill replaces. */
         public String activation() {
-            return options.activation;
+            return options.activation();
         }
 
         public List<String> consumers() {
-            return options.consumers;
+            return options.consumers();
         }
 
         public String action() {
-            return options.action;
+            return options.action();
         }
     }
 
@@ -134,32 +235,92 @@ public final class ImportPlan {
         }
     }
 
-    public final List<SkillItem> skills = new ArrayList<>();
-    public final List<TermItem> glossary = new ArrayList<>();
-    public final List<TextItem> personas = new ArrayList<>();
-    public final List<RuleItem> rules = new ArrayList<>();
-    public TextItem voice;
-    public final List<String> warnings = new ArrayList<>();
-    public final List<String> skipped = new ArrayList<>();
+    /**
+     * The columns of a CSV file of glossary terms: the names of its first row, and the index of each
+     * optional column, or -1.
+     */
+    private record GlossaryColumns(List<String> header, int note, int definition, int status) {
+
+        static GlossaryColumns of(List<String> firstRow) {
+            List<String> header = new ArrayList<>();
+            int note = -1;
+            int definition = -1;
+            int status = -1;
+            for (String column : firstRow) {
+                String name = column.trim();
+                if (note < 0 && "note".equalsIgnoreCase(name)) {
+                    note = header.size();
+                } else if (definition < 0 && "definition".equalsIgnoreCase(name)) {
+                    definition = header.size();
+                } else if (status < 0 && "status".equalsIgnoreCase(name)) {
+                    status = header.size();
+                }
+                header.add(name);
+            }
+            return new GlossaryColumns(header, note, definition, status);
+        }
+
+        boolean isOptional(int index) {
+            return index == note || index == definition || index == status;
+        }
+    }
+
+    private final List<SkillItem> skills = new ArrayList<>();
+    private final List<TermItem> glossary = new ArrayList<>();
+    private final List<TextItem> personas = new ArrayList<>();
+    private final List<RuleItem> rules = new ArrayList<>();
+    private TextItem voice;
+    private final List<String> warnings = new ArrayList<>();
+    private final List<String> skipped = new ArrayList<>();
 
     public static ImportPlan of(Map<String, String> files, Options options) {
         ImportPlan plan = new ImportPlan();
-        String voiceFolder = folder(options.voice);
-        String personasFolder = folder(options.personas);
+        String voiceFolder = folder(options.voice());
+        String personasFolder = folder(options.personas());
         if (voiceFolder != null) {
             plan.readVoice(files, voiceFolder);
         }
         if (personasFolder != null) {
             plan.readPersonas(files, personasFolder, options);
         }
-        for (String rulesFile : options.rules) {
+        for (String rulesFile : options.rules()) {
             plan.readRules(files, rulesFile.trim(), options);
         }
-        for (String glossaryFile : options.glossary) {
+        for (String glossaryFile : options.glossary()) {
             plan.readGlossary(files, glossaryFile.trim());
         }
         plan.readSkills(files, options, voiceFolder, personasFolder);
         return plan;
+    }
+
+    public List<SkillItem> skills() {
+        return skills;
+    }
+
+    public List<TermItem> glossary() {
+        return glossary;
+    }
+
+    public List<TextItem> personas() {
+        return personas;
+    }
+
+    public List<RuleItem> rules() {
+        return rules;
+    }
+
+    /** The voice to write, or {@code null}. */
+    public TextItem voice() {
+        return voice;
+    }
+
+    public List<String> warnings() {
+        return warnings;
+    }
+
+    /** The files and skills left out, with the reason. A caller may add the entries that the archive left out. */
+    public List<String> skipped() {
+        return skipped;
     }
 
     private void readVoice(Map<String, String> files, String folder) {
@@ -175,100 +336,64 @@ public final class ImportPlan {
         if (document == null) {
             return;
         }
-        String[] lines = document.body.split("\n");
-        boolean inSection = false;
-        String title = null;
-        StringBuilder body = new StringBuilder();
-        List<String[]> found = new ArrayList<>();
-        for (String line : lines) {
-            if (line.startsWith("## ")) {
-                if (title != null) {
-                    found.add(new String[]{title, body.toString().strip()});
-                    title = null;
-                }
-                inSection = line.toLowerCase(Locale.ROOT).contains(options.personasHeading.toLowerCase(Locale.ROOT));
-                continue;
-            }
-            if (inSection && line.startsWith("### ")) {
-                if (title != null) {
-                    found.add(new String[]{title, body.toString().strip()});
-                }
-                title = line.substring(4).strip();
-                body.setLength(0);
-                continue;
-            }
-            if (inSection && title != null) {
-                body.append(line).append('\n');
-            }
-        }
-        if (title != null) {
-            found.add(new String[]{title, body.toString().strip()});
-        }
+        List<String[]> found = personaSections(document.body, options.personasHeading());
         if (found.isEmpty()) {
-            warnings.add(folder + ": no section whose heading holds '" + options.personasHeading + "', so no persona");
+            warnings.add(folder + ": no section whose heading holds '" + options.personasHeading() + "', so no persona");
             return;
         }
-        String wantedDefault = options.defaultPersona == null ? found.get(0)[0] : options.defaultPersona;
+        String wantedDefault = options.defaultPersona() == null ? found.get(0)[0] : options.defaultPersona();
         for (String[] persona : found) {
-            if (!safe(folder + "#" + persona[0], persona[1])) {
-                continue;
+            if (safe(folder + "#" + persona[0], persona[1])) {
+                personas.add(new TextItem(slug(persona[0]), persona[0], persona[1],
+                        persona[0].equalsIgnoreCase(wantedDefault)));
             }
-            personas.add(new TextItem(slug(persona[0]), persona[0], persona[1], persona[0].equalsIgnoreCase(wantedDefault)));
         }
     }
 
+    /**
+     * The title and the text of each sub-heading of the sections whose heading holds a text. For
+     * example, with the text persona, the section "## Persona framework" and its sub-heading
+     * "### CMO" give the persona CMO.
+     */
+    private static List<String[]> personaSections(String body, String heading) {
+        List<String[]> found = new ArrayList<>();
+        boolean inSection = false;
+        String title = null;
+        StringBuilder text = new StringBuilder();
+        for (String line : body.split("\n")) {
+            if (line.startsWith("## ")) {
+                if (title != null) {
+                    found.add(new String[]{title, text.toString().strip()});
+                    title = null;
+                }
+                inSection = line.toLowerCase(Locale.ROOT).contains(heading.toLowerCase(Locale.ROOT));
+            } else if (inSection && line.startsWith("### ")) {
+                if (title != null) {
+                    found.add(new String[]{title, text.toString().strip()});
+                }
+                title = line.substring(4).strip();
+                text.setLength(0);
+            } else if (inSection && title != null) {
+                text.append(line).append('\n');
+            }
+        }
+        if (title != null) {
+            found.add(new String[]{title, text.toString().strip()});
+        }
+        return found;
+    }
+
     private void readRules(Map<String, String> files, String path, Options options) {
-        String text = files.get(path);
-        if (text == null) {
-            warnings.add(path + ": no such file in the archive, so no rule");
+        Optional<Map<?, ?>> loaded = rulesFile(files, path);
+        if (loaded.isEmpty()) {
             return;
         }
-        Object loaded;
-        try {
-            LoaderOptions loaderOptions = new LoaderOptions();
-            loaderOptions.setMaxAliasesForCollections(10);
-            loaded = new Yaml(new SafeConstructor(loaderOptions)).load(text);
-        } catch (YAMLException e) {
-            warnings.add(path + ": not valid YAML, so no rule");
-            return;
-        }
-        if (!(loaded instanceof Map)) {
-            warnings.add(path + ": not a YAML map, so no rule");
-            return;
-        }
-        WritingRule.Severity severity = WritingRule.Severity.parse(options.rulesSeverity);
+        WritingRule.Severity severity = WritingRule.Severity.parse(options.rulesSeverity());
         List<String> unmapped = new ArrayList<>();
         List<String[]> examples = new ArrayList<>();
-        for (Map.Entry<?, ?> entry : ((Map<?, ?>) loaded).entrySet()) {
+        for (Map.Entry<?, ?> entry : loaded.get().entrySet()) {
             String key = String.valueOf(entry.getKey());
-            if (key.equals("forbidden_terms") || key.startsWith("forbidden_terms_")) {
-                String language = key.equals("forbidden_terms") ? null : key.substring("forbidden_terms_".length());
-                if (!(entry.getValue() instanceof Collection)) {
-                    continue;
-                }
-                for (Object item : (Collection<?>) entry.getValue()) {
-                    addTermRule(path, key, item, language, severity);
-                }
-            } else if (key.equals("rules") && entry.getValue() instanceof Collection) {
-                for (Object item : (Collection<?>) entry.getValue()) {
-                    addFullRule(path, item);
-                }
-            } else if (key.equals("unsafe_patterns") && entry.getValue() instanceof Collection) {
-                for (Object item : (Collection<?>) entry.getValue()) {
-                    addUnsafePattern(path, item);
-                }
-            } else if (key.equals("sensitive_topics") && entry.getValue() instanceof Map) {
-                for (Map.Entry<?, ?> topic : ((Map<?, ?>) entry.getValue()).entrySet()) {
-                    addSensitiveTopic(path, String.valueOf(topic.getKey()), topic.getValue());
-                }
-            } else if ((key.equals("rewrite_examples") || key.equals("counter_examples")) && entry.getValue() instanceof Collection) {
-                for (Object item : (Collection<?>) entry.getValue()) {
-                    String[] example = example(item);
-                    if (example != null) {
-                        examples.add(example);
-                    }
-                }
-            } else {
+            if (!readRuleKey(path, key, entry.getValue(), severity, examples)) {
                 unmapped.add(key);
             }
         }
@@ -280,6 +405,65 @@ public final class ImportPlan {
             rules.subList(MAX_RULES, rules.size()).clear();
         }
         addExamples(path, examples);
+    }
+
+    /** The YAML map of a file of rules, or nothing, with a warning, for a file that is missing or not a map. */
+    private Optional<Map<?, ?>> rulesFile(Map<String, String> files, String path) {
+        String text = files.get(path);
+        if (text == null) {
+            warnings.add(path + ": no such file in the archive, so no rule");
+            return Optional.empty();
+        }
+        Object loaded;
+        try {
+            LoaderOptions loaderOptions = new LoaderOptions();
+            loaderOptions.setMaxAliasesForCollections(10);
+            loaded = new Yaml(new SafeConstructor(loaderOptions)).load(text);
+        } catch (YAMLException e) {
+            warnings.add(path + ": not valid YAML, so no rule");
+            return Optional.empty();
+        }
+        if (!(loaded instanceof Map)) {
+            warnings.add(path + ": not a YAML map, so no rule");
+            return Optional.empty();
+        }
+        return Optional.of((Map<?, ?>) loaded);
+    }
+
+    /** Reads the value of one key of a file of rules. False for a key that maps to no rule. */
+    private boolean readRuleKey(String path, String key, Object value, WritingRule.Severity severity,
+                                List<String[]> examples) {
+        if (key.equals("forbidden_terms") || key.startsWith("forbidden_terms_")) {
+            addTermRules(path, key, value, severity);
+            return true;
+        }
+        if (key.equals("rules") && value instanceof Collection<?> items) {
+            items.forEach(item -> addFullRule(path, item));
+            return true;
+        }
+        if (key.equals("unsafe_patterns") && value instanceof Collection<?> items) {
+            items.forEach(item -> addUnsafePattern(path, item));
+            return true;
+        }
+        if (key.equals("sensitive_topics") && value instanceof Map<?, ?> topics) {
+            topics.forEach((topic, topicValue) -> addSensitiveTopic(path, String.valueOf(topic), topicValue));
+            return true;
+        }
+        if ((key.equals("rewrite_examples") || key.equals("counter_examples")) && value instanceof Collection<?> items) {
+            items.stream().map(ImportPlan::example).filter(Objects::nonNull).forEach(examples::add);
+            return true;
+        }
+        return false;
+    }
+
+    /** The terms of a key {@code forbidden_terms}, or {@code forbidden_terms_<language>} for one language. */
+    private void addTermRules(String path, String key, Object value, WritingRule.Severity severity) {
+        String language = key.equals("forbidden_terms") ? null : key.substring("forbidden_terms_".length());
+        if (value instanceof Collection<?> items) {
+            for (Object item : items) {
+                addTermRule(path, key, item, language, severity);
+            }
+        }
     }
 
     /**
@@ -309,30 +493,41 @@ public final class ImportPlan {
      */
     private void addExamples(String path, List<String[]> examples) {
         for (String[] example : examples) {
-            boolean shown = false;
-            for (int i = 0; i < rules.size(); i++) {
-                RuleItem item = rules.get(i);
-                WritingRule rule = item.rule;
-                if (!item.source.equals(path) || RuleChecker.check(List.of(rule), rule.language(), example[0], false).isEmpty()) {
-                    continue;
-                }
-                shown = true;
-                if (rule.wrongExamples().size() >= MAX_EXAMPLES_PER_RULE || rule.wrongExamples().contains(example[0])) {
-                    continue;
-                }
-                List<String> wrong = new ArrayList<>(rule.wrongExamples());
-                wrong.add(example[0]);
-                List<String> right = new ArrayList<>(rule.rightExamples());
-                if (example[1] != null && !right.contains(example[1])) {
-                    right.add(example[1]);
-                }
-                rules.set(i, new RuleItem(path, rule.withExamples(wrong, right)));
-            }
-            if (!shown) {
+            if (!giveExample(path, example)) {
                 warnings.add(path + ": the wrong example \"" + example[0].substring(0, Math.min(60, example[0].length()))
                         + "\" breaks no rule of the file, so it is left out");
             }
         }
+    }
+
+    /**
+     * Gives an example to each rule of the file that its wrong text breaks, unless the rule holds it
+     * or holds its share of examples already. False when the example breaks no rule of the file.
+     */
+    private boolean giveExample(String path, String[] example) {
+        boolean shown = false;
+        for (int i = 0; i < rules.size(); i++) {
+            RuleItem item = rules.get(i);
+            WritingRule rule = item.rule;
+            if (item.source.equals(path) && !RuleChecker.check(List.of(rule), rule.language(), example[0], false).isEmpty()) {
+                shown = true;
+                if (rule.wrongExamples().size() < MAX_EXAMPLES_PER_RULE && !rule.wrongExamples().contains(example[0])) {
+                    rules.set(i, new RuleItem(path, withExample(rule, example)));
+                }
+            }
+        }
+        return shown;
+    }
+
+    /** The rule with one more wrong text, and with the right text when it has one that the rule lacks. */
+    private static WritingRule withExample(WritingRule rule, String[] example) {
+        List<String> wrong = new ArrayList<>(rule.wrongExamples());
+        wrong.add(example[0]);
+        List<String> right = new ArrayList<>(rule.rightExamples());
+        if (example[1] != null && !right.contains(example[1])) {
+            right.add(example[1]);
+        }
+        return rule.withExamples(wrong, right);
     }
 
     private void addTermRule(String path, String key, Object item, String language, WritingRule.Severity severity) {
@@ -377,8 +572,8 @@ public final class ImportPlan {
             return;
         }
         try {
-            java.util.regex.Pattern.compile(regex);
-        } catch (java.util.regex.PatternSyntaxException e) {
+            Pattern.compile(regex);
+        } catch (PatternSyntaxException e) {
             warnings.add(path + ": the pattern " + regex + " does not compile in Java, so it is kept out");
             return;
         }
@@ -441,72 +636,74 @@ public final class ImportPlan {
             warnings.add(path + ": an empty file, so no glossary term");
             return;
         }
-        List<String> header = new ArrayList<>();
-        int note = -1;
-        int definition = -1;
-        int status = -1;
-        for (String column : rows.get(0)) {
-            String name = column.trim();
-            if (note < 0 && "note".equalsIgnoreCase(name)) {
-                note = header.size();
-            } else if (definition < 0 && "definition".equalsIgnoreCase(name)) {
-                definition = header.size();
-            } else if (status < 0 && "status".equalsIgnoreCase(name)) {
-                status = header.size();
-            }
-            header.add(name);
-        }
-        List<Integer> languages = new ArrayList<>();
-        for (int i = 0; i < header.size(); i++) {
-            if (i == note || i == definition || i == status) {
-                continue;
-            }
-            if (!FrameReader.LANGUAGE.matcher(header.get(i)).matches()) {
-                warnings.add(path + ": the column '" + rows.get(0).get(i)
-                        + "' is neither a language code nor note, definition or status, so it is left out");
-                continue;
-            }
-            languages.add(i);
-        }
+        GlossaryColumns columns = GlossaryColumns.of(rows.get(0));
+        List<Integer> languages = languageColumns(path, rows.get(0), columns);
         if (languages.size() < 2) {
             warnings.add(path + ": the first row needs two language codes at least, such as en,fr, so no glossary term");
             return;
         }
-        int from = languages.get(0);
         for (List<String> row : rows.subList(1, rows.size())) {
-            List<String> termForms = forms(cell(row, from));
-            if (termForms.isEmpty()) {
-                continue;
-            }
-            String term = termForms.get(0);
-            GlossaryTerm.Status termStatus;
-            try {
-                termStatus = GlossaryTerm.Status.parse(cell(row, status));
-            } catch (IllegalArgumentException e) {
-                warnings.add(path + ": the status '" + cell(row, status) + "' of the term '" + shortened(term)
-                        + "' is neither approved nor forbidden, so the term is left out");
-                continue;
-            }
-            for (int to : languages.subList(1, languages.size())) {
-                List<String> translationForms = forms(cell(row, to));
-                if (translationForms.isEmpty()) {
-                    continue;
-                }
-                if (tooLong(termForms) || tooLong(translationForms)) {
-                    warnings.add(path + ": the term '" + shortened(term) + "' is longer than " + MAX_TERM_CHARS
-                            + " characters, so it is left out");
-                    continue;
-                }
-                if (glossary.size() == MAX_TERMS) {
-                    warnings.add(path + MORE_THAN + MAX_TERMS + " glossary terms, the rest is left out");
-                    return;
-                }
-                glossary.add(new TermItem(path, new GlossaryTerm(null, term, header.get(from),
-                        termForms.subList(1, termForms.size()), translationForms.get(0), header.get(to),
-                        translationForms.subList(1, translationForms.size()), cell(row, definition), cell(row, note),
-                        termStatus, "site")));
+            if (!readGlossaryRow(path, columns, languages, row)) {
+                return;
             }
         }
+    }
+
+    /** The indexes of the language columns. Each column that is neither a language nor optional gives a warning. */
+    private List<Integer> languageColumns(String path, List<String> firstRow, GlossaryColumns columns) {
+        List<Integer> languages = new ArrayList<>();
+        for (int i = 0; i < columns.header().size(); i++) {
+            if (columns.isOptional(i)) {
+                continue;
+            }
+            if (FrameReader.LANGUAGE.matcher(columns.header().get(i)).matches()) {
+                languages.add(i);
+            } else {
+                warnings.add(path + ": the column '" + firstRow.get(i)
+                        + "' is neither a language code nor note, definition or status, so it is left out");
+            }
+        }
+        return languages;
+    }
+
+    /**
+     * Adds the terms of a row of a glossary file, one for each other language that the row fills.
+     * False when the glossary holds its limit of terms, so that no other row is read.
+     */
+    private boolean readGlossaryRow(String path, GlossaryColumns columns, List<Integer> languages, List<String> row) {
+        int from = languages.get(0);
+        List<String> termForms = forms(cell(row, from));
+        if (termForms.isEmpty()) {
+            return true;
+        }
+        String term = termForms.get(0);
+        GlossaryTerm.Status termStatus;
+        try {
+            termStatus = GlossaryTerm.Status.parse(cell(row, columns.status()));
+        } catch (IllegalArgumentException e) {
+            warnings.add(path + ": the status '" + cell(row, columns.status()) + "' of the term '" + shortened(term)
+                    + "' is neither approved nor forbidden, so the term is left out");
+            return true;
+        }
+        for (int to : languages.subList(1, languages.size())) {
+            List<String> translationForms = forms(cell(row, to));
+            if (translationForms.isEmpty()) {
+                continue;
+            }
+            if (tooLong(termForms) || tooLong(translationForms)) {
+                warnings.add(path + ": the term '" + shortened(term) + "' is longer than " + MAX_TERM_CHARS
+                        + " characters, so it is left out");
+            } else if (glossary.size() == MAX_TERMS) {
+                warnings.add(path + MORE_THAN + MAX_TERMS + " glossary terms, the rest is left out");
+                return false;
+            } else {
+                glossary.add(new TermItem(path, new GlossaryTerm(null, term, columns.header().get(from),
+                        termForms.subList(1, termForms.size()), translationForms.get(0), columns.header().get(to),
+                        translationForms.subList(1, translationForms.size()), cell(row, columns.definition()),
+                        cell(row, columns.note()), termStatus, "site")));
+            }
+        }
+        return true;
     }
 
     /** The forms of a cell of a glossary, separated by {@code |}: the term first. */
@@ -554,8 +751,8 @@ public final class ImportPlan {
         }
         if ("regex".equalsIgnoreCase(stringOf(map.get("match")))) {
             try {
-                java.util.regex.Pattern.compile(pattern);
-            } catch (java.util.regex.PatternSyntaxException e) {
+                Pattern.compile(pattern);
+            } catch (PatternSyntaxException e) {
                 warnings.add(path + ": the pattern " + pattern + " does not compile in Java, so it is kept out");
                 return;
             }
@@ -608,8 +805,21 @@ public final class ImportPlan {
     }
 
     private void readSkills(Map<String, String> files, Options options, String voiceFolder, String personasFolder) {
+        for (String root : skillRoots(files.keySet())) {
+            String folder = root.endsWith("/") ? root.substring(0, root.length() - 1) : root;
+            if (isImported(folder, options, voiceFolder, personasFolder)) {
+                readSkill(files, options, root, folder, voiceFolder, personasFolder);
+            }
+        }
+    }
+
+    /**
+     * The folders that hold a {@code SKILL.md} and lie in no other such folder, in path order, each
+     * with its trailing slash. The folder of a {@code SKILL.md} at the root of the archive is empty.
+     */
+    private static List<String> skillRoots(Set<String> paths) {
         TreeSet<String> directories = new TreeSet<>();
-        for (String path : files.keySet()) {
+        for (String path : paths) {
             if (path.equals(SkillPaths.SKILL_FILE) || path.endsWith("/" + SkillPaths.SKILL_FILE)) {
                 directories.add(path.substring(0, path.length() - SkillPaths.SKILL_FILE.length()));
             }
@@ -620,47 +830,59 @@ public final class ImportPlan {
                 roots.add(directory);
             }
         }
-        for (String root : roots) {
-            String folder = root.endsWith("/") ? root.substring(0, root.length() - 1) : root;
-            if (folder.equals(voiceFolder) || folder.equals(personasFolder)) {
-                continue;
-            }
-            if (!options.skillRoots.isEmpty() && options.skillRoots.stream().map(ImportPlan::folder)
-                    .noneMatch(prefix -> folder.equals(prefix) || folder.startsWith(prefix + "/"))) {
-                continue;
-            }
-            SkillDocument document = document(files, folder);
-            if (document == null || !safe(folder, document.body)) {
-                continue;
-            }
-            Map<String, String> skillFiles = new LinkedHashMap<>();
-            for (Map.Entry<String, String> file : files.entrySet()) {
-                if (!file.getKey().startsWith(root) || file.getKey().equals(root + SkillPaths.SKILL_FILE)) {
-                    continue;
-                }
-                String relative = file.getKey().substring(root.length());
-                if (!SkillPaths.isKept(relative)) {
-                    skipped.add(file.getKey() + ": scripts and binary files are never imported");
-                    continue;
-                }
-                if (safe(file.getKey(), file.getValue())) {
-                    skillFiles.put(relative, file.getValue());
-                }
-            }
-            addDependencies(files, document, folder, voiceFolder, personasFolder, skillFiles);
-            if (skillFiles.size() > MAX_FILES_PER_SKILL) {
-                skipped.add(folder + MORE_THAN + MAX_FILES_PER_SKILL + " files");
-                continue;
-            }
-            for (String warning : document.warnings) {
-                warnings.add(folder + ": " + warning);
-            }
-            if (skills.stream().anyMatch(other -> other.document.name.equals(document.name))) {
-                skipped.add(folder + ": another skill of the archive has the name " + document.name);
-                continue;
-            }
-            skills.add(new SkillItem(document, folder, skillFiles, options));
+        return roots;
+    }
+
+    /**
+     * True for the folder of a skill to import: not the folder of the voice or of the personas, and
+     * under a folder of the option {@code skillRoots} when it names any.
+     */
+    private static boolean isImported(String folder, Options options, String voiceFolder, String personasFolder) {
+        if (folder.equals(voiceFolder) || folder.equals(personasFolder)) {
+            return false;
         }
+        return options.skillRoots().isEmpty() || options.skillRoots().stream().map(ImportPlan::folder)
+                .anyMatch(prefix -> folder.equals(prefix) || folder.startsWith(prefix + "/"));
+    }
+
+    /** Adds the skill of a folder, with its files and its dependencies, or the reason it is left out. */
+    private void readSkill(Map<String, String> files, Options options, String root, String folder, String voiceFolder,
+                           String personasFolder) {
+        SkillDocument document = document(files, folder);
+        if (document == null || !safe(folder, document.body)) {
+            return;
+        }
+        Map<String, String> skillFiles = skillFiles(files, root);
+        addDependencies(files, document, folder, voiceFolder, personasFolder, skillFiles);
+        if (skillFiles.size() > MAX_FILES_PER_SKILL) {
+            skipped.add(folder + MORE_THAN + MAX_FILES_PER_SKILL + " files");
+            return;
+        }
+        for (String warning : document.warnings) {
+            warnings.add(folder + ": " + warning);
+        }
+        if (skills.stream().anyMatch(other -> other.document.name.equals(document.name))) {
+            skipped.add(folder + ": another skill of the archive has the name " + document.name);
+            return;
+        }
+        skills.add(new SkillItem(document, folder, skillFiles, options));
+    }
+
+    /** The files of a skill folder but its {@code SKILL.md}, by relative path. Scripts and binary files are skipped. */
+    private Map<String, String> skillFiles(Map<String, String> files, String root) {
+        Map<String, String> skillFiles = new LinkedHashMap<>();
+        for (Map.Entry<String, String> file : files.entrySet()) {
+            if (!file.getKey().startsWith(root) || file.getKey().equals(root + SkillPaths.SKILL_FILE)) {
+                continue;
+            }
+            String relative = file.getKey().substring(root.length());
+            if (!SkillPaths.isKept(relative)) {
+                skipped.add(file.getKey() + ": scripts and binary files are never imported");
+            } else if (safe(file.getKey(), file.getValue())) {
+                skillFiles.put(relative, file.getValue());
+            }
+        }
+        return skillFiles;
     }
 
     /** The first of the paths that the archive holds, or {@code null}. */
@@ -682,18 +904,8 @@ public final class ImportPlan {
                                  String personasFolder, Map<String, String> skillFiles) {
         long total = 0;
         for (String dependency : document.metadataList("depends_on")) {
-            String path = dependency.replaceAll("/+$", "");
-            if (path.equals(voiceFolder) || path.equals(personasFolder) || !SkillPaths.isSafeRelative(path)) {
-                continue;
-            }
-            String local = folder.isEmpty() ? path : folder + "/" + path;
-            String source = firstHeld(files, local, path, path + "/" + SkillPaths.SKILL_FILE);
-            if (source != null && source.equals(local) && skillFiles.containsKey(path)) {
-                // A file of the skill itself, already among its files.
-                continue;
-            }
+            String source = dependencySource(files, dependency, folder, voiceFolder, personasFolder, skillFiles);
             if (source == null) {
-                warnings.add(folder + ": the dependency " + dependency + " is not in the archive");
                 continue;
             }
             String text = files.get(source);
@@ -706,6 +918,27 @@ public final class ImportPlan {
                 skillFiles.put("deps/" + source, text);
             }
         }
+    }
+
+    /**
+     * The path in the archive of a dependency to copy, or {@code null}: for the folder of the voice or
+     * of the personas, an unsafe path, a file of the skill itself, and a path that the archive lacks,
+     * which gives a warning.
+     */
+    private String dependencySource(Map<String, String> files, String dependency, String folder, String voiceFolder,
+                                    String personasFolder, Map<String, String> skillFiles) {
+        String path = dependency.replaceAll("/+$", "");
+        if (path.equals(voiceFolder) || path.equals(personasFolder) || !SkillPaths.isSafeRelative(path)) {
+            return null;
+        }
+        String local = folder.isEmpty() ? path : folder + "/" + path;
+        String source = firstHeld(files, local, path, path + "/" + SkillPaths.SKILL_FILE);
+        if (source == null) {
+            warnings.add(folder + ": the dependency " + dependency + " is not in the archive");
+            return null;
+        }
+        // A file of the skill itself is already among its files.
+        return source.equals(local) && skillFiles.containsKey(path) ? null : source;
     }
 
     private SkillDocument document(Map<String, String> files, String folder) {
@@ -758,10 +991,11 @@ public final class ImportPlan {
     }
 
     static String slug(String title) {
-        String slug = Texts.trim(java.text.Normalizer.normalize(title, java.text.Normalizer.Form.NFD)
+        String slug = Texts.trim(Normalizer.normalize(title, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-"), '-');
         if (slug.length() > 48) {
-            slug = slug.substring(0, 48).replaceAll("-+$", "");
+            // The slug starts with no dash, so the trim removes the dash that the cut may leave at its end.
+            slug = Texts.trim(slug.substring(0, 48), '-');
         }
         return slug.isEmpty() ? "persona" : slug;
     }

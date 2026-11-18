@@ -70,20 +70,20 @@ public final class ImportWriter {
         report.put("language", session.getLocale() == null ? null : session.getLocale().toString());
         ArrayNode written = report.putArray("written");
 
-        writeVoice(base, plan.voice, written);
-        writePersonas(base, plan.personas, written);
-        writeRules(base, plan.rules, written);
-        writeGlossary(base, plan.glossary, written);
+        writeVoice(base, plan.voice(), written);
+        writePersonas(base, plan.personas(), written);
+        writeRules(base, plan.rules(), written);
+        writeGlossary(base, plan.glossary(), written);
         session.save();
-        writeSkills(session, base, plan.skills, sourceRef, mapper, written);
+        writeSkills(session, base, plan.skills(), sourceRef, mapper, written);
 
-        report.put("skills", plan.skills.size());
-        report.put("personas", plan.personas.size());
-        report.put("rules", plan.rules.size());
-        report.put("glossary", plan.glossary.size());
-        report.put("voice", plan.voice == null ? null : plan.voice.name);
-        report.set("warnings", mapper.valueToTree(plan.warnings));
-        report.set("skipped", mapper.valueToTree(plan.skipped));
+        report.put("skills", plan.skills().size());
+        report.put("personas", plan.personas().size());
+        report.put("rules", plan.rules().size());
+        report.put("glossary", plan.glossary().size());
+        report.put("voice", plan.voice() == null ? null : plan.voice().name);
+        report.set("warnings", mapper.valueToTree(plan.warnings()));
+        report.set("skipped", mapper.valueToTree(plan.skipped()));
         return report;
     }
 
