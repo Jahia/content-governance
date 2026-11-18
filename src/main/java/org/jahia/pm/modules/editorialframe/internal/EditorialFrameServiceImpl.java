@@ -23,6 +23,7 @@ import org.jahia.pm.modules.editorialframe.internal.skills.LoadedSkill;
 import org.jahia.pm.modules.editorialframe.internal.skills.SkillPaths;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
+import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.content.JCRTemplate;
 import org.jahia.services.content.decorator.JCRSiteNode;
 import org.jahia.services.content.decorator.JCRUserNode;
@@ -40,7 +41,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /** Reads the frame and the skills of a site with a system session of the live workspace. */
 @Component(service = EditorialFrameService.class, immediate = true)
@@ -85,7 +85,7 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
         }
         return getFrame(siteKey, translationLanguage).glossary().stream()
                 .filter(term -> term.isPair(termLanguage, translationLanguage))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -102,17 +102,7 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
         if (username == null || contentPath == null) {
             return Optional.empty();
         }
-        Frame frame = getFrame(siteKey, language);
-        boolean allowed = false;
-        for (FrameText voice : frame.voices()) {
-            for (String prefix : voice.authorVoiceUnder()) {
-                String trimmed = prefix.trim();
-                if (!trimmed.isEmpty() && (contentPath.equals(trimmed) || contentPath.startsWith(trimmed.endsWith("/") ? trimmed : trimmed + "/"))) {
-                    allowed = true;
-                }
-            }
-        }
-        if (!allowed) {
+        if (!allowsAuthorVoice(getFrame(siteKey, language), contentPath)) {
             return Optional.empty();
         }
         // A user of the site comes before a global user of the same name.
@@ -121,26 +111,49 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
             return Optional.empty();
         }
         try {
-            String voice = user.hasProperty("voice") ? user.getProperty("voice").getString() : null;
-            String skill = user.hasProperty("voiceSkill") ? user.getProperty("voiceSkill").getString() : null;
-            StringBuilder text = new StringBuilder();
-            if (voice != null && !voice.isBlank()) {
-                text.append(voice.trim());
-            }
-            if (skill != null && !skill.isBlank()) {
-                readSkill(siteKey, skill.trim()).ifPresent(content -> text.append(text.isEmpty() ? "" : "\n\n")
-                        .append(content.body()));
-            }
-            if (text.length() > MAX_VOICE_CHARS) {
-                // A point-of-view skill can be long: the voice of an editor stays within about 1,500 tokens.
-                text.setLength(MAX_VOICE_CHARS);
-                text.append("\n[...]");
-            }
-            return text.isEmpty() ? Optional.empty() : Optional.of(text.toString());
+            return voiceOf(siteKey, user);
         } catch (RepositoryException e) {
             logger.warn("The voice of {} cannot be read: {}", username, e.getMessage());
             return Optional.empty();
         }
+    }
+
+    /** True when a voice of the frame allows the voice of an editor at the path of a content. */
+    static boolean allowsAuthorVoice(Frame frame, String contentPath) {
+        boolean allowed = false;
+        for (FrameText voice : frame.voices()) {
+            for (String prefix : voice.authorVoiceUnder()) {
+                allowed |= isUnder(contentPath, prefix);
+            }
+        }
+        return allowed;
+    }
+
+    /** True for the path itself and the paths under it. A blank path holds no content. */
+    private static boolean isUnder(String contentPath, String prefix) {
+        String trimmed = prefix.trim();
+        return !trimmed.isEmpty() && (contentPath.equals(trimmed)
+                || contentPath.startsWith(trimmed.endsWith("/") ? trimmed : trimmed + "/"));
+    }
+
+    /** The voice of the user node, then the body of its voice skill, cut at {@link #MAX_VOICE_CHARS}. */
+    private Optional<String> voiceOf(String siteKey, JCRUserNode user) throws RepositoryException {
+        String voice = user.hasProperty("voice") ? user.getProperty("voice").getString() : null;
+        String skill = user.hasProperty("voiceSkill") ? user.getProperty("voiceSkill").getString() : null;
+        StringBuilder text = new StringBuilder();
+        if (voice != null && !voice.isBlank()) {
+            text.append(voice.trim());
+        }
+        if (skill != null && !skill.isBlank()) {
+            readSkill(siteKey, skill.trim()).ifPresent(content -> text.append(text.isEmpty() ? "" : "\n\n")
+                    .append(content.body()));
+        }
+        if (text.length() > MAX_VOICE_CHARS) {
+            // A point-of-view skill can be long: the voice of an editor stays within about 1,500 tokens.
+            text.setLength(MAX_VOICE_CHARS);
+            text.append("\n[...]");
+        }
+        return text.isEmpty() ? Optional.empty() : Optional.of(text.toString());
     }
 
     @Override
@@ -148,7 +161,7 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
         return skills(siteKey).values().stream()
                 .map(skill -> skill.summary)
                 .filter(summary -> consumer == null || summary.consumers().contains(consumer))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -160,7 +173,7 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
         return byName.values().stream()
                 .filter(skill -> consumer == null || skill.summary.consumers().contains(consumer))
                 .map(LoadedSkill::content)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -190,36 +203,46 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
             if (siteKey == null || !FrameReader.SITE_KEY.matcher(siteKey).matches() || !session.nodeExists("/sites/" + siteKey)) {
                 return new LinkedHashMap<String, LoadedSkill>();
             }
-            List<List<LoadedSkill>> layers = new ArrayList<>();
-            layers.add(JcrSkills.read(session, siteKey, "site"));
-            if (!FrameReader.SYSTEM_SITE.equals(siteKey)) {
-                layers.add(JcrSkills.read(session, FrameReader.SYSTEM_SITE, "group"));
-            }
-            JCRNodeWrapper site = session.getNode("/sites/" + siteKey);
-            List<String> modules = site instanceof JCRSiteNode siteNode ? siteNode.getInstalledModules() : List.of();
-            layers.add(bundleSkills.forModules(modules));
-            String language = FrameReader.defaultLanguage(session, siteKey);
-            LoadedSkill generated = GeneratedFrameSkill.of(FrameReader.read(session, siteKey, language));
-            layers.add(generated == null ? List.of() : List.of(generated));
-            Map<String, LoadedSkill> byName = new LinkedHashMap<>();
-            Map<String, List<String>> hidden = new LinkedHashMap<>();
-            for (List<LoadedSkill> layer : layers) {
-                for (LoadedSkill skill : layer) {
-                    String name = skill.summary.name();
-                    if (byName.containsKey(name)) {
-                        hidden.computeIfAbsent(name, key -> new ArrayList<>()).add(skill.summary.scope());
-                    } else {
-                        byName.put(name, skill);
-                    }
-                }
-            }
-            for (Map.Entry<String, List<String>> entry : hidden.entrySet()) {
-                LoadedSkill winner = byName.get(entry.getKey());
-                byName.put(entry.getKey(), winner.withSummary(winner.summary.withOverrides(entry.getValue())));
-            }
-            return byName;
+            return byName(layers(session, siteKey));
         });
         return skills == null ? Map.of() : skills;
+    }
+
+    /** The skills of the site, of the group, of the modules of the site and of its frame, in this order. */
+    private List<List<LoadedSkill>> layers(JCRSessionWrapper session, String siteKey) throws RepositoryException {
+        List<List<LoadedSkill>> layers = new ArrayList<>();
+        layers.add(JcrSkills.read(session, siteKey, "site"));
+        if (!FrameReader.SYSTEM_SITE.equals(siteKey)) {
+            layers.add(JcrSkills.read(session, FrameReader.SYSTEM_SITE, "group"));
+        }
+        JCRNodeWrapper site = session.getNode("/sites/" + siteKey);
+        List<String> modules = site instanceof JCRSiteNode siteNode ? siteNode.getInstalledModules() : List.of();
+        layers.add(bundleSkills.forModules(modules));
+        String language = FrameReader.defaultLanguage(session, siteKey);
+        LoadedSkill generated = GeneratedFrameSkill.of(FrameReader.read(session, siteKey, language));
+        layers.add(generated == null ? List.of() : List.of(generated));
+        return layers;
+    }
+
+    /** The skills by name: a skill of a layer hides the skills of the same name in the next layers, which its summary names. */
+    private static Map<String, LoadedSkill> byName(List<List<LoadedSkill>> layers) {
+        Map<String, LoadedSkill> byName = new LinkedHashMap<>();
+        Map<String, List<String>> hidden = new LinkedHashMap<>();
+        for (List<LoadedSkill> layer : layers) {
+            for (LoadedSkill skill : layer) {
+                String name = skill.summary.name();
+                if (byName.containsKey(name)) {
+                    hidden.computeIfAbsent(name, key -> new ArrayList<>()).add(skill.summary.scope());
+                } else {
+                    byName.put(name, skill);
+                }
+            }
+        }
+        for (Map.Entry<String, List<String>> entry : hidden.entrySet()) {
+            LoadedSkill winner = byName.get(entry.getKey());
+            byName.put(entry.getKey(), winner.withSummary(winner.summary.withOverrides(entry.getValue())));
+        }
+        return byName;
     }
 
     private static <T> T live(JCRCallback<T> callback) {
