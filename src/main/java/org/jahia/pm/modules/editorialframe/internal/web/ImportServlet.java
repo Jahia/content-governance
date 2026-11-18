@@ -9,7 +9,6 @@ import org.jahia.pm.modules.editorialframe.internal.frame.FrameReader;
 import org.jahia.pm.modules.editorialframe.internal.importer.ArchiveReader;
 import org.jahia.pm.modules.editorialframe.internal.importer.ImportPlan;
 import org.jahia.pm.modules.editorialframe.internal.importer.ImportWriter;
-import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionFactory;
 import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.usermanager.JahiaUser;
@@ -51,7 +50,16 @@ public class ImportServlet extends HttpServlet {
     private final transient ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) {
+        try {
+            importArchive(request, response);
+        } catch (IOException e) {
+            // Nothing may leave a servlet method. A broken socket ends here.
+            logger.debug("The answer of the import could not be written", e);
+        }
+    }
+
+    private void importArchive(HttpServletRequest request, HttpServletResponse response) throws IOException {
         JahiaUser user = JCRSessionFactory.getInstance().getCurrentUser();
         if (user == null || JahiaUserManagerService.isGuest(user)) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication required");
@@ -70,7 +78,7 @@ public class ImportServlet extends HttpServlet {
         try {
             JCRSessionWrapper probe = JCRSessionFactory.getInstance().getCurrentUserSession("default");
             if (!probe.nodeExists("/sites/" + siteKey)
-                    || !((JCRNodeWrapper) probe.getNode("/sites/" + siteKey)).hasPermission(PERMISSION)) {
+                    || !probe.getNode("/sites/" + siteKey).hasPermission(PERMISSION)) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN, "No site administration access on this site");
                 return;
             }

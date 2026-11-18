@@ -21,6 +21,7 @@ final class FrameTools {
     static final ObjectMapper MAPPER = new ObjectMapper();
     /** The permission that the jContent of a site needs, which every editor of the site holds. */
     static final String ACCESS = "jContentAccess";
+    private static final String REQUIRED = "required";
 
     private FrameTools() {
     }
@@ -37,8 +38,8 @@ final class FrameTools {
     static void property(ObjectNode schema, String name, String type, String description, boolean required) {
         ((ObjectNode) schema.get("properties")).putObject(name).put("type", type).put("description", description);
         if (required) {
-            (schema.has("required") ? (com.fasterxml.jackson.databind.node.ArrayNode) schema.get("required")
-                    : schema.putArray("required")).add(name);
+            (schema.has(REQUIRED) ? (com.fasterxml.jackson.databind.node.ArrayNode) schema.get(REQUIRED)
+                    : schema.putArray(REQUIRED)).add(name);
         }
     }
 
@@ -63,7 +64,7 @@ final class FrameTools {
                     return false;
                 }
                 Node site = session.getNode(path);
-                return site instanceof JCRNodeWrapper && ((JCRNodeWrapper) site).hasPermission(ACCESS);
+                return site instanceof JCRNodeWrapper node && node.hasPermission(ACCESS);
             });
             return allowed ? null : ToolResult.error(ToolError.CODE_NOT_FOUND, "No site " + siteKey + " for this user",
                     "Use site.list to find the sites you can read.");

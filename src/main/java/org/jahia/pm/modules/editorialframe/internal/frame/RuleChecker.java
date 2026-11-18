@@ -206,13 +206,13 @@ public final class RuleChecker {
                 literal.append(c);
                 continue;
             }
-            if (literal.length() > 0) {
+            if (!literal.isEmpty()) {
                 regex.append(Pattern.quote(literal.toString()));
                 literal.setLength(0);
             }
             regex.append(special);
         }
-        if (literal.length() > 0) {
+        if (!literal.isEmpty()) {
             regex.append(Pattern.quote(literal.toString()));
         }
         return regex + (stem ? "[\\p{L}\\p{N}]*" : "");

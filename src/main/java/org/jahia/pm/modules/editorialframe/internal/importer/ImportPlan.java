@@ -41,6 +41,7 @@ public final class ImportPlan {
     static final int MAX_TERM_CHARS = 200;
     /** The wrong examples that the examples of a file give to one rule. */
     static final int MAX_EXAMPLES_PER_RULE = 5;
+    private static final String MORE_THAN = ": more than ";
     private static final Pattern INJECTION = Pattern.compile(
             "(?i)(ignore|disregard|forget)\\s+(all\\s+)?(the\\s+)?(previous|prior|above)\\s+(instructions|rules|prompts?)");
     private static final Pattern BASE64 = Pattern.compile("[A-Za-z0-9+/=]{300,}");
@@ -275,7 +276,7 @@ public final class ImportPlan {
             warnings.add(path + ": keys with no rule mapping, kept out: " + String.join(", ", unmapped));
         }
         if (rules.size() > MAX_RULES) {
-            warnings.add(path + ": more than " + MAX_RULES + " rules, the rest is left out");
+            warnings.add(path + MORE_THAN + MAX_RULES + " rules, the rest is left out");
             rules.subList(MAX_RULES, rules.size()).clear();
         }
         addExamples(path, examples);
@@ -297,7 +298,7 @@ public final class ImportPlan {
     }
 
     private static String exampleText(Object value) {
-        String text = stringOf(value instanceof Map ? ((Map<?, ?>) value).get("text") : value);
+        String text = stringOf(value instanceof Map<?, ?> map ? map.get("text") : value);
         return text == null || text.isBlank() ? null : text.strip();
     }
 
@@ -496,7 +497,7 @@ public final class ImportPlan {
                     continue;
                 }
                 if (glossary.size() == MAX_TERMS) {
-                    warnings.add(path + ": more than " + MAX_TERMS + " glossary terms, the rest is left out");
+                    warnings.add(path + MORE_THAN + MAX_TERMS + " glossary terms, the rest is left out");
                     return;
                 }
                 glossary.add(new TermItem(path, new GlossaryTerm(null, term, header.get(from),
@@ -574,10 +575,18 @@ public final class ImportPlan {
         }
     }
 
+    /** The items of a YAML list, a single value as its one item, and no item for {@code null}. */
+    private static Collection<?> items(Object value) {
+        if (value instanceof Collection<?> collection) {
+            return collection;
+        }
+        return value == null ? List.of() : List.of(value);
+    }
+
     /** The texts of a YAML list, or of a single text. */
     private static List<String> texts(Object value) {
         List<String> texts = new ArrayList<>();
-        for (Object item : value instanceof Collection ? (Collection<?>) value : value == null ? List.of() : List.of(value)) {
+        for (Object item : items(value)) {
             String text = stringOf(item);
             if (text != null && !text.isBlank()) {
                 texts.add(text.strip());
@@ -639,7 +648,7 @@ public final class ImportPlan {
             }
             addDependencies(files, document, folder, voiceFolder, personasFolder, skillFiles);
             if (skillFiles.size() > MAX_FILES_PER_SKILL) {
-                skipped.add(folder + ": more than " + MAX_FILES_PER_SKILL + " files");
+                skipped.add(folder + MORE_THAN + MAX_FILES_PER_SKILL + " files");
                 continue;
             }
             for (String warning : document.warnings) {
@@ -726,7 +735,7 @@ public final class ImportPlan {
         if (path == null || path.isBlank()) {
             return null;
         }
-        return path.trim().replaceAll("/SKILL\\.md$", "").replaceAll("^/+|/+$", "");
+        return path.trim().replaceAll("/SKILL\\.md$", "").replaceAll("(?:^/+)|(?:/+$)", "");
     }
 
     static String title(String body, String fallback) {
@@ -741,7 +750,7 @@ public final class ImportPlan {
     static String slug(String title) {
         String slug = java.text.Normalizer.normalize(title, java.text.Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("^-+|-+$", "");
+                .replaceAll("(?:^-+)|(?:-+$)", "");
         if (slug.length() > 48) {
             slug = slug.substring(0, 48).replaceAll("-+$", "");
         }

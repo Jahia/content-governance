@@ -42,7 +42,16 @@ public class SetupServlet extends HttpServlet {
     private final transient ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) {
+        try {
+            setUpFolders(request, response);
+        } catch (IOException e) {
+            // Nothing may leave a servlet method. A broken socket ends here.
+            logger.debug("The answer of the setup could not be written", e);
+        }
+    }
+
+    private void setUpFolders(HttpServletRequest request, HttpServletResponse response) throws IOException {
         JahiaUser user = JCRSessionFactory.getInstance().getCurrentUser();
         if (user == null || JahiaUserManagerService.isGuest(user)) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication required");

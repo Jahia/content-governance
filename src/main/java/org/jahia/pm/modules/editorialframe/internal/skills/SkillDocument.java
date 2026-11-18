@@ -73,7 +73,7 @@ public final class SkillDocument {
      * @throws IllegalArgumentException when the frontmatter is missing or unreadable, or has no description
      */
     public static SkillDocument parse(String text, String folderName) {
-        String source = text.startsWith("﻿") ? text.substring(1) : text;
+        String source = text.startsWith("\uFEFF") ? text.substring(1) : text;
         source = source.replace("\r\n", "\n");
         if (!source.startsWith("---\n")) {
             throw new IllegalArgumentException("SKILL.md has no YAML frontmatter");
@@ -106,10 +106,10 @@ public final class SkillDocument {
         }
         name = name.trim();
         if (!NAME.matcher(name).matches()) {
-            String fixed = name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("^-+|-+$", "");
+            String fixed = name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("(?:^-+)|(?:-+$)", "");
             fixed = fixed.length() > 64 ? fixed.substring(0, 64).replaceAll("-+$", "") : fixed;
             if (fixed.isEmpty() && folderName != null) {
-                fixed = folderName.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("^-+|-+$", "");
+                fixed = folderName.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("(?:^-+)|(?:-+$)", "");
             }
             if (fixed.isEmpty()) {
                 throw new IllegalArgumentException("The name '" + name + "' gives no valid skill name");

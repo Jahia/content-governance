@@ -81,7 +81,7 @@ public final class BundleSkills implements BundleTrackerCustomizer<Long> {
         if (folder == null || folder.isBlank()) {
             return null;
         }
-        List<LoadedSkill> skills = load(bundle, folder.trim().replaceAll("^/+|/+$", ""));
+        List<LoadedSkill> skills = load(bundle, folder.trim().replaceAll("(?:^/+)|(?:/+$)", ""));
         byBundle.put(bundle.getBundleId(), skills);
         moduleOf.put(bundle.getBundleId(), bundle.getSymbolicName());
         logger.info("Read {} skills from the module {}", skills.size(), bundle.getSymbolicName());

@@ -21,7 +21,7 @@ final class Csv {
         List<String> row = new ArrayList<>();
         StringBuilder field = new StringBuilder();
         boolean quoted = false;
-        String source = text.startsWith("﻿") ? text.substring(1) : text;
+        String source = text.startsWith("\uFEFF") ? text.substring(1) : text;
         for (int i = 0; i < source.length(); i++) {
             char c = source.charAt(i);
             if (quoted) {

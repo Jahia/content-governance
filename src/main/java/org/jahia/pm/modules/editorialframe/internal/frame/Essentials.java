@@ -114,8 +114,9 @@ final class Essentials {
             if (section[0] == null && lead.isEmpty()) {
                 continue;
             }
-            out.append(out.length() == 0 ? "" : "\n").append("- ")
-                    .append(section[0] == null ? lead : section[0] + (lead.isEmpty() ? "" : ": " + lead));
+            String afterHeading = lead.isEmpty() ? "" : ": " + lead;
+            out.append(out.isEmpty() ? "" : "\n").append("- ")
+                    .append(section[0] == null ? lead : section[0] + afterHeading);
         }
         return out.toString();
     }
@@ -132,13 +133,13 @@ final class Essentials {
         }
         StringBuilder out = new StringBuilder();
         for (String line : text.split("\n")) {
-            int added = (out.length() == 0 ? 0 : 1) + line.length();
+            int added = (out.isEmpty() ? 0 : 1) + line.length();
             if (out.length() + added > max) {
                 break;
             }
-            out.append(out.length() == 0 ? "" : "\n").append(line);
+            out.append(out.isEmpty() ? "" : "\n").append(line);
         }
-        return out.length() == 0 ? cut(text.strip(), max) : out.toString().strip();
+        return out.isEmpty() ? cut(text.strip(), max) : out.toString().strip();
     }
 
     /** A text cut at the last word that fits in a length, with an ellipsis. */

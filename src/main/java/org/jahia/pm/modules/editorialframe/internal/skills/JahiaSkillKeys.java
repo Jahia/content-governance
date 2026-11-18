@@ -135,7 +135,7 @@ public final class JahiaSkillKeys {
             return 0;
         }
         try {
-            int count = value instanceof Number ? ((Number) value).intValue() : Integer.parseInt(String.valueOf(value).trim());
+            int count = value instanceof Number number ? number.intValue() : Integer.parseInt(String.valueOf(value).trim());
             if (count >= 0 && count <= MAX_ATTACHED_IMAGES) {
                 return count;
             }

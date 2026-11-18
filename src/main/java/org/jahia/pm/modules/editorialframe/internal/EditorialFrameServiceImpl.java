@@ -128,7 +128,7 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
                 text.append(voice.trim());
             }
             if (skill != null && !skill.isBlank()) {
-                readSkill(siteKey, skill.trim()).ifPresent(content -> text.append(text.length() > 0 ? "\n\n" : "")
+                readSkill(siteKey, skill.trim()).ifPresent(content -> text.append(text.isEmpty() ? "" : "\n\n")
                         .append(content.body()));
             }
             if (text.length() > MAX_VOICE_CHARS) {
@@ -136,7 +136,7 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
                 text.setLength(MAX_VOICE_CHARS);
                 text.append("\n[...]");
             }
-            return text.length() == 0 ? Optional.empty() : Optional.of(text.toString());
+            return text.isEmpty() ? Optional.empty() : Optional.of(text.toString());
         } catch (RepositoryException e) {
             logger.warn("The voice of {} cannot be read: {}", username, e.getMessage());
             return Optional.empty();
@@ -196,7 +196,7 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
                 layers.add(JcrSkills.read(session, FrameReader.SYSTEM_SITE, "group"));
             }
             JCRNodeWrapper site = session.getNode("/sites/" + siteKey);
-            List<String> modules = site instanceof JCRSiteNode ? ((JCRSiteNode) site).getInstalledModules() : List.of();
+            List<String> modules = site instanceof JCRSiteNode siteNode ? siteNode.getInstalledModules() : List.of();
             layers.add(bundleSkills.forModules(modules));
             String language = FrameReader.defaultLanguage(session, siteKey);
             LoadedSkill generated = GeneratedFrameSkill.of(FrameReader.read(session, siteKey, language));

@@ -137,7 +137,7 @@ public final class FrameReader {
                     : new Persona(persona.name(), persona.title(), persona.text(), isDefault, persona.scope(),
                     persona.essentials()));
         }
-        String fingerprint = canonical.length() == 0 ? null : Texts.digest(canonical.toString());
+        String fingerprint = canonical.isEmpty() ? null : Texts.digest(canonical.toString());
         return new Frame(siteKey, language, voices, normalized, rules, glossary, fingerprint);
     }
 
@@ -308,7 +308,7 @@ public final class FrameReader {
     public static String defaultLanguage(JCRSessionWrapper session, String siteKey) {
         try {
             JCRNodeWrapper site = session.getNode("/sites/" + siteKey);
-            return site instanceof JCRSiteNode ? ((JCRSiteNode) site).getDefaultLanguage() : null;
+            return site instanceof JCRSiteNode siteNode ? siteNode.getDefaultLanguage() : null;
         } catch (RepositoryException e) {
             return null;
         }

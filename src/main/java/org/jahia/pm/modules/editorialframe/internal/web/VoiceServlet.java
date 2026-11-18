@@ -42,7 +42,25 @@ public class VoiceServlet extends HttpServlet {
     private final transient ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) {
+        try {
+            readVoice(response);
+        } catch (IOException e) {
+            // Nothing may leave a servlet method. A broken socket ends here.
+            logger.debug("The voice could not be written to the response", e);
+        }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) {
+        try {
+            writeVoice(request, response);
+        } catch (IOException e) {
+            logger.debug("The answer of the voice could not be written", e);
+        }
+    }
+
+    private void readVoice(HttpServletResponse response) throws IOException {
         JCRUserNode user = currentUser(response);
         if (user == null) {
             return;
@@ -58,8 +76,7 @@ public class VoiceServlet extends HttpServlet {
         write(response, body);
     }
 
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    private void writeVoice(HttpServletRequest request, HttpServletResponse response) throws IOException {
         JCRUserNode user = currentUser(response);
         if (user == null) {
             return;

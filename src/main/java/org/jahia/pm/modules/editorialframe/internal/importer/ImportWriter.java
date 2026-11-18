@@ -37,6 +37,7 @@ public final class ImportWriter {
 
     /** The one parent folder of everything an import writes: voice, personas, rules, glossary and skills. */
     public static final String FOLDER = "ai-assistant";
+    private static final String RULE_TYPE = "efnt:writingRule";
     /**
      * The sub-folders of the parent folder, and the only type each one accepts. jContent reads the
      * restriction from {@code j:contributeTypes} of the mixin {@code jmix:contributeMode}: its create
@@ -45,7 +46,7 @@ public final class ImportWriter {
     static final Map<String, String> SUB_FOLDERS = Map.of(
             "voice", "efnt:brandVoice",
             "personas", "efnt:persona",
-            "rules", "efnt:writingRule",
+            "rules", RULE_TYPE,
             "glossary", "efnt:glossaryTerm",
             "skills", "efnt:skill");
     /** The sub-folders in the order the setup creates them. */
@@ -97,7 +98,7 @@ public final class ImportWriter {
                 removeRulesOf(rulesFolder, source.getKey(), slug);
                 int index = 0;
                 for (WritingRule rule : source.getValue()) {
-                    JCRNodeWrapper node = rulesFolder.addNode(String.format("%s-%03d", slug, ++index), "efnt:writingRule");
+                    JCRNodeWrapper node = rulesFolder.addNode(String.format("%s-%03d", slug, ++index), RULE_TYPE);
                     node.setProperty("source", source.getKey());
                     node.setProperty("kind", rule.kind().name().toLowerCase(Locale.ROOT));
                     node.setProperty("pattern", rule.pattern());
@@ -288,7 +289,7 @@ public final class ImportWriter {
         JCRNodeIteratorWrapper children = rulesFolder.getNodes();
         while (children.hasNext()) {
             JCRNodeWrapper child = (JCRNodeWrapper) children.nextNode();
-            boolean ruleOfFile = child.isNodeType("efnt:writingRule") && source.equals(child.getPropertyAsString("source"));
+            boolean ruleOfFile = child.isNodeType(RULE_TYPE) && source.equals(child.getPropertyAsString("source"));
             boolean formerFolder = child.isNodeType("jnt:contentFolder") && child.getName().equals(slug);
             if (ruleOfFile || formerFolder) {
                 old.add(child);
