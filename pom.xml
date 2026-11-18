@@ -33,7 +33,8 @@
              compliance queries. robots owns the mixin the GEO robots.txt editor writes, llms the file
              the GEO llms.txt tab shows read only: optional, so Page quality and Compliance never need
              them; without them those tabs say why and every other check works. mcp-server serves the
-             tools of the editorial frame to AI agents, optional too: without it the module adds no tool. -->
+             tools of the editorial frame and of the HTML check to AI agents, optional too: without it
+             the module adds no tool. -->
         <jahia-depends>default,jcontent=[3.7,4),graphql-dxm-provider,robots=optional,llms=optional,mcp-server=optional</jahia-depends>
         <jahia-module-type>module</jahia-module-type>
         <yarn.arguments>build:production</yarn.arguments>
@@ -175,7 +176,7 @@
             <version>1</version>
             <scope>provided</scope>
         </dependency>
-        <!-- The tool SPI that the four tools of the editorial frame implement. mcp-server has no
+        <!-- The tool SPI that the tools of the editorial frame and of the HTML check implement. mcp-server has no
              release yet: each merge to its main branch publishes the snapshot to the Jahia Nexus. -->
         <dependency>
             <groupId>org.jahia.modules</groupId>
@@ -202,6 +203,13 @@
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
             <version>2.2</version>
+        </dependency>
+        <!-- Embedded: the HTML check parses the HTML that Jahia renders. Its manifest imports none of
+             its own packages, so the embedded copy cannot mix with another one. -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.24.1</version>
         </dependency>
 
         <!-- commons-text needs it at run time; Jahia exports both, so the tests alone declare it. -->
@@ -312,7 +320,7 @@
                         </Export-Package>
                         <!-- The skills of this module, served by the skill registry of the editorial frame. -->
                         <Jahia-Skills>skills</Jahia-Skills>
-                        <Embed-Dependency>snakeyaml;scope=compile;inline=false</Embed-Dependency>
+                        <Embed-Dependency>snakeyaml|jsoup;scope=compile;inline=false</Embed-Dependency>
                         <!-- Named explicitly: the GraphQL packages come from graphql-dxm-provider, whose
                              transitive dependencies are excluded, so the bundle plugin would not infer them.
                              The first line keeps the parent's: the packages jahia-maven-plugin finds in the

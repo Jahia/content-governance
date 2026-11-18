@@ -41,6 +41,7 @@ every tab shows, which findings are yours to fix and which belong to a developer
 | Section | What it checks | How it works |
 |---|---|---|
 | Page quality | [`page-quality/guide.md`](page-quality/guide.md) | [`page-quality/architecture.md`](page-quality/architecture.md) |
+| The HTML check on the server, which AI agents run | [`page-quality/html-rules.md`](page-quality/html-rules.md) | [`page-quality/html-rules.md`](page-quality/html-rules.md) |
 | GEO readiness | [`geo-readiness/checks.md`](geo-readiness/checks.md) | [`geo-readiness/architecture.md`](geo-readiness/architecture.md) |
 | Compliance | [`compliance/glossary-guide.md`](compliance/glossary-guide.md) (matching rules) | [`compliance/architecture.md`](compliance/architecture.md) |
 | Editorial frame (no section of the drawer yet) | [`editorial-frame/guide.md`](editorial-frame/guide.md) | [`editorial-frame/architecture.md`](editorial-frame/architecture.md) |
