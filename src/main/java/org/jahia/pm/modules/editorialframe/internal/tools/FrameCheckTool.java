@@ -58,12 +58,12 @@ public class FrameCheckTool implements JahiaMcpTool {
     @Override
     public JsonNode inputSchema() {
         ObjectNode schema = FrameTools.schema("A text to check");
-        FrameTools.property(schema, "siteKey", "string", "The key of the site, such as digitall.", true);
-        FrameTools.property(schema, "locale", "string", "The language of the text, such as en or fr.", true);
-        FrameTools.property(schema, "text", "string", "The text, plain or HTML.", true);
-        FrameTools.property(schema, "sourceText", "string",
+        FrameTools.property(schema, FrameTools.SITE_KEY_INPUT, FrameTools.STRING_TYPE, "The key of the site, such as digitall.", true);
+        FrameTools.property(schema, "locale", FrameTools.STRING_TYPE, "The language of the text, such as en or fr.", true);
+        FrameTools.property(schema, "text", FrameTools.STRING_TYPE, "The text, plain or HTML.", true);
+        FrameTools.property(schema, "sourceText", FrameTools.STRING_TYPE,
                 "For a translation: the text that it translates, plain or HTML. The glossary is checked only with it.", false);
-        FrameTools.property(schema, "sourceLocale", "string", "For a translation: the language of the source text, such as en.", false);
+        FrameTools.property(schema, "sourceLocale", FrameTools.STRING_TYPE, "For a translation: the language of the source text, such as en.", false);
         FrameTools.property(schema, "document", "boolean",
                 "True when the text is the whole text of a page, so that the mandatory mentions are checked too: "
                         + "all the texts of a page together, such as a page that you translate, or a content item "
@@ -84,7 +84,7 @@ public class FrameCheckTool implements JahiaMcpTool {
 
     @Override
     public ToolResult execute(JsonNode input, ToolContext ctx) {
-        String siteKey = FrameTools.text(input, "siteKey");
+        String siteKey = FrameTools.text(input, FrameTools.SITE_KEY_INPUT);
         ToolResult denied = FrameTools.denied(siteKey, ctx);
         if (denied != null) {
             return denied;
@@ -126,7 +126,7 @@ public class FrameCheckTool implements JahiaMcpTool {
             item.put("excerpt", violation.excerpt());
         }
         result.put("ok", violations.isEmpty());
-        ctx.audit().recordEvent("frame.check", Map.of("siteKey", siteKey, "violations", violations.size()));
+        ctx.audit().recordEvent("frame.check", Map.of(FrameTools.SITE_KEY_INPUT, siteKey, "violations", violations.size()));
         return ToolResult.ok(result);
     }
 }

@@ -38,6 +38,7 @@ public final class ImportWriter {
     /** The one parent folder of everything an import writes: voice, personas, rules, glossary and skills. */
     public static final String FOLDER = "ai-assistant";
     private static final String RULE_TYPE = "efnt:writingRule";
+    private static final String PERSONAS_FOLDER = "personas";
     /**
      * The sub-folders of the parent folder, and the only type each one accepts. jContent reads the
      * restriction from {@code j:contributeTypes} of the mixin {@code jmix:contributeMode}: its create
@@ -45,12 +46,12 @@ public final class ImportWriter {
      */
     static final Map<String, String> SUB_FOLDERS = Map.of(
             "voice", "efnt:brandVoice",
-            "personas", "efnt:persona",
+            PERSONAS_FOLDER, "efnt:persona",
             "rules", RULE_TYPE,
             "glossary", "efnt:glossaryTerm",
             "skills", "efnt:skill");
     /** The sub-folders in the order the setup creates them. */
-    static final List<String> SUB_FOLDER_NAMES = List.of("voice", "personas", "rules", "glossary", "skills");
+    static final List<String> SUB_FOLDER_NAMES = List.of("voice", PERSONAS_FOLDER, "rules", "glossary", "skills");
     static final String RESTRICTIONS = "jmix:contributeMode";
     static final String RESTRICTED_TYPES = "j:contributeTypes";
     static final List<String> ACTIVATIONS = List.of("auto", "manual", "pinned-only");
@@ -76,7 +77,7 @@ public final class ImportWriter {
             written.add(voice.getPath());
         }
         if (!plan.personas.isEmpty()) {
-            JCRNodeWrapper personas = base.getNode("personas");
+            JCRNodeWrapper personas = base.getNode(PERSONAS_FOLDER);
             for (ImportPlan.TextItem item : plan.personas) {
                 JCRNodeWrapper persona = node(personas, item.name, "efnt:persona");
                 persona.setProperty("jcr:title", item.title);

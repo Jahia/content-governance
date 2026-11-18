@@ -4,6 +4,7 @@
 package org.jahia.pm.modules.editorialframe.internal.skills;
 
 import org.jahia.pm.modules.editorialframe.api.SkillCoverage;
+import org.jahia.pm.modules.editorialframe.internal.frame.Texts;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
@@ -56,9 +57,9 @@ public final class SkillDocument {
         this.compatibility = compatibility;
         this.allowedTools = allowedTools;
         this.rawMetadata = rawMetadata;
-        Map<String, String> metadata = new LinkedHashMap<>();
-        rawMetadata.forEach((key, value) -> metadata.put(key, string(value)));
-        this.metadata = metadata;
+        Map<String, String> asStrings = new LinkedHashMap<>();
+        rawMetadata.forEach((key, value) -> asStrings.put(key, string(value)));
+        this.metadata = asStrings;
         this.body = body;
         this.warnings = warnings;
         this.label = JahiaSkillKeys.label(rawMetadata, warnings);
@@ -106,10 +107,10 @@ public final class SkillDocument {
         }
         name = name.trim();
         if (!NAME.matcher(name).matches()) {
-            String fixed = name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("(?:^-+)|(?:-+$)", "");
+            String fixed = Texts.trim(name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-"), '-');
             fixed = fixed.length() > 64 ? fixed.substring(0, 64).replaceAll("-+$", "") : fixed;
             if (fixed.isEmpty() && folderName != null) {
-                fixed = folderName.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("(?:^-+)|(?:-+$)", "");
+                fixed = Texts.trim(folderName.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-"), '-');
             }
             if (fixed.isEmpty()) {
                 throw new IllegalArgumentException("The name '" + name + "' gives no valid skill name");

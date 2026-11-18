@@ -89,6 +89,19 @@ public final class Texts {
         return "";
     }
 
+    /** A text without the character {@code edge} at its start and at its end, however often it repeats there. */
+    public static String trim(String text, char edge) {
+        int start = 0;
+        int end = text.length();
+        while (start < end && text.charAt(start) == edge) {
+            start++;
+        }
+        while (end > start && text.charAt(end - 1) == edge) {
+            end--;
+        }
+        return text.substring(start, end);
+    }
+
     /** True when a text holds a character that hides text from a reader: zero width or bidirectional. */
     public static boolean hasInvisibleCharacters(String text) {
         if (text == null) {

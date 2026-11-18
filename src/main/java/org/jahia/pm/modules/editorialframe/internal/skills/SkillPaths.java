@@ -10,6 +10,8 @@ import java.util.Set;
 public final class SkillPaths {
 
     /** The text types a skill may hold. A skill never runs code, so scripts are never kept. */
+    /** The file that makes a folder a skill. */
+    public static final String SKILL_FILE = "SKILL.md";
     public static final Set<String> TEXT_TYPES = Set.of("md", "markdown", "txt", "csv", "json", "yaml", "yml");
     public static final int MAX_FILE_CHARS = 2 * 1024 * 1024;
     /** The longest file text that one read gives to a model: about 10,000 tokens. */

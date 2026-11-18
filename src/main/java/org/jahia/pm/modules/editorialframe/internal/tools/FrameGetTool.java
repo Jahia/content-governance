@@ -44,10 +44,10 @@ public class FrameGetTool implements JahiaMcpTool {
     @Override
     public JsonNode inputSchema() {
         ObjectNode schema = FrameTools.schema("The frame of a site");
-        FrameTools.property(schema, "siteKey", "string", "The key of the site, such as digitall.", true);
-        FrameTools.property(schema, "locale", "string", "The language of the content, such as en or fr.", true);
-        FrameTools.property(schema, "persona", "string", "The name of a persona. Leave it out for the default persona.", false);
-        FrameTools.property(schema, "text", "string",
+        FrameTools.property(schema, FrameTools.SITE_KEY_INPUT, FrameTools.STRING_TYPE, "The key of the site, such as digitall.", true);
+        FrameTools.property(schema, "locale", FrameTools.STRING_TYPE, "The language of the content, such as en or fr.", true);
+        FrameTools.property(schema, "persona", FrameTools.STRING_TYPE, "The name of a persona. Leave it out for the default persona.", false);
+        FrameTools.property(schema, "text", FrameTools.STRING_TYPE,
                 "The text you work on, plain or HTML, such as the source of a translation. The frame then lists the "
                         + "glossary terms that it holds, and the rules that it breaks first.", false);
         return schema;
@@ -65,7 +65,7 @@ public class FrameGetTool implements JahiaMcpTool {
 
     @Override
     public ToolResult execute(JsonNode input, ToolContext ctx) {
-        String siteKey = FrameTools.text(input, "siteKey");
+        String siteKey = FrameTools.text(input, FrameTools.SITE_KEY_INPUT);
         ToolResult denied = FrameTools.denied(siteKey, ctx);
         if (denied != null) {
             return denied;
@@ -83,7 +83,7 @@ public class FrameGetTool implements JahiaMcpTool {
         result.put("persona", context.persona());
         result.set("personas", FrameTools.MAPPER.valueToTree(context.personas()));
         result.put("frame", context.isEmpty() ? "This site has no editorial frame." : context.text());
-        ctx.audit().recordEvent("frame.get", Map.of("siteKey", siteKey,
+        ctx.audit().recordEvent("frame.get", Map.of(FrameTools.SITE_KEY_INPUT, siteKey,
                 "fingerprint", context.fingerprint() == null ? "" : context.fingerprint()));
         return ToolResult.ok(result);
     }
