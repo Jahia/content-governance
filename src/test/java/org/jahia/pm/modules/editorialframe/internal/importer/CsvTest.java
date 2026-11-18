@@ -32,7 +32,7 @@ class CsvTest {
 
     @Test
     void aByteOrderMarkIsDroppedAndAnEmptyTextGivesNoRow() {
-        assertEquals(List.of(List.of("en", "fr")), Csv.read("﻿en,fr"));
+        assertEquals(List.of(List.of("en", "fr")), Csv.read("\uFEFFen,fr"));
         assertEquals(List.of(), Csv.read(""));
         assertEquals(List.of(List.of("", "")), Csv.read(","));
     }

@@ -19,7 +19,7 @@ final class Csv {
     private boolean quoted;
 
     private Csv(String text) {
-        source = text.startsWith("﻿") ? text.substring(1) : text;
+        source = text.startsWith("\uFEFF") ? text.substring(1) : text;
     }
 
     /** The rows of the text. A blank line gives no row. */
