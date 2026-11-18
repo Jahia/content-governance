@@ -17,7 +17,7 @@ export function SimplifyAssist({aiStatus, assist, phase, error, language, count,
     const {t} = useGovernanceTranslation('audit');
 
     if (aiStatus && !aiStatus.enabled && count) {
-        return <AiUnavailable title={t('readability.simplify.title')} actionLabel={t('readability.simplify.generate')}/>;
+        return <AiUnavailable title={t('readability.simplify.title')} actionLabel={t('readability.simplify.generate')} reason={aiStatus.reason}/>;
     }
 
     if (!aiStatus || !aiStatus.enabled || !count) {

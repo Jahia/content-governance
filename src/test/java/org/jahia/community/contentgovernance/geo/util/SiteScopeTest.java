@@ -12,9 +12,9 @@ import java.time.Duration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Characterisation tests for {@link SiteScope#isLanguage(String)}, the only
- * pure method on {@link SiteScope}. Every other method needs a live JCR
- * session and is out of scope.
+ * Characterisation tests for {@link SiteScope#isLanguage(String)} and
+ * {@link SiteScope#keyOf(String)}, the pure methods of {@link SiteScope}. Every
+ * other method needs a live JCR session and is out of scope.
  *
  * This value ends up as a node name under a system session further down the
  * call chain, so a path-shaped or otherwise malformed value here is a
@@ -107,5 +107,12 @@ class SiteScopeTest {
             assertThat(SiteScope.isLanguage(" en")).isFalse();
             assertThat(SiteScope.isLanguage("en ")).isFalse();
         }
+    }
+
+    @Test
+    void keyOf_theSitePathThatRequireReturns_givesTheSiteKey() {
+        // The AI features name this key to genai-connector, which checks genaiAccess on /sites/<key>.
+        assertThat(SiteScope.keyOf("/sites/acme")).isEqualTo("acme");
+        assertThat(SiteScope.keyOf("/sites/my-site_2")).isEqualTo("my-site_2");
     }
 }

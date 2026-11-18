@@ -18,7 +18,7 @@ export function AltAssist({aiStatus, assist, phase, error, language, count, onGe
     const {t} = useGovernanceTranslation('audit');
 
     if (aiStatus && !aiStatus.enabled && count) {
-        return <AiUnavailable title={t('a11y.alt.title')} actionLabel={t('a11y.alt.generate')}/>;
+        return <AiUnavailable title={t('a11y.alt.title')} actionLabel={t('a11y.alt.generate')} reason={aiStatus.reason}/>;
     }
 
     if (!aiStatus || !aiStatus.enabled || !count) {
@@ -32,7 +32,7 @@ export function AltAssist({aiStatus, assist, phase, error, language, count, onGe
             <h4 className={styles.sectionTitle}>{t('a11y.alt.title')}</h4>
             <p className={styles.note}>
                 {t('a11y.alt.intro', {count, language: language.toUpperCase()})}
-                {!aiStatus.vision && <> {t('a11y.alt.noVision', {provider: aiStatus.provider})}</>}
+                {!aiStatus.vision && <> {t('a11y.alt.noVision')}</>}
             </p>
 
             {phase !== 'running' && (

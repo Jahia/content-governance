@@ -86,11 +86,6 @@
     overflow-wrap: anywhere;
 }
 
-.code {
-    overflow-wrap: anywhere;
-    font-size: 12px;
-}
-
 .headerTabs {
     overflow-x: auto;
     max-width: 100%;

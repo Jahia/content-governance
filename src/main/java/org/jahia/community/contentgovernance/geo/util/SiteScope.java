@@ -93,6 +93,11 @@ public final class SiteScope {
         throw new AccessDeniedException(anyOf + " required on " + site.getPath());
     }
 
+    /** The key of a site from the path {@link #require} returns: {@code /sites/acme} gives {@code acme}. */
+    public static String keyOf(String sitePath) {
+        return sitePath.substring(sitePath.lastIndexOf('/') + 1);
+    }
+
     /**
      * The canonical path of the subtree a scan may cover: {@code sitePath} when
      * no scope was given, otherwise the scope, resolved in the caller's session

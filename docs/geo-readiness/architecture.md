@@ -50,7 +50,7 @@ JavaScript-only page is still caught, by the word-count check.
   *Switched off for this site* when the site switched the GEO section off.
 - **Site Settings > Content governance.** `settings/SettingsPanel.jsx`, route
   `contentGovernanceSettings` on `administration-sites`, `site-admin` only. Tabs **Features** (the
-  switches), **AI provider** (status of the shared model) and **BotRank**
+  switches), **AI model** (status of the model that genai-connector serves) and **BotRank**
   (`geo/settings/CitationsSettings.jsx`, the former "AI citations (BotRank)" entry).
 - **The switches.** Feature ids `geo`, `geo.score`, `geo.crawler`, `geo.files`, `geo.schema`,
   `geo.citations` (`settings/Features.java`). A site stores the ids it switched off on
@@ -87,14 +87,14 @@ in GEO Readiness). Front end under `src/javascript/geo/`.
 | `VanityUrls` | Every address a page answers on, checked against the site's languages and the canonical tag. |
 | `SitemapCheck` | Resolves every `sitemap.xml` entry back to a node and compares it with what is actually published, as guest, across every site language. |
 | `ScanStore` | Reads and writes the scan on the site node. |
-| `GeoReport` | The written report: the digest built from the stored state, the prompt, the call through the shared model, and the parse into a fixed shape. |
+| `GeoReport` | The written report: the digest built from the stored state, the prompt, the call through `AiService`, and the parse into a fixed shape. |
 
 ### `config/`
 
 `GeoReadinessConfigService` reads `org.jahia.community.contentgovernance.geo.cfg` (PID
 `org.jahia.community.contentgovernance.geo`): fetch timeout, body size, rate limit of the crawler
-check, crawler list, public base URL. It holds no AI key any more: the report uses the shared model
-(`ai/` below).
+check, crawler list, public base URL. It has no AI key: genai-connector serves the model of the
+report (`ai/` below).
 
 ### Front end: `geo/`
 
@@ -102,7 +102,7 @@ check, crawler list, public base URL. It holds no AI key any more: the report us
 |---|---|
 | `GeoSection.jsx` | The drawer section: the **Run check** button, the banners above the tabs, and the tabs **Score**, **Crawler access**, **Site files**, **Structured data** and **AI citations**, each filtered by its switch. The last result is cached in the browser's local storage per page and language. **AI citations** loads on its own and is greyed out while the site has no BotRank binding. |
 | `tabs/` | One component per drawer tab (`ScoreTab`, `CrawlerTab`, `SiteFilesTab`, `SchemaTab`, `CitationsTab`) and per dashboard panel (`SiteScorePanel`, `ReportPanel`, `VisibilityPanel`, `LinksPanel`, `VanityPanel`, `SchemaPanel`, `LanguagesPanel`, `FreshnessPanel`, `SitemapPanel`, `RobotsControlPanel`, `LlmsPanel`, `SiteCitationsPanel`), plus `CronBuilder` and `DiffView`. |
-| `dashboard/GeoDashboard.jsx` | The Additional > SEO screen: five groups of tabs (overview, reach, usable, files, AI citations), one panel per tab. The **Report** tab is always listed and greyed out while the shared model is not configured; the AI citations group shows only while `geo.citations` is on. |
+| `dashboard/GeoDashboard.jsx` | The Additional > SEO screen: five groups of tabs (overview, reach, usable, files, AI citations), one panel per tab. The **Report** tab is always listed and greyed out while no model answers the user on the site. The AI citations group shows only while `geo.citations` is on. |
 | `dashboard/exportScan.js` | **Export CSV** / **Export JSON** of the header: reads the stored scan (`scanStatus`) at click time and builds both files in the browser, one CSV row per finding. The cell quoting and download helpers are shared with the Compliance dashboard (`common/exportFile.js`). |
 | `dashboard/Layout.jsx` | The one layout every dashboard panel uses: `Panel`, `PanelHeader` (title and intro, `Meta` pills for dates), `Card` per section, `Figures`/`Figure` for key numbers with a tone, `Ring` and `Hero` for the figure a panel leads with, `Actions`, `Note`, `Source`. A panel places no Separator and no heading Typography of its own. |
 | `dashboard/Layout.module.css` | The type scale (page title 20/28, intro 14/1.6, hero 18/26, card title 16/22, card intro 13/1.55, body 14/1.55, notes 12.5/1.55, figures 32), card and figure styles, tones good/warn/bad/accent on the module's AAA colours. Moonstone body and caption paragraphs inside a panel follow the same scale. |
@@ -143,22 +143,26 @@ context) go through the same `SiteScope.require` and are left out for a caller w
 
 ### `ai/` (shared)
 
-The provider layer moved out of the GEO package to `org.jahia.community.contentgovernance.ai`,
-where the Page quality AI review and assists use it too. It mirrors automatic-content-tags so a
-reader of one module recognises the other: `LlmProvider` (one chat completion), `LlmSettings`
-(credentials and model, `toString` masks the key), `Completion` (text, whether it was cut, token
-counts), `AnthropicProvider`, and `OpenAiProvider` and `DeepSeekProvider` over a shared
-`OpenAiCompatibleProvider`, all looked up by name in `Providers`. DeepSeek's V4 models reason by
-default, which eats the output budget and loosens the JSON-only instruction, so that provider
-switches thinking off. `HttpJson` is the JDK client; the endpoints it reaches come from
-configuration, never from a request. `LlmImage` carries pictures for the alt text assist, which the
-report does not use.
+`org.jahia.community.contentgovernance.ai` is the AI layer of every feature of the module, the Page
+quality AI review and assists included. It has no provider client of its own, because the
+`genai-connector` module serves the model. `ai/genai/GenAiModel` is the only class that names a type
+of genai-connector. The Page quality architecture describes each class, in
+[The AI service and genai-connector](../page-quality/architecture.md#the-ai-service-and-genai-connector).
 
-`LlmConfigService` (PID `org.jahia.community.contentgovernance.llm`) is the one model connection.
-`GeoReport` asks it for the settings with the report's own output budget (`AI_REPORT_MAX_TOKENS`),
-appends `AI_PROMPT_APPENDIX` to its system prompt, and `GeoReportServlet` meters it with
-`AI_REPORT_RATE_MAX_CALLS`. Without a provider, a model and a key, `isEnabled()` is false: the
-report status answers `enabled: false` and the dashboard shows the **Report** tab greyed out.
+`AiService` (PID `org.jahia.community.contentgovernance.llm`) is the one entry point. `GeoReport`
+sends its call as the `GEO_REPORT` feature, on the `balanced` tier, with an output budget of 6000
+tokens. `AiService` appends `AI_PROMPT_APPENDIX` to the system prompt, and `GeoReportServlet` meters
+the report with `AI_REPORT_RATE_MAX_CALLS`. The report status answers `enabled: false` and a
+`reason` in three cases, and the dashboard then shows the **Report** tab greyed out:
+
+- `absent`: genai-connector is not installed or not started.
+- `notConfigured`: genai-connector serves no model on the `balanced` tier.
+- `noAccess`: the caller does not have the `genaiAccess` permission on the site.
+
+A `generate` request that gets no report answers 409 `no provider configured` for the first two
+cases and 403 `genaiAccess required` for the third. It answers 429 `rate limit` when the module's
+limit or genai-connector's own limit refuses it. It answers 502 `provider failed` when the provider
+fails, when the answer is not the expected shape, or when the answer reaches its output budget.
 
 `check/GeoReport` owns the rest: the digest built from the stored state, the prompt, the call, and
 the parse into a fixed shape where every string is clipped, every enum normalised, every list
@@ -287,21 +291,30 @@ say which, and on a multi-site box it is required rather than optional.
 
 ### `org.jahia.community.contentgovernance.llm.cfg`
 
-The one model every AI feature of the module uses. The written report reads these keys:
+The limits and the instructions of the AI features. The `genai-connector` module serves the model of
+every AI feature, the written report included. A server administrator sets the provider, the key and
+the model of each tier in the configuration of genai-connector (PID `org.jahia.modules.genai`).
+
+The **Report** tab can be used once genai-connector serves a model on its `balanced` tier and the
+user has `genaiAccess` on the site. Until then the tab stays greyed out, and nothing leaves the
+server. The written report reads these keys:
 
 | Key | Default | What it does |
 |---|---|---|
-| `AI_PROVIDER` | *(blank)* | `anthropic`, `openai` or `deepseek`. With `AI_MODEL` and `AI_API_KEY` set, the **Report** tab can be used. Blank keeps it greyed out and nothing leaves the server. |
-| `AI_MODEL` | *(blank)* | The model to ask. |
-| `AI_API_KEY` | *(blank)* | The provider key. Never logged, never sent to the browser. |
-| `AI_BASE_URL` | *(blank)* | The provider's API base, for a proxy or a compatible gateway. Blank uses the provider's own. |
-| `AI_REPORT_MAX_TOKENS` | 6000 | Output budget of the report. A site-wide report is long; too low and the end is cut, which the tab says. |
 | `AI_REPORT_RATE_MAX_CALLS` | 5 | Report generations allowed per user per ten minutes. |
 | `AI_PROMPT_APPENDIX` | *(blank)* | Instructions appended to every prompt of the module, the report's included. |
 
-`AI_MAX_TOKENS`, `AI_RATE_MAX_CALLS` and the two `AI_COST_*` keys in the same file belong to the
-page tasks of Page quality; the report does not read them. Site Settings > Content governance >
-**AI provider** shows whether the model is configured, its provider and model, never the key.
+`AI_RATE_MAX_CALLS` in the same file belongs to the page tasks of Page quality, and the report does
+not read it. The output budget of the report is 6000 tokens, and genai-connector caps it with its
+`max.output.tokens.limit` key. A site-wide report is long: with a cap that is too low, the request
+answers 502 `provider failed: the answer reached its output budget`, and no report is
+stored. Site Settings > Content governance > **AI model** shows
+whether a model answers the user on the site, and its provider and model.
+
+Up to 1.11.0, the module had its own client, configured in this file by `AI_PROVIDER`, `AI_MODEL`,
+`AI_API_KEY`, `AI_BASE_URL`, `AI_MAX_TOKENS`, `AI_REPORT_MAX_TOKENS` and the two `AI_COST_*` keys. The
+module ignores these keys now, and logs a WARN at start while the file sets one of them. Remove them
+from the file, `AI_API_KEY` first.
 
 ### BotRank connections
 
@@ -351,6 +364,7 @@ baseUrl =
 | Drawer **AI citations** tab | can read the page | `geo.citations` on; greyed out until the site is bound to BotRank |
 | Dashboard, robots.txt editor, llms.txt view | **publish** on the site | the GEO section is on (otherwise *Switched off for this site*) |
 | Dashboard **AI citations** group | **publish** on the site | `geo.citations` on |
+| Dashboard **Report** tab | **publish** and `genaiAccess` on the site | the GEO section is on; greyed out until genai-connector serves a model and the user has `genaiAccess` |
 | Site Settings > Content governance, BotRank tab included | **site-admin** on the site, on the route and on every call: binding a site to a connection spends the customer's organisation key | always listed; the BotRank tab cannot read the site's settings while the GEO section or `geo.citations` is off |
 
 A scan's optional scope has to name a node inside the site it was started from, and it is resolved

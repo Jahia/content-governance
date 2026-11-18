@@ -4,7 +4,9 @@ import graphql.annotations.annotationTypes.GraphQLDescription;
 import graphql.annotations.annotationTypes.GraphQLField;
 import graphql.annotations.annotationTypes.GraphQLName;
 import graphql.annotations.annotationTypes.GraphQLNonNull;
-import org.jahia.community.contentgovernance.ai.LlmConfigService;
+import org.jahia.community.contentgovernance.ai.AiFeature;
+import org.jahia.community.contentgovernance.ai.AiService;
+import org.jahia.community.contentgovernance.ai.AiStatus;
 import org.jahia.community.contentgovernance.settings.Features;
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
 import org.jahia.modules.graphql.provider.dxm.DataFetchingException;
@@ -43,10 +45,10 @@ public class GqlSiteSettings {
 
     /**
      * @param site the site, from the caller's session
-     * @param llm  the shared model configuration
+     * @param ai   the AI features, served by genai-connector
      * @return the settings of the site
      */
-    static GqlSiteSettings of(JCRSiteNode site, LlmConfigService llm) {
+    static GqlSiteSettings of(JCRSiteNode site, AiService ai) {
         boolean enabled = SiteFeatures.moduleEnabled(site);
         Set<String> off;
         try {
@@ -63,8 +65,10 @@ public class GqlSiteSettings {
             sections.add(new GqlSection(section.getKey(), enabled && !off.contains(section.getKey()), tabs));
         }
         boolean canEdit = enabled && site.hasPermission(SiteFeatures.SETTINGS_PERMISSION);
+        // Every page task runs on the same tier, so the review stands for all of them.
+        AiStatus status = ai.status(AiFeature.REVIEW, site.getSiteKey());
         return new GqlSiteSettings(site.getSiteKey(), enabled, canEdit, new ArrayList<>(off), sections,
-                new GqlAiStatus(llm.isEnabled(), llm.providerName(), llm.model(), llm.supportsImages()));
+                new GqlAiStatus(status.ready(), status.reason(), status.provider(), status.model(), status.vision()));
     }
 
     /** @return the key of the site */
@@ -107,7 +111,7 @@ public class GqlSiteSettings {
     /** @return the AI status */
     @GraphQLField
     @GraphQLNonNull
-    @GraphQLDescription("Whether a model is configured for the AI features")
+    @GraphQLDescription("Whether genai-connector serves a model to the caller for the AI features of this site")
     public GqlAiStatus getAi() {
         return ai;
     }
@@ -173,26 +177,37 @@ public class GqlSiteSettings {
         }
     }
 
-    /** Whether AI can be used, and with what. Never the key. */
+    /** Whether AI can be used by the caller on the site, and with what. */
     @GraphQLName("ContentGovernanceAiStatus")
-    @GraphQLDescription("The model shared by the AI features of Content Governance")
+    @GraphQLDescription("The model that genai-connector serves to the AI features of Content Governance")
     public static class GqlAiStatus {
         private final boolean configured;
+        private final String reason;
         private final String provider;
         private final String model;
         private final boolean images;
 
-        GqlAiStatus(boolean configured, String provider, String model, boolean images) {
+        GqlAiStatus(boolean configured, String reason, String provider, String model, boolean images) {
             this.configured = configured;
+            this.reason = reason;
             this.provider = provider;
             this.model = model;
             this.images = images;
         }
 
-        /** @return whether a provider, a model and a key are configured */
+        /** @return whether a model answers the caller on this site */
         @GraphQLField
+        @GraphQLDescription("Whether genai-connector serves a model and the caller holds genaiAccess on the site")
         public boolean isConfigured() {
             return configured;
+        }
+
+        /** @return why not: absent, notConfigured or noAccess; empty when configured */
+        @GraphQLField
+        @GraphQLDescription("Why the AI features are unavailable: absent (no genai-connector), notConfigured "
+                + "(no model on the balanced tier) or noAccess (no genaiAccess on the site); empty when available")
+        public String getReason() {
+            return reason;
         }
 
         /** @return the provider name, empty when not configured */
@@ -207,8 +222,9 @@ public class GqlSiteSettings {
             return model;
         }
 
-        /** @return whether the model reads images (alt text assist) */
+        /** @return whether the vision tier is served (alt text assist) */
         @GraphQLField
+        @GraphQLDescription("Whether genai-connector serves the vision tier, which reads the pictures of the alt text assist")
         public boolean isImages() {
             return images;
         }

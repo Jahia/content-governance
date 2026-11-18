@@ -1,11 +1,14 @@
 package org.jahia.community.contentgovernance.geo.check;
 
+import org.jahia.community.contentgovernance.geo.util.SiteScope;
 import org.jahia.community.contentgovernance.util.Locales;
-import org.jahia.community.contentgovernance.ai.Completion;
-import org.jahia.community.contentgovernance.ai.LlmConfigService;
-import org.jahia.community.contentgovernance.ai.LlmProvider;
-import org.jahia.community.contentgovernance.ai.LlmSettings;
+import org.jahia.community.contentgovernance.ai.AiAnswer;
+import org.jahia.community.contentgovernance.ai.AiException;
+import org.jahia.community.contentgovernance.ai.AiFeature;
+import org.jahia.community.contentgovernance.ai.AiRequest;
+import org.jahia.community.contentgovernance.ai.AiService;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +18,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -72,6 +76,8 @@ public final class GeoReport {
     private static final String COUNT = "count";
     private static final String OF = " of ";
 
+    /** Output budget of a report, a long answer; genai-connector's default of 1024 would cut it. */
+    private static final int MAX_OUTPUT_TOKENS = 6000;
     private static final int MAX_DIGEST_CHARS = 14_000;
     private static final int MAX_WORST_PAGES = 25;
     private static final int MAX_EXAMPLES = 6;
@@ -119,37 +125,27 @@ public final class GeoReport {
     private GeoReport() {
     }
 
-    /** True when the module's shared model connection is configured. */
-    public static boolean enabled(LlmConfigService llm) {
-        return llm.isEnabled();
-    }
-
     /**
-     * Builds the digest, asks the configured provider, parses the answer into
-     * the fixed shape, stores it, and returns it.
+     * Builds the digest, asks genai-connector, parses the answer into the fixed
+     * shape, stores it, and returns it.
      *
      * @param reportLanguage the language the prose is written in: the reader's, not the site's
-     * @throws IOException when the provider fails or answers something that is not the shape
+     * @throws AiException when the call gives no answer
+     * @throws IOException when the answer is not the shape
      */
     public static JSONObject generate(String sitePath, String language, String reportLanguage, String base,
-            LlmConfigService llm) throws RepositoryException, IOException, InterruptedException {
-        LlmProvider provider = llm.provider();
-        if (provider == null) {
-            throw new IOException("no provider configured");
-        }
-        LlmSettings settings = llm.settings(llm.reportMaxTokens());
-
+            AiService ai) throws RepositoryException, IOException, AiException {
         Digest digest = digest(sitePath, language, reportLanguage, base);
-        String system = llm.withAppendix(SYSTEM);
 
         long t0 = System.currentTimeMillis();
-        Completion answer = provider.complete(system, digest.text, settings);
+        AiAnswer answer = ai.complete(new AiRequest(AiFeature.GEO_REPORT, SiteScope.keyOf(sitePath), SYSTEM,
+                digest.text, List.of(), MAX_OUTPUT_TOKENS));
         logger.info("GEO report for {} [{}] answered by {} in {}ms ({} in, {} out tokens)", sitePath, language,
-                settings.model(), System.currentTimeMillis() - t0, answer.inputTokens(), answer.outputTokens());
+                answer.model(), System.currentTimeMillis() - t0, answer.inputTokens(), answer.outputTokens());
 
         JSONObject report = parse(answer.text(), digest.knownPaths);
-        report.put("provider", provider.name());
-        report.put("model", settings.model());
+        report.put("provider", answer.provider());
+        report.put("model", answer.model());
         report.put("generatedAt", Instant.now().toString());
         report.put("language", language);
         report.put("reportLanguage", reportLanguage);
@@ -158,6 +154,10 @@ public final class GeoReport {
         JSONObject usage = new JSONObject();
         usage.put("inputTokens", answer.inputTokens());
         usage.put("outputTokens", answer.outputTokens());
+        if (answer.costUsd() != null) {
+            usage.put("cost", Math.round(answer.costUsd() * 10_000.0) / 10_000.0);
+            usage.put("currency", "USD");
+        }
         report.put("usage", usage);
 
         ScanStore.saveReport(sitePath, language, report);
@@ -489,7 +489,7 @@ public final class GeoReport {
         if (start < 0) {
             throw new IOException("the model did not answer with JSON");
         }
-        JSONObject in = lenient(cleaned.substring(start));
+        JSONObject in = parseJson(cleaned.substring(start));
 
         JSONObject out = new JSONObject();
         out.put("summary", clip(in.optString("summary", ""), SUMMARY));
@@ -585,25 +585,16 @@ public final class GeoReport {
         return out;
     }
 
-    /** Whole object first; failing that, the longest prefix that closes. Models cut off mid-list. */
-    private static JSONObject lenient(String raw) throws IOException {
-        int end = raw.lastIndexOf('}');
-        if (end > 0) {
-            try {
-                return new JSONObject(raw.substring(0, end + 1));
-            } catch (Exception e) {
-                // fall through to salvage
-            }
+    /**
+     * The object up to its last closing brace. genai-connector returns one JSON object and refuses an answer
+     * cut before it is complete, so no salvage of a cut answer is needed.
+     */
+    private static JSONObject parseJson(String raw) throws IOException {
+        try {
+            return new JSONObject(raw.substring(0, raw.lastIndexOf('}') + 1));
+        } catch (JSONException e) {
+            throw new IOException("the model answered with malformed JSON", e);
         }
-        int idx = raw.lastIndexOf("},");
-        while (idx > 0) {
-            try {
-                return new JSONObject(raw.substring(0, idx + 1) + "]}");
-            } catch (Exception e) {
-                idx = raw.lastIndexOf("},", idx - 1);
-            }
-        }
-        throw new IOException("the model answered with malformed JSON");
     }
 
     private static JSONArray strings(JSONArray in, int max) {

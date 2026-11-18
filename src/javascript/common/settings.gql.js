@@ -15,6 +15,7 @@ const SETTINGS_FIELDS = `
     }
     ai {
         configured
+        reason
         provider
         model
         images
