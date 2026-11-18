@@ -15,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.zip.ZipEntry;
@@ -53,36 +54,44 @@ public final class ArchiveReader {
                 if (++entries > MAX_ENTRIES) {
                     throw new IOException("The archive has more than " + MAX_ENTRIES + " entries");
                 }
-                if (entry.isDirectory()) {
-                    continue;
+                String text = entry.isDirectory() ? null : text(in, entry.getName(), skipped, inflated);
+                if (text != null) {
+                    total += text.length();
+                    if (total > MAX_TOTAL_CHARS) {
+                        throw new IOException("The archive holds more than " + MAX_TOTAL_CHARS + " characters of text");
+                    }
+                    raw.put(entry.getName(), text);
                 }
-                String name = entry.getName();
-                if (!SkillPaths.isSafeRelative(name)) {
-                    skipped.add(name + ": unsafe path");
-                    continue;
-                }
-                if (isHidden(name) || !isText(name)) {
-                    drain(in, inflated);
-                    continue;
-                }
-                byte[] bytes = readLimited(in, SkillPaths.MAX_FILE_CHARS, inflated);
-                if (bytes == null) {
-                    skipped.add(name + ": larger than " + SkillPaths.MAX_FILE_CHARS + " bytes");
-                    continue;
-                }
-                String text = utf8(bytes);
-                if (text == null) {
-                    skipped.add(name + ": not UTF-8 text");
-                    continue;
-                }
-                total += text.length();
-                if (total > MAX_TOTAL_CHARS) {
-                    throw new IOException("The archive holds more than " + MAX_TOTAL_CHARS + " characters of text");
-                }
-                raw.put(name, text);
             }
         }
         return new ArchiveReader(stripWrapper(raw), skipped);
+    }
+
+    /**
+     * The text of the current file entry, or {@code null} for an entry left out. An unsafe path, a
+     * file too large and a text that is not UTF-8 are skipped with their reason. A hidden or binary
+     * file is drained with no reason.
+     */
+    private static String text(ZipInputStream in, String name, List<String> skipped, long[] inflated)
+            throws IOException {
+        if (!SkillPaths.isSafeRelative(name)) {
+            skipped.add(name + ": unsafe path");
+            return null;
+        }
+        if (isHidden(name) || !isText(name)) {
+            drain(in, inflated);
+            return null;
+        }
+        byte[] bytes = readLimited(in, SkillPaths.MAX_FILE_CHARS, inflated);
+        if (bytes == null) {
+            skipped.add(name + ": larger than " + SkillPaths.MAX_FILE_CHARS + " bytes");
+            return null;
+        }
+        String text = utf8(bytes);
+        if (text == null) {
+            skipped.add(name + ": not UTF-8 text");
+        }
+        return text;
     }
 
     /** Removes the first folder when every path starts with it, as in an archive of GitHub. */
@@ -115,7 +124,7 @@ public final class ArchiveReader {
 
     private static boolean isText(String path) {
         int dot = path.lastIndexOf('.');
-        String extension = dot < 0 ? "" : path.substring(dot + 1).toLowerCase(java.util.Locale.ROOT);
+        String extension = dot < 0 ? "" : path.substring(dot + 1).toLowerCase(Locale.ROOT);
         return SkillPaths.TEXT_TYPES.contains(extension);
     }
 
