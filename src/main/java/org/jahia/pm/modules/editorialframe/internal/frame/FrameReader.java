@@ -221,10 +221,13 @@ public final class FrameReader {
                     node.getPropertyAsString("ruleLanguage"),
                     WritingRule.Severity.parse(node.getPropertyAsString("severity")),
                     i18n(node, "justification", language, fallback),
-                    scope)
-                    .withExamples(nonBlank(strings(node, "wrongExamples")), nonBlank(strings(node, "rightExamples")))
-                    .withDecision(node.getPropertyAsString("owner"), day(node, "decidedOn"))
-                    .withValidity(day(node, "validFrom"), day(node, "validUntil"));
+                    scope,
+                    nonBlank(strings(node, "wrongExamples")),
+                    nonBlank(strings(node, "rightExamples")),
+                    node.getPropertyAsString("owner"),
+                    day(node, "decidedOn"),
+                    day(node, "validFrom"),
+                    day(node, "validUntil"));
         } catch (RepositoryException | IllegalArgumentException e) {
             logger.warn("The writing rule {} cannot be read: {}", node.getPath(), e.getMessage());
             return null;

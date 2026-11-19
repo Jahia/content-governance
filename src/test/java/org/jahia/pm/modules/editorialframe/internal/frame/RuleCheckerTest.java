@@ -20,7 +20,7 @@ class RuleCheckerTest {
 
     private static WritingRule rule(Kind kind, String pattern, MatchMode mode, String replacement, String language) {
         return new WritingRule("id-" + pattern, kind, pattern, mode, replacement, language, Severity.BLOCKING,
-                "Because.", "site");
+                "Because.", "site", List.of(), List.of(), null, null, null, null);
     }
 
     @Test

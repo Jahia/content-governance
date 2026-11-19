@@ -18,7 +18,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class WritingRuleTest {
 
     private static final WritingRule BAN = new WritingRule("ban", Kind.FORBIDDEN, "Acme", MatchMode.TERM, null, null,
-            Severity.BLOCKING, "No competitor name in a LinkedIn post.", "site");
+            Severity.BLOCKING, "No competitor name in a LinkedIn post.", "site", List.of(), List.of(), null, null, null,
+            null);
 
     @Test
     void aRuleAppliesFromItsFirstDayToItsLastDayBothIncluded() {

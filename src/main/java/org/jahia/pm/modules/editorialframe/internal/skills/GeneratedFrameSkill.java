@@ -53,7 +53,7 @@ public final class GeneratedFrameSkill {
         SkillSummary summary = new SkillSummary(NAME, "The editorial frame of the site " + frame.siteKey()
                 + ": the voice of the brand, its readers, its writing rules and its glossary. Read it before you write or change "
                 + "any content of this site, and follow it.", "generated", "frame", "auto", List.of("mcp"), "find",
-                "/sites/" + frame.siteKey() + " (frame " + frame.fingerprint() + ")", List.of());
+                "/sites/" + frame.siteKey() + " (frame " + frame.fingerprint() + ")", List.of(), null, null, null);
         return new LoadedSkill(summary, body, files);
     }
 

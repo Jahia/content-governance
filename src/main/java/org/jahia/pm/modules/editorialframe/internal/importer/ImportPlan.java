@@ -554,7 +554,7 @@ public final class ImportPlan {
                 ? "The term that the market uses (" + path + ")."
                 : "A term that the brand never uses (" + path + ").";
         rules.add(new RuleItem(path, new WritingRule(null, kind, pattern, WritingRule.MatchMode.TERM, replacement,
-                language, severity, justification, "site")));
+                language, severity, justification, "site", List.of(), List.of(), null, null, null, null)));
     }
 
     /**
@@ -586,7 +586,7 @@ public final class ImportPlan {
         rules.add(new RuleItem(path, new WritingRule(null, WritingRule.Kind.FORBIDDEN, "(?i)" + regex,
                 WritingRule.MatchMode.REGEX, null, null,
                 "unsafe".equals(risk) ? WritingRule.Severity.BLOCKING : WritingRule.Severity.WARNING,
-                justification.strip(), "site")));
+                justification.strip(), "site", List.of(), List.of(), null, null, null, null)));
     }
 
     /** A sensitive topic: each phrase of {@code avoid} is a warning, which names the phrases to prefer. */
@@ -606,7 +606,7 @@ public final class ImportPlan {
                 rules.add(new RuleItem(path, new WritingRule(null, WritingRule.Kind.FORBIDDEN, term.trim(),
                         WritingRule.MatchMode.TERM, null, null, WritingRule.Severity.WARNING,
                         "Sensitive topic " + topic.replace('_', ' ') + (preferred == null ? "" : ". Prefer: " + preferred),
-                        "site")));
+                        "site", List.of(), List.of(), null, null, null, null)));
             }
         }
     }
@@ -762,10 +762,10 @@ public final class ImportPlan {
                     WritingRule.Kind.parse(stringOf(map.get("kind"))), pattern,
                     WritingRule.MatchMode.parse(stringOf(map.get("match"))), stringOf(map.get("replacement")),
                     stringOf(map.get("language")), WritingRule.Severity.parse(stringOf(map.get("severity"))),
-                    stringOf(map.get("justification")), "site")
-                    .withExamples(texts(map.get("wrong_examples")), texts(map.get("right_examples")))
-                    .withDecision(stringOf(map.get("owner")), day(map.get("decided_on")))
-                    .withValidity(day(map.get("valid_from")), day(map.get("valid_until")))));
+                    stringOf(map.get("justification")), "site",
+                    texts(map.get("wrong_examples")), texts(map.get("right_examples")),
+                    stringOf(map.get("owner")), day(map.get("decided_on")),
+                    day(map.get("valid_from")), day(map.get("valid_until")))));
         } catch (IllegalArgumentException e) {
             warnings.add(path + ": a rule with an unknown kind, match or severity is kept out (" + pattern + ")");
         } catch (DateTimeParseException e) {
