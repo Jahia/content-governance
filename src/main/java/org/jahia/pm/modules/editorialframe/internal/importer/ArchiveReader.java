@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -82,12 +83,12 @@ public final class ArchiveReader {
             drain(in, inflated);
             return null;
         }
-        byte[] bytes = readLimited(in, SkillPaths.MAX_FILE_CHARS, inflated);
-        if (bytes == null) {
+        Optional<byte[]> bytes = readLimited(in, SkillPaths.MAX_FILE_CHARS, inflated);
+        if (bytes.isEmpty()) {
             skipped.add(name + ": larger than " + SkillPaths.MAX_FILE_CHARS + " bytes");
             return null;
         }
-        String text = utf8(bytes);
+        String text = utf8(bytes.get());
         if (text == null) {
             skipped.add(name + ": not UTF-8 text");
         }
@@ -128,7 +129,8 @@ public final class ArchiveReader {
         return SkillPaths.TEXT_TYPES.contains(extension);
     }
 
-    private static byte[] readLimited(InputStream in, int limit, long[] inflated) throws IOException {
+    /** The bytes of the current entry, or empty when it holds more than {@code limit} bytes. */
+    private static Optional<byte[]> readLimited(InputStream in, int limit, long[] inflated) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         byte[] buffer = new byte[8192];
         int read;
@@ -137,10 +139,10 @@ public final class ArchiveReader {
             out.write(buffer, 0, read);
             if (out.size() > limit) {
                 drain(in, inflated);
-                return null;
+                return Optional.empty();
             }
         }
-        return out.toByteArray();
+        return Optional.of(out.toByteArray());
     }
 
     /** Reads the rest of an entry, so that the next one can be read, and counts its bytes. */
