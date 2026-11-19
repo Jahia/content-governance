@@ -49,14 +49,13 @@ public final class SkillDocument {
     /** The Jahia tools of {@code allowed-tools}. */
     public final List<String> tools;
 
-    private SkillDocument(String name, String description, String license, String compatibility, String allowedTools,
-                          Map<String, Object> rawMetadata, String body, List<String> warnings) {
+    private SkillDocument(Map<?, ?> frontmatter, String name, String description, String body, List<String> warnings) {
         this.name = name;
         this.description = description;
-        this.license = license;
-        this.compatibility = compatibility;
-        this.allowedTools = allowedTools;
-        this.rawMetadata = rawMetadata;
+        this.license = string(frontmatter.get("license"));
+        this.compatibility = string(frontmatter.get("compatibility"));
+        this.allowedTools = string(frontmatter.get("allowed-tools"));
+        this.rawMetadata = allMetadata(frontmatter);
         Map<String, String> asStrings = new LinkedHashMap<>();
         rawMetadata.forEach((key, value) -> asStrings.put(key, string(value)));
         this.metadata = asStrings;
@@ -90,8 +89,7 @@ public final class SkillDocument {
         List<String> warnings = new ArrayList<>();
         String name = skillName(string(map.get("name")), folderName, warnings);
         String description = descriptionOf(string(map.get("description")), warnings);
-        return new SkillDocument(name, description, string(map.get("license")), string(map.get("compatibility")),
-                string(map.get("allowed-tools")), allMetadata(map), body, warnings);
+        return new SkillDocument(map, name, description, body, warnings);
     }
 
     /** The YAML map of a frontmatter. */
