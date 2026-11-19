@@ -38,20 +38,28 @@ public final class ImportWriter {
     /** The one parent folder of everything an import writes: voice, personas, rules, glossary and skills. */
     public static final String FOLDER = "ai-assistant";
     private static final String RULE_TYPE = "efnt:writingRule";
+    private static final String TERM_TYPE = "efnt:glossaryTerm";
+    private static final String VOICE_FOLDER = "voice";
     private static final String PERSONAS_FOLDER = "personas";
+    private static final String RULES_FOLDER = "rules";
+    private static final String GLOSSARY_FOLDER = "glossary";
+    private static final String SKILLS_FOLDER = "skills";
+    /** The property of a rule or a term that names the file of the archive that it comes from. */
+    private static final String SOURCE = "source";
     /**
      * The sub-folders of the parent folder, and the only type each one accepts. jContent reads the
      * restriction from {@code j:contributeTypes} of the mixin {@code jmix:contributeMode}: its create
      * menu and its paste offer that type only.
      */
     static final Map<String, String> SUB_FOLDERS = Map.of(
-            "voice", "efnt:brandVoice",
+            VOICE_FOLDER, "efnt:brandVoice",
             PERSONAS_FOLDER, "efnt:persona",
-            "rules", RULE_TYPE,
-            "glossary", "efnt:glossaryTerm",
-            "skills", "efnt:skill");
+            RULES_FOLDER, RULE_TYPE,
+            GLOSSARY_FOLDER, TERM_TYPE,
+            SKILLS_FOLDER, "efnt:skill");
     /** The sub-folders in the order the setup creates them. */
-    static final List<String> SUB_FOLDER_NAMES = List.of("voice", PERSONAS_FOLDER, "rules", "glossary", "skills");
+    static final List<String> SUB_FOLDER_NAMES = List.of(VOICE_FOLDER, PERSONAS_FOLDER, RULES_FOLDER, GLOSSARY_FOLDER,
+            SKILLS_FOLDER);
     static final String RESTRICTIONS = "jmix:contributeMode";
     static final String RESTRICTED_TYPES = "j:contributeTypes";
     static final List<String> ACTIVATIONS = List.of("auto", "manual", "pinned-only");
@@ -77,11 +85,11 @@ public final class ImportWriter {
         session.save();
         writeSkills(session, base, plan.skills(), sourceRef, mapper, written);
 
-        report.put("skills", plan.skills().size());
-        report.put("personas", plan.personas().size());
-        report.put("rules", plan.rules().size());
-        report.put("glossary", plan.glossary().size());
-        report.put("voice", plan.voice() == null ? null : plan.voice().name);
+        report.put(SKILLS_FOLDER, plan.skills().size());
+        report.put(PERSONAS_FOLDER, plan.personas().size());
+        report.put(RULES_FOLDER, plan.rules().size());
+        report.put(GLOSSARY_FOLDER, plan.glossary().size());
+        report.put(VOICE_FOLDER, plan.voice() == null ? null : plan.voice().name);
         report.set("warnings", mapper.valueToTree(plan.warnings()));
         report.set("skipped", mapper.valueToTree(plan.skipped()));
         return report;
@@ -92,7 +100,7 @@ public final class ImportWriter {
         if (item == null) {
             return;
         }
-        JCRNodeWrapper voice = node(base.getNode("voice"), item.name, "efnt:brandVoice");
+        JCRNodeWrapper voice = node(base.getNode(VOICE_FOLDER), item.name, "efnt:brandVoice");
         voice.setProperty("jcr:title", item.title);
         voice.setProperty("body", item.body);
         written.add(voice.getPath());
@@ -118,7 +126,7 @@ public final class ImportWriter {
         if (items.isEmpty()) {
             return;
         }
-        JCRNodeWrapper rulesFolder = base.getNode("rules");
+        JCRNodeWrapper rulesFolder = base.getNode(RULES_FOLDER);
         Map<String, List<WritingRule>> bySource = new LinkedHashMap<>();
         for (ImportPlan.RuleItem item : items) {
             bySource.computeIfAbsent(item.source, key -> new ArrayList<>()).add(item.rule);
@@ -138,7 +146,7 @@ public final class ImportWriter {
     }
 
     private static void writeRule(JCRNodeWrapper node, String source, WritingRule rule) throws RepositoryException {
-        node.setProperty("source", source);
+        node.setProperty(SOURCE, source);
         node.setProperty("kind", rule.kind().name().toLowerCase(Locale.ROOT));
         node.setProperty("pattern", rule.pattern());
         node.setProperty("matchMode", rule.matchMode().name().toLowerCase(Locale.ROOT));
@@ -169,7 +177,7 @@ public final class ImportWriter {
         if (items.isEmpty()) {
             return;
         }
-        JCRNodeWrapper glossaryFolder = base.getNode("glossary");
+        JCRNodeWrapper glossaryFolder = base.getNode(GLOSSARY_FOLDER);
         Map<String, List<GlossaryTerm>> bySource = new LinkedHashMap<>();
         for (ImportPlan.TermItem item : items) {
             bySource.computeIfAbsent(item.source, key -> new ArrayList<>()).add(item.term);
@@ -177,11 +185,11 @@ public final class ImportWriter {
         for (Map.Entry<String, List<GlossaryTerm>> source : bySource.entrySet()) {
             // A new import of a glossary file replaces the terms of its last import.
             String slug = ImportPlan.slug(source.getKey());
-            removeOfSource(glossaryFolder, "efnt:glossaryTerm", source.getKey());
+            removeOfSource(glossaryFolder, TERM_TYPE, source.getKey());
             int index = 0;
             for (GlossaryTerm term : source.getValue()) {
                 index++;
-                writeTerm(glossaryFolder.addNode(String.format("%s-%04d", slug, index), "efnt:glossaryTerm"),
+                writeTerm(glossaryFolder.addNode(String.format("%s-%04d", slug, index), TERM_TYPE),
                         source.getKey(), term);
             }
             written.add(glossaryFolder.getPath() + " (" + index + " terms of " + source.getKey() + ")");
@@ -189,7 +197,7 @@ public final class ImportWriter {
     }
 
     private static void writeTerm(JCRNodeWrapper node, String source, GlossaryTerm term) throws RepositoryException {
-        node.setProperty("source", source);
+        node.setProperty(SOURCE, source);
         node.setProperty("term", term.term());
         node.setProperty("termLanguage", term.termLanguage());
         node.setProperty("translation", term.translation());
@@ -214,7 +222,7 @@ public final class ImportWriter {
         if (items.isEmpty()) {
             return;
         }
-        JCRNodeWrapper skills = base.getNode("skills");
+        JCRNodeWrapper skills = base.getNode(SKILLS_FOLDER);
         for (ImportPlan.SkillItem item : items) {
             written.add(writeSkill(skills, item, sourceRef, mapper).getPath());
             // One save a skill keeps the memory of a large import low.
@@ -336,7 +344,7 @@ public final class ImportWriter {
         JCRNodeIteratorWrapper children = rulesFolder.getNodes();
         while (children.hasNext()) {
             JCRNodeWrapper child = (JCRNodeWrapper) children.nextNode();
-            boolean ruleOfFile = child.isNodeType(RULE_TYPE) && source.equals(child.getPropertyAsString("source"));
+            boolean ruleOfFile = child.isNodeType(RULE_TYPE) && source.equals(child.getPropertyAsString(SOURCE));
             boolean formerFolder = child.isNodeType("jnt:contentFolder") && child.getName().equals(slug);
             if (ruleOfFile || formerFolder) {
                 old.add(child);
@@ -353,7 +361,7 @@ public final class ImportWriter {
         JCRNodeIteratorWrapper children = folder.getNodes();
         while (children.hasNext()) {
             JCRNodeWrapper child = (JCRNodeWrapper) children.nextNode();
-            if (child.isNodeType(type) && source.equals(child.getPropertyAsString("source"))) {
+            if (child.isNodeType(type) && source.equals(child.getPropertyAsString(SOURCE))) {
                 old.add(child);
             }
         }

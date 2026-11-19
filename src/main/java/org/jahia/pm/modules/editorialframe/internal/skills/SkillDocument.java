@@ -124,11 +124,11 @@ public final class SkillDocument {
         name = name.trim();
         if (!NAME_PATTERN.matcher(name).matches()) {
             String fixed = fixedName(name, folderName);
-            warnings.add("The name '" + name + "' breaks the naming rule: '" + fixed + "' is used");
+            warnings.add(String.format("The name '%s' breaks the naming rule: '%s' is used", name, fixed));
             name = fixed;
         }
         if (folderName != null && !name.equals(folderName)) {
-            warnings.add("The name '" + name + "' differs from the folder '" + folderName + "'");
+            warnings.add(String.format("The name '%s' differs from the folder '%s'", name, folderName));
         }
         return name;
     }
@@ -140,7 +140,7 @@ public final class SkillDocument {
             fixed = dashed(folderName);
         }
         if (fixed.isEmpty()) {
-            throw new IllegalArgumentException("The name '" + name + "' gives no valid skill name");
+            throw new IllegalArgumentException(String.format("The name '%s' gives no valid skill name", name));
         }
         return cut(fixed);
     }

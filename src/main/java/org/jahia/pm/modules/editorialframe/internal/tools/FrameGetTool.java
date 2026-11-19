@@ -24,6 +24,9 @@ import java.util.Set;
 @Component(service = JahiaMcpTool.class)
 public class FrameGetTool implements JahiaMcpTool {
 
+    /** The input that names the persona to write for, and the output that names the persona used. */
+    private static final String PERSONA = "persona";
+
     @Reference
     private EditorialFrameService frames;
 
@@ -46,7 +49,7 @@ public class FrameGetTool implements JahiaMcpTool {
         ObjectNode schema = FrameTools.schema("The frame of a site");
         FrameTools.property(schema, FrameTools.SITE_KEY_INPUT, FrameTools.STRING_TYPE, "The key of the site, such as digitall.", true);
         FrameTools.property(schema, "locale", FrameTools.STRING_TYPE, "The language of the content, such as en or fr.", true);
-        FrameTools.property(schema, "persona", FrameTools.STRING_TYPE, "The name of a persona. Leave it out for the default persona.", false);
+        FrameTools.property(schema, PERSONA, FrameTools.STRING_TYPE, "The name of a persona. Leave it out for the default persona.", false);
         FrameTools.property(schema, "text", FrameTools.STRING_TYPE,
                 "The text you work on, plain or HTML, such as the source of a translation. The frame then lists the "
                         + "glossary terms that it holds, and the rules that it breaks first.", false);
@@ -77,10 +80,10 @@ public class FrameGetTool implements JahiaMcpTool {
                     + " characters", "Give the part of the text you work on.");
         }
         FrameContext context = frames.buildContext(new FrameRequest(siteKey, locale == null ? "en" : locale,
-                FrameTools.text(input, "persona"), 4000, text));
+                FrameTools.text(input, PERSONA), 4000, text));
         ObjectNode result = FrameTools.MAPPER.createObjectNode();
         result.put("fingerprint", context.fingerprint());
-        result.put("persona", context.persona());
+        result.put(PERSONA, context.persona());
         result.set("personas", FrameTools.MAPPER.valueToTree(context.personas()));
         result.put("frame", context.isEmpty() ? "This site has no editorial frame." : context.text());
         ctx.audit().recordEvent("frame.get", Map.of(FrameTools.SITE_KEY_INPUT, siteKey,
