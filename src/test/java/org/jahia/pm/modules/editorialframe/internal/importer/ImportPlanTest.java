@@ -258,7 +258,7 @@ class ImportPlanTest {
     @Test
     void invisibleCharactersRefuseASkill() {
         Map<String, String> files = new TreeMap<>();
-        files.put("skills/x/SKILL.md", "---\nname: x\ndescription: X.\n---\nDo this​ and that.");
+        files.put("skills/x/SKILL.md", "---\nname: x\ndescription: X.\n---\nDo this\u200B and that.");
         ImportPlan plan = ImportPlan.of(files, new ImportPlan.Options());
         assertTrue(plan.skills().isEmpty());
         assertTrue(plan.skipped().get(0).contains("invisible"));
