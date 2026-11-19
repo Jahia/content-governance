@@ -4,6 +4,7 @@ import i18next from 'i18next';
 import {registry} from '@jahia/ui-extender';
 import {Header, LayoutContent, Loader} from '@jahia/moonstone';
 import {GovernanceAction} from './drawer/GovernanceAction';
+import {registerOwnTabs} from './drawer/ownTabs';
 import {PublishCheckAction} from './publish/PublishCheckAction';
 import {SectionGate} from './common/SectionGate';
 import {NS} from './common/i18n';
@@ -92,8 +93,11 @@ function register() {
         '</svg>'
     );
 
-    // One button for the three sections. The component shows it only on a page or a main
-    // resource of a site that enables the module and keeps at least one section switched on.
+    // The tabs of the drawer: Page quality, GEO readiness and Compliance, before those of other modules
+    registerOwnTabs();
+
+    // One button for every tab of the drawer. The component shows it only on a page or a main
+    // resource of a site that enables the module and keeps at least one tab switched on.
     registry.add('action', 'contentGovernance', {
         targets: ['headerPrimaryActions:890'],
         buttonIcon,

@@ -5,14 +5,6 @@ const SETTINGS_FIELDS = `
     moduleEnabled
     canEdit
     disabled
-    sections {
-        id
-        enabled
-        tabs {
-            id
-            enabled
-        }
-    }
     ai {
         configured
         reason

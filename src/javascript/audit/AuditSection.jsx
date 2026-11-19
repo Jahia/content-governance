@@ -286,7 +286,8 @@ function imagesWithoutAlt(results) {
  * review and assists on demand. Results are cached per page and language; the section measures
  * the page when it first shows and on every re-run.
  */
-export function AuditSection({path, language, isOn, ai, onCount, onFindings, requestedTab}) {
+export function AuditSection({path, language, isOn, settings, onCount, onFindings, requestedTab}) {
+    const ai = settings?.ai;
     const {t} = useGovernanceTranslation('audit');
     const apolloClient = useApolloClient();
     const [activeTab, setActiveTab] = useState(null);
@@ -821,8 +822,8 @@ AuditSection.propTypes = {
     language: PropTypes.string.isRequired,
     // isOn(tabId): whether the site switched that tab on
     isOn: PropTypes.func.isRequired,
-    // {configured, provider, model, images} from the site settings
-    ai: PropTypes.object,
+    // The site settings: `ai` is {configured, reason, provider, model, images}
+    settings: PropTypes.shape({ai: PropTypes.object}),
     onCount: PropTypes.func.isRequired,
     // Reports the section's findings to the drawer's "Fix first" list (drawer/findings.js)
     onFindings: PropTypes.func.isRequired,

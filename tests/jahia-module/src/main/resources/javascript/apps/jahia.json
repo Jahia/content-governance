@@ -1,0 +1,7 @@
+{
+  "jahia": {
+    "apps": {
+      "jahia": "javascript/apps/cg-test-tab.js"
+    }
+  }
+}

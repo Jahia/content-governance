@@ -1,10 +1,11 @@
 import {withoutTimingFindings} from '../audit/vitalsFindings';
 
 /**
- * The findings of the drawer's sections, for its "Fix first" list. A finding is
- * `{key, section, tab, severity, title}`: `severity` is `critical`, `serious`, `moderate` or
- * `minor` (axe-core's impacts, which the module's recommendations already use), `title` is
- * already translated, `tab` is the tab of the section that shows it (null for a section without tabs).
+ * The findings of the drawer's tabs, for its "Fix first" list. A finding is
+ * `{key, section, tab, severity, title}`: `section` is the id of the drawer tab that found it (the
+ * drawer sets it), `severity` is `critical`, `serious`, `moderate` or `minor` (axe-core's impacts,
+ * which the module's recommendations already use), `title` is already translated, `tab` is the part
+ * of the drawer tab that shows it (null for a drawer tab without parts).
  * Page quality findings also carry `detail` (what to do, translated), `rule` (the id of their rule
  * in the catalog, null for accessibility and for an audit stored before the catalog) and, for
  * accessibility, `count` (the elements that fail the rule).
@@ -21,8 +22,8 @@ const AUDIT_TABS = [['seo', 'seo'], ['vitals', 'vitals'], ['readability', 'reada
 /**
  * @param {Array<object>} findings findings of every section
  * @param {number} max how many to keep
- * @returns {Array<object>} the most serious first; findings of equal severity keep their order
- *     (Page quality, then GEO readiness, then Compliance, as the drawer lists its sections)
+ * @returns {Array<object>} the most serious first; findings of equal severity keep their order,
+ *     which is the order of the drawer's tabs
  */
 export function rankFindings(findings, max = 5) {
     return findings
@@ -42,11 +43,11 @@ export function rankFindings(findings, max = 5) {
 export const auditFindingKey = (resultKey, id) => `audit.${resultKey}.${id}`;
 
 /**
- * The findings that the drawer hands to the entries of other modules: those of the given sections,
- * in the drawer's order. Each has `rule`, the id of the rule it reports: today, its key.
+ * The findings that the drawer hands to its tabs and to the actions on a finding: those of the
+ * given tabs, in the drawer's order. Each has `rule`, the id of the rule it reports: today, its key.
  *
- * @param {object} bySection the findings of each section, by section id
- * @param {Array<string>} sectionIds the sections the page can use, in the drawer's order
+ * @param {object} bySection the findings of each tab, by tab id
+ * @param {Array<string>} sectionIds the tabs the page can use, in the drawer's order
  * @returns {Array<object>} findings
  */
 export function entryFindings(bySection, sectionIds) {

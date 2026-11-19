@@ -1,4 +1,5 @@
 import {downloadCsv, downloadJson} from '../../common/exportFile';
+import {countsOf} from '../auditHistory';
 
 export const TAB_COLUMNS = ['accessibility', 'seo', 'vitals', 'readability', 'ecodesign', 'links', 'jahia'];
 
@@ -9,10 +10,13 @@ const baseName = (siteKey, language, exportedAt) => `page-quality-${siteKey}-${l
 /** One row per audited page, with the issues of its latest audit per tab. */
 export const exportCsv = (report, siteKey, language) => {
     const exportedAt = new Date().toISOString();
-    const rows = report.pages.map(page => [
-        page.path, page.title, page.lastAudit.auditedAt, page.lastAudit.auditedBy,
-        ...TAB_COLUMNS.map(tab => page.lastAudit.summary[tab]), page.lastAudit.summary.total, page.previousTotal
-    ]);
+    const rows = report.pages.map(page => {
+        const counts = countsOf(page.lastAudit.summary);
+        return [
+            page.path, page.title, page.lastAudit.auditedAt, page.lastAudit.auditedBy,
+            ...TAB_COLUMNS.map(tab => counts[tab]), page.lastAudit.summary.total, page.previousTotal
+        ];
+    });
     downloadCsv(CSV_COLUMNS, rows, `${baseName(siteKey, language, exportedAt)}.csv`);
 };
 

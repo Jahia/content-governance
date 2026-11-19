@@ -7,7 +7,6 @@ import graphql.annotations.annotationTypes.GraphQLNonNull;
 import org.jahia.community.contentgovernance.ai.AiFeature;
 import org.jahia.community.contentgovernance.ai.AiService;
 import org.jahia.community.contentgovernance.ai.AiStatus;
-import org.jahia.community.contentgovernance.settings.Features;
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
 import org.jahia.modules.graphql.provider.dxm.DataFetchingException;
 import org.jahia.services.content.decorator.JCRSiteNode;
@@ -15,31 +14,28 @@ import org.jahia.services.content.decorator.JCRSiteNode;
 import javax.jcr.RepositoryException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
- * What a site uses of the module: its sections and tabs, switched on or off, and the AI status the
- * drawer greys AI features out with. Built once per field, never cached.
+ * What a site uses of the module: the ids of the tabs it switched off, and the AI status the drawer
+ * greys AI features out with. The drawer's registry lists the tabs, so a tab that no id here names
+ * is on. Built once per field, never cached.
  */
 @GraphQLName("ContentGovernanceSiteSettings")
-@GraphQLDescription("Sections and tabs of Content Governance on a site")
+@GraphQLDescription("The tabs of the Content Governance drawer that a site switched off")
 public class GqlSiteSettings {
 
     private final String siteKey;
     private final boolean moduleEnabled;
     private final boolean canEdit;
     private final List<String> disabled;
-    private final List<GqlSection> sections;
     private final GqlAiStatus ai;
 
-    private GqlSiteSettings(String siteKey, boolean moduleEnabled, boolean canEdit, List<String> disabled,
-                            List<GqlSection> sections, GqlAiStatus ai) {
+    private GqlSiteSettings(String siteKey, boolean moduleEnabled, boolean canEdit, List<String> disabled, GqlAiStatus ai) {
         this.siteKey = siteKey;
         this.moduleEnabled = moduleEnabled;
         this.canEdit = canEdit;
         this.disabled = disabled;
-        this.sections = sections;
         this.ai = ai;
     }
 
@@ -56,18 +52,10 @@ public class GqlSiteSettings {
         } catch (RepositoryException e) {
             throw new DataFetchingException("The settings could not be read");
         }
-        List<GqlSection> sections = new ArrayList<>();
-        for (Map.Entry<String, List<String>> section : Features.SECTIONS.entrySet()) {
-            List<GqlTab> tabs = new ArrayList<>();
-            for (String tab : section.getValue()) {
-                tabs.add(new GqlTab(tab, !off.contains(section.getKey() + "." + tab)));
-            }
-            sections.add(new GqlSection(section.getKey(), enabled && !off.contains(section.getKey()), tabs));
-        }
         boolean canEdit = enabled && site.hasPermission(SiteFeatures.SETTINGS_PERMISSION);
         // Every page task runs on the same tier, so the review stands for all of them.
         AiStatus status = ai.status(AiFeature.REVIEW, site.getSiteKey());
-        return new GqlSiteSettings(site.getSiteKey(), enabled, canEdit, new ArrayList<>(off), sections,
+        return new GqlSiteSettings(site.getSiteKey(), enabled, canEdit, new ArrayList<>(off),
                 new GqlAiStatus(status.ready(), status.reason(), status.provider(), status.model(), status.vision()));
     }
 
@@ -95,17 +83,10 @@ public class GqlSiteSettings {
     /** @return the ids switched off */
     @GraphQLField
     @GraphQLNonNull
-    @GraphQLDescription("Section and tab ids the site switched off")
+    @GraphQLDescription("Ids of the tabs of the drawer (geo) and of their parts (geo.citations) that the site switched off; "
+            + "any other tab is on")
     public List<String> getDisabled() {
         return disabled;
-    }
-
-    /** @return every section, in drawer order */
-    @GraphQLField
-    @GraphQLNonNull
-    @GraphQLDescription("Every section of the drawer, in order, with its tabs")
-    public List<GqlSection> getSections() {
-        return sections;
     }
 
     /** @return the AI status */
@@ -114,67 +95,6 @@ public class GqlSiteSettings {
     @GraphQLDescription("Whether genai-connector serves a model to the caller for the AI features of this site")
     public GqlAiStatus getAi() {
         return ai;
-    }
-
-    /** One section of the drawer. */
-    @GraphQLName("ContentGovernanceSection")
-    @GraphQLDescription("A section of the Content Governance drawer")
-    public static class GqlSection {
-        private final String id;
-        private final boolean enabled;
-        private final List<GqlTab> tabs;
-
-        GqlSection(String id, boolean enabled, List<GqlTab> tabs) {
-            this.id = id;
-            this.enabled = enabled;
-            this.tabs = tabs;
-        }
-
-        /** @return the section id: audit, geo or compliance */
-        @GraphQLField
-        @GraphQLNonNull
-        public String getId() {
-            return id;
-        }
-
-        /** @return whether the site uses the section */
-        @GraphQLField
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        /** @return the tabs of the section */
-        @GraphQLField
-        @GraphQLNonNull
-        public List<GqlTab> getTabs() {
-            return tabs;
-        }
-    }
-
-    /** One tab of a section. */
-    @GraphQLName("ContentGovernanceTab")
-    @GraphQLDescription("A tab of a Content Governance section")
-    public static class GqlTab {
-        private final String id;
-        private final boolean enabled;
-
-        GqlTab(String id, boolean enabled) {
-            this.id = id;
-            this.enabled = enabled;
-        }
-
-        /** @return the tab id within its section */
-        @GraphQLField
-        @GraphQLNonNull
-        public String getId() {
-            return id;
-        }
-
-        /** @return whether the site uses the tab (its section may still be off) */
-        @GraphQLField
-        public boolean isEnabled() {
-            return enabled;
-        }
     }
 
     /** Whether AI can be used by the caller on the site, and with what. */

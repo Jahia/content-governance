@@ -301,7 +301,6 @@ query {
   contentGovernance {
     siteSettings(siteKey: "mysite") {
       moduleEnabled canEdit disabled
-      sections { id enabled tabs { id enabled } }
       ai { configured reason provider model images }
     }
   }
@@ -314,8 +313,10 @@ mutation {
 }
 ```
 
-Feature ids: `audit` (`accessibility`, `seo`, `vitals`, `readability`, `ecodesign`, `links`,
-`jahia`, `ai`), `geo` (`score`, `crawler`, `files`, `schema`, `citations`), `compliance`. The
+Feature ids are the key of a tab of the drawer, or `<tab>.<part>` for a part of a tab. The tabs of
+the module are `audit` (`accessibility`, `seo`, `vitals`, `readability`, `ecodesign`, `links`,
+`jahia`, `ai`), `geo` (`score`, `crawler`, `files`, `schema`, `citations`) and `compliance`. A tab
+that another module adds has the key it registers. Every tab is on until the site switches it off. The
 compliance scans stay under `complianceScan { scanPage, scanSite }`. Servlets live under
 `/modules/content-governance/` (`geo/crawler-check`, `geo/report`, `geo/site-scan`, `geo/site-files`,
 `geo/citations`, `audit/ai-review`). The endpoints of the editorial frame stay under

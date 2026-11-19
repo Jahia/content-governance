@@ -14,9 +14,9 @@ import org.jahia.services.usermanager.JahiaUser;
 import org.jahia.services.usermanager.JahiaUserManagerService;
 
 /**
- * Who may read and store Page quality audits: a signed-in user who may open jContent on the site,
- * on a site that enables the module and keeps the Page quality section on, for a page or main
- * resource they can read, in a language of the site. Every check runs with the caller's own session
+ * Who may read and store the runs of a tab: a signed-in user who may open jContent on the site, on
+ * a site that enables the module and keeps the tab on, for a page or main resource they can read, in
+ * a language of the site. Every check runs with the caller's own session
  * in the default workspace, before the service touches the module's private store.
  *
  * <p>Thread-safety: stateless.</p>
@@ -40,12 +40,14 @@ public final class AuditAccess {
     /**
      * @param path     path of a page or main resource
      * @param language content language
+     * @param tab      the tab whose runs are read or stored, which the site must keep on
      * @return the page, read with the caller's session, and its site
      * @throws DataFetchingException with one answer for every refusal
      */
-    static Target page(String path, String language) {
+    static Target page(String path, String language, String tab) {
         user();
-        if (path == null || !path.startsWith("/sites/") || path.contains("..") || !validLanguage(language)) {
+        if (path == null || !path.startsWith("/sites/") || path.contains("..") || !validLanguage(language)
+                || !Features.isTab(tab)) {
             throw new DataFetchingException(DENIED);
         }
         try {
@@ -54,7 +56,7 @@ public final class AuditAccess {
                 throw new DataFetchingException(DENIED);
             }
             JCRSiteNode site = page.getResolveSite();
-            requireSite(site, language);
+            requireSite(site, language, tab);
             return new Target(site, page);
         } catch (PathNotFoundException e) {
             throw new DataFetchingException(DENIED);
@@ -76,7 +78,7 @@ public final class AuditAccess {
         }
         try {
             if (JCRSessionFactory.getInstance().getCurrentUserSession(WORKSPACE).getNode("/sites/" + siteKey) instanceof JCRSiteNode site) {
-                requireSite(site, language);
+                requireSite(site, language, Features.AUDIT);
                 return site;
             }
         } catch (PathNotFoundException e) {
@@ -113,9 +115,9 @@ public final class AuditAccess {
         return language != null && LANGUAGE.matcher(language).matches();
     }
 
-    private static void requireSite(JCRSiteNode site, String language) {
+    private static void requireSite(JCRSiteNode site, String language, String tab) {
         if (site == null || !site.hasPermission(SITE_PERMISSION) || !site.getLanguages().contains(language)
-                || !SiteFeatures.isEnabled(site.getPath(), Features.AUDIT)) {
+                || !SiteFeatures.isEnabled(site.getPath(), tab)) {
             throw new DataFetchingException(DENIED);
         }
     }

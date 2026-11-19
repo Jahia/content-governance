@@ -48,7 +48,7 @@ public final class SiteFeatures {
      * Whether a site enables the module and the feature.
      *
      * @param sitePath {@code /sites/<key>}
-     * @param feature  a section id or a {@code section.tab} id from {@link Features}
+     * @param feature  a tab id or a {@code tab.part} id ({@link Features})
      * @return false when the site is missing, does not enable the module, or switched the feature off
      */
     public static boolean isEnabled(String sitePath, String feature) {
@@ -124,14 +124,15 @@ public final class SiteFeatures {
      * module ({@link PrivateStore}).
      *
      * @param sitePath {@code /sites/<key>}, of a site the caller resolved and was allowed to configure
-     * @param disabled the ids to switch off; unknown ids are dropped
+     * @param disabled the ids to switch off, of any tab registered in the drawer; an id that is not of
+     *                 the form of {@link Features#isValid}, and any id past {@link Features#MAX_IDS}, is dropped
      * @return the ids stored
      * @throws RepositoryException on a repository failure
      */
     public static List<String> save(String sitePath, Collection<String> disabled) throws RepositoryException {
         List<String> ids = new ArrayList<>();
         for (String id : disabled) {
-            if (Features.isKnown(id) && !ids.contains(id)) {
+            if (Features.isValid(id) && !ids.contains(id) && ids.size() < Features.MAX_IDS) {
                 ids.add(id);
             }
         }
