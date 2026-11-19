@@ -65,3 +65,5 @@ kept on purpose, traps already hit once, known leftovers.
   and planned, carried over from GEO Readiness with the reasoning behind each refusal.
 - **[`compliance/publication-blocking.md`](compliance/publication-blocking.md)**: why compliance does
   not block publication yet, and the design when it is wanted.
+- **[`content-rules/draft-rule-test-run.md`](content-rules/draft-rule-test-run.md)**: the test run
+  of a draft rule by its author, its open choices and the work that is left.
