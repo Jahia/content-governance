@@ -33,7 +33,7 @@ public final class JahiaSkillKeys {
     public static final String ACTION = "jahia-action";
 
     /** A Jahia tool name, such as {@code content.get}. A tool of another agent, such as {@code Read}, is not one. */
-    static final Pattern TOOL = Pattern.compile("[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+");
+    static final Pattern TOOL = Pattern.compile("[a-z][a-z0-9_]*+(?:\\.[a-z][a-z0-9_]*+)++");
     static final int MAX_LABEL_CHARS = 60;
     static final int MAX_SCOPE_CHARS = 300;
     static final int MAX_EXAMPLES = 5;
