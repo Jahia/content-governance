@@ -146,16 +146,17 @@ public final class ImportWriter {
     }
 
     /**
-     * Writes a writing rule as a content rule of the domain {@code writing}, whose id is
-     * {@code writing.<node name>}. A rule of the kind style gets the evaluator model, and another kind the
-     * evaluator pattern. A blocking rule is serious and blocking, and a warning is moderate.
+     * Writes a writing rule as a content rule of the evaluator pattern and the domain {@code writing},
+     * whose id is {@code writing.<node name>}. A rule of the kind style is minor, a blocking rule is
+     * serious and blocking, and a warning is moderate.
      */
     private static void writeRule(JCRNodeWrapper node, String source, WritingRule rule) throws RepositoryException {
         boolean blocking = rule.severity() == WritingRule.Severity.BLOCKING;
         node.setProperty("ruleId", "writing." + node.getName());
-        node.setProperty("evaluator", rule.kind() == WritingRule.Kind.STYLE ? "model" : "pattern");
+        node.setProperty("evaluator", "pattern");
         node.setProperty("domain", "writing");
-        node.setProperty("severity", blocking ? "serious" : "moderate");
+        String severity = blocking ? "serious" : "moderate";
+        node.setProperty("severity", rule.kind() == WritingRule.Kind.STYLE ? "minor" : severity);
         node.setProperty("blocking", blocking);
         node.setProperty(SOURCE, source);
         node.setProperty("kind", rule.kind().name().toLowerCase(Locale.ROOT));

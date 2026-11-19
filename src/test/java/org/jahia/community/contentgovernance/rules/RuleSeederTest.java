@@ -53,14 +53,15 @@ class RuleSeederTest {
     }
 
     @Test
-    @DisplayName("a writing rule keeps its kind as an evaluator, and blocking as a flag next to its severity")
+    @DisplayName("a writing rule gets the evaluator pattern, blocking as a flag next to its severity, and a style rule is minor")
     void writingRule_mapsToAContentRule() {
         assertThat(LegacyRules.ruleOf("writing.a", "forbidden", "warning"))
                 .containsEntry(RuleValues.EVALUATOR, "pattern").containsEntry(RuleValues.SEVERITY, "moderate")
                 .containsEntry(RuleValues.BLOCKING, false).containsEntry(RuleValues.DOMAIN, "writing");
-        assertThat(LegacyRules.ruleOf("writing.b", "style", "blocking"))
-                .containsEntry(RuleValues.EVALUATOR, "model").containsEntry(RuleValues.SEVERITY, "serious")
-                .containsEntry(RuleValues.BLOCKING, true);
+        assertThat(LegacyRules.ruleOf("writing.b", "replace", "blocking"))
+                .containsEntry(RuleValues.SEVERITY, "serious").containsEntry(RuleValues.BLOCKING, true);
+        assertThat(LegacyRules.ruleOf("writing.c", "style", "warning"))
+                .containsEntry(RuleValues.EVALUATOR, "pattern").containsEntry(RuleValues.SEVERITY, "minor");
     }
 
     @Test

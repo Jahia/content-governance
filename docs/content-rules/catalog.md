@@ -121,9 +121,10 @@ Content-governance converts the rules of an earlier version once, when it starts
   A rule that the site changed keeps its values and gets its evaluator and its advice.
 - Each `efnt:writingRule` of the editorial frame becomes a `ccs:contentRule` in place, in the edit
   and the live workspace, with the same identifier. Its id is `writing.<node name>`, and its domain is
-  `writing`. The kind `style` gets the evaluator `model`, and the other kinds get `pattern`. The
-  severity `warning` becomes `moderate`, and `blocking` becomes `serious` with `blocking` set. The
-  justification of each language becomes the advice of that language. Every other value stays.
+  `writing`, and its evaluator is `pattern`. The severity `warning` becomes `moderate`, and
+  `blocking` becomes `serious` with `blocking` set. A rule of the kind `style` is `minor`, so that it
+  stays a soft rule. The justification of each language becomes the advice of that language. Every
+  other value stays.
 
 ## How a check reads the rules
 
@@ -134,8 +135,8 @@ Content-governance converts the rules of an earlier version once, when it starts
   `evaluator` and `blocking` there too.
 - The SEO assist reads the ranges of `seo.title` and `seo.metaDescription`, and states them in its
   prompt.
-- The editorial frame reads the rules of the evaluators `pattern` and `model` from the live
-  workspace. `frame.check` reports the matches of a `pattern` rule, and the prompt carries both.
+- The editorial frame reads the rules of the evaluator `pattern` from the live workspace.
+  `frame.check` reports their matches, and the prompt of a model carries them.
 - A rule with no node, and a site that cannot be read, use the values that the module ships.
 
 Each finding carries the id of its rule: `rule` on a recommendation of Page quality, and `rule` on a

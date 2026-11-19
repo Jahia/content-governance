@@ -42,10 +42,9 @@ public final class FrameReader {
     public static final Pattern LANGUAGE = Pattern.compile("[a-z]{2,3}([_-][A-Za-z0-9]{2,8})*");
     static final String VOICE = "efnt:brandVoice";
     static final String PERSONA = "efnt:persona";
-    /** A writing rule is a content rule of the evaluator pattern, or model for the kind style. */
+    /** A writing rule is a content rule of the evaluator pattern. */
     static final String RULE = "ccs:contentRule";
     private static final String PATTERN = "pattern";
-    private static final String MODEL = "model";
     static final String TERM = "efnt:glossaryTerm";
 
     private FrameReader() {
@@ -210,18 +209,16 @@ public final class FrameReader {
     }
 
     /**
-     * The writing rule of a content rule, or {@code null} for a rule that is off, or that neither the
-     * evaluator pattern nor the evaluator model reads. A model rule is of the kind style, which
-     * {@link RuleChecker} leaves to the model. A blocking rule has the severity blocking.
+     * The writing rule of a content rule, or {@code null} for a rule that is off, or whose evaluator is
+     * not pattern. A blocking rule has the severity blocking, and any other rule the severity warning.
      */
     private static WritingRule rule(JCRNodeWrapper node, String scope, String language, String fallback) {
         try {
             String pattern = node.getPropertyAsString("pattern");
             String evaluator = node.hasProperty("evaluator") ? node.getPropertyAsString("evaluator") : PATTERN;
-            boolean model = MODEL.equals(evaluator);
-            WritingRule.Kind kind = model ? WritingRule.Kind.STYLE : WritingRule.Kind.parse(node.getPropertyAsString("kind"));
+            WritingRule.Kind kind = WritingRule.Kind.parse(node.getPropertyAsString("kind"));
             boolean off = node.hasProperty("enabled") && !node.getProperty("enabled").getBoolean();
-            if (off || !(model || PATTERN.equals(evaluator)) || pattern == null || pattern.isBlank()
+            if (off || !PATTERN.equals(evaluator) || pattern == null || pattern.isBlank()
                     || kind == WritingRule.Kind.GLOSSARY) {
                 return null;
             }

@@ -18,8 +18,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 /**
- * Checks the writing rules of the evaluator pattern on a text, with no model. It skips a rule of the
- * kind style, whose evaluator is model. A term matches as a whole word or phrase,
+ * Checks the writing rules on a text, with no model. A term matches as a whole word or phrase,
  * ignoring case: "robust" matches "Robust" and not "robustness".
  */
 public final class RuleChecker {
@@ -44,8 +43,7 @@ public final class RuleChecker {
             text = text.substring(0, MAX_TEXT);
         }
         for (WritingRule rule : rules) {
-            // A rule of the kind style has the evaluator model: a model checks it, not a pattern.
-            Pattern pattern = rule.kind() != Kind.STYLE && rule.appliesTo(language) ? compile(rule) : null;
+            Pattern pattern = rule.appliesTo(language) ? compile(rule) : null;
             if (pattern != null) {
                 checkRule(rule, pattern, text, cut, document, found);
             }

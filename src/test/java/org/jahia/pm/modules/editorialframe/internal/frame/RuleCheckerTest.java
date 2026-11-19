@@ -70,8 +70,8 @@ class RuleCheckerTest {
     }
 
     @Test
-    void aRegexRuleMatchesAPattern() {
-        List<RuleViolation> found = RuleChecker.check(List.of(rule(Kind.REPLACE, "\\s+,", MatchMode.REGEX, ",", null)),
+    void aRegexRuleMatchesAStylePattern() {
+        List<RuleViolation> found = RuleChecker.check(List.of(rule(Kind.STYLE, "\\s+,", MatchMode.REGEX, ",", null)),
                 "en", "Fast , simple", false);
         assertEquals(1, found.size());
     }
@@ -97,15 +97,8 @@ class RuleCheckerTest {
     }
 
     @Test
-    void aStyleRuleIsLeftToTheModel() {
-        WritingRule spaceBeforeComma = rule(Kind.STYLE, "\\s+,", MatchMode.REGEX, ",", null);
-
-        assertTrue(RuleChecker.check(List.of(spaceBeforeComma), "en", "Fast , simple", false).isEmpty());
-    }
-
-    @Test
     void aCatastrophicRegexStopsOnItsDeadline() {
-        WritingRule slow = rule(Kind.FORBIDDEN, "(a|aa)+$", MatchMode.REGEX, null, null);
+        WritingRule slow = rule(Kind.STYLE, "(a|aa)+$", MatchMode.REGEX, null, null);
         String text = "a".repeat(5000) + "b";
         long start = System.nanoTime();
         assertTrue(RuleChecker.check(List.of(slow), "en", text, false).isEmpty());

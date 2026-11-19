@@ -22,8 +22,8 @@
  - essentials (string, textarea) i18n
  - isDefault (boolean) = 'false' autocreated
 
-// Replaced by ccs:contentRule, with the evaluator pattern, or model for the kind style. The module
-// converts each node of this type in place when it starts. The type stays until no site holds one,
+// Replaced by ccs:contentRule, with the evaluator pattern. The module converts each node of this type
+// in place when it starts. The type stays until no site holds one,
 // and jmix:hiddenType keeps it out of the create menu of jContent.
 [efnt:writingRule] > jnt:content, efmix:frameContent, jmix:hiddenType
  // The file an import read the rule from, so that a new import of that file replaces it.

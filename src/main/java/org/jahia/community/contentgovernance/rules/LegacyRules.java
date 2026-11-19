@@ -145,17 +145,18 @@ final class LegacyRules {
     }
 
     /**
-     * The values of a content rule for the values of a writing rule. A rule of the kind {@code style}
-     * gets the evaluator {@code model}, and any other kind gets {@code pattern}. A {@code blocking}
-     * rule is serious and blocking, and a {@code warning} rule is moderate.
+     * The values of a content rule of the evaluator {@code pattern} for the values of a writing rule. A
+     * rule of the kind {@code style} is minor, a {@code blocking} rule is serious and blocking, and a
+     * {@code warning} rule is moderate.
      */
     static Map<String, Object> ruleOf(String id, String kind, String severity) {
         boolean blocking = "blocking".equals(severity);
+        String rank = blocking ? "serious" : "moderate";
         Map<String, Object> values = new HashMap<>();
         values.put(RuleValues.RULE_ID, id);
-        values.put(RuleValues.EVALUATOR, "style".equals(kind) ? ContentRule.MODEL : ContentRule.PATTERN);
+        values.put(RuleValues.EVALUATOR, ContentRule.PATTERN);
         values.put(RuleValues.DOMAIN, WRITING_DOMAIN);
-        values.put(RuleValues.SEVERITY, blocking ? "serious" : "moderate");
+        values.put(RuleValues.SEVERITY, "style".equals(kind) ? "minor" : rank);
         values.put(RuleValues.BLOCKING, blocking);
         values.put(RuleValues.ENABLED, true);
         values.put(RuleValues.FIXER, "editor");

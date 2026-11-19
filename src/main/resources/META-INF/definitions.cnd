@@ -45,7 +45,7 @@
  - unit (string)
  - minimum (double)
  - maximum (double)
- // The pattern of a writing rule: the evaluator pattern checks it, and the evaluator model reads it.
+ // The pattern of a writing rule, which the evaluator pattern checks.
  - kind (string, choicelist[resourceBundle]) < 'forbidden', 'replace', 'mandatory', 'style'
  - pattern (string)
  - matchMode (string, choicelist[resourceBundle]) < 'term', 'regex'
