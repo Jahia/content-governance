@@ -4,13 +4,14 @@ import graphql.annotations.annotationTypes.GraphQLDescription;
 import graphql.annotations.annotationTypes.GraphQLField;
 import graphql.annotations.annotationTypes.GraphQLName;
 import graphql.annotations.annotationTypes.GraphQLNonNull;
+import java.util.List;
 import org.jahia.community.contentgovernance.audit.model.AuditSummary;
 
 /**
- * GraphQL view of an {@link AuditSummary}: a tab the audit did not measure answers null.
+ * GraphQL view of an {@link AuditSummary}: the issues per tab id, for the tabs the run measured.
  */
 @GraphQLName("ContentGovernanceAuditSummary")
-@GraphQLDescription("Issues per tab of a Page quality audit; null for a tab the audit did not measure")
+@GraphQLDescription("Issues per tab id of a stored run, for the tabs the run measured")
 public class GqlAuditSummary {
 
     private final AuditSummary summary;
@@ -20,59 +21,55 @@ public class GqlAuditSummary {
         this.summary = summary;
     }
 
-    /** @return accessibility violations */
+    /** @return the issues of each tab the run measured */
     @GraphQLField
-    public Integer getAccessibility() {
-        return summary.counts().get("accessibility");
-    }
-
-    /** @return SEO recommendations */
-    @GraphQLField
-    public Integer getSeo() {
-        return summary.counts().get("seo");
-    }
-
-    /** @return Web Vitals recommendations */
-    @GraphQLField
-    public Integer getVitals() {
-        return summary.counts().get("vitals");
-    }
-
-    /** @return readability recommendations */
-    @GraphQLField
-    public Integer getReadability() {
-        return summary.counts().get("readability");
-    }
-
-    /** @return eco-design recommendations */
-    @GraphQLField
-    public Integer getEcodesign() {
-        return summary.counts().get("ecodesign");
-    }
-
-    /** @return links recommendations */
-    @GraphQLField
-    public Integer getLinks() {
-        return summary.counts().get("links");
-    }
-
-    /** @return Jahia recommendations */
-    @GraphQLField
-    public Integer getJahia() {
-        return summary.counts().get("jahia");
+    @GraphQLNonNull
+    @GraphQLDescription("Issues per tab id, for the tabs the run measured: the tabs of Page quality in the order of the "
+            + "drawer, or the id of the tab that stored the run")
+    public List<GqlTabCount> getCounts() {
+        return summary.counts().entrySet().stream().map(e -> new GqlTabCount(e.getKey(), e.getValue())).toList();
     }
 
     /** @return critical and serious accessibility violations, or null when unknown */
     @GraphQLField
-    @GraphQLDescription("Critical and serious accessibility violations; null for an audit stored before they were counted")
+    @GraphQLDescription("Critical and serious accessibility violations; null for a run of another tab, or an audit "
+            + "stored before they were counted")
     public Integer getSeriousAccessibility() {
         return summary.seriousAccessibility() < 0 ? null : summary.seriousAccessibility();
     }
 
-        /** @return the sum of the counts */
+    /** @return the sum of the counts */
     @GraphQLField
     @GraphQLNonNull
     public int getTotal() {
         return summary.total();
+    }
+
+    /** The issues of one tab. */
+    @GraphQLName("ContentGovernanceTabCount")
+    @GraphQLDescription("The issues of one tab of a stored run")
+    public static class GqlTabCount {
+        private final String tab;
+        private final int count;
+
+        GqlTabCount(String tab, int count) {
+            this.tab = tab;
+            this.count = count;
+        }
+
+        /** @return the tab id */
+        @GraphQLField
+        @GraphQLNonNull
+        @GraphQLDescription("Id of the tab: a tab of Page quality (accessibility, seo...) or a tab of the drawer")
+        public String getTab() {
+            return tab;
+        }
+
+        /** @return the issues the tab found */
+        @GraphQLField
+        @GraphQLNonNull
+        public int getCount() {
+            return count;
+        }
     }
 }

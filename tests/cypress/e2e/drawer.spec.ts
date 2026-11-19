@@ -1,6 +1,6 @@
 import {deleteUser} from '@jahia/cypress';
 import type {Interception} from 'cypress/types/net-stubbing';
-import {TestUser, addNodeTree, createTestSite, createTestUser, deleteTestSite, switchOff} from '../support/cg';
+import {TEST_TAB, TestUser, addNodeTree, createTestSite, createTestUser, deleteTestSite, switchOff} from '../support/cg';
 
 const BUTTON = 'Content governance';
 const DRAWER = 'dialog[aria-labelledby="content-governance-drawer-title"]';
@@ -184,8 +184,8 @@ describe('Content Governance - drawer', () => {
         });
     });
 
-    it('shows no button once every section is off', () => {
-        switchOff(siteKey, ['audit', 'geo', 'compliance']);
+    it('shows no button once every tab is off', () => {
+        switchOff(siteKey, ['audit', 'geo', 'compliance', TEST_TAB]);
         cy.login(admin.username, admin.password);
         cy.visit(pageUrl);
         // The header is drawn once its other actions are: wait for one before asserting an absence.

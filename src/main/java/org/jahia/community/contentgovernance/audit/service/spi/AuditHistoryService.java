@@ -7,9 +7,11 @@ import org.jahia.community.contentgovernance.audit.model.AuditedPage;
 import org.json.JSONObject;
 
 /**
- * The Page quality audits a site keeps, so every editor sees the last audits of a page and the site
- * dashboard lists them. Audits are stored per page and language in the module's private node of the
- * site ({@code content-governance/audits/<language>/<page id>}), the last {@link #MAX_RUNS} of each.
+ * The runs a site keeps of each tab of the drawer, so every editor sees the last runs of a page. A
+ * run is a Page quality audit (tab {@code audit}), which the site dashboard lists, or the findings
+ * that another tab stored. Runs are stored per page and language in the module's private node of the
+ * site ({@code content-governance/audits/<language>/<page id>}), the last {@link #MAX_RUNS} of each
+ * tab.
  *
  * <p>Callers check the permissions first: the service reads and writes with system sessions, and
  * never decides who may see what.</p>
@@ -19,8 +21,11 @@ import org.json.JSONObject;
  */
 public interface AuditHistoryService {
 
-    /** Audits kept per page and language; older ones are dropped when a new one is saved. */
+    /** Runs kept per tab, page and language; older ones are dropped when a new one is saved. */
     int MAX_RUNS = 10;
+
+    /** The tab of the Page quality audits. */
+    String AUDIT_TAB = "audit";
 
     /**
      * Stores an audit as the latest of its page.
@@ -39,14 +44,31 @@ public interface AuditHistoryService {
                   JSONObject results) throws RepositoryException;
 
     /**
+     * Stores the findings of a tab as the latest run of that tab on the page. The site dashboard of
+     * Page quality does not list it.
+     *
+     * @param sitePath path of the site ({@code /sites/<key>})
+     * @param pageId   identifier of the page
+     * @param language content language of the findings
+     * @param tab      id of the tab that found them, never {@link #AUDIT_TAB}
+     * @param user     username of the editor who ran the tab
+     * @param findings the checked findings ({@code AuditResults.parseFindings})
+     * @return the stored run, with its summary and without its findings
+     * @throws RepositoryException when the run could not be stored
+     */
+    AuditRun saveFindings(String sitePath, String pageId, String language, String tab, String user,
+                          JSONObject findings) throws RepositoryException;
+
+    /**
      * @param sitePath path of the site
      * @param pageId   identifier of the page
      * @param language content language
-     * @return the stored audits of the page, newest first; only the newest carries its results; empty
-     *     when the page has none
+     * @param tab      id of the tab
+     * @return the stored runs of the tab on the page, newest first; only the newest carries what it
+     *     stores; empty when the page has none
      * @throws RepositoryException on a repository failure
      */
-    List<AuditRun> history(String sitePath, String pageId, String language) throws RepositoryException;
+    List<AuditRun> history(String sitePath, String pageId, String language, String tab) throws RepositoryException;
 
     /**
      * @param sitePath path of the site

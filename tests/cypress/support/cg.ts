@@ -32,7 +32,13 @@ export const MODULE_NAME = 'content-governance';
  */
 export const TEMPLATE_SET: string = Cypress.env('CG_TEMPLATE_SET') || 'dx-base-demo-templates';
 
-export const SETTINGS_FIELDS = 'siteKey moduleEnabled canEdit disabled sections { id enabled tabs { id enabled } }';
+export const SETTINGS_FIELDS = 'siteKey moduleEnabled canEdit disabled';
+
+/**
+ * The tab that the test module (tests/jahia-module) adds to the drawer. Every site has it on until a
+ * spec switches it off, so a spec that switches every tab off names it too.
+ */
+export const TEST_TAB = 'cgTestTab';
 
 export function asRoot(): TestUser {
     return {username: 'root', password: Cypress.env('SUPER_USER_PASSWORD') || 'root1234'};
@@ -109,7 +115,7 @@ export function saveSettings(user: TestUser, siteKey: string, disabled: string[]
     }`, {siteKey, disabled});
 }
 
-/** Switches sections and tabs off on a site as root (every id not listed is switched on). */
+/** Switches tabs of the drawer, and parts of tabs, off on a site as root (every id not listed is switched on). */
 export function switchOff(siteKey: string, disabled: string[]): void {
     saveSettings(asRoot(), siteKey, disabled).its('errors').should('be.undefined');
 }

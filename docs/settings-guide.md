@@ -11,6 +11,8 @@ The screen has three tabs: **Features**, **AI model** and **BotRank**.
 
 One card per section of the drawer (**Page quality**, **GEO readiness**, **Compliance**), each with
 a switch for the section and, under it, one switch per tab with a line saying what the tab is for.
+A section that another module adds to the drawer, such as the AI review of the AI assistant, has its
+card too, after the sections of Content Governance.
 Everything is on until you switch it off. Changes apply when you click **Save**; editors see them the
 next time they open the drawer.
 
@@ -34,8 +36,9 @@ Two tabs also depend on something outside the site, and say so with a chip next 
 
 What each switch is stored as: the ids switched off, in the `disabledFeatures` property of the
 site's `content-governance` node (`/sites/<key>/content-governance`, never published). Section ids are
-`audit`, `geo` and `compliance`; tab ids are `<section>.<tab>`, for example `geo.citations` or
-`audit.vitals`. A script sets them with the `saveSiteSettings` mutation (see the root `README.md`).
+`audit`, `geo` and `compliance`, or the key that another module gives its section. Tab ids are
+`<section>.<tab>`, for example `geo.citations` or `audit.vitals`. A script sets them with the
+`saveSiteSettings` mutation (see the root `README.md`).
 
 ## AI model
 

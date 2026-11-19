@@ -9,11 +9,16 @@ import {MODULE} from '../common/module';
 import {useSiteSettings} from '../common/useSiteSettings';
 import {SAVE_SITE_SETTINGS} from '../common/settings.gql';
 import {CitationsSettings} from '../geo/settings/CitationsSettings';
+import {drawerTabs, tabParts} from '../drawer/entries';
 import styles from './SettingsPanel.module.css';
 
 const PANEL_TABS = ['features', 'ai', 'botrank'];
 
-/** The switched-off ids of a draft: a section off hides its tabs, which keep their own state. */
+/** What a part of a tab needs, as a chip: the AI model while none answers, or a BotRank connection. */
+const NEEDS = {ai: settings => (settings.ai.configured ? null : 'needsAi'), botRank: () => 'needsBotRank'};
+const NEEDS_COLOR = {needsAi: 'warning', needsBotRank: 'accent'};
+
+/** The switched-off ids of a draft: a tab off hides its parts, which keep their own state. */
 const toggle = (draft, id, on) => {
     const next = new Set(draft);
     if (on) {
@@ -26,9 +31,10 @@ const toggle = (draft, id, on) => {
 
 const FeaturesScreen = ({settings, toolbarLeft, title, onSaved}) => {
     const {t} = useGovernanceTranslation('settings');
-    const {t: tDrawer} = useGovernanceTranslation('drawer');
-    const {t: tAudit} = useGovernanceTranslation('audit');
-    const {t: tGeo} = useGovernanceTranslation('geo');
+    // The labels of a tab are keys with their own namespace (`my-module:tab.label`)
+    const {t: translate} = useGovernanceTranslation();
+    // Every tab of the drawer, the module's own and those other modules add (drawer/entries.js)
+    const tabs = useMemo(() => drawerTabs(), []);
     const [draft, setDraft] = useState(() => new Set(settings.disabled));
     const [save, {loading: saving, error}] = useMutation(SAVE_SITE_SETTINGS);
     const [saved, setSaved] = useState(false);
@@ -48,10 +54,6 @@ const FeaturesScreen = ({settings, toolbarLeft, title, onSaved}) => {
         }
     }, [save, settings.siteKey, draft, onSaved]);
 
-    // The labels the drawer shows, so the switch names what the editor sees.
-    const tabLabel = (section, tab) => (section === 'geo' ? tGeo(`${tab}.tab`) : tAudit(`tabs.${tab}`));
-    // The same text as the tab's tooltip in the drawer.
-    const tabHelp = (section, tab) => (section === 'geo' ? tGeo(`tabHelp.${tab}`) : tAudit(`tabHelp.${tab}`));
 
     return (
         <LayoutContent
@@ -74,39 +76,42 @@ const FeaturesScreen = ({settings, toolbarLeft, title, onSaved}) => {
                     {error && <div role="alert"><Banner variant="danger" title={t('errorTitle')}>{t('error')}</Banner></div>}
                     {saved && !dirty && <output><Banner variant="info" title={t('savedTitle')}>{t('saved')}</Banner></output>}
                     <Typography>{t('intro')}</Typography>
-                    {settings.sections.map(section => {
-                        const sectionOn = !draft.has(section.id);
+                    {tabs.map(entry => {
+                        const sectionOn = !draft.has(entry.key);
+                        const label = translate(entry.label);
+                        const parts = tabParts(entry);
                         return (
-                            <Paper key={section.id} className={styles.card}>
+                            <Paper key={entry.key} className={styles.card} data-tab={entry.key}>
                                 <div className={styles.cardHeader}>
                                     <div>
-                                        <Typography component="h3" variant="heading">{tDrawer(`section.${section.id}`)}</Typography>
-                                        <Typography variant="caption" className={styles.muted}>{t(`sectionHelp.${section.id}`)}</Typography>
+                                        <Typography component="h3" variant="heading">{label}</Typography>
+                                        <Typography variant="caption" className={styles.muted}>
+                                            {translate(entry.settingsHelp || entry.help || entry.label)}
+                                        </Typography>
                                     </div>
                                     <label className={styles.switchLabel}>
                                         <Switch checked={sectionOn}
                                                 isDisabled={!settings.canEdit}
-                                                aria-label={t('sectionSwitch', {section: tDrawer(`section.${section.id}`)})}
-                                                onChange={(e, value, checked) => setDraft(d => toggle(d, section.id, checked))}/>
+                                                aria-label={t('sectionSwitch', {section: label})}
+                                                onChange={(e, value, checked) => setDraft(d => toggle(d, entry.key, checked))}/>
                                         <Typography variant="caption">{sectionOn ? t('on') : t('off')}</Typography>
                                     </label>
                                 </div>
-                                {section.tabs.length > 0 && (
+                                {parts.length > 0 && (
                                     <ul className={styles.tabs}>
-                                        {section.tabs.map(tab => {
-                                            const id = `${section.id}.${tab.id}`;
-                                            const needsAi = id === 'audit.ai';
-                                            const needsBotRank = id === 'geo.citations';
+                                        {parts.map(part => {
+                                            const id = `${entry.key}.${part.id}`;
+                                            const partLabel = translate(part.label);
+                                            const need = NEEDS[part.needs]?.(settings);
                                             return (
-                                                <li key={tab.id} className={styles.tab}>
+                                                <li key={part.id} className={styles.tab}>
                                                     <Switch checked={!draft.has(id)}
                                                             isDisabled={!settings.canEdit || !sectionOn}
-                                                            aria-label={tabLabel(section.id, tab.id)}
+                                                            aria-label={partLabel}
                                                             onChange={(e, value, checked) => setDraft(d => toggle(d, id, checked))}/>
-                                                    <Typography className={styles.tabLabel}>{tabLabel(section.id, tab.id)}</Typography>
-                                                    {needsAi && !settings.ai.configured && <Chip color="warning" label={t('needsAi')}/>}
-                                                    {needsBotRank && <Chip color="accent" label={t('needsBotRank')}/>}
-                                                    <Typography variant="caption" className={styles.tabHelp}>{tabHelp(section.id, tab.id)}</Typography>
+                                                    <Typography className={styles.tabLabel}>{partLabel}</Typography>
+                                                    {need && <Chip color={NEEDS_COLOR[need]} label={t(need)}/>}
+                                                    {part.help && <Typography variant="caption" className={styles.tabHelp}>{translate(part.help)}</Typography>}
                                                 </li>
                                             );
                                         })}
@@ -176,7 +181,8 @@ AiScreen.propTypes = {
 };
 
 /**
- * Site Settings > Content governance: which sections and tabs the site uses, the shared model the
+ * Site Settings > Content governance: which tabs of the drawer, and parts of tabs, the site uses
+ * (every tab of the drawer's registry, those of other modules included), the shared model the
  * AI features run on, and the site's BotRank connection. The route hides the entry from users
  * without site-admin; the component checks the module and the permission again, and the server
  * checks site-admin on every save.

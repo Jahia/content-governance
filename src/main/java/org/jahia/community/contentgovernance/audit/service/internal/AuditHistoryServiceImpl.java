@@ -17,9 +17,10 @@ import org.json.JSONObject;
 import org.osgi.service.component.annotations.Component;
 
 /**
- * Stores the audits in the site's private node of the module, with system sessions in the default
- * workspace: one node per language and page, holding the latest audit's summary, and one child per
- * audit holding its results.
+ * Stores the runs in the site's private node of the module, with system sessions in the default
+ * workspace: one node per language and page, holding the summary of the latest Page quality audit,
+ * and one child per run holding the id of its tab and what it stores. A run stored before the runs
+ * carried a tab is a Page quality audit.
  */
 @Component(service = AuditHistoryService.class, immediate = true)
 public class AuditHistoryServiceImpl implements AuditHistoryService {
@@ -35,29 +36,42 @@ public class AuditHistoryServiceImpl implements AuditHistoryService {
     private static final String P_SUMMARY = "summary";
     private static final String P_PREVIOUS_TOTAL = "previousTotal";
     private static final String P_RESULTS = "results";
+    private static final String P_TAB = "tab";
 
-    /** The page an audit belongs to. */
+    /** The page a run belongs to; the path and title are null for a run of a tab other than Page quality. */
     private record Page(String sitePath, String pageId, String language, String path, String title) {
     }
 
-    /** One audit to store. */
-    private record Run(long auditedAt, String user, AuditSummary summary, String results) {
+    /** One run to store. */
+    private record Run(String tab, long auditedAt, String user, AuditSummary summary, String results) {
     }
 
     @Override
     public AuditRun save(String sitePath, String pageId, String language, String path, String title, String user,
                          JSONObject results) throws RepositoryException {
-        AuditSummary summary = AuditSummary.of(results);
-        long auditedAt = System.currentTimeMillis();
-        Page page = new Page(sitePath, pageId, language, path, title);
-        Run run = new Run(auditedAt, user, summary, results.toString());
-        // Two audits of one page saved together conflict on the page node: the second tries again.
+        return save(new Page(sitePath, pageId, language, path, title), AUDIT_TAB, user, AuditSummary.of(results), results);
+    }
+
+    @Override
+    public AuditRun saveFindings(String sitePath, String pageId, String language, String tab, String user,
+                                 JSONObject findings) throws RepositoryException {
+        if (AUDIT_TAB.equals(tab)) {
+            throw new IllegalArgumentException("Page quality stores its results, not findings");
+        }
+        AuditSummary summary = AuditSummary.ofFindings(tab, findings.getJSONArray(AuditResults.FINDINGS));
+        return save(new Page(sitePath, pageId, language, null, null), tab, user, summary, findings);
+    }
+
+    private static AuditRun save(Page page, String tab, String user, AuditSummary summary, JSONObject stored)
+            throws RepositoryException {
+        Run run = new Run(tab, System.currentTimeMillis(), user, summary, stored.toString());
+        // Two runs of one page saved together conflict on the page node: the second tries again.
         try {
             store(page, run);
         } catch (InvalidItemStateException e) {
             store(page, run);
         }
-        return new AuditRun(auditedAt, user, summary, null);
+        return new AuditRun(tab, run.auditedAt(), user, summary, null);
     }
 
     private static void store(Page target, Run entry) throws RepositoryException {
@@ -71,21 +85,25 @@ public class AuditHistoryServiceImpl implements AuditHistoryService {
             }
             String summary = entry.summary().toJson();
             JCRNodeWrapper run = page.addNode(name, NODE_TYPE);
+            run.setProperty(P_TAB, entry.tab());
             run.setProperty(P_AT, entry.auditedAt());
             run.setProperty(P_BY, entry.user());
             run.setProperty(P_SUMMARY, summary);
             run.setProperty(P_RESULTS, entry.results());
 
-            int previousTotal = page.hasProperty(P_SUMMARY)
-                    ? AuditSummary.fromJson(page.getProperty(P_SUMMARY).getString()).total() : -1;
-            page.setProperty(P_PREVIOUS_TOTAL, previousTotal);
-            page.setProperty(P_PATH, target.path());
-            page.setProperty(P_TITLE, target.title());
-            page.setProperty(P_AT, entry.auditedAt());
-            page.setProperty(P_BY, entry.user());
-            page.setProperty(P_SUMMARY, summary);
+            // The page node holds the latest Page quality audit, which the site dashboard lists
+            if (AUDIT_TAB.equals(entry.tab())) {
+                int previousTotal = page.hasProperty(P_SUMMARY)
+                        ? AuditSummary.fromJson(page.getProperty(P_SUMMARY).getString()).total() : -1;
+                page.setProperty(P_PREVIOUS_TOTAL, previousTotal);
+                page.setProperty(P_PATH, target.path());
+                page.setProperty(P_TITLE, target.title());
+                page.setProperty(P_AT, entry.auditedAt());
+                page.setProperty(P_BY, entry.user());
+                page.setProperty(P_SUMMARY, summary);
+            }
 
-            List<JCRNodeWrapper> runs = runs(page);
+            List<JCRNodeWrapper> runs = runs(page, entry.tab());
             for (JCRNodeWrapper old : runs.subList(Math.min(MAX_RUNS, runs.size()), runs.size())) {
                 old.remove();
             }
@@ -95,15 +113,15 @@ public class AuditHistoryServiceImpl implements AuditHistoryService {
     }
 
     @Override
-    public List<AuditRun> history(String sitePath, String pageId, String language) throws RepositoryException {
+    public List<AuditRun> history(String sitePath, String pageId, String language, String tab) throws RepositoryException {
         return JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, WORKSPACE, null, session -> {
             JCRNodeWrapper page = existing(session.getNode(sitePath), SiteFeatures.STORE_NODE, AUDITS, language, pageId);
             List<AuditRun> out = new ArrayList<>();
             if (page == null) {
                 return out;
             }
-            for (JCRNodeWrapper run : runs(page)) {
-                out.add(new AuditRun(run.getProperty(P_AT).getLong(), string(run, P_BY),
+            for (JCRNodeWrapper run : runs(page, tab)) {
+                out.add(new AuditRun(tab, run.getProperty(P_AT).getLong(), string(run, P_BY),
                         AuditSummary.fromJson(string(run, P_SUMMARY)), out.isEmpty() ? string(run, P_RESULTS) : null));
             }
             return out;
@@ -122,7 +140,7 @@ public class AuditHistoryServiceImpl implements AuditHistoryService {
             while (pages.hasNext()) {
                 JCRNodeWrapper page = (JCRNodeWrapper) pages.nextNode();
                 if (page.hasProperty(P_AT)) {
-                    AuditRun last = new AuditRun(page.getProperty(P_AT).getLong(), string(page, P_BY),
+                    AuditRun last = new AuditRun(AUDIT_TAB, page.getProperty(P_AT).getLong(), string(page, P_BY),
                             AuditSummary.fromJson(string(page, P_SUMMARY)), null);
                     int previous = page.hasProperty(P_PREVIOUS_TOTAL) ? (int) page.getProperty(P_PREVIOUS_TOTAL).getLong() : -1;
                     out.add(new AuditedPage(page.getName(), string(page, P_PATH), string(page, P_TITLE), last, previous));
@@ -144,13 +162,14 @@ public class AuditHistoryServiceImpl implements AuditHistoryService {
         return node;
     }
 
-    /** The audits of a page node, newest first. */
-    private static List<JCRNodeWrapper> runs(JCRNodeWrapper page) throws RepositoryException {
+    /** The runs of a tab on a page node, newest first; a run with no tab is a Page quality audit. */
+    private static List<JCRNodeWrapper> runs(JCRNodeWrapper page, String tab) throws RepositoryException {
         List<JCRNodeWrapper> runs = new ArrayList<>();
         NodeIterator children = page.getNodes();
         while (children.hasNext()) {
             JCRNodeWrapper run = (JCRNodeWrapper) children.nextNode();
-            if (run.getName().startsWith(RUN_PREFIX) && run.hasProperty(P_AT)) {
+            String runTab = run.hasProperty(P_TAB) ? run.getProperty(P_TAB).getString() : AUDIT_TAB;
+            if (run.getName().startsWith(RUN_PREFIX) && run.hasProperty(P_AT) && tab.equals(runTab)) {
                 runs.add(run);
             }
         }

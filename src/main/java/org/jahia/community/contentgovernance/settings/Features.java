@@ -1,14 +1,13 @@
 package org.jahia.community.contentgovernance.settings;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
- * The sections of the drawer and the tabs of each, by id. A feature id is a section ({@code geo}) or
- * a tab of a section ({@code geo.citations}); a site stores the ids it switched off, so a section or a
- * tab added in a later version starts switched on.
+ * The ids of the features a site switches on or off. A feature id is a tab of the drawer
+ * ({@code geo}) or a part of a tab ({@code geo.citations}). The tabs of the module and the tabs that
+ * other modules register in the drawer have ids of the same form. The server keeps no list of them:
+ * the drawer's registry is the list, and a site stores the ids it switched off. A tab that a module
+ * adds later therefore starts switched on.
  *
  * <p>The ids are part of the stored settings and of the GraphQL API: never rename one.</p>
  */
@@ -18,34 +17,26 @@ public final class Features {
     public static final String GEO = "geo";
     public static final String COMPLIANCE = "compliance";
 
-    /** Sections in drawer order, each with its tabs in tab order. */
-    public static final Map<String, List<String>> SECTIONS;
+    /** The most ids a site stores as switched off. */
+    public static final int MAX_IDS = 200;
 
-    static {
-        Map<String, List<String>> sections = new LinkedHashMap<>();
-        sections.put(AUDIT, List.of("accessibility", "seo", "vitals", "readability", "ecodesign", "links", "jahia", "ai"));
-        sections.put(GEO, List.of("score", "crawler", "files", "schema", "citations"));
-        sections.put(COMPLIANCE, List.of());
-        SECTIONS = Collections.unmodifiableMap(sections);
-    }
+    /** A tab key, then an optional part after a dot: a letter, then letters, digits, {@code _} or {@code -}. */
+    private static final Pattern ID = Pattern.compile("^[A-Za-z][A-Za-z0-9_-]{0,63}(\\.[A-Za-z][A-Za-z0-9_-]{0,63})?$");
 
     private Features() {
     }
 
-    /** True for a section id or a {@code section.tab} id this version knows. */
-    public static boolean isKnown(String id) {
-        if (id == null) {
-            return false;
-        }
-        int dot = id.indexOf('.');
-        if (dot < 0) {
-            return SECTIONS.containsKey(id);
-        }
-        List<String> tabs = SECTIONS.get(id.substring(0, dot));
-        return tabs != null && tabs.contains(id.substring(dot + 1));
+    /** True for an id of the form of a tab ({@code geo}) or of a part of a tab ({@code geo.citations}). */
+    public static boolean isValid(String id) {
+        return id != null && ID.matcher(id).matches();
     }
 
-    /** The section of a feature id: the id itself for a section, the part before the dot for a tab. */
+    /** True for an id of the form of a tab of the drawer, with no part. */
+    public static boolean isTab(String id) {
+        return isValid(id) && id.indexOf('.') < 0;
+    }
+
+    /** The tab of a feature id: the id itself for a tab, the part before the dot for a part of a tab. */
     public static String sectionOf(String id) {
         int dot = id.indexOf('.');
         return dot < 0 ? id : id.substring(0, dot);

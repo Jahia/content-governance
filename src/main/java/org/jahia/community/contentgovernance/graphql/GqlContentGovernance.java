@@ -43,29 +43,33 @@ public class GqlContentGovernance {
     @GraphQLField
     @GraphQLName("siteSettings")
     @GraphQLNonNull
-    @GraphQLDescription("Sections and tabs of the module on a site, and whether AI is configured")
+    @GraphQLDescription("The tabs of the drawer a site switched off, and whether AI is configured")
     public GqlSiteSettings siteSettings(
             @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey) {
         return GqlSiteSettings.of(SiteAccess.site(siteKey), ai);
     }
 
     /**
-     * The stored Page quality audits of a page, for anyone who may open jContent on its site and read it.
+     * The stored runs of a tab of the drawer on a page, for anyone who may open jContent on its site
+     * and read it.
      *
      * @param path        path of the page or main resource
      * @param language    content language
+     * @param tab         id of the tab; null for Page quality ({@code audit})
      * @param environment the request
-     * @return the audits, newest first; the newest carries its full results
+     * @return the runs, newest first; the newest carries what it stores
      */
     @GraphQLField
     @GraphQLName("pageAudits")
     @GraphQLNonNull
-    @GraphQLDescription("The last Page quality audits of a page in a language, newest first; the newest carries its full results")
+    @GraphQLDescription("The last runs of a tab of the drawer on a page in a language, newest first; the newest carries "
+            + "what it stores")
     public List<GqlAuditRun> pageAudits(
             @GraphQLName("path") @GraphQLNonNull @GraphQLDescription("Path of the page") String path,
             @GraphQLName("language") @GraphQLNonNull @GraphQLDescription("Content language") String language,
+            @GraphQLName("tab") @GraphQLDescription("Id of the tab; Page quality (audit) when omitted") String tab,
             DataFetchingEnvironment environment) {
-        return AuditFields.history(audits, path, language, environment);
+        return AuditFields.history(audits, path, language, tab == null ? AuditHistoryService.AUDIT_TAB : tab, environment);
     }
 
     /**
