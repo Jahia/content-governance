@@ -77,6 +77,16 @@ public final class AuditResults {
      *                                  objects, holds more than {@link #MAX_FINDINGS}, or a finding has no key
      */
     public static JSONObject parseFindings(String json) {
+        JSONArray sent = findingsArray(json);
+        JSONArray kept = new JSONArray();
+        for (int i = 0; i < sent.length(); i++) {
+            kept.put(finding(sent.optJSONObject(i)));
+        }
+        return new JSONObject().put(FINDINGS, kept);
+    }
+
+    /** The findings as a JSON array of bounded size, or the reason they are refused. */
+    private static JSONArray findingsArray(String json) {
         if (json == null || json.isEmpty()) {
             throw new IllegalArgumentException("No findings");
         }
@@ -92,26 +102,26 @@ public final class AuditResults {
         if (sent.length() > MAX_FINDINGS) {
             throw new IllegalArgumentException("Too many findings");
         }
-        JSONArray kept = new JSONArray();
-        for (int i = 0; i < sent.length(); i++) {
-            JSONObject finding = sent.optJSONObject(i);
-            if (finding == null || finding.optString(KEY).isEmpty()) {
-                throw new IllegalArgumentException("A finding has no key");
-            }
-            JSONObject out = new JSONObject();
-            for (String field : TEXT_FIELDS) {
-                Object value = finding.opt(field);
-                if (value instanceof String text) {
-                    out.put(field, text.length() > MAX_FIELD_CHARS ? text.substring(0, MAX_FIELD_CHARS) : text);
-                }
-            }
-            out.put(SEVERITY, SEVERITIES.contains(finding.optString(SEVERITY)) ? finding.optString(SEVERITY) : "minor");
-            if (finding.opt(COUNT) instanceof Number count) {
-                out.put(COUNT, count.intValue());
-            }
-            kept.put(out);
+        return sent;
+    }
+
+    /** One finding reduced to the fields a run stores, or the reason it is refused. */
+    private static JSONObject finding(JSONObject sent) {
+        if (sent == null || sent.optString(KEY).isEmpty()) {
+            throw new IllegalArgumentException("A finding has no key");
         }
-        return new JSONObject().put(FINDINGS, kept);
+        JSONObject out = new JSONObject();
+        for (String field : TEXT_FIELDS) {
+            if (sent.opt(field) instanceof String text) {
+                out.put(field, text.length() > MAX_FIELD_CHARS ? text.substring(0, MAX_FIELD_CHARS) : text);
+            }
+        }
+        String severity = sent.optString(SEVERITY);
+        out.put(SEVERITY, SEVERITIES.contains(severity) ? severity : "minor");
+        if (sent.opt(COUNT) instanceof Number count) {
+            out.put(COUNT, count.intValue());
+        }
+        return out;
     }
 
     private static void copyObjects(JSONObject from, JSONObject to, Collection<String> keys) {

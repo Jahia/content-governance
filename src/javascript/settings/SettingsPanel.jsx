@@ -29,10 +29,67 @@ const toggle = (draft, id, on) => {
     return next;
 };
 
-const FeaturesScreen = ({settings, toolbarLeft, title, onSaved}) => {
+/** The card of one tab of the drawer: a switch for the tab, then a switch for each of its parts. */
+const TabCard = ({entry, draft, settings, onToggle}) => {
     const {t} = useGovernanceTranslation('settings');
     // The labels of a tab are keys with their own namespace (`my-module:tab.label`)
     const {t: translate} = useGovernanceTranslation();
+    const tabOn = !draft.has(entry.key);
+    const label = translate(entry.label);
+    const parts = tabParts(entry);
+    return (
+        <Paper className={styles.card} data-tab={entry.key}>
+            <div className={styles.cardHeader}>
+                <div>
+                    <Typography component="h3" variant="heading">{label}</Typography>
+                    <Typography variant="caption" className={styles.muted}>
+                        {translate(entry.settingsHelp || entry.help || entry.label)}
+                    </Typography>
+                </div>
+                <label className={styles.switchLabel}>
+                    <Switch checked={tabOn}
+                            isDisabled={!settings.canEdit}
+                            aria-label={t('sectionSwitch', {section: label})}
+                            onChange={(e, value, checked) => onToggle(entry.key, checked)}/>
+                    <Typography variant="caption">{tabOn ? t('on') : t('off')}</Typography>
+                </label>
+            </div>
+            {parts.length > 0 && (
+                <ul className={styles.tabs}>
+                    {parts.map(part => {
+                        const id = `${entry.key}.${part.id}`;
+                        const partLabel = translate(part.label);
+                        const need = NEEDS[part.needs]?.(settings);
+                        return (
+                            <li key={part.id} className={styles.tab}>
+                                <Switch checked={!draft.has(id)}
+                                        isDisabled={!settings.canEdit || !tabOn}
+                                        aria-label={partLabel}
+                                        onChange={(e, value, checked) => onToggle(id, checked)}/>
+                                <Typography className={styles.tabLabel}>{partLabel}</Typography>
+                                {need && <Chip color={NEEDS_COLOR[need]} label={t(need)}/>}
+                                {part.help && <Typography variant="caption" className={styles.tabHelp}>{translate(part.help)}</Typography>}
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
+        </Paper>
+    );
+};
+
+TabCard.propTypes = {
+    // A registry entry of drawerTabs (drawer/entries.js)
+    entry: PropTypes.object.isRequired,
+    // The ids switched off in the draft
+    draft: PropTypes.instanceOf(Set).isRequired,
+    settings: PropTypes.object.isRequired,
+    // (id, on): switches a tab or a part on or off in the draft
+    onToggle: PropTypes.func.isRequired
+};
+
+const FeaturesScreen = ({settings, toolbarLeft, title, onSaved}) => {
+    const {t} = useGovernanceTranslation('settings');
     // Every tab of the drawer, the module's own and those other modules add (drawer/entries.js)
     const tabs = useMemo(() => drawerTabs(), []);
     const [draft, setDraft] = useState(() => new Set(settings.disabled));
@@ -54,6 +111,7 @@ const FeaturesScreen = ({settings, toolbarLeft, title, onSaved}) => {
         }
     }, [save, settings.siteKey, draft, onSaved]);
 
+    const onToggle = useCallback((id, on) => setDraft(d => toggle(d, id, on)), []);
 
     return (
         <LayoutContent
@@ -76,50 +134,9 @@ const FeaturesScreen = ({settings, toolbarLeft, title, onSaved}) => {
                     {error && <div role="alert"><Banner variant="danger" title={t('errorTitle')}>{t('error')}</Banner></div>}
                     {saved && !dirty && <output><Banner variant="info" title={t('savedTitle')}>{t('saved')}</Banner></output>}
                     <Typography>{t('intro')}</Typography>
-                    {tabs.map(entry => {
-                        const sectionOn = !draft.has(entry.key);
-                        const label = translate(entry.label);
-                        const parts = tabParts(entry);
-                        return (
-                            <Paper key={entry.key} className={styles.card} data-tab={entry.key}>
-                                <div className={styles.cardHeader}>
-                                    <div>
-                                        <Typography component="h3" variant="heading">{label}</Typography>
-                                        <Typography variant="caption" className={styles.muted}>
-                                            {translate(entry.settingsHelp || entry.help || entry.label)}
-                                        </Typography>
-                                    </div>
-                                    <label className={styles.switchLabel}>
-                                        <Switch checked={sectionOn}
-                                                isDisabled={!settings.canEdit}
-                                                aria-label={t('sectionSwitch', {section: label})}
-                                                onChange={(e, value, checked) => setDraft(d => toggle(d, entry.key, checked))}/>
-                                        <Typography variant="caption">{sectionOn ? t('on') : t('off')}</Typography>
-                                    </label>
-                                </div>
-                                {parts.length > 0 && (
-                                    <ul className={styles.tabs}>
-                                        {parts.map(part => {
-                                            const id = `${entry.key}.${part.id}`;
-                                            const partLabel = translate(part.label);
-                                            const need = NEEDS[part.needs]?.(settings);
-                                            return (
-                                                <li key={part.id} className={styles.tab}>
-                                                    <Switch checked={!draft.has(id)}
-                                                            isDisabled={!settings.canEdit || !sectionOn}
-                                                            aria-label={partLabel}
-                                                            onChange={(e, value, checked) => setDraft(d => toggle(d, id, checked))}/>
-                                                    <Typography className={styles.tabLabel}>{partLabel}</Typography>
-                                                    {need && <Chip color={NEEDS_COLOR[need]} label={t(need)}/>}
-                                                    {part.help && <Typography variant="caption" className={styles.tabHelp}>{translate(part.help)}</Typography>}
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                )}
-                            </Paper>
-                        );
-                    })}
+                    {tabs.map(entry => (
+                        <TabCard key={entry.key} entry={entry} draft={draft} settings={settings} onToggle={onToggle}/>
+                    ))}
                 </div>
             )}
         />
