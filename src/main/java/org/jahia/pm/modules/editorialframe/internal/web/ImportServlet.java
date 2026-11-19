@@ -82,46 +82,19 @@ public class ImportServlet extends HttpServlet {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN, "No site administration access on this site");
                 return;
             }
-            String language = request.getParameter("language");
-            if (language == null || language.isBlank()) {
-                language = FrameReader.defaultLanguage(probe, siteKey);
-            }
-            if (language == null || !language.matches("[a-zA-Z]{2,3}([_-][A-Za-z0-9]{2,8})?")) {
+            String language = language(request, probe, siteKey);
+            if (language == null) {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, "The parameter language is invalid");
                 return;
             }
-            ArchiveReader archive;
-            try (InputStream in = request.getInputStream()) {
-                byte[] bytes = in.readNBytes(MAX_BODY_BYTES + 1);
-                if (bytes.length > MAX_BODY_BYTES) {
-                    response.sendError(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, "The archive is larger than 60 MB");
-                    return;
-                }
-                archive = ArchiveReader.read(new ByteArrayInputStream(bytes));
+            ArchiveReader archive = readArchive(request, response);
+            if (archive == null) {
+                return;
             }
             ImportPlan plan = ImportPlan.of(archive.files, options(request, language));
-            plan.skipped.addAll(0, archive.skipped);
-            ObjectNode report;
-            if ("true".equals(request.getParameter("dryRun"))) {
-                report = mapper.createObjectNode();
-                report.put("dryRun", true);
-                report.put("files", archive.files.size());
-                report.put("skills", plan.skills.size());
-                report.set("skillNames", mapper.valueToTree(plan.skills.stream().map(s -> s.document.name).toArray()));
-                report.put("personas", plan.personas.size());
-                report.set("personaNames", mapper.valueToTree(plan.personas.stream().map(p -> p.title).toArray()));
-                report.put("rules", plan.rules.size());
-                report.put("glossary", plan.glossary.size());
-                report.put("voice", plan.voice == null ? null : plan.voice.name);
-                report.set("warnings", mapper.valueToTree(plan.warnings));
-                report.set("skipped", mapper.valueToTree(plan.skipped));
-            } else {
-                Locale locale = Locale.forLanguageTag(language.replace('_', '-'));
-                JCRSessionWrapper session = JCRSessionFactory.getInstance().getCurrentUserSession("default", locale);
-                report = ImportWriter.apply(session, siteKey, plan, request.getParameter("ref"), mapper);
-                logger.info("{} imported {} skills, {} personas, {} rules and {} glossary terms into the site {}",
-                        user.getName(), plan.skills.size(), plan.personas.size(), plan.rules.size(), plan.glossary.size(), siteKey);
-            }
+            plan.skipped().addAll(0, archive.skipped);
+            ObjectNode report = "true".equals(request.getParameter("dryRun")) ? dryRunReport(archive, plan)
+                    : write(request, user, siteKey, language, plan);
             response.setContentType("application/json");
             response.setCharacterEncoding("UTF-8");
             mapper.writerWithDefaultPrettyPrinter().writeValue(response.getWriter(), report);
@@ -133,32 +106,82 @@ public class ImportServlet extends HttpServlet {
         }
     }
 
+    /** The language of the request, else the default language of the site, or {@code null} when it is invalid. */
+    private static String language(HttpServletRequest request, JCRSessionWrapper probe, String siteKey) {
+        String language = request.getParameter("language");
+        if (language == null || language.isBlank()) {
+            language = FrameReader.defaultLanguage(probe, siteKey);
+        }
+        return language != null && language.matches("[a-zA-Z]{2,3}([_-][A-Za-z0-9]{2,8})?") ? language : null;
+    }
+
+    /** The archive of the body, or {@code null} once a body over the limit got its error answer. */
+    private static ArchiveReader readArchive(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        try (InputStream in = request.getInputStream()) {
+            byte[] bytes = in.readNBytes(MAX_BODY_BYTES + 1);
+            if (bytes.length > MAX_BODY_BYTES) {
+                response.sendError(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, "The archive is larger than 60 MB");
+                return null;
+            }
+            return ArchiveReader.read(new ByteArrayInputStream(bytes));
+        }
+    }
+
+    /** What an import would write, with nothing written. */
+    private ObjectNode dryRunReport(ArchiveReader archive, ImportPlan plan) {
+        ObjectNode report = mapper.createObjectNode();
+        report.put("dryRun", true);
+        report.put("files", archive.files.size());
+        report.put("skills", plan.skills().size());
+        report.set("skillNames", mapper.valueToTree(plan.skills().stream().map(s -> s.document.name).toArray()));
+        report.put("personas", plan.personas().size());
+        report.set("personaNames", mapper.valueToTree(plan.personas().stream().map(p -> p.title).toArray()));
+        report.put("rules", plan.rules().size());
+        report.put("glossary", plan.glossary().size());
+        report.put("voice", plan.voice() == null ? null : plan.voice().name);
+        report.set("warnings", mapper.valueToTree(plan.warnings()));
+        report.set("skipped", mapper.valueToTree(plan.skipped()));
+        return report;
+    }
+
+    /** Writes the plan as drafts, in a session of the user in the language of the import, and returns the report. */
+    private ObjectNode write(HttpServletRequest request, JahiaUser user, String siteKey, String language, ImportPlan plan)
+            throws RepositoryException {
+        Locale locale = Locale.forLanguageTag(language.replace('_', '-'));
+        JCRSessionWrapper session = JCRSessionFactory.getInstance().getCurrentUserSession("default", locale);
+        ObjectNode report = ImportWriter.apply(session, siteKey, plan, request.getParameter("ref"), mapper);
+        logger.info("{} imported {} skills, {} personas, {} rules and {} glossary terms into the site {}",
+                user.getName(), plan.skills().size(), plan.personas().size(), plan.rules().size(), plan.glossary().size(), siteKey);
+        return report;
+    }
+
     private static ImportPlan.Options options(HttpServletRequest request, String language) {
         ImportPlan.Options options = new ImportPlan.Options();
-        options.language = language;
-        options.skillRoots = list(request.getParameter("skills"));
-        options.voice = request.getParameter("voice");
-        options.personas = request.getParameter("personas");
+        options.setLanguage(language);
+        options.setSkillRoots(list(request.getParameter("skills")));
+        options.setVoice(request.getParameter("voice"));
+        options.setPersonas(request.getParameter("personas"));
         if (request.getParameter("personasHeading") != null) {
-            options.personasHeading = request.getParameter("personasHeading");
+            options.setPersonasHeading(request.getParameter("personasHeading"));
         }
-        options.defaultPersona = request.getParameter("defaultPersona");
-        options.rules = list(request.getParameter("rules"));
-        options.glossary = list(request.getParameter("glossary"));
+        options.setDefaultPersona(request.getParameter("defaultPersona"));
+        options.setRules(list(request.getParameter("rules")));
+        options.setGlossary(list(request.getParameter("glossary")));
         if (request.getParameter("rulesSeverity") != null) {
-            options.rulesSeverity = request.getParameter("rulesSeverity");
+            options.setRulesSeverity(request.getParameter("rulesSeverity"));
         }
         String activation = request.getParameter("activation");
         if (activation != null && List.of("auto", "manual", "pinned-only").contains(activation)) {
-            options.activation = activation;
+            options.setActivation(activation);
         }
         String action = request.getParameter("action");
         if (action != null && action.matches("[a-z]{2,20}")) {
-            options.action = action;
+            options.setAction(action);
         }
         List<String> consumers = list(request.getParameter("consumers"));
         if (!consumers.isEmpty()) {
-            options.consumers = consumers;
+            options.setConsumers(consumers);
         }
         return options;
     }

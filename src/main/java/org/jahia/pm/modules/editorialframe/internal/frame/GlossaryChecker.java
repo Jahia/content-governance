@@ -60,6 +60,17 @@ public final class GlossaryChecker {
                 termForms.computeIfAbsent(key(term), key -> new LinkedHashSet<>()).addAll(term.allTermForms());
             }
         }
+        Set<String> forbiddenFound = reportForbidden(pair, termForms, source, text, found);
+        reportMissing(pair, termForms, forbiddenFound, source, text, found);
+        return found;
+    }
+
+    /**
+     * Adds a violation for each forbidden translation that the text holds where the source holds its
+     * term. Returns the terms so reported.
+     */
+    private static Set<String> reportForbidden(List<GlossaryTerm> pair, Map<String, Set<String>> termForms,
+                                               String source, String text, List<RuleViolation> found) {
         Set<String> forbiddenFound = new HashSet<>();
         for (GlossaryTerm term : pair) {
             if (!term.forbidden() || !RuleChecker.termPattern(List.copyOf(termForms.get(key(term)))).matcher(source).find()) {
@@ -73,21 +84,26 @@ public final class GlossaryChecker {
                         RuleChecker.excerpt(text, inText.start(), inText.end())));
             }
         }
+        return forbiddenFound;
+    }
+
+    /**
+     * Adds a violation for each approved term that the source holds and whose rendering the text
+     * lacks, unless a forbidden translation of the term was reported.
+     */
+    private static void reportMissing(List<GlossaryTerm> pair, Map<String, Set<String>> termForms,
+                                      Set<String> forbiddenFound, String source, String text, List<RuleViolation> found) {
         for (GlossaryTerm term : pair) {
             if (term.forbidden() || forbiddenFound.contains(key(term))) {
                 continue;
             }
             Matcher inSource = RuleChecker.termPattern(List.copyOf(termForms.get(key(term)))).matcher(source);
-            if (!inSource.find()) {
-                continue;
-            }
-            if (!RuleChecker.termPattern(term.allTranslationForms()).matcher(text).find()) {
+            if (inSource.find() && !RuleChecker.termPattern(term.allTranslationForms()).matcher(text).find()) {
                 found.add(new RuleViolation(term.id(), WritingRule.Kind.GLOSSARY, WritingRule.Severity.WARNING,
                         term.term(), null, term.translation(), term.note(),
                         RuleChecker.excerpt(source, inSource.start(), inSource.end())));
             }
         }
-        return found;
     }
 
     /** One term, whatever its case, for one language pair. */

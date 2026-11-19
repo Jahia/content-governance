@@ -22,6 +22,7 @@ import javax.jcr.query.Query;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -57,73 +58,103 @@ public final class FrameReader {
         String fallback = defaultLanguage(session, siteKey);
         LocalDate today = LocalDate.now();
         List<String> sites = SYSTEM_SITE.equals(siteKey) ? List.of(SYSTEM_SITE) : List.of(SYSTEM_SITE, siteKey);
-        List<FrameText> voices = new ArrayList<>();
-        Map<String, Persona> personas = new LinkedHashMap<>();
-        List<WritingRule> rules = new ArrayList<>();
-        List<GlossaryTerm> glossary = new ArrayList<>();
-        StringBuilder canonical = new StringBuilder();
+        Parts parts = new Parts();
         for (String site : sites) {
             String scope = SYSTEM_SITE.equals(site) && !SYSTEM_SITE.equals(siteKey) ? "group" : "site";
-            if (!session.nodeExists("/sites/" + site)) {
-                continue;
-            }
-            for (JCRNodeWrapper node : query(session, VOICE, site)) {
-                Node holder = holder(node, "body", language, fallback);
-                String text = holder == null ? null : holder.getProperty("body").getString();
-                if (text == null || text.isBlank()) {
-                    continue;
-                }
-                String essentials = essentials(holder);
-                FrameText voice = new FrameText(node.getName(), title(node, language, fallback), scope, text,
-                        strings(node, "authorVoiceUnder"), essentials);
-                voices.add(voice);
-                canonical.append("voice|").append(scope).append('|').append(node.getName()).append('|')
-                        .append(text).append('|').append(voice.authorVoiceUnder())
-                        .append(essentials == null ? "" : "|" + essentials).append('\n');
-            }
-            for (JCRNodeWrapper node : query(session, PERSONA, site)) {
-                Node holder = holder(node, "body", language, fallback);
-                String text = holder == null ? null : holder.getProperty("body").getString();
-                if (text == null || text.isBlank()) {
-                    continue;
-                }
-                String essentials = essentials(holder);
-                boolean isDefault = node.hasProperty("isDefault") && node.getProperty("isDefault").getBoolean();
-                Persona persona = new Persona(node.getName(), title(node, language, fallback), text, isDefault,
-                        scope, essentials);
-                // A persona of the site replaces a persona of the group with the same name.
-                personas.put(node.getName(), persona);
-                canonical.append("persona|").append(scope).append('|').append(node.getName()).append('|')
-                        .append(isDefault).append('|').append(text)
-                        .append(essentials == null ? "" : "|" + essentials).append('\n');
-            }
-            for (JCRNodeWrapper node : query(session, RULE, site)) {
-                WritingRule rule = rule(node, scope, language, fallback);
-                // A rule out of its dates is not part of the frame of the day, for any consumer.
-                if (rule != null && rule.inForceOn(today)) {
-                    rules.add(rule);
-                    // The content of the rule, not its node: a new import of the same rules keeps the fingerprint.
-                    canonical.append("rule|").append(scope).append("|").append(rule.kind()).append("|").append(rule.pattern())
-                            .append("|").append(rule.matchMode()).append("|").append(rule.replacement()).append("|")
-                            .append(rule.language()).append("|").append(rule.severity()).append("|").append(rule.justification())
-                            .append("|").append(rule.wrongExamples()).append("|").append(rule.rightExamples())
-                            .append("\n");
-                }
-            }
-            for (JCRNodeWrapper node : query(session, TERM, site)) {
-                GlossaryTerm term = term(node, scope);
-                if (term != null && (language == null || term.isPair(null, language))) {
-                    glossary.add(term);
-                    canonical.append("term|").append(scope).append('|').append(term.term()).append('|')
-                            .append(term.termLanguage()).append('|').append(term.translation()).append('|')
-                            .append(term.translationLanguage()).append('|').append(term.note()).append('|')
-                            .append(term.termForms()).append('|').append(term.translationForms()).append('|')
-                            .append(term.definition()).append('|').append(term.status()).append('\n');
-                }
+            if (session.nodeExists("/sites/" + site)) {
+                readVoices(session, site, scope, language, fallback, parts);
+                readPersonas(session, site, scope, language, fallback, parts);
+                readRules(session, site, scope, language, fallback, today, parts);
+                readTerms(session, site, scope, language, parts);
             }
         }
-        List<Persona> ordered = new ArrayList<>(personas.values());
-        // Only one default: the last one read, which is the one of the site when both have one.
+        String fingerprint = parts.canonical.isEmpty() ? null : Texts.digest(parts.canonical.toString());
+        return new Frame(siteKey, language, parts.voices, withOneDefault(parts.personas.values()), parts.rules,
+                parts.glossary, fingerprint);
+    }
+
+    /** The parts of a frame as they are read, site after site, and the canonical text of their fingerprint. */
+    private static final class Parts {
+        final List<FrameText> voices = new ArrayList<>();
+        final Map<String, Persona> personas = new LinkedHashMap<>();
+        final List<WritingRule> rules = new ArrayList<>();
+        final List<GlossaryTerm> glossary = new ArrayList<>();
+        final StringBuilder canonical = new StringBuilder();
+    }
+
+    private static void readVoices(JCRSessionWrapper session, String site, String scope, String language,
+                                   String fallback, Parts parts) throws RepositoryException {
+        for (JCRNodeWrapper node : query(session, VOICE, site)) {
+            Node holder = holder(node, "body", language, fallback);
+            String text = holder == null ? null : holder.getProperty("body").getString();
+            if (text == null || text.isBlank()) {
+                continue;
+            }
+            String essentials = essentials(holder);
+            FrameText voice = new FrameText(node.getName(), title(node, language, fallback), scope, text,
+                    strings(node, "authorVoiceUnder"), essentials);
+            parts.voices.add(voice);
+            parts.canonical.append("voice|").append(scope).append('|').append(node.getName()).append('|')
+                    .append(text).append('|').append(voice.authorVoiceUnder())
+                    .append(essentials == null ? "" : "|" + essentials).append('\n');
+        }
+    }
+
+    private static void readPersonas(JCRSessionWrapper session, String site, String scope, String language,
+                                     String fallback, Parts parts) throws RepositoryException {
+        for (JCRNodeWrapper node : query(session, PERSONA, site)) {
+            Node holder = holder(node, "body", language, fallback);
+            String text = holder == null ? null : holder.getProperty("body").getString();
+            if (text == null || text.isBlank()) {
+                continue;
+            }
+            String essentials = essentials(holder);
+            boolean isDefault = node.hasProperty("isDefault") && node.getProperty("isDefault").getBoolean();
+            Persona persona = new Persona(node.getName(), title(node, language, fallback), text, isDefault,
+                    scope, essentials);
+            // A persona of the site replaces a persona of the group with the same name.
+            parts.personas.put(node.getName(), persona);
+            parts.canonical.append("persona|").append(scope).append('|').append(node.getName()).append('|')
+                    .append(isDefault).append('|').append(text)
+                    .append(essentials == null ? "" : "|" + essentials).append('\n');
+        }
+    }
+
+    private static void readRules(JCRSessionWrapper session, String site, String scope, String language,
+                                  String fallback, LocalDate today, Parts parts) throws RepositoryException {
+        for (JCRNodeWrapper node : query(session, RULE, site)) {
+            WritingRule rule = rule(node, scope, language, fallback);
+            // A rule out of its dates is not part of the frame of the day, for any consumer.
+            if (rule != null && rule.inForceOn(today)) {
+                parts.rules.add(rule);
+                // The content of the rule, not its node: a new import of the same rules keeps the fingerprint.
+                parts.canonical.append("rule|").append(scope).append("|").append(rule.kind()).append("|").append(rule.pattern())
+                        .append("|").append(rule.matchMode()).append("|").append(rule.replacement()).append("|")
+                        .append(rule.language()).append("|").append(rule.severity()).append("|").append(rule.justification())
+                        .append("|").append(rule.wrongExamples()).append("|").append(rule.rightExamples())
+                        .append("\n");
+            }
+        }
+    }
+
+    private static void readTerms(JCRSessionWrapper session, String site, String scope, String language, Parts parts)
+            throws RepositoryException {
+        for (JCRNodeWrapper node : query(session, TERM, site)) {
+            GlossaryTerm term = term(node, scope);
+            if (term != null && (language == null || term.isPair(null, language))) {
+                parts.glossary.add(term);
+                parts.canonical.append("term|").append(scope).append('|').append(term.term()).append('|')
+                        .append(term.termLanguage()).append('|').append(term.translation()).append('|')
+                        .append(term.translationLanguage()).append('|').append(term.note()).append('|')
+                        .append(term.termForms()).append('|').append(term.translationForms()).append('|')
+                        .append(term.definition()).append('|').append(term.status()).append('\n');
+            }
+        }
+    }
+
+    /** The personas with one default only: the last one read, which is the one of the site when both have one. */
+    private static List<Persona> withOneDefault(Collection<Persona> personas) {
+        List<Persona> ordered = new ArrayList<>(personas);
         Persona chosenDefault = null;
         for (Persona persona : ordered) {
             if (persona.isDefault()) {
@@ -137,8 +168,7 @@ public final class FrameReader {
                     : new Persona(persona.name(), persona.title(), persona.text(), isDefault, persona.scope(),
                     persona.essentials()));
         }
-        String fingerprint = canonical.isEmpty() ? null : Texts.digest(canonical.toString());
-        return new Frame(siteKey, language, voices, normalized, rules, glossary, fingerprint);
+        return normalized;
     }
 
     private static GlossaryTerm term(JCRNodeWrapper node, String scope) {
@@ -191,10 +221,13 @@ public final class FrameReader {
                     node.getPropertyAsString("ruleLanguage"),
                     WritingRule.Severity.parse(node.getPropertyAsString("severity")),
                     i18n(node, "justification", language, fallback),
-                    scope)
-                    .withExamples(nonBlank(strings(node, "wrongExamples")), nonBlank(strings(node, "rightExamples")))
-                    .withDecision(node.getPropertyAsString("owner"), day(node, "decidedOn"))
-                    .withValidity(day(node, "validFrom"), day(node, "validUntil"));
+                    scope,
+                    nonBlank(strings(node, "wrongExamples")),
+                    nonBlank(strings(node, "rightExamples")),
+                    node.getPropertyAsString("owner"),
+                    day(node, "decidedOn"),
+                    day(node, "validFrom"),
+                    day(node, "validUntil"));
         } catch (RepositoryException | IllegalArgumentException e) {
             logger.warn("The writing rule {} cannot be read: {}", node.getPath(), e.getMessage());
             return null;

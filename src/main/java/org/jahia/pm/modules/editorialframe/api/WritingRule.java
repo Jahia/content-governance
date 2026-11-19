@@ -11,8 +11,20 @@ import java.util.Locale;
  * A rule that code checks on a text. The language is a code such as {@code fr}, or {@code null} for
  * every language. The scope is {@code group} or {@code site}. A rule may carry wrong and right
  * examples for the model, its owner, the day of its decision, and the days between which it applies.
+ *
+ * @param scope where the rule comes from: {@code group} or {@code site}
+ * @param wrongExamples texts that break the rule. Empty when none is given
+ * @param rightExamples texts that keep the rule, such as the right form of a wrong example. Empty when
+ *                      none is given
+ * @param owner who decided the rule, or {@code null}
+ * @param decidedOn the day of the decision, or {@code null}
+ * @param validFrom the first day on which the rule applies, or {@code null} for no start
+ * @param validUntil the last day on which the rule applies, or {@code null} for no end
  */
-public final class WritingRule {
+public record WritingRule(String id, Kind kind, String pattern, MatchMode matchMode, String replacement, String language,
+                          Severity severity, String justification, String scope, List<String> wrongExamples,
+                          List<String> rightExamples, String owner, LocalDate decidedOn, LocalDate validFrom,
+                          LocalDate validUntil) {
 
     /** What the rule asks. */
     public enum Kind {
@@ -57,49 +69,9 @@ public final class WritingRule {
         }
     }
 
-    private final String id;
-    private final Kind kind;
-    private final String pattern;
-    private final MatchMode matchMode;
-    private final String replacement;
-    private final String language;
-    private final Severity severity;
-    private final String justification;
-    private final String scope;
-    private final List<String> wrongExamples;
-    private final List<String> rightExamples;
-    private final String owner;
-    private final LocalDate decidedOn;
-    private final LocalDate validFrom;
-    private final LocalDate validUntil;
-
-    /** A rule with no example, no owner and no dates: it applies every day. */
-    public WritingRule(String id, Kind kind, String pattern, MatchMode matchMode, String replacement, String language,
-                       Severity severity, String justification, String scope) {
-        this(id, kind, pattern, matchMode, replacement, language, severity, justification, scope, List.of(), List.of(),
-                null, null, null, null);
-    }
-
-    @SuppressWarnings("java:S107")
-    private WritingRule(String id, Kind kind, String pattern, MatchMode matchMode, String replacement, String language,
-                        Severity severity, String justification, String scope, List<String> wrongExamples,
-                        List<String> rightExamples, String owner, LocalDate decidedOn, LocalDate validFrom,
-                        LocalDate validUntil) {
-        this.id = id;
-        this.kind = kind;
-        this.pattern = pattern;
-        this.matchMode = matchMode;
-        this.replacement = replacement;
-        this.language = language;
-        this.severity = severity;
-        this.justification = justification;
-        this.scope = scope;
-        this.wrongExamples = wrongExamples == null ? List.of() : List.copyOf(wrongExamples);
-        this.rightExamples = rightExamples == null ? List.of() : List.copyOf(rightExamples);
-        this.owner = owner;
-        this.decidedOn = decidedOn;
-        this.validFrom = validFrom;
-        this.validUntil = validUntil;
+    public WritingRule {
+        wrongExamples = wrongExamples == null ? List.of() : List.copyOf(wrongExamples);
+        rightExamples = rightExamples == null ? List.of() : List.copyOf(rightExamples);
     }
 
     /** A copy of the rule with texts that break it and texts that keep it. */
@@ -118,73 +90,6 @@ public final class WritingRule {
     public WritingRule withValidity(LocalDate first, LocalDate last) {
         return new WritingRule(id, kind, pattern, matchMode, replacement, language, severity, justification, scope,
                 wrongExamples, rightExamples, owner, decidedOn, first, last);
-    }
-
-    public String id() {
-        return id;
-    }
-
-    public Kind kind() {
-        return kind;
-    }
-
-    public String pattern() {
-        return pattern;
-    }
-
-    public MatchMode matchMode() {
-        return matchMode;
-    }
-
-    public String replacement() {
-        return replacement;
-    }
-
-    public String language() {
-        return language;
-    }
-
-    public Severity severity() {
-        return severity;
-    }
-
-    public String justification() {
-        return justification;
-    }
-
-    /** Where the rule comes from: {@code group} or {@code site}. */
-    public String scope() {
-        return scope;
-    }
-
-    /** Texts that break the rule. */
-    public List<String> wrongExamples() {
-        return wrongExamples;
-    }
-
-    /** Texts that keep the rule, such as the right form of a wrong example. */
-    public List<String> rightExamples() {
-        return rightExamples;
-    }
-
-    /** Who decided the rule, or {@code null}. */
-    public String owner() {
-        return owner;
-    }
-
-    /** The day of the decision, or {@code null}. */
-    public LocalDate decidedOn() {
-        return decidedOn;
-    }
-
-    /** The first day on which the rule applies, or {@code null} for no start. */
-    public LocalDate validFrom() {
-        return validFrom;
-    }
-
-    /** The last day on which the rule applies, or {@code null} for no end. */
-    public LocalDate validUntil() {
-        return validUntil;
     }
 
     /**

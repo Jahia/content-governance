@@ -102,9 +102,10 @@ public class FrameCheckTool implements JahiaMcpTool {
             return ToolResult.error(ToolError.CODE_VALIDATION, "sourceText is longer than " + MAX_TEXT + " characters",
                     "Check one page or one field at a time.");
         }
+        String language = locale == null ? "en" : locale;
         List<RuleViolation> violations = sourceText == null || sourceLocale == null
-                ? frames.check(siteKey, locale == null ? "en" : locale, text, document)
-                : frames.checkTranslation(siteKey, sourceLocale, sourceText, locale == null ? "en" : locale, text, document);
+                ? frames.check(siteKey, language, text, document)
+                : frames.checkTranslation(siteKey, sourceLocale, sourceText, language, text, document);
         ObjectNode result = FrameTools.MAPPER.createObjectNode();
         ArrayNode list = result.putArray("violations");
         for (RuleViolation violation : violations) {

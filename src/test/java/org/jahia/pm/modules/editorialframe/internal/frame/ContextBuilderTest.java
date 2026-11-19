@@ -51,10 +51,10 @@ class ContextBuilderTest {
         List<WritingRule> rules = new ArrayList<>();
         for (int i = 0; i < 200; i++) {
             rules.add(new WritingRule("r" + i, WritingRule.Kind.FORBIDDEN, "term" + i, WritingRule.MatchMode.TERM, null,
-                    null, WritingRule.Severity.WARNING, null, "site"));
+                    null, WritingRule.Severity.WARNING, null, "site", List.of(), List.of(), null, null, null, null));
         }
         rules.add(new WritingRule("leader", WritingRule.Kind.FORBIDDEN, "leader mondial", WritingRule.MatchMode.TERM, null,
-                null, WritingRule.Severity.WARNING, "Not provable.", "site"));
+                null, WritingRule.Severity.WARNING, "Not provable.", "site", List.of(), List.of(), null, null, null, null));
         FrameContext context = ContextBuilder.build(frame(rules),
                 new FrameRequest("digitall", "en", null, 450, "Le leader mondial du CMS"));
         assertTrue(context.truncated());
@@ -66,9 +66,9 @@ class ContextBuilderTest {
     void theModelSeesTheFirstExamplesOfARuleEachOneCut() {
         String longExample = "A long right example. ".repeat(20);
         WritingRule rule = new WritingRule("leader", WritingRule.Kind.FORBIDDEN, "leading DXP", WritingRule.MatchMode.TERM,
-                null, null, WritingRule.Severity.BLOCKING, "Unsupported superiority claim.", "site")
-                .withExamples(List.of("Jahia is the leading DXP.", "The leading DXP\nfor all.", "A third wrong one."),
-                        List.of(longExample));
+                null, null, WritingRule.Severity.BLOCKING, "Unsupported superiority claim.", "site",
+                List.of("Jahia is the leading DXP.", "The leading DXP\nfor all.", "A third wrong one."),
+                List.of(longExample), null, null, null, null);
 
         String text = ContextBuilder.build(frame(List.of(rule)), FrameRequest.of("digitall", "en", null)).text();
 
@@ -82,7 +82,7 @@ class ContextBuilderTest {
     @Test
     void aFrameWithNoExampleSaysNothingOfExamples() {
         WritingRule rule = new WritingRule("leader", WritingRule.Kind.FORBIDDEN, "leading DXP", WritingRule.MatchMode.TERM,
-                null, null, WritingRule.Severity.WARNING, null, "site");
+                null, null, WritingRule.Severity.WARNING, null, "site", List.of(), List.of(), null, null, null, null);
         String text = ContextBuilder.build(frame(List.of(rule)), FrameRequest.of("digitall", "en", null)).text();
         assertFalse(text.contains("Wrong"), text);
     }
@@ -130,7 +130,7 @@ class ContextBuilderTest {
     @Test
     void theEssentialsGoInWhateverTheBudgetAndTheRulesTakeWhatRemains() {
         List<WritingRule> rules = List.of(new WritingRule("r", WritingRule.Kind.FORBIDDEN, "leader", WritingRule.MatchMode.TERM,
-                null, null, WritingRule.Severity.BLOCKING, null, "site"));
+                null, null, WritingRule.Severity.BLOCKING, null, "site", List.of(), List.of(), null, null, null, null));
         FrameContext context = ContextBuilder.build(longFrame(rules, List.of()),
                 new FrameRequest("digitall", "en", null, 200, "A text"));
         String text = context.text();

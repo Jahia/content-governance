@@ -44,6 +44,11 @@ The version of the exported package `api` is fixed at 0.1.0 in `pom.xml`. A modu
 editorial-frame imports the range `[0.1,1)`. The framework does not wire an import that is outside
 the exported version, and it shows no error for an optional import.
 
+The values of the package are Java records. A record compares by value, so two rules with the same
+components are equal. The constructors of `SkillSummary` and `WritingRule` that took nine
+parameters are gone, and every other constructor and accessor kept its signature. No known reader
+called the two removed constructors, so the version stayed 0.1.0.
+
 ## The tools and the optional module mcp-server
 
 The module mcp-server serves tools to AI agents. A tool is an OSGi service of the type

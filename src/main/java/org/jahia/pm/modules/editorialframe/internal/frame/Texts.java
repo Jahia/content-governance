@@ -18,7 +18,7 @@ public final class Texts {
     private static final Pattern ENTITY = Pattern.compile("&(#x?[0-9a-fA-F]{1,6}|[a-zA-Z]{2,8});");
     private static final Map<String, String> NAMED = Map.ofEntries(
             Map.entry("amp", "&"), Map.entry("lt", "<"), Map.entry("gt", ">"), Map.entry("quot", "\""),
-            Map.entry("apos", "'"), Map.entry("nbsp", " "), Map.entry("laquo", "«"),
+            Map.entry("apos", "'"), Map.entry("nbsp", "\u00A0"), Map.entry("laquo", "«"),
             Map.entry("raquo", "»"), Map.entry("rsquo", "’"), Map.entry("lsquo", "‘"),
             Map.entry("ldquo", "“"), Map.entry("rdquo", "”"), Map.entry("hellip", "…"),
             Map.entry("ndash", "–"), Map.entry("mdash", "—"), Map.entry("eacute", "é"),
@@ -40,7 +40,7 @@ public final class Texts {
             entity.appendReplacement(out, Matcher.quoteReplacement(decode(entity.group(1), entity.group())));
         }
         entity.appendTail(out);
-        return out.toString().replace(' ', ' ');
+        return out.toString().replace('\u00A0', ' ');
     }
 
     private static String decode(String name, String whole) {

@@ -8,46 +8,11 @@ import java.util.List;
 
 
 /** The frame text of a model call: empty when the site has no frame. */
-public final class FrameContext {
+public record FrameContext(String text, String fingerprint, String persona, List<String> personas, int estimatedTokens,
+                           boolean truncated) {
 
-    private final String text;
-    private final String fingerprint;
-    private final String persona;
-    private final List<String> personas;
-    private final int estimatedTokens;
-    private final boolean truncated;
-
-    public FrameContext(String text, String fingerprint, String persona, List<String> personas, int estimatedTokens, boolean truncated) {
-        this.text = text;
-        this.fingerprint = fingerprint;
-        this.persona = persona;
-        this.personas = personas == null ? List.of() : List.copyOf(personas);
-        this.estimatedTokens = estimatedTokens;
-        this.truncated = truncated;
-    }
-
-    public String text() {
-        return text;
-    }
-
-    public String fingerprint() {
-        return fingerprint;
-    }
-
-    public String persona() {
-        return persona;
-    }
-
-    public List<String> personas() {
-        return personas;
-    }
-
-    public int estimatedTokens() {
-        return estimatedTokens;
-    }
-
-    public boolean truncated() {
-        return truncated;
+    public FrameContext {
+        personas = personas == null ? List.of() : List.copyOf(personas);
     }
 
     public static FrameContext empty() {
@@ -56,10 +21,5 @@ public final class FrameContext {
 
     public boolean isEmpty() {
         return text == null || text.isEmpty();
-    }
-
-    @Override
-    public String toString() {
-        return "FrameContext[" + "text=" + text + ", " + "fingerprint=" + fingerprint + ", " + "persona=" + persona + ", " + "personas=" + personas + ", " + "estimatedTokens=" + estimatedTokens + ", " + "truncated=" + truncated + "]";
     }
 }

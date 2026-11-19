@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
  */
 public final class SkillDocument {
 
-    public static final Pattern NAME = Pattern.compile("[a-z0-9](?:[a-z0-9]|-(?=[a-z0-9])){0,63}");
+    public static final Pattern NAME_PATTERN = Pattern.compile("[a-z0-9](?:[a-z0-9]|-(?=[a-z0-9])){0,63}");
     public static final int MAX_DESCRIPTION = 1024;
     private static final List<String> KNOWN = List.of("name", "description", "license", "compatibility",
             "metadata", "allowed-tools");
@@ -49,20 +49,19 @@ public final class SkillDocument {
     /** The Jahia tools of {@code allowed-tools}. */
     public final List<String> tools;
 
-    private SkillDocument(String name, String description, String license, String compatibility, String allowedTools,
-                          Map<String, Object> rawMetadata, String body, List<String> warnings) {
+    private SkillDocument(Map<?, ?> frontmatter, String name, String description, String body, List<String> warnings) {
         this.name = name;
         this.description = description;
-        this.license = license;
-        this.compatibility = compatibility;
-        this.allowedTools = allowedTools;
-        this.rawMetadata = rawMetadata;
+        this.license = string(frontmatter.get("license"));
+        this.compatibility = string(frontmatter.get("compatibility"));
+        this.allowedTools = string(frontmatter.get("allowed-tools"));
+        this.rawMetadata = allMetadata(frontmatter);
         Map<String, String> asStrings = new LinkedHashMap<>();
         rawMetadata.forEach((key, value) -> asStrings.put(key, string(value)));
         this.metadata = asStrings;
         this.body = body;
         this.warnings = warnings;
-        this.label = JahiaSkillKeys.label(rawMetadata, warnings);
+        this.label = JahiaSkillKeys.labelOf(rawMetadata, warnings);
         this.coverage = JahiaSkillKeys.coverage(rawMetadata, description, warnings);
         this.tools = JahiaSkillKeys.tools(allowedTools, warnings);
     }
@@ -86,6 +85,15 @@ public final class SkillDocument {
         String front = source.substring(4, end);
         int bodyStart = source.indexOf('\n', end + 4);
         String body = bodyStart < 0 ? "" : source.substring(bodyStart + 1).strip();
+        Map<?, ?> map = frontmatter(front);
+        List<String> warnings = new ArrayList<>();
+        String name = skillName(string(map.get("name")), folderName, warnings);
+        String description = descriptionOf(string(map.get("description")), warnings);
+        return new SkillDocument(map, name, description, body, warnings);
+    }
+
+    /** The YAML map of a frontmatter. */
+    private static Map<?, ?> frontmatter(String front) {
         Object loaded;
         try {
             LoaderOptions options = new LoaderOptions();
@@ -98,54 +106,82 @@ public final class SkillDocument {
         if (!(loaded instanceof Map)) {
             throw new IllegalArgumentException("The frontmatter of SKILL.md is not a map");
         }
-        Map<?, ?> map = (Map<?, ?>) loaded;
-        List<String> warnings = new ArrayList<>();
-        String name = string(map.get("name"));
+        return (Map<?, ?>) loaded;
+    }
+
+    /**
+     * The name of the skill: the declared name, else the folder name. A name that breaks the naming
+     * rule is fixed, with a warning.
+     */
+    private static String skillName(String declared, String folderName, List<String> warnings) {
+        String name = declared;
         if (name == null || name.isBlank()) {
             name = folderName;
             warnings.add("The frontmatter has no name: the folder name is used");
         }
         name = name.trim();
-        if (!NAME.matcher(name).matches()) {
-            String fixed = Texts.trim(name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-"), '-');
-            fixed = fixed.length() > 64 ? fixed.substring(0, 64).replaceAll("-+$", "") : fixed;
-            if (fixed.isEmpty() && folderName != null) {
-                fixed = Texts.trim(folderName.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-"), '-');
-            }
-            if (fixed.isEmpty()) {
-                throw new IllegalArgumentException("The name '" + name + "' gives no valid skill name");
-            }
-            fixed = fixed.length() > 64 ? fixed.substring(0, 64).replaceAll("-+$", "") : fixed;
-            warnings.add("The name '" + name + "' breaks the naming rule: '" + fixed + "' is used");
+        if (!NAME_PATTERN.matcher(name).matches()) {
+            String fixed = fixedName(name, folderName);
+            warnings.add(String.format("The name '%s' breaks the naming rule: '%s' is used", name, fixed));
             name = fixed;
         }
         if (folderName != null && !name.equals(folderName)) {
-            warnings.add("The name '" + name + "' differs from the folder '" + folderName + "'");
+            warnings.add(String.format("The name '%s' differs from the folder '%s'", name, folderName));
         }
-        String description = string(map.get("description"));
-        if (description == null || description.isBlank()) {
+        return name;
+    }
+
+    /** A name that keeps the naming rule, made from a name that breaks it, else from the folder name. */
+    private static String fixedName(String name, String folderName) {
+        String fixed = cut(dashed(name));
+        if (fixed.isEmpty() && folderName != null) {
+            fixed = dashed(folderName);
+        }
+        if (fixed.isEmpty()) {
+            throw new IllegalArgumentException(String.format("The name '%s' gives no valid skill name", name));
+        }
+        return cut(fixed);
+    }
+
+    /** A text in lower case, with a dash for each run of characters other than a letter or a digit, and none at its ends. */
+    private static String dashed(String text) {
+        return Texts.trim(text.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-"), '-');
+    }
+
+    /** A dashed name cut at 64 characters. It starts with no dash, so the trim removes the dash that the cut may leave at its end. */
+    private static String cut(String name) {
+        return name.length() > 64 ? Texts.trim(name.substring(0, 64), '-') : name;
+    }
+
+    /** The description, cut at {@link #MAX_DESCRIPTION} characters with a warning. */
+    private static String descriptionOf(String declared, List<String> warnings) {
+        if (declared == null || declared.isBlank()) {
             throw new IllegalArgumentException("SKILL.md has no description");
         }
-        description = description.strip();
+        String description = declared.strip();
         if (description.length() > MAX_DESCRIPTION) {
             warnings.add("The description is longer than " + MAX_DESCRIPTION + " characters: it is cut");
             description = description.substring(0, MAX_DESCRIPTION);
         }
-        Map<String, Object> metadata = new LinkedHashMap<>();
-        Object declared = map.get("metadata");
+        return description;
+    }
+
+    /** Every key of {@code metadata}, then every unknown key of the frontmatter, with its YAML value. */
+    private static Map<String, Object> allMetadata(Map<?, ?> frontmatter) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        Object declared = frontmatter.get("metadata");
         if (declared instanceof Map) {
             for (Map.Entry<?, ?> entry : ((Map<?, ?>) declared).entrySet()) {
-                metadata.put(String.valueOf(entry.getKey()), entry.getValue());
+                values.put(String.valueOf(entry.getKey()), entry.getValue());
             }
         }
-        for (Map.Entry<?, ?> entry : map.entrySet()) {
+        for (Map.Entry<?, ?> entry : frontmatter.entrySet()) {
             String key = String.valueOf(entry.getKey());
             if (!KNOWN.contains(key)) {
-                metadata.put(key, entry.getValue());
+                values.put(key, entry.getValue());
             }
         }
-        return new SkillDocument(name, description, string(map.get("license")), string(map.get("compatibility")),
-                string(map.get("allowed-tools")), metadata, body, warnings);
+        return values;
     }
 
     /** A YAML value as a string: a list becomes its items joined by a comma. */
