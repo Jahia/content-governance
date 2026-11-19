@@ -36,6 +36,15 @@ public final class SkillPaths {
         return path.codePoints().noneMatch(Character::isISOControl) && !path.contains(":");
     }
 
+    /** The path without the slashes at its end, however many: {@code _shared//} gives {@code _shared}. */
+    public static String withoutTrailingSlashes(String path) {
+        int end = path.length();
+        while (end > 0 && path.charAt(end - 1) == '/') {
+            end--;
+        }
+        return path.substring(0, end);
+    }
+
     /** True for a file a skill keeps: a text type outside of {@code scripts/}. */
     public static boolean isKept(String relativePath) {
         if (relativePath.startsWith("scripts/") || relativePath.contains("/scripts/")) {

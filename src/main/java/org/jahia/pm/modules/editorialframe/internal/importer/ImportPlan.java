@@ -927,7 +927,7 @@ public final class ImportPlan {
      */
     private String dependencySource(Map<String, String> files, String dependency, String folder, String voiceFolder,
                                     String personasFolder, Map<String, String> skillFiles) {
-        String path = dependency.replaceAll("/+$", "");
+        String path = SkillPaths.withoutTrailingSlashes(dependency);
         if (path.equals(voiceFolder) || path.equals(personasFolder) || !SkillPaths.isSafeRelative(path)) {
             return null;
         }
