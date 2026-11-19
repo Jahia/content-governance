@@ -269,8 +269,13 @@ public final class ContextBuilder {
         String what;
         boolean regex = rule.matchMode() == WritingRule.MatchMode.REGEX;
         String term = rule.pattern().endsWith("*") ? rule.pattern().substring(0, rule.pattern().length() - 1) : rule.pattern();
-        String quoted = regex ? "text that matches the pattern /" + rule.pattern() + "/"
-                : "\"" + term + "\"" + (rule.pattern().endsWith("*") ? " and every word that starts with it" : "");
+        String quoted;
+        if (regex) {
+            quoted = "text that matches the pattern /" + rule.pattern() + "/";
+        } else {
+            String stem = rule.pattern().endsWith("*") ? " and every word that starts with it" : "";
+            quoted = "\"" + term + "\"" + stem;
+        }
         switch (rule.kind()) {
             case REPLACE:
                 what = "Write \"" + rule.replacement() + "\" instead of " + quoted + ".";

@@ -203,7 +203,7 @@ public final class RuleChecker {
         StringBuilder literal = new StringBuilder();
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
-            String special = c == ' ' ? "\\s+" : c == '\'' || c == '’' ? "['’]" : null;
+            String special = special(c);
             if (special == null) {
                 literal.append(c);
                 continue;
@@ -218,6 +218,14 @@ public final class RuleChecker {
             regex.append(Pattern.quote(literal.toString()));
         }
         return regex + (stem ? "[\\p{L}\\p{N}]*" : "");
+    }
+
+    /** The regex of a character that a text writes in several ways, or {@code null} for another character. */
+    private static String special(char c) {
+        if (c == ' ') {
+            return "\\s+";
+        }
+        return c == '\'' || c == '’' ? "['’]" : null;
     }
 
     static String excerpt(String text, int start, int end) {
