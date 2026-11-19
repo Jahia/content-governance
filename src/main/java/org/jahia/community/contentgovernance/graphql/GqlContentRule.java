@@ -35,6 +35,19 @@ public class GqlContentRule {
 
     @GraphQLField
     @GraphQLNonNull
+    @GraphQLDescription("What checks the rule: pattern, threshold, presence, model, or the id of a check that a module registers")
+    public String getEvaluator() {
+        return rule.evaluator();
+    }
+
+    @GraphQLField
+    @GraphQLDescription("True when a finding of the rule stops the publication of the content")
+    public boolean isBlocking() {
+        return rule.blocking();
+    }
+
+    @GraphQLField
+    @GraphQLNonNull
     @GraphQLDescription("critical, serious, moderate or minor")
     public String getSeverity() {
         return rule.severity();

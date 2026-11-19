@@ -336,6 +336,9 @@
                         </Export-Package>
                         <!-- The skills of this module, served by the skill registry of the editorial frame. -->
                         <Jahia-Skills>skills</Jahia-Skills>
+                        <!-- The content rules of this module, one Markdown file per rule, which the seeder
+                             copies into each site. Another module ships rules with the same header. -->
+                        <Jahia-Content-Rules>content-rules</Jahia-Content-Rules>
                         <Embed-Dependency>snakeyaml|jsoup;scope=compile;inline=false</Embed-Dependency>
                         <!-- Named explicitly: the GraphQL packages come from graphql-dxm-provider, whose
                              transitive dependencies are excluded, so the bundle plugin would not infer them.
