@@ -37,7 +37,7 @@ public final class ImportWriter {
 
     /** The one parent folder of everything an import writes: voice, personas, rules, glossary and skills. */
     public static final String FOLDER = "ai-assistant";
-    private static final String RULE_TYPE = "efnt:writingRule";
+    private static final String RULE_TYPE = "ccs:contentRule";
     private static final String TERM_TYPE = "efnt:glossaryTerm";
     private static final String VOICE_FOLDER = "voice";
     private static final String PERSONAS_FOLDER = "personas";
@@ -145,7 +145,19 @@ public final class ImportWriter {
         }
     }
 
+    /**
+     * Writes a writing rule as a content rule of the evaluator pattern and the domain {@code writing},
+     * whose id is {@code writing.<node name>}. A rule of the kind style is minor, a blocking rule is
+     * serious and blocking, and a warning is moderate.
+     */
     private static void writeRule(JCRNodeWrapper node, String source, WritingRule rule) throws RepositoryException {
+        boolean blocking = rule.severity() == WritingRule.Severity.BLOCKING;
+        node.setProperty("ruleId", "writing." + node.getName());
+        node.setProperty("evaluator", "pattern");
+        node.setProperty("domain", "writing");
+        String severity = blocking ? "serious" : "moderate";
+        node.setProperty("severity", rule.kind() == WritingRule.Kind.STYLE ? "minor" : severity);
+        node.setProperty("blocking", blocking);
         node.setProperty(SOURCE, source);
         node.setProperty("kind", rule.kind().name().toLowerCase(Locale.ROOT));
         node.setProperty("pattern", rule.pattern());
@@ -156,9 +168,8 @@ public final class ImportWriter {
         if (rule.language() != null) {
             node.setProperty("ruleLanguage", rule.language());
         }
-        node.setProperty("severity", rule.severity().name().toLowerCase(Locale.ROOT));
         if (rule.justification() != null) {
-            node.setProperty("justification", rule.justification());
+            node.setProperty("advice", rule.justification());
         }
         if (!rule.wrongExamples().isEmpty()) {
             node.setProperty("wrongExamples", rule.wrongExamples().toArray(new String[0]));

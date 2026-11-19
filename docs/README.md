@@ -35,8 +35,8 @@ every tab shows, which findings are yours to fix and which belong to a developer
 
 - **[`settings-guide.md`](settings-guide.md)**: **Site Settings > Content governance**: switching
   sections and tabs, the AI model, connecting BotRank.
-- **[`content-rules/catalog.md`](content-rules/catalog.md)**: the rules the checks apply, and how
-  a site turns one off or changes its severity or its limits.
+- **[`content-rules/catalog.md`](content-rules/catalog.md)**: the rules the checks apply, how a
+  site changes one or adds its own, and how a module ships rules.
 
 ## If you want to know what it checks, or how it works
 

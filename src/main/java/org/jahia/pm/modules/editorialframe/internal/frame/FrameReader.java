@@ -42,7 +42,9 @@ public final class FrameReader {
     public static final Pattern LANGUAGE = Pattern.compile("[a-z]{2,3}([_-][A-Za-z0-9]{2,8})*");
     static final String VOICE = "efnt:brandVoice";
     static final String PERSONA = "efnt:persona";
-    static final String RULE = "efnt:writingRule";
+    /** A writing rule is a content rule of the evaluator pattern. */
+    static final String RULE = "ccs:contentRule";
+    private static final String PATTERN = "pattern";
     static final String TERM = "efnt:glossaryTerm";
 
     private FrameReader() {
@@ -206,21 +208,29 @@ public final class FrameReader {
         return value == null || value.isBlank();
     }
 
+    /**
+     * The writing rule of a content rule, or {@code null} for a rule that is off, or whose evaluator is
+     * not pattern. A blocking rule has the severity blocking, and any other rule the severity warning.
+     */
     private static WritingRule rule(JCRNodeWrapper node, String scope, String language, String fallback) {
         try {
             String pattern = node.getPropertyAsString("pattern");
+            String evaluator = node.hasProperty("evaluator") ? node.getPropertyAsString("evaluator") : PATTERN;
             WritingRule.Kind kind = WritingRule.Kind.parse(node.getPropertyAsString("kind"));
-            if (pattern == null || pattern.isBlank() || kind == WritingRule.Kind.GLOSSARY) {
+            boolean off = node.hasProperty("enabled") && !node.getProperty("enabled").getBoolean();
+            if (off || !PATTERN.equals(evaluator) || pattern == null || pattern.isBlank()
+                    || kind == WritingRule.Kind.GLOSSARY) {
                 return null;
             }
-            return new WritingRule(node.getIdentifier(),
+            boolean blocking = node.hasProperty("blocking") && node.getProperty("blocking").getBoolean();
+            return new WritingRule(node.getPropertyAsString("ruleId"),
                     kind,
                     pattern,
                     WritingRule.MatchMode.parse(node.getPropertyAsString("matchMode")),
                     node.getPropertyAsString("replacement"),
                     node.getPropertyAsString("ruleLanguage"),
-                    WritingRule.Severity.parse(node.getPropertyAsString("severity")),
-                    i18n(node, "justification", language, fallback),
+                    blocking ? WritingRule.Severity.BLOCKING : WritingRule.Severity.WARNING,
+                    i18n(node, "advice", language, fallback),
                     scope,
                     nonBlank(strings(node, "wrongExamples")),
                     nonBlank(strings(node, "rightExamples")),

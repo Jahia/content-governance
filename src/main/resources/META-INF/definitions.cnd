@@ -24,17 +24,50 @@
  - reason (string, textarea)
  - alternative (string)
 
-// A rule of the catalog of the module, as a site applies it. The module seeds one node per rule under
-// contents/content-insights/jahia/rules, and the checks read the switch, the severity and the limits
-// of that node. A limit counts only for a rule that has one in the catalog.
-[ccs:contentRule] > jnt:content
+// A rule that the checks apply on a site. A module ships its rules as Markdown files, and the seeder
+// writes one node per rule under contents/content-insights/<module>/rules. A site changes a rule on its
+// node, and adds a rule of its own anywhere under contents, such as contents/content-insights/site/rules.
+// The evaluator names what checks the rule: pattern, threshold, presence, model, or the id of a check.
+[ccs:contentRule] > jnt:content, ccsmix:complianceContent
  - ruleId (string) mandatory primary nofulltext
+ // Not mandatory: Jahia refuses a new mandatory property on a type that has nodes. Empty: pattern.
+ - evaluator (string) = 'pattern' autocreated nofulltext
+ // The group of the rule. Empty: the part of the rule id before the first dot.
+ - domain (string) nofulltext
  - enabled (boolean) = 'true' autocreated
- - severity (string, choicelist[resourceBundle]) mandatory < 'critical', 'serious', 'moderate', 'minor'
+ - severity (string, choicelist[resourceBundle]) = 'moderate' autocreated mandatory < 'critical', 'serious', 'moderate', 'minor'
+ // A finding of a blocking rule stops the publication of the content.
+ - blocking (boolean) = 'false' autocreated
+ - fixer (string, choicelist[resourceBundle]) = 'editor' autocreated < 'editor', 'developer', 'administrator'
+ // What to do about a finding. For a rule of the evaluator model, the criterion that the model checks.
+ - advice (string, textarea) i18n
+ // The limits of a rule of the evaluator threshold, in this unit, such as characters.
+ - unit (string)
  - minimum (double)
  - maximum (double)
+ // The pattern of a writing rule, which the evaluator pattern checks.
+ - kind (string, choicelist[resourceBundle]) < 'forbidden', 'replace', 'mandatory', 'style'
+ - pattern (string)
+ - matchMode (string, choicelist[resourceBundle]) < 'term', 'regex'
+ - replacement (string)
+ // A language code such as fr. Empty: every language.
+ - ruleLanguage (string)
+ // Texts that break the rule, and texts that keep it. The frame gives them to the model.
+ - wrongExamples (string, textarea) multiple
+ - rightExamples (string, textarea) multiple
+ // Who decided the rule, such as a name or a team, and on which day.
+ - owner (string)
+ - decidedOn (date, datepicker)
+ // The first and the last day on which the rule applies, both included. Empty: no limit.
+ - validFrom (date, datepicker)
+ - validUntil (date, datepicker)
+ // The file an import of the editorial frame read the rule from, so that a new import of that file replaces it.
+ - source (string)
+ // Set by the seeder on a rule that the site changed and that its module no longer ships.
+ - retired (boolean)
+ // The fingerprint of the values that the seeder last wrote, so that it tells a rule that the site changed.
+ - seedDigest (string) hidden nofulltext
 
-// The folder of the rules that the module seeds, contents/content-insights/jahia/rules. A content
-// folder takes droppable content only, and a rule is not droppable: a customer writes no rule of its own.
+// The folder of the rules of one module, contents/content-insights/<module>/rules.
 [ccs:contentRuleFolder] > jnt:contentFolder
  + * (ccs:contentRule)

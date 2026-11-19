@@ -1,71 +1,143 @@
 # The catalog of content rules
 
-The checks of Page quality and of GEO readiness apply content rules. Each rule exists once, in a
-catalog, with one id and one value. Example: the rule `seo.title` accepts a title of 30 to 60
-characters. The SEO tab and the GEO tab both report a title under this rule.
+The checks of Page quality, of GEO readiness and of the editorial frame apply content rules. Each
+rule is a content node of the site, with one id and one value. Example: the rule `seo.title` accepts
+a title of 30 to 60 characters. The SEO tab and the GEO tab both report a title under this rule.
 
 ## What a rule holds
 
-| Field | What it means |
+A rule is a node of type `ccs:contentRule`, and the module, a site or an import writes it with these
+properties.
+
+| Property | What it means |
 |---|---|
-| Id | The name of the rule, such as `seo.title`. Each finding of the rule shows it. |
-| Domain | The group of the rule, the part of the id before the dot: `seo`, `geo`, `readability`, `ecodesign`, `links` or `health`. |
-| Severity | `critical`, `serious`, `moderate` or `minor`. |
-| Switch | On or off. A rule that is off reports nothing. |
-| Limits | A minimum, a maximum, or both, in the unit of the rule. Many rules have no limit. |
-| Advice | What to do about a finding, in English. |
-| Fixer | The role of the person who fixes a finding: `editor`, `developer` or `administrator`. Example: `geo.reachable`, a crawler that gets a 403, names an administrator. |
+| `ruleId` | The name of the rule, such as `seo.title`. Each finding of the rule shows it. One rule of a site has it. |
+| `evaluator` | What checks the rule. The next table lists the values. |
+| `domain` | The group of the rule, such as `seo`. Empty: the part of the id before the first dot. |
+| `severity` | `critical`, `serious`, `moderate` or `minor`. |
+| `blocking` | A finding of a blocking rule stops the publication of the content. |
+| `enabled` | On or off. A rule that is off reports nothing. |
+| `fixer` | The role of the person who fixes a finding: `editor`, `developer` or `administrator`. Example: `geo.reachable`, a crawler that gets a 403, names an administrator. |
+| `advice` | What to do about a finding, one text per language. For the evaluator `model`, the criterion that the model checks. |
+| `unit`, `minimum`, `maximum` | The limits of a rule of the evaluator `threshold`, in its unit. |
+| `kind`, `pattern`, `matchMode`, `replacement`, `ruleLanguage` | The pattern of a rule of the evaluator `pattern`: a forbidden term, a term to replace, a mandatory mention or a style pattern. |
+| `wrongExamples`, `rightExamples`, `owner`, `decidedOn`, `validFrom`, `validUntil` | The examples, the decision and the dates of a writing rule. |
+| `retired` | Set by the module on a rule that the site changed and that its module no longer ships. |
+
+| Evaluator | What checks the rule |
+|---|---|
+| `pattern` | The pattern of the rule, with no model. `frame.check` reports each match. |
+| `threshold` | A measured value against `minimum` and `maximum`. Example: `seo.title` measures the length of the title. |
+| `presence` | Something that the rule names is present. |
+| `model` | A model, against the advice of the rule. Only a module that calls a model registers it, so content-governance alone checks no such rule. |
+| Any other value | The id of a check that a module registers. A built-in rule with no limit names a check of its own id, such as `seo.indexable`. |
 
 ## Where the rules live
 
-The module ships the base catalog in `src/main/resources/META-INF/content-rules/catalog.json`.
-
-The module copies the base catalog into each site that enables it. Each rule becomes one content
-node of type `ccs:contentRule`, in this folder of the site:
-
 ```text
-contents/content-insights/jahia/rules/
-    seo.title          ruleId, enabled, severity, minimum, maximum
-    seo.metaDescription
-    ...
+contents/content-insights/
+    content-governance/rules/     the 52 rules of this module
+        seo.title                 ruleId, evaluator, severity, minimum, maximum, advice...
+        ...
+    <module>/rules/               the rules of another module
+    site/rules/                   the rules that the site adds
+contents/ai-assistant/rules/      the writing rules that the import of the editorial frame writes
 ```
 
-The copy runs when a site enables the module, and for every such site when the module starts. It
-adds the rules that a site does not have. It never changes a node that exists.
+The checks read every `ccs:contentRule` node under the site, wherever it is. The folders above are
+where the module and the import write, and where a site keeps its own rules.
 
-A customer can keep its own content beside the folder `jahia`, in
-`contents/content-insights/<customer>/`. In this version, the checks read only the folder
-`jahia/rules`.
+## How a module ships rules
+
+A module names a folder of its bundle in the manifest header `Jahia-Content-Rules`. Each `.md` file
+of that folder is one rule. This module ships its rules in `src/main/resources/content-rules`:
+
+```xml
+<Jahia-Content-Rules>content-rules</Jahia-Content-Rules>
+```
+
+```markdown
+---
+id: seo.title
+evaluator: threshold
+severity: serious
+fixer: editor
+unit: characters
+minimum: 30
+maximum: 60
+---
+Give the page a title, with the main subject first, inside the length range.
+```
+
+The frontmatter holds the properties of the node, with `id` for `ruleId`. The body is the advice. A
+file with an unknown key, no evaluator, or an unknown severity is skipped with a warning in the log.
+
+The module copies the rules of a module into each site that enables content-governance and installs
+that module, under `contents/content-insights/<module>/rules`. The copy runs when a site installs a
+module, when a module that ships rules starts, and for every site when content-governance starts.
 
 ## How a site changes a rule
 
-Open the node of the rule in jContent, under **Content folders > content-insights > jahia > rules**.
-Change one of these fields:
+Open the node of the rule in jContent, under **Content folders > content-insights > content-governance
+> rules**, and change a property. Example: a site sets the minimum of `seo.title` to 40. At the next
+run, the SEO tab and the GEO tab report a title of 35 characters under `seo.title`, with the range 40
+to 60.
 
-- **On**: clear it to turn the rule off.
-- **Severity**: the severity of each finding of the rule.
-- **Minimum** and **Maximum**: the limits. A limit counts only for a rule that the catalog gives
-  that limit. Example: a minimum on `seo.canonical` changes nothing.
+The change applies at the next check, with no publication, because the checks read the edit
+workspace. A property that the node lacks keeps the value that the module ships.
 
-The change applies at the next check, with no publication, because the checks read the edit workspace.
-Example: a site sets the minimum of `seo.title` to 40. At the next run, the SEO tab and the GEO tab
-report a title of 35 characters under `seo.title`, with the range 40 to 60.
+A node that a site deletes comes back with its shipped values when the module starts again. Delete a
+node to reset its rule, and turn a rule off to stop it.
 
-A node that a site deletes comes back with its default when the module starts again, so turn a
-rule off to stop it.
+## How a site adds a rule
 
-[content-governance#79](https://github.com/Jahia/content-governance/issues/79) decides how a
-customer changes a Jahia rule in a later version, and how a new version updates the folder `jahia`.
+Create a **Content rule** in jContent, under **Content folders > content-insights > site > rules**.
+Give it a rule id, an evaluator, a severity and an advice. For example, the rule `acme.tone` has the
+evaluator `model`, the severity `minor` and the advice "Write in a friendly tone."
+
+The id is free, and it needs no domain. jContent refuses a rule whose id another rule of the site
+already has: "The rule seo.title already exists at /sites/...".
+
+## How a new version of a module updates the rules
+
+Each node that the module writes keeps a fingerprint of the values it wrote, in the hidden property
+`seedDigest`. A node whose values still match the fingerprint is a node that nobody changed.
+[content-governance#79](https://github.com/Jahia/content-governance/issues/79) decided this rule.
+
+| The rule in the new version | Nobody changed the node | The site changed the node |
+|---|---|---|
+| New | The module adds it. | The module adds it. |
+| Changed | The node takes the new values. | The node keeps its values, and gets the properties it lacks. |
+| Gone | The module removes the node. | The node stays, with `retired` set. |
+
+A module that stops keeps its rule nodes on the sites. A check that the module registered goes with
+it.
+
+## The upgrade from an earlier version
+
+Content-governance converts the rules of an earlier version once, when it starts:
+
+- The folder `contents/content-insights/jahia` becomes `contents/content-insights/content-governance`.
+  A rule that the site changed keeps its values and gets its evaluator and its advice.
+- Each `efnt:writingRule` of the editorial frame becomes a `ccs:contentRule` in place, in the edit
+  and the live workspace, with the same identifier. Its id is `writing.<node name>`, and its domain is
+  `writing`, and its evaluator is `pattern`. The severity `warning` becomes `moderate`, and
+  `blocking` becomes `serious` with `blocking` set. A rule of the kind `style` is `minor`, so that it
+  stays a soft rule. The justification of each language becomes the advice of that language. Every
+  other value stays.
 
 ## How a check reads the rules
 
 - The Java checks of GEO readiness read the rules of the site through `ContentRules.forSite`. A site
   scan reads them once, at its start.
 - The analyzers of Page quality read them through the GraphQL field
-  `contentGovernance.contentRules(siteKey)`, at the start of each audit.
+  `contentGovernance.contentRules(siteKey)`, at the start of each audit. Each rule gives its
+  `evaluator` and `blocking` there too.
 - The SEO assist reads the ranges of `seo.title` and `seo.metaDescription`, and states them in its
   prompt.
-- A rule with no node, and a site that cannot be read, use the base catalog.
+- The editorial frame reads the rules of the evaluator `pattern` from the live workspace.
+  `frame.check` reports their matches, and the prompt of a model carries them.
+- A rule with no node, and a site that cannot be read, use the values that the module ships.
 
 Each finding carries the id of its rule: `rule` on a recommendation of Page quality, and `rule` on a
 check of GEO readiness. The site scan of GEO readiness stores the rule of each check in `rules`,
@@ -84,59 +156,59 @@ important. `minor` shows as advisory.
 - The skill `seo-review` states the default ranges of `seo.title` and `seo.metaDescription`. A change
   on a site does not reach it.
 
-## The rules of the base catalog
+## The rules of this module
 
-| Rule | Severity | Limits | Fixed by |
-|---|---|---|---|
-| `seo.title` | serious | minimum 30, maximum 60 characters | editor |
-| `seo.metaDescription` | serious | minimum 50, maximum 160 characters | editor |
-| `seo.indexable` | critical | none | editor |
-| `seo.followLinks` | moderate | none | editor |
-| `seo.canonical` | moderate | none | developer |
-| `seo.openGraph` | moderate | none | editor |
-| `seo.structuredData` | moderate | none | developer |
-| `seo.structuredDataValid` | serious | none | developer |
-| `seo.lang` | moderate | none | developer |
-| `seo.langMatches` | serious | none | developer |
-| `seo.imageAlt` | moderate | none | editor |
-| `seo.genericAnchors` | minor | none | editor |
-| `seo.singleH1` | serious | none | editor |
-| `geo.fetched` | critical | none | administrator |
-| `geo.reachable` | critical | none | administrator |
-| `geo.policyMatchesReality` | serious | none | administrator |
-| `geo.noClientRedirect` | critical | none | developer |
-| `geo.namedInRobots` | minor | none | administrator |
-| `geo.guestReadable` | critical | none | administrator |
-| `geo.contentInInitialHtml` | critical | minimum 50 words | developer |
-| `geo.sameContentForCrawlers` | critical | minimum 0.5 ratio | administrator |
-| `geo.headingOutline` | minor | none | editor |
-| `geo.dateModified` | minor | none | developer |
-| `geo.imageAlt` | minor | minimum 0.8 ratio | editor |
-| `geo.robotsPresent` | serious | none | administrator |
-| `geo.llmsPresent` | minor | none | administrator |
-| `readability.veryHardText` | serious | none | editor |
-| `readability.hardText` | moderate | none | editor |
-| `readability.longSentences` | minor | maximum 25 words | editor |
-| `readability.longParagraphs` | moderate | maximum 80 words | editor |
-| `readability.headingSkips` | moderate | none | editor |
-| `readability.thinContent` | minor | minimum 300 words | editor |
-| `ecodesign.pageWeight` | moderate | maximum 1024 kilobytes | developer |
-| `ecodesign.requests` | moderate | maximum 70 requests | developer |
-| `ecodesign.domSize` | moderate | maximum 1500 elements | developer |
-| `ecodesign.lazyLoading` | moderate | none | developer |
-| `ecodesign.imageFormats` | moderate | none | editor |
-| `ecodesign.oversizedImages` | moderate | none | editor |
-| `ecodesign.imageDimensions` | moderate | none | developer |
-| `ecodesign.webFonts` | minor | maximum 2 files | developer |
-| `ecodesign.autoplay` | moderate | none | editor |
-| `ecodesign.thirdParty` | moderate | maximum 5 hosts | developer |
-| `ecodesign.heavyAssets` | moderate | maximum 300 kilobytes | developer |
-| `links.broken` | critical | none | editor |
-| `links.hardcodedUrls` | moderate | none | editor |
-| `links.mixedContent` | serious | none | developer |
-| `links.blankNoopener` | minor | none | developer |
-| `health.rawI18nKeys` | critical | none | developer |
-| `health.unpublishedChanges` | serious | none | editor |
-| `health.missingTranslations` | serious | none | editor |
-| `health.placeholderText` | serious | none | editor |
-| `health.graphqlUnavailable` | minor | none | administrator |
+| Rule | Evaluator | Severity | Limits | Fixed by |
+|---|---|---|---|---|
+| `seo.title` | `threshold` | serious | minimum 30, maximum 60 characters | editor |
+| `seo.metaDescription` | `threshold` | serious | minimum 50, maximum 160 characters | editor |
+| `seo.indexable` | `seo.indexable` | critical | none | editor |
+| `seo.followLinks` | `seo.followLinks` | moderate | none | editor |
+| `seo.canonical` | `seo.canonical` | moderate | none | developer |
+| `seo.openGraph` | `seo.openGraph` | moderate | none | editor |
+| `seo.structuredData` | `seo.structuredData` | moderate | none | developer |
+| `seo.structuredDataValid` | `seo.structuredDataValid` | serious | none | developer |
+| `seo.lang` | `seo.lang` | moderate | none | developer |
+| `seo.langMatches` | `seo.langMatches` | serious | none | developer |
+| `seo.imageAlt` | `seo.imageAlt` | moderate | none | editor |
+| `seo.genericAnchors` | `seo.genericAnchors` | minor | none | editor |
+| `seo.singleH1` | `seo.singleH1` | serious | none | editor |
+| `geo.fetched` | `geo.fetched` | critical | none | administrator |
+| `geo.reachable` | `geo.reachable` | critical | none | administrator |
+| `geo.policyMatchesReality` | `geo.policyMatchesReality` | serious | none | administrator |
+| `geo.noClientRedirect` | `geo.noClientRedirect` | critical | none | developer |
+| `geo.namedInRobots` | `geo.namedInRobots` | minor | none | administrator |
+| `geo.guestReadable` | `geo.guestReadable` | critical | none | administrator |
+| `geo.contentInInitialHtml` | `threshold` | critical | minimum 50 words | developer |
+| `geo.sameContentForCrawlers` | `threshold` | critical | minimum 0.5 ratio | administrator |
+| `geo.headingOutline` | `geo.headingOutline` | minor | none | editor |
+| `geo.dateModified` | `geo.dateModified` | minor | none | developer |
+| `geo.imageAlt` | `threshold` | minor | minimum 0.8 ratio | editor |
+| `geo.robotsPresent` | `geo.robotsPresent` | serious | none | administrator |
+| `geo.llmsPresent` | `geo.llmsPresent` | minor | none | administrator |
+| `readability.veryHardText` | `readability.veryHardText` | serious | none | editor |
+| `readability.hardText` | `readability.hardText` | moderate | none | editor |
+| `readability.longSentences` | `threshold` | minor | maximum 25 words | editor |
+| `readability.longParagraphs` | `threshold` | moderate | maximum 80 words | editor |
+| `readability.headingSkips` | `readability.headingSkips` | moderate | none | editor |
+| `readability.thinContent` | `threshold` | minor | minimum 300 words | editor |
+| `ecodesign.pageWeight` | `threshold` | moderate | maximum 1024 kilobytes | developer |
+| `ecodesign.requests` | `threshold` | moderate | maximum 70 requests | developer |
+| `ecodesign.domSize` | `threshold` | moderate | maximum 1500 elements | developer |
+| `ecodesign.lazyLoading` | `ecodesign.lazyLoading` | moderate | none | developer |
+| `ecodesign.imageFormats` | `ecodesign.imageFormats` | moderate | none | editor |
+| `ecodesign.oversizedImages` | `ecodesign.oversizedImages` | moderate | none | editor |
+| `ecodesign.imageDimensions` | `ecodesign.imageDimensions` | moderate | none | developer |
+| `ecodesign.webFonts` | `threshold` | minor | maximum 2 files | developer |
+| `ecodesign.autoplay` | `ecodesign.autoplay` | moderate | none | editor |
+| `ecodesign.thirdParty` | `threshold` | moderate | maximum 5 hosts | developer |
+| `ecodesign.heavyAssets` | `threshold` | moderate | maximum 300 kilobytes | developer |
+| `links.broken` | `links.broken` | critical | none | editor |
+| `links.hardcodedUrls` | `links.hardcodedUrls` | moderate | none | editor |
+| `links.mixedContent` | `links.mixedContent` | serious | none | developer |
+| `links.blankNoopener` | `links.blankNoopener` | minor | none | developer |
+| `health.rawI18nKeys` | `health.rawI18nKeys` | critical | none | developer |
+| `health.unpublishedChanges` | `health.unpublishedChanges` | serious | none | editor |
+| `health.missingTranslations` | `health.missingTranslations` | serious | none | editor |
+| `health.placeholderText` | `health.placeholderText` | serious | none | editor |
+| `health.graphqlUnavailable` | `health.graphqlUnavailable` | minor | none | administrator |

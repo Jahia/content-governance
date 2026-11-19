@@ -28,7 +28,7 @@ The frame is content of the site. The module defines these types:
 |---|---|---|
 | `efnt:brandVoice` | The voice, in Markdown (`body`, translated), and its `essentials` (translated). `authorVoiceUnder` lists the paths where an editor's own voice applies. | Brand manager |
 | `efnt:persona` | A reader, in Markdown (`body`, translated), and its `essentials` (translated). `isDefault` marks the default reader. | Brand manager, marketing |
-| `efnt:writingRule` | `kind` (forbidden, replace, mandatory, style), `pattern`, `matchMode` (term or regex), `replacement`, `ruleLanguage`, `severity` (warning or blocking), `justification` (translated), `wrongExamples` and `rightExamples`, `owner`, `decidedOn`, `validFrom` and `validUntil`. | Legal, brand manager |
+| `ccs:contentRule` | A writing rule is a [content rule](../content-rules/catalog.md) of the evaluator `pattern`: `kind` (forbidden, replace, mandatory, style), `pattern`, `matchMode` (term or regex), `replacement`, `ruleLanguage`, `severity` with `blocking`, `advice` (translated), `wrongExamples` and `rightExamples`, `owner`, `decidedOn`, `validFrom` and `validUntil`. It replaces `efnt:writingRule`, which the module converts when it starts. | Legal, brand manager |
 | `efnt:glossaryTerm` | One term for one language pair: `term` in `termLanguage`, written `translation` in `translationLanguage`, a `note` and a `definition`. `termForms` and `translationForms` hold the other forms, such as a plural or a feminine form. `status` is `approved`, or `forbidden` for a translation that the brand never writes. A term that the brand never translates has itself as its translation. | Brand manager, translators |
 | `efnt:skill` | A skill: `description`, `body` (the Markdown of `SKILL.md`), `activation` (auto, manual, pinned-only), `consumers`, `assistantAction`, and its files as `efnt:skillFile` children. | Brand manager, integrator |
 | `efmix:authorVoice` | On a user: `voice`, or `voiceSkill`, the name of a skill that holds the voice. | The editor |
@@ -44,7 +44,7 @@ create menu and the paste of jContent offer only what belongs there:
 | `ai-assistant` | The five types of the frame. A new sub-folder inherits this restriction. |
 | `voice` | `efnt:brandVoice` |
 | `personas` | `efnt:persona` |
-| `rules` | `efnt:writingRule`. The import writes the rules of a file here, each with the file as `source`, and a new import of that file replaces them. |
+| `rules` | `ccs:contentRule`. The import writes the rules of a file here, each with the file as `source` and the id `writing.<node name>`, and a new import of that file replaces them. |
 | `glossary` | `efnt:glossaryTerm`. The import writes the terms of a CSV file here, and a new import of that file replaces them. |
 | `skills` | `efnt:skill` |
 
@@ -98,8 +98,7 @@ that language:
 ### The examples and the dates of a rule
 
 A writing rule can carry texts that break it, `wrongExamples`, and texts that keep it,
-`rightExamples`. The frame gives the model the first two of each, after the justification of the
-rule. `owner` and `decidedOn` record who decided the rule, and on which day.
+`rightExamples`. The frame gives the model the first two of each, after the advice of the rule. `owner` and `decidedOn` record who decided the rule, and on which day.
 
 A rule applies from its `validFrom` day to its `validUntil` day, both included, in the time zone of
 the server. An empty date sets no limit. Out of its dates, a rule is not part of the frame: the
