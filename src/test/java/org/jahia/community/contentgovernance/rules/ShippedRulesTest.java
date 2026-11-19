@@ -30,6 +30,14 @@ class ShippedRulesTest {
     }
 
     @Test
+    @DisplayName("the folder of a header loses its slashes at both ends")
+    void headerFolder_losesItsSlashes() {
+        assertThat(ShippedRules.withoutSlashes("/content-rules/")).isEqualTo("content-rules");
+        assertThat(ShippedRules.withoutSlashes("rules/seo")).isEqualTo("rules/seo");
+        assertThat(ShippedRules.withoutSlashes("//")).isEmpty();
+    }
+
+    @Test
     @DisplayName("a folder with a file that fails, or two files with one id, is not complete")
     void badFile_makesTheShipmentIncomplete(@TempDir Path folder) throws IOException {
         String rule = "---\nid: acme.price\nevaluator: erp.price\nseverity: serious\n---\nCheck the price.\n";

@@ -205,19 +205,8 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
             logger.warn("{} is not a {}, so it cannot take the content rules", folder.getPath(), ContentRules.FOLDER_TYPE);
             return 0;
         }
-        Map<String, JCRNodeWrapper> inFolder = new LinkedHashMap<>();
-        for (JCRNodeWrapper node : folder.getNodes()) {
-            String id = node.isNodeType(ContentRules.TYPE) ? RuleNodes.text(node, RuleValues.RULE_ID) : null;
-            if (id != null) {
-                inFolder.putIfAbsent(id, node);
-            }
-        }
-        Set<String> elsewhere = new HashSet<>();
-        for (JCRNodeWrapper node : ContentRules.nodes(site.getSession(), site.getPath())) {
-            if (!node.getParent().getPath().equals(folder.getPath())) {
-                elsewhere.add(RuleNodes.text(node, RuleValues.RULE_ID));
-            }
-        }
+        Map<String, JCRNodeWrapper> inFolder = rulesIn(folder);
+        Set<String> elsewhere = idsOutside(site, folder);
         int changed = 0;
         for (RuleFile rule : shipment.rules().values()) {
             JCRNodeWrapper node = inFolder.get(rule.id());
@@ -226,9 +215,7 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
             } else if (elsewhere.contains(rule.id()) || folder.hasNode(rule.id())) {
                 logger.info("{} already has a rule {}, so the rule of {} is not added", site.getPath(), rule.id(), shipment.module());
             } else {
-                JCRNodeWrapper added = folder.addNode(rule.id(), ContentRules.TYPE);
-                RuleNodes.write(added, rule.values(), true);
-                added.setProperty(RuleNodes.SEED_DIGEST, RuleValues.digest(rule.values()));
+                add(folder, rule);
                 changed++;
             }
         }
@@ -240,6 +227,35 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
             }
         }
         return changed;
+    }
+
+    /** The rule nodes of a folder, by rule id. */
+    private static Map<String, JCRNodeWrapper> rulesIn(JCRNodeWrapper folder) throws RepositoryException {
+        Map<String, JCRNodeWrapper> rules = new LinkedHashMap<>();
+        for (JCRNodeWrapper node : folder.getNodes()) {
+            String id = node.isNodeType(ContentRules.TYPE) ? RuleNodes.text(node, RuleValues.RULE_ID) : null;
+            if (id != null) {
+                rules.putIfAbsent(id, node);
+            }
+        }
+        return rules;
+    }
+
+    /** The ids of the rules of the site outside a folder, which the seeder never adds a second time. */
+    private static Set<String> idsOutside(JCRSiteNode site, JCRNodeWrapper folder) throws RepositoryException {
+        Set<String> ids = new HashSet<>();
+        for (JCRNodeWrapper node : ContentRules.nodes(site.getSession(), site.getPath())) {
+            if (!node.getParent().getPath().equals(folder.getPath())) {
+                ids.add(RuleNodes.text(node, RuleValues.RULE_ID));
+            }
+        }
+        return ids;
+    }
+
+    private static void add(JCRNodeWrapper folder, RuleFile rule) throws RepositoryException {
+        JCRNodeWrapper added = folder.addNode(rule.id(), ContentRules.TYPE);
+        RuleNodes.write(added, rule.values(), true);
+        added.setProperty(RuleNodes.SEED_DIGEST, RuleValues.digest(rule.values()));
     }
 
     /** What the seeder does to a rule node that its module still ships. */
@@ -283,10 +299,8 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
                     wrote = true;
                 }
             }
-            case NONE -> {
-                // The node holds the shipped values, or their defaults: it gets the ones it lacks.
-                wrote |= RuleNodes.fillMissing(node, rule.values());
-            }
+            // The node holds the shipped values, or their defaults: it gets the ones it lacks.
+            case NONE -> wrote |= RuleNodes.fillMissing(node, rule.values());
         }
         return wrote ? 1 : 0;
     }

@@ -109,7 +109,7 @@ public final class ShippedRules {
     }
 
     private static Shipment load(Bundle bundle, String folder) {
-        String root = folder.replaceAll("^/+|/+$", "");
+        String root = withoutSlashes(folder);
         Enumeration<URL> found = bundle.findEntries(root, "*" + SUFFIX, true);
         List<URL> files = new ArrayList<>();
         while (found != null && found.hasMoreElements()) {
@@ -126,6 +126,19 @@ public final class ShippedRules {
             }
         }
         return reader.shipment();
+    }
+
+    /** The folder of a header with no slash at its start or its end: {@code /rules/} gives {@code rules}. */
+    static String withoutSlashes(String folder) {
+        int start = 0;
+        int end = folder.length();
+        while (start < end && folder.charAt(start) == '/') {
+            start++;
+        }
+        while (end > start && folder.charAt(end - 1) == '/') {
+            end--;
+        }
+        return folder.substring(start, end);
     }
 
     /** The rules of a folder of files, for a unit test. */

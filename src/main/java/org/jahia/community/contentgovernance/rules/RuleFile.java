@@ -41,7 +41,7 @@ import java.util.regex.Pattern;
 public record RuleFile(String id, Map<String, Object> values) {
 
     /** A rule id becomes the name of its node, so it holds no slash, no colon and no space. */
-    static final Pattern ID = Pattern.compile("[A-Za-z0-9][A-Za-z0-9_.-]{0,127}");
+    static final Pattern ID_PATTERN = Pattern.compile("[A-Za-z0-9][A-Za-z0-9_.-]{0,127}");
     private static final List<String> KINDS = List.of("forbidden", "replace", "mandatory", "style");
     private static final List<String> MATCH_MODES = List.of("term", "regex");
     private static final String SUFFIX = ".md";
@@ -58,7 +58,9 @@ public record RuleFile(String id, Map<String, Object> values) {
      *                                  the node type does not allow
      */
     public static RuleFile parse(String text, String fileName) {
-        String source = (text.startsWith("﻿") ? text.substring(1) : text).replace("\r\n", "\n");
+        // A file may start with a byte order mark, U+FEFF.
+        boolean mark = !text.isEmpty() && text.charAt(0) == 0xFEFF;
+        String source = (mark ? text.substring(1) : text).replace("\r\n", "\n");
         if (!source.startsWith("---\n")) {
             throw new IllegalArgumentException(fileName + " has no YAML frontmatter");
         }
@@ -147,7 +149,7 @@ public record RuleFile(String id, Map<String, Object> values) {
     }
 
     private static void check(String id, Map<String, Object> values, String fileName) {
-        if (!ID.matcher(id).matches()) {
+        if (!ID_PATTERN.matcher(id).matches()) {
             throw new IllegalArgumentException(fileName + ": the id " + id + " holds a character that a node name refuses");
         }
         if (values.get(RuleValues.EVALUATOR) == null) {

@@ -129,7 +129,7 @@ final class LegacyRules {
             taken.put(site, ids);
         }
         String id = WRITING_DOMAIN + "." + node.getName();
-        if (!RuleFile.ID.matcher(id).matches() || ids.contains(id)) {
+        if (!RuleFile.ID_PATTERN.matcher(id).matches() || ids.contains(id)) {
             id = WRITING_DOMAIN + "." + node.getIdentifier().substring(0, 8);
         }
         ids.add(id);
@@ -185,6 +185,14 @@ final class LegacyRules {
                 node.setProperty(entry.getKey(), entry.getValue().toString());
             }
         }
+        moveJustifications(node, plainJustification);
+    }
+
+    /**
+     * Moves the justification of each translation of a node to its advice. A justification that the
+     * node held outside a translation, written by another tool, goes to the first translation with no advice.
+     */
+    private static void moveJustifications(Node node, String plainJustification) throws RepositoryException {
         NodeIterator translations = node.getNodes(TRANSLATION + "*");
         boolean placed = plainJustification == null;
         while (translations.hasNext()) {
