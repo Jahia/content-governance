@@ -37,7 +37,7 @@ class ImportWriterTest {
 
         List<String> values = ImportWriter.metadataValues(document, new ObjectMapper());
         List<String> warnings = new ArrayList<>();
-        SkillCoverage coverage = JahiaSkillKeys.coverage(JcrSkills.metadata(values), document.description, warnings);
+        SkillCoverage coverage = JahiaSkillKeys.coverage(JcrSkills.metadataOf(values), document.description, warnings);
 
         assertTrue(values.contains("jahia-activation=auto"), values.toString());
         assertEquals("refresh the teaser of a news item.", coverage.sentence());

@@ -74,9 +74,9 @@ public final class JcrSkills {
         String action = node.getPropertyAsString("assistantAction");
         String origin = node.getPropertyAsString("origin");
         String description = node.getPropertyAsString("description");
-        Map<String, Object> metadata = metadata(values(node, METADATA));
+        Map<String, Object> metadata = metadataOf(values(node, METADATA));
         List<String> warnings = new ArrayList<>();
-        String label = JahiaSkillKeys.label(metadata, warnings);
+        String label = JahiaSkillKeys.labelOf(metadata, warnings);
         List<String> tools = JahiaSkillKeys.tools(node.getPropertyAsString("allowedTools"), warnings);
         SkillSummary summary = new SkillSummary(node.getName(), description == null ? "" : description, scope,
                 origin == null ? "ui" : origin, activation == null ? "manual" : activation, consumers,
@@ -89,7 +89,7 @@ public final class JcrSkills {
     }
 
     /** The values of {@code skillMetadata} as a map: a value that opens a JSON list is read as one. */
-    public static Map<String, Object> metadata(List<String> entries) {
+    public static Map<String, Object> metadataOf(List<String> entries) {
         Map<String, Object> metadata = new LinkedHashMap<>();
         for (String entry : entries) {
             int equals = entry.indexOf('=');

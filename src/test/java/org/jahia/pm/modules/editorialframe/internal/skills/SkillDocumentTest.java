@@ -145,7 +145,7 @@ class SkillDocumentTest {
 
     @Test
     void theMetadataOfANodeGivesBackTheExamples() {
-        Map<String, Object> metadata = JcrSkills.metadata(List.of(
+        Map<String, Object> metadata = JcrSkills.metadataOf(List.of(
                 "jahia-label=Forms",
                 "jahia-in-scope=[\"Add a contact form.\",{\"message\":\"Put this image above.\",\"attached-images\":1}]",
                 "jahia-scope=a=b sentence",
@@ -153,7 +153,7 @@ class SkillDocumentTest {
         List<String> warnings = new ArrayList<>();
         SkillCoverage coverage = JahiaSkillKeys.coverage(metadata, "Forms.", warnings);
 
-        assertEquals("Forms", JahiaSkillKeys.label(metadata, warnings));
+        assertEquals("Forms", JahiaSkillKeys.labelOf(metadata, warnings));
         assertEquals("a=b sentence", coverage.sentence());
         assertEquals(2, coverage.inScope().size());
         assertEquals(1, coverage.inScope().get(1).attachedImages());

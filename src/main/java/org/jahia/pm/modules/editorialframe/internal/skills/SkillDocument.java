@@ -62,7 +62,7 @@ public final class SkillDocument {
         this.metadata = asStrings;
         this.body = body;
         this.warnings = warnings;
-        this.label = JahiaSkillKeys.label(rawMetadata, warnings);
+        this.label = JahiaSkillKeys.labelOf(rawMetadata, warnings);
         this.coverage = JahiaSkillKeys.coverage(rawMetadata, description, warnings);
         this.tools = JahiaSkillKeys.tools(allowedTools, warnings);
     }

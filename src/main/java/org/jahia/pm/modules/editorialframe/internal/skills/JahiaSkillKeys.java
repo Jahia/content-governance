@@ -46,7 +46,7 @@ public final class JahiaSkillKeys {
     }
 
     /** The label of {@code jahia-label}, or {@code null}. */
-    public static String label(Map<String, Object> metadata, List<String> warnings) {
+    public static String labelOf(Map<String, Object> metadata, List<String> warnings) {
         return line(metadata.get(LABEL), LABEL, MAX_LABEL_CHARS, warnings);
     }
 
