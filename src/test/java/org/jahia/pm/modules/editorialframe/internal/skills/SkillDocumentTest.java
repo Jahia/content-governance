@@ -23,23 +23,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SkillDocumentTest {
 
     /** The declaration of the forms skill of the assistant, written as a SKILL.md. */
-    private static final String FORMS = "---\n"
-            + "name: forms\n"
-            + "description: Create or change a form of the site. Use when an editor asks for a form.\n"
-            + "allowed-tools: page.outline content.get content.create\n"
-            + "metadata:\n"
-            + "  jahia-label: Forms\n"
-            + "  jahia-scope: create or change a form of the site.\n"
-            + "  jahia-action: create\n"
-            + "  jahia-in-scope:\n"
-            + "    - Add a contact form to the Contact page.\n"
-            + "    - message: Put this image above the form.\n"
-            + "      attached-images: 1\n"
-            + "      note: an attached image in a form\n"
-            + "  jahia-out-of-scope:\n"
-            + "    - Write me a survey about pizza.\n"
-            + "---\n"
-            + "Create a form with content.create, as a child of the area that the user names.\n";
+    private static final String FORMS = """
+            ---
+            name: forms
+            description: Create or change a form of the site. Use when an editor asks for a form.
+            allowed-tools: page.outline content.get content.create
+            metadata:
+              jahia-label: Forms
+              jahia-scope: create or change a form of the site.
+              jahia-action: create
+              jahia-in-scope:
+                - Add a contact form to the Contact page.
+                - message: Put this image above the form.
+                  attached-images: 1
+                  note: an attached image in a form
+              jahia-out-of-scope:
+                - Write me a survey about pizza.
+            ---
+            Create a form with content.create, as a child of the area that the user names.
+            """;
 
     @Test
     void aNameThatBreaksTheRuleIsFixedAndCutWithoutADashAtItsEnd() {
@@ -101,8 +103,14 @@ class SkillDocumentTest {
 
     @Test
     void theToolsOfAnotherAgentAreLeftOut() {
-        SkillDocument document = SkillDocument.parse("---\nname: review\ndescription: Review.\n"
-                + "allowed-tools: Read Bash(git:*), content.get\n---\nBody", "review");
+        SkillDocument document = SkillDocument.parse("""
+                ---
+                name: review
+                description: Review.
+                allowed-tools: Read Bash(git:*), content.get
+                ---
+                Body\
+                """, "review");
 
         assertEquals(List.of("content.get"), document.tools);
         assertEquals(2, document.warnings.size(), document.warnings.toString());

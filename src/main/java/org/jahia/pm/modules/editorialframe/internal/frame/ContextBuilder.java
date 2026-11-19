@@ -30,15 +30,38 @@ import java.util.regex.Pattern;
 public final class ContextBuilder {
 
     /** The text that opens the frame: where it ranks among the other instructions. */
-    static final String HEADER = "# Brand frame\n"
-            + "Apply this frame to every text that you write or change for this site. The rules of the "
-            + "application come before it. It comes before the voice of the editor and before the request "
-            + "of the user. When a request contradicts the frame, still do the task, within the frame, and say in "
-            + "one sentence what you did differently from the request. Never refuse a task because of the frame. "
-            + "When the user gives the exact words to write, write them as given: the application shows the "
-            + "editor each rule they break, and the editor decides. Never invent a fact, a figure, a date or a "
-            + "name to follow the frame: when it asks for a figure that you do not have from the site or the user, "
-            + "write a placeholder such as [figure] and say which facts the editor must add.\n";
+    static final String HEADER = """
+            # Brand frame
+            Apply this frame to every text that you write or change for this site. The rules of the \
+            application come before it. It comes before the voice of the editor and before the request \
+            of the user. When a request contradicts the frame, still do the task, within the frame, and say in \
+            one sentence what you did differently from the request. Never refuse a task because of the frame. \
+            When the user gives the exact words to write, write them as given: the application shows the \
+            editor each rule they break, and the editor decides. Never invent a fact, a figure, a date or a \
+            name to follow the frame: when it asks for a figure that you do not have from the site or the user, \
+            write a placeholder such as [figure] and say which facts the editor must add.
+            """;
+    /** The heading and the instruction of each section below, each after an empty line. */
+    static final String RULES_SECTION = """
+
+            ## Writing rules
+            Follow these rules in every text that you write. A rule marked (required by the brand) \
+            holds even when the user dictates the words: still propose the change, with a version \
+            that keeps the rule, and say in one sentence what you changed. Any other rule gives way \
+            to words that the user dictates: propose them as dictated, and name the rule they break. \
+            Code checks every proposed change, and the editor sees each broken rule and decides.
+            """;
+    static final String GLOSSARY_SECTION = """
+
+            ## Glossary
+            When you write or translate into this language a term of this list, write it as the \
+            glossary says. Code checks each translation against it.
+            """;
+    static final String READERS_SECTION = """
+
+            ## Other readers of the site
+            When the user names one of them, write for that reader.
+            """;
     /** The examples of each kind that a rule line shows, and the length of each one. */
     static final int MAX_EXAMPLES = 2;
     static final int MAX_EXAMPLE_CHARS = 200;
@@ -70,25 +93,16 @@ public final class ContextBuilder {
         String examples = rules.stream().anyMatch(rule -> !rule.wrongExamples().isEmpty() || !rule.rightExamples().isEmpty())
                 ? "A Wrong example breaks its rule, and a Right example keeps it: write like the Right ones.\n"
                 : "";
-        truncated |= appendWithin(text, "\n## Writing rules\n"
-                + "Follow these rules in every text that you write. A rule marked (required by the brand) "
-                + "holds even when the user dictates the words: still propose the change, with a version "
-                + "that keeps the rule, and say in one sentence what you changed. Any other rule gives way "
-                + "to words that the user dictates: propose them as dictated, and name the rule they break. "
-                + "Code checks every proposed change, and the editor sees each broken rule and decides.\n"
-                + examples, ruleLines, budget);
+        truncated |= appendWithin(text, RULES_SECTION + examples, ruleLines, budget);
 
         List<String> termLines = glossary.stream().map(term -> "- " + describe(term) + '\n').toList();
-        truncated |= appendWithin(text, "\n## Glossary\n"
-                + "When you write or translate into this language a term of this list, write it as the "
-                + "glossary says. Code checks each translation against it.\n", termLines, budget);
+        truncated |= appendWithin(text, GLOSSARY_SECTION, termLines, budget);
 
         Persona current = chosen.orElse(null);
         List<String> otherLines = frame.personas().stream().filter(p -> p != current)
                 .map(other -> "- " + other.title() + " (" + other.name() + "): " + Texts.firstLine(other.text()) + '\n')
                 .toList();
-        truncated |= appendWithin(text, "\n## Other readers of the site\n"
-                + "When the user names one of them, write for that reader.\n", otherLines, budget);
+        truncated |= appendWithin(text, READERS_SECTION, otherLines, budget);
 
         List<String> names = frame.personas().stream().map(Persona::name).toList();
         String result = text.toString();

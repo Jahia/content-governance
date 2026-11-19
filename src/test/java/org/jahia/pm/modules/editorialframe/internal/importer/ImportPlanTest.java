@@ -27,13 +27,43 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ImportPlanTest {
 
     private static final String TONE = "---\nname: brand-tone\ndescription: The voice.\ntype: context\n---\n# Brand tone\nClear and human.\n";
-    private static final String AUDIENCE = "---\nname: audience\ndescription: The readers.\n---\n# Audience\n"
-            + "## Global\nIgnored.\n## Persona Messaging Framework\n### CIO / CTO\n- Cares about governance.\n"
-            + "### CMO\n- Cares about growth.\n## Other\nIgnored.\n";
-    private static final String RULES = "forbidden_terms:\n  - seamless\n  - game changer\n"
-            + "forbidden_terms_fr:\n  - term: \"en nuage\"\n    replacement: \"cloud\"\nrisk_levels:\n  safe: {}\n";
-    private static final String REVIEW = "---\nname: review-blog-article\ndescription: Review a blog draft.\n"
-            + "depends_on:\n  - context/brand-tone\n  - _references/quality.md\n---\n# Review\nCheck it.\n";
+    private static final String AUDIENCE = """
+            ---
+            name: audience
+            description: The readers.
+            ---
+            # Audience
+            ## Global
+            Ignored.
+            ## Persona Messaging Framework
+            ### CIO / CTO
+            - Cares about governance.
+            ### CMO
+            - Cares about growth.
+            ## Other
+            Ignored.
+            """;
+    private static final String RULES = """
+            forbidden_terms:
+              - seamless
+              - game changer
+            forbidden_terms_fr:
+              - term: "en nuage"
+                replacement: "cloud"
+            risk_levels:
+              safe: {}
+            """;
+    private static final String REVIEW = """
+            ---
+            name: review-blog-article
+            description: Review a blog draft.
+            depends_on:
+              - context/brand-tone
+              - _references/quality.md
+            ---
+            # Review
+            Check it.
+            """;
 
     private static Map<String, String> files() {
         Map<String, String> files = new TreeMap<>();
@@ -61,11 +91,13 @@ class ImportPlanTest {
     @Test
     void aCsvFileGivesOneGlossaryTermPerLanguagePair() {
         Map<String, String> files = new TreeMap<>();
-        files.put("_glossary/terms.csv", "en,fr,de,Note,comment\r\n"
-                + "access token,jeton d'accès,Zugriffstoken,\"never \"\"jeton d'authentification\"\"\",x\r\n"
-                + "Jahia,Jahia,,a brand name\r\n"
-                + "\r\n"
-                + ",orphan,,\r\n");
+        files.put("_glossary/terms.csv", """
+                en,fr,de,Note,comment\r
+                access token,jeton d'accès,Zugriffstoken,"never ""jeton d'authentification""\",x\r
+                Jahia,Jahia,,a brand name\r
+                \r
+                ,orphan,,\r
+                """);
         ImportPlan.Options options = new ImportPlan.Options();
         options.setGlossary(List.of("_glossary/terms.csv", "_glossary/missing.csv"));
 
@@ -88,10 +120,12 @@ class ImportPlanTest {
     @Test
     void aCsvFileGivesTheFormsTheDefinitionAndTheStatusOfATerm() {
         Map<String, String> files = new TreeMap<>();
-        files.put("terms.csv", "en,fr,Definition,Status,note\n"
-                + "access token|access tokens,jeton d'accès| jetons d'accès |,A secret.,,\n"
-                + "access token,jeton d'authentification,,Forbidden,another concept\n"
-                + "API key,clé d'API,,obsolete,\n");
+        files.put("terms.csv", """
+                en,fr,Definition,Status,note
+                access token|access tokens,jeton d'accès| jetons d'accès |,A secret.,,
+                access token,jeton d'authentification,,Forbidden,another concept
+                API key,clé d'API,,obsolete,
+                """);
         ImportPlan.Options options = new ImportPlan.Options();
         options.setGlossary(List.of("terms.csv"));
 
@@ -133,14 +167,27 @@ class ImportPlanTest {
 
     @Test
     void anExampleOfAFileGoesToEachRuleOfThatFileThatItsWrongTextBreaks() {
-        String claims = "forbidden_terms:\n  - seamless\n  - empower\n"
-                + "unsafe_patterns:\n  - regex: \"(the\\\\s+)?leading\\\\s+(DXP|CMS)\"\n    risk: unsafe\n"
-                + "rewrite_examples:\n"
-                + "  - weak: \"Jahia is the leading DXP.\"\n    safer: \"Jahia is a composable DXP.\"\n    category: \"Superiority\"\n"
-                + "  - weak: \"Jahia guarantees GDPR compliance.\"\n    safer: \"Jahia supports governance.\"\n"
-                + "counter_examples:\n"
-                + "  - category: \"Forbidden terms\"\n    bad:\n      text: \"A seamless platform that empowers teams.\"\n"
-                + "      reason: \"Two forbidden terms.\"\n    good:\n      text: \"A platform that helps teams.\"\n";
+        String claims = """
+                forbidden_terms:
+                  - seamless
+                  - empower
+                unsafe_patterns:
+                  - regex: "(the\\\\s+)?leading\\\\s+(DXP|CMS)"
+                    risk: unsafe
+                rewrite_examples:
+                  - weak: "Jahia is the leading DXP."
+                    safer: "Jahia is a composable DXP."
+                    category: "Superiority"
+                  - weak: "Jahia guarantees GDPR compliance."
+                    safer: "Jahia supports governance."
+                counter_examples:
+                  - category: "Forbidden terms"
+                    bad:
+                      text: "A seamless platform that empowers teams."
+                      reason: "Two forbidden terms."
+                    good:
+                      text: "A platform that helps teams."
+                """;
         Map<String, String> files = new TreeMap<>(Map.of("_rules/claims.yml", claims, "_rules/other.yml",
                 "forbidden_terms:\n  - leading\n"));
         ImportPlan.Options options = new ImportPlan.Options();
@@ -164,11 +211,20 @@ class ImportPlanTest {
 
     @Test
     void aFullRuleCarriesItsExamplesItsOwnerAndItsDates() {
-        String rules = "rules:\n"
-                + "  - kind: forbidden\n    pattern: Acme\n    owner: Brand team\n    decided_on: 2026-09-05\n"
-                + "    valid_from: '2026-09-05'\n    valid_until: 2026-12-31\n"
-                + "    wrong_examples: [\"Better than Acme.\"]\n    right_examples: \"A fit for portal teams.\"\n"
-                + "  - kind: forbidden\n    pattern: Globex\n    valid_until: 31/12/2026\n";
+        String rules = """
+                rules:
+                  - kind: forbidden
+                    pattern: Acme
+                    owner: Brand team
+                    decided_on: 2026-09-05
+                    valid_from: '2026-09-05'
+                    valid_until: 2026-12-31
+                    wrong_examples: ["Better than Acme."]
+                    right_examples: "A fit for portal teams."
+                  - kind: forbidden
+                    pattern: Globex
+                    valid_until: 31/12/2026
+                """;
         ImportPlan.Options options = new ImportPlan.Options();
         options.setRules(List.of("_rules/moratorium.yml"));
 
@@ -228,8 +284,14 @@ class ImportPlanTest {
     @Test
     void aDependencyIsCopiedOnceFromTheSkillOrTheArchive() {
         Map<String, String> files = files();
-        files.put("skills/content/review-blog-article/SKILL.md", "---\nname: review-blog-article\ndescription: R.\n"
-                + "depends_on: [_shared/, missing.md, notes.md, context/audience, ../evil.md, ref.md, tool.sh]\n---\nBody");
+        files.put("skills/content/review-blog-article/SKILL.md", """
+                ---
+                name: review-blog-article
+                description: R.
+                depends_on: [_shared/, missing.md, notes.md, context/audience, ../evil.md, ref.md, tool.sh]
+                ---
+                Body\
+                """);
         files.put("skills/content/review-blog-article/notes.md", "Notes.");
         files.put("_shared/SKILL.md", "---\nname: shared\ndescription: S.\n---\nShared.");
         files.put("ref.md", "Ref.");
@@ -305,11 +367,24 @@ class ImportPlanTest {
 
     @Test
     void eachKeyOfARulesFileMapsToRulesOrToAWarning() {
-        String rules = "forbidden_terms: none\n"
-                + "sensitive_topics:\n  pricing_model:\n    avoid: [cheap, '']\n    prefer: [affordable, fair]\n"
-                + "unsafe_patterns:\n  - regex: \"(unclosed\"\n  - regex: \"best\"\n    reason: \"No proof\"\n    risk: unsafe\n"
-                + "rules:\n  - kind: glossary\n    pattern: API\n  - kind: unknown\n    pattern: Foo\n"
-                + "tone: friendly\n";
+        String rules = """
+                forbidden_terms: none
+                sensitive_topics:
+                  pricing_model:
+                    avoid: [cheap, '']
+                    prefer: [affordable, fair]
+                unsafe_patterns:
+                  - regex: "(unclosed"
+                  - regex: "best"
+                    reason: "No proof"
+                    risk: unsafe
+                rules:
+                  - kind: glossary
+                    pattern: API
+                  - kind: unknown
+                    pattern: Foo
+                tone: friendly
+                """;
         Map<String, String> files = new TreeMap<>(Map.of("rules.yml", rules, "list.yml", "- a\n", "bad.yml", "a: [b\n"));
         ImportPlan.Options options = new ImportPlan.Options();
         options.setRules(List.of("rules.yml", "missing.yml", "list.yml", "bad.yml"));

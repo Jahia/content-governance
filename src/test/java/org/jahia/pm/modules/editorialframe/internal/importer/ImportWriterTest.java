@@ -20,10 +20,20 @@ class ImportWriterTest {
 
     @Test
     void anImportedSkillKeepsItsCoverageOnItsNode() {
-        SkillDocument document = SkillDocument.parse("---\nname: teaser\ndescription: Refresh a teaser.\n"
-                + "metadata:\n  jahia-activation: auto\n  jahia-scope: refresh the teaser of a news item.\n"
-                + "  jahia-in-scope:\n    - message: Refresh the teaser of this news.\n      note: a teaser\n"
-                + "  jahia-out-of-scope: [Write a new news item.]\n---\nBody", "teaser");
+        SkillDocument document = SkillDocument.parse("""
+                ---
+                name: teaser
+                description: Refresh a teaser.
+                metadata:
+                  jahia-activation: auto
+                  jahia-scope: refresh the teaser of a news item.
+                  jahia-in-scope:
+                    - message: Refresh the teaser of this news.
+                      note: a teaser
+                  jahia-out-of-scope: [Write a new news item.]
+                ---
+                Body\
+                """, "teaser");
 
         List<String> values = ImportWriter.metadataValues(document, new ObjectMapper());
         List<String> warnings = new ArrayList<>();
