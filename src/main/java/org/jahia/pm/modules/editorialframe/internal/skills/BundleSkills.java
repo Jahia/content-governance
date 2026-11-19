@@ -137,14 +137,12 @@ public final class BundleSkills implements BundleTrackerCustomizer<Long> {
         while (entries != null && entries.hasMoreElements()) {
             URL entry = entries.nextElement();
             String path = entry.getPath();
-            if (path.endsWith("/")) {
-                continue;
+            if (!path.endsWith("/")) {
+                String relative = path.substring(root.length());
+                if (isOtherFile(relative)) {
+                    files.put(relative, read(entry));
+                }
             }
-            String relative = path.substring(root.length());
-            if (SkillPaths.SKILL_FILE.equals(relative) || !SkillPaths.isSafeRelative(relative) || !SkillPaths.isKept(relative)) {
-                continue;
-            }
-            files.put(relative, read(entry));
         }
         String activation = document.metadata.getOrDefault(JahiaSkillKeys.ACTIVATION, "manual");
         List<String> consumers = document.metadataList(JahiaSkillKeys.CONSUMERS);
@@ -159,6 +157,11 @@ public final class BundleSkills implements BundleTrackerCustomizer<Long> {
         SkillSummary summary = new SkillSummary(document.name, document.description, "module", "module",
                 activation, consumers, action, source, List.of(), document.label, document.tools, document.coverage);
         return new LoadedSkill(summary, document.body, files);
+    }
+
+    /** True for a file of a skill folder, other than {@code SKILL.md}, that the skill keeps. */
+    private static boolean isOtherFile(String relative) {
+        return !SkillPaths.SKILL_FILE.equals(relative) && SkillPaths.isSafeRelative(relative) && SkillPaths.isKept(relative);
     }
 
     private static String read(URL url) throws IOException {
