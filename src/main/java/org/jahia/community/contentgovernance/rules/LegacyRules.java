@@ -117,23 +117,30 @@ final class LegacyRules {
 
     /** {@code writing.<node name>}, or that id with a part of the identifier when the site has it already. */
     private static String freeId(JCRSessionWrapper session, Node node, Map<String, Set<String>> taken) throws RepositoryException {
-        String site = sitePathOf(node.getPath());
-        Set<String> ids = taken.get(site);
-        if (ids == null) {
-            ids = new HashSet<>();
-            if (site != null) {
-                for (JCRNodeWrapper rule : ContentRules.nodes(session, site)) {
-                    ids.add(RuleNodes.text(rule, RuleValues.RULE_ID));
-                }
-            }
-            taken.put(site, ids);
-        }
+        Set<String> ids = taken.computeIfAbsent(sitePathOf(node.getPath()), site -> ruleIds(session, site));
         String id = WRITING_DOMAIN + "." + node.getName();
         if (!RuleFile.ID_PATTERN.matcher(id).matches() || ids.contains(id)) {
             id = WRITING_DOMAIN + "." + node.getIdentifier().substring(0, 8);
         }
         ids.add(id);
         return id;
+    }
+
+    /** The ids of the rules of a site, or none for a node outside a site. */
+    private static Set<String> ruleIds(JCRSessionWrapper session, String site) {
+        Set<String> ids = new HashSet<>();
+        if (site == null) {
+            return ids;
+        }
+        try {
+            for (JCRNodeWrapper rule : ContentRules.nodes(session, site)) {
+                ids.add(RuleNodes.text(rule, RuleValues.RULE_ID));
+            }
+        } catch (RepositoryException e) {
+            // A conversion that does not know the ids of the site could give one id twice: it stops.
+            throw new IllegalStateException("The rule ids of " + site + " could not be read", e);
+        }
+        return ids;
     }
 
     private static String sitePathOf(String path) {
