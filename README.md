@@ -126,16 +126,19 @@ also come in the four languages.
 - Optional: the `genai-connector` module ([Jahia/genai-connector](https://github.com/Jahia/genai-connector)),
   for the AI features, and the `genaiAccess` permission on the site for each user of these features.
   Without genai-connector, the AI features show greyed out and the rest of the module works.
-- Optional: the `mcp-server` module, which serves the four tools of the editorial frame and the two
-  tools of the HTML check to AI agents. Without it the module starts and adds no tool.
+- Optional: the `mcp-server` module, which serves the tool `frame.check` of the editorial frame and
+  the two tools of the HTML check to AI agents. Without it the module starts and adds no tool.
 - Optional: a BotRank organisation API key, for AI citations.
 
 ## Install
 
 1. If GEO Readiness, Page Quality Audit or Content Compliance Scan are installed, uninstall them
    first: this module reads their data and declares the same glossary types. Uninstall the module
-   editorial-frame too: this module declares the same content types, exports the same Java package
-   and registers the same endpoints ([Moving from editorial-frame](#moving-from-editorial-frame)).
+   editorial-frame too: this module declares the same content types and exports the same Java
+   package ([Moving from editorial-frame](#moving-from-editorial-frame)). On a Jahia that ran a
+   1.12 snapshot of this module that held the whole frame, install the ai-assistant that holds the
+   content types this version no longer declares first: it takes them over, and their content
+   stays.
 2. **Administration > Server > Modules and Extensions > Modules**, **Upload module from file**:
    `content-governance-<version>.jar`. Then open **Content Governance** in the list and, under
    **Usage in sites**, enable it on each site.

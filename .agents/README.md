@@ -117,7 +117,7 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   another package: either one loads the class at start, which fails without mcp-server.
 - **The jar never imports `org.yaml.snakeyaml`**: snakeyaml is embedded, and the build removes the
   optional imports that the Jahia plugin generates for it (`build-helper-maven-plugin` in
-  `pom.xml`). With them the frame service fails at start with a `LinkageError`, on a Jahia that
+  `pom.xml`). With them the read of the rule files fails with a `LinkageError`, on a Jahia that
   exports snakeyaml (8.2.4.0 does). Check the jar after a change of the parent or of the plugin.
 - **A readability score uses a formula published for the page language** (2026-10-31): one entry
   per language in `FORMULAS` (`audit/analyzers/readability.js`), an adaptation of Flesch on its

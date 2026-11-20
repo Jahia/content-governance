@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
 public final class FrameReader {
 
     private static final Logger logger = LoggerFactory.getLogger(FrameReader.class);
-    public static final String SYSTEM_SITE = "systemsite";
+    private static final String SYSTEM_SITE = "systemsite";
     public static final Pattern SITE_KEY = Pattern.compile("[A-Za-z0-9_-]{1,64}");
     /** A language code. It becomes part of a node name, so it never holds a slash or a dot. */
     public static final Pattern LANGUAGE = Pattern.compile("[a-z]{2,3}([_-][A-Za-z0-9]{2,8})*");
@@ -176,7 +176,7 @@ public final class FrameReader {
     }
 
     /** The nodes of a type under a site, in path order. */
-    public static List<JCRNodeWrapper> query(JCRSessionWrapper session, String type, String site) throws RepositoryException {
+    private static List<JCRNodeWrapper> query(JCRSessionWrapper session, String type, String site) throws RepositoryException {
         Query query = session.getWorkspace().getQueryManager().createQuery(
                 "SELECT * FROM [" + type + "] WHERE ISDESCENDANTNODE('/sites/" + site + "')", Query.JCR_SQL2);
         List<JCRNodeWrapper> nodes = new ArrayList<>();
@@ -199,13 +199,13 @@ public final class FrameReader {
      * language, then the default language of the site, then any language. The translations are read
      * on the real node, whatever the locale of the session.
      */
-    public static String i18n(JCRNodeWrapper node, String property, String language, String fallback) throws RepositoryException {
+    private static String i18n(JCRNodeWrapper node, String property, String language, String fallback) throws RepositoryException {
         Node holder = holder(node, property, language, fallback);
         return holder == null ? null : holder.getProperty(property).getString();
     }
 
     /** The node that holds the value that {@link #i18n} reads: a translation node, or the real node, or {@code null}. */
-    static Node holder(JCRNodeWrapper node, String property, String language, String fallback) throws RepositoryException {
+    private static Node holder(JCRNodeWrapper node, String property, String language, String fallback) throws RepositoryException {
         Node real = node.getRealNode();
         for (String candidate : new String[]{language, fallback}) {
             if (candidate == null || candidate.isBlank() || !LANGUAGE.matcher(candidate).matches()) {
@@ -265,7 +265,7 @@ public final class FrameReader {
     }
 
     /** The default language of a site, or {@code null}. */
-    public static String defaultLanguage(JCRSessionWrapper session, String siteKey) {
+    private static String defaultLanguage(JCRSessionWrapper session, String siteKey) {
         try {
             JCRNodeWrapper site = session.getNode("/sites/" + siteKey);
             return site instanceof JCRSiteNode siteNode ? siteNode.getDefaultLanguage() : null;

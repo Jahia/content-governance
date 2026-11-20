@@ -21,7 +21,7 @@
  - ruleLanguage (string)
  - severity (string, choicelist[resourceBundle]) = 'warning' autocreated < 'warning', 'blocking'
  - justification (string, textarea) i18n
- // Texts that break the rule, and texts that keep it. The frame gives them to the model.
+ // Texts that break the rule, and texts that keep it. ai-assistant gives them to a model.
  - wrongExamples (string, textarea) multiple
  - rightExamples (string, textarea) multiple
  // Who decided the rule, such as a name or a team, and on which day.
