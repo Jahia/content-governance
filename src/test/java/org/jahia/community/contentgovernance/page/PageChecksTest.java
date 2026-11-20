@@ -257,8 +257,8 @@ class PageChecksTest {
                     .containsEntry("twitterCard", null)
                     .containsEntry("jsonLd", Map.of("count", 1, "errors", 0))
                     .containsEntry("totalImages", 2)
-                    .containsEntry("imagesWithoutAlt", 1);
-            assertThat(seo).containsEntry("lang", Map.of("htmlLang", "en", "expected", "en"));
+                    .containsEntry("imagesWithoutAlt", 1)
+                    .containsEntry("lang", Map.of("htmlLang", "en", "expected", "en"));
             assertThat(map(seo.get("robots"))).containsEntry("content", null).containsEntry("noindex", false);
             assertThat(map(seo.get("og"))).containsEntry("title", "Report").containsEntry("description", null);
             assertThat(list(seo.get("weakCtas"))).singleElement().satisfies(cta -> assertThat(map(cta))
