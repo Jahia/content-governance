@@ -102,6 +102,15 @@ public class CheckRegistry {
     }
 
     /**
+     * @param rule a rule of a site
+     * @return true when a finding of the rule stops the publication: never for a rule of the browser
+     */
+    public boolean blocking(ContentRule rule) {
+        Registered registered = find(rule.evaluator());
+        return rule.blocking() && (registered == null || !registered.browser());
+    }
+
+    /**
      * Runs on the input each check of a rule that the site of the input keeps on. A check that runs in
      * the browser, or not in the scope of the input, does not run. A check that fails is logged and
      * skipped.

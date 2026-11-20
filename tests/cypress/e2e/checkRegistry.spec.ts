@@ -3,8 +3,13 @@ import {addNodeTree, asRoot, createTestSite, deleteTestSite, gqlOk, nodeExists} 
 
 type RuleStatus = {id: string; evaluator: string; active: boolean; missingCheck: string | null; needs: string | null};
 type CheckFinding = {ruleId: string; severity: string; text: string};
+type RuleRuntime = {id: string; evaluator: string; active: boolean; blocking: boolean};
 
 const RULES = 'query R($siteKey: String!) { contentGovernance { contentRules(siteKey: $siteKey) { id evaluator active missingCheck needs } } }';
+const PAGE_CHECK = `query P($path: String!) {
+    contentGovernance { checkPage(path: $path, language: "en") { ruleId severity text } }
+}`;
+const RUNTIME = 'query R($siteKey: String!) { contentGovernance { contentRules(siteKey: $siteKey) { id evaluator active blocking } } }';
 const CHECK = `query C($path: String!, $text: String!, $scope: String) {
     contentGovernance { checkText(path: $path, language: "en", text: $text, scope: $scope) { ruleId severity text } }
 }`;
@@ -97,5 +102,53 @@ describe('Content Governance - check registry', () => {
             expect(findings.map(finding => finding.ruleId)).not.to.include('html.imageAltMissing');
         });
         setEnabled(imageAlt, true);
+    });
+
+    it('gives alt text one rule id, and each practice of the drawer one rule', () => {
+        rules().then(list => {
+            const ids = list.map(rule => rule.id);
+            expect(ids).to.include('html.imageAltMissing');
+            for (const removed of ['seo.imageAlt', 'geo.imageAlt', 'seo.lang', 'seo.langMatches', 'seo.singleH1',
+                'seo.genericAnchors', 'readability.headingSkips', 'html.pageTitleMissing', 'html.pageDescriptionMissing']) {
+                expect(ids, removed).not.to.include(removed);
+            }
+        });
+    });
+
+    it('checks a rendered item on the server, with the rules of the drawer and none of the browser', () => {
+        addNodeTree(`${sitePath}/home`, {
+            name: 'cg-links', type: 'jnt:bigText', props: [{name: 'text', language: 'en',
+                value: '<p><img src="a.png"> Read the <a href="http://example.com/report" target="_blank">here</a></p>'}]
+        });
+        gqlOk(asRoot(), RUNTIME, {siteKey}).then(data => {
+            const byId = Object.fromEntries((data.contentGovernance.contentRules as RuleRuntime[]).map(rule => [rule.id, rule]));
+            gqlOk(asRoot(), PAGE_CHECK, {path: `${sitePath}/home/cg-links`}).then(page => {
+                const findings = page.contentGovernance.checkPage as CheckFinding[];
+                expect(findings.map(finding => finding.ruleId)).to.include.members(['html.imageAltMissing',
+                    'html.linkTextVague', 'links.mixedContent', 'links.blankNoopener', 'health.unpublishedChanges']);
+                expect(findings).to.deep.include({ruleId: 'links.mixedContent', severity: 'serious',
+                    text: 'http://example.com/report'});
+                findings.forEach(finding => {
+                    expect(byId[finding.ruleId], finding.ruleId).to.include({active: true});
+                    expect(finding.ruleId).not.to.match(/^ecodesign\.|^health\.graphqlUnavailable$|^seo\./);
+                });
+            });
+            gqlOk(asRoot(), PAGE_CHECK, {path: `${sitePath}/home`}).then(page => {
+                (page.contentGovernance.checkPage as CheckFinding[]).forEach(finding => {
+                    expect(byId[finding.ruleId], finding.ruleId).to.include({active: true});
+                    expect(finding.ruleId).not.to.match(/^ecodesign\.|^health\.graphqlUnavailable$/);
+                });
+            });
+        });
+    });
+
+    it('never blocks on a rule of the browser, even when its node sets blocking', () => {
+        const lazyLoading = `${insights}/content-governance/rules/ecodesign.lazyLoading`;
+        gqlOk(asRoot(), `mutation { jcr { mutateNode(pathOrId: "${lazyLoading}") {
+            mutateProperty(name: "blocking") { setValue(value: "true") } } } }`);
+        gqlOk(asRoot(), RUNTIME, {siteKey}).then(data => {
+            const rule = (data.contentGovernance.contentRules as RuleRuntime[]).find(item => item.id === 'ecodesign.lazyLoading');
+            expect(rule).to.include({active: true, blocking: false});
+        });
     });
 });

@@ -38,8 +38,7 @@ class HtmlRulesTest {
                 + "<iframe src='m'></iframe><table><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></table>"
                 + "<p id='dup'>x</p><p id='dup'>y</p></body></html>";
         List<String> found = rules(html, Scope.PAGE, "en");
-        for (String rule : List.of("html.pageLanguageMissing", "html.pageTitleMissing", "html.pageDescriptionMissing",
-                "html.headingH1Multiple", "html.headingLevelSkipped", "html.imageAltMissing", "html.linkNameMissing",
+        for (String rule : List.of("html.pageLanguageMissing", "html.headingH1Multiple", "html.headingLevelSkipped", "html.imageAltMissing", "html.linkNameMissing",
                 "html.linkTextVague", "html.formLabelMissing", "html.buttonNameMissing", "html.frameTitleMissing",
                 "html.tableHeaderMissing", "html.duplicateId")) {
             assertTrue(found.contains(rule), rule + " in " + found);
@@ -60,10 +59,18 @@ class HtmlRulesTest {
     }
 
     @Test
-    void findsAnEmptyTitleAndAnEmptyDescription() {
+    void leavesTheTitleAndTheDescriptionToTheirLengthRules() {
+        // seo.title and seo.metaDescription measure them, and an empty one has the length 0.
         String html = "<html lang='en'><head><title> </title><meta name='description' content=''></head>"
                 + "<body><h1>T</h1></body></html>";
-        assertEquals(List.of("html.pageTitleMissing", "html.pageDescriptionMissing"), rules(html, Scope.PAGE, "en"));
+        assertEquals(List.of(), rules(html, Scope.PAGE, "en"));
+    }
+
+    @Test
+    void findsAVagueLinkTextWithItsDecorations() {
+        String html = "<html lang='en'>" + HEAD + "<body><h1>T</h1><a href='/x'>Read more +</a>"
+                + "<a href='/y'>Voir plus »</a><a href='/z'>Read the pricing guide</a></body></html>";
+        assertEquals(List.of("html.linkTextVague", "html.linkTextVague"), rules(html, Scope.PAGE, "en"));
     }
 
     @Test

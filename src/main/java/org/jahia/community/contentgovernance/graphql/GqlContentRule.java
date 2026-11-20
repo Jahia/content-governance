@@ -16,10 +16,12 @@ public class GqlContentRule {
 
     private final ContentRule rule;
     private final CheckRegistry.Status status;
+    private final boolean blocking;
 
-    GqlContentRule(ContentRule rule, CheckRegistry.Status status) {
+    GqlContentRule(ContentRule rule, CheckRegistry.Status status, boolean blocking) {
         this.rule = rule;
         this.status = status;
+        this.blocking = blocking;
     }
 
     @GraphQLField
@@ -63,9 +65,9 @@ public class GqlContentRule {
     }
 
     @GraphQLField
-    @GraphQLDescription("True when a finding of the rule stops the publication of the content")
+    @GraphQLDescription("True when a finding of the rule stops the publication of the content. A rule that the browser checks never blocks")
     public boolean isBlocking() {
-        return rule.blocking();
+        return blocking;
     }
 
     @GraphQLField

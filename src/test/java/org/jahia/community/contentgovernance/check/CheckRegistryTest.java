@@ -6,6 +6,10 @@ import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.community.contentgovernance.check.spi.Rule;
 import org.jahia.community.contentgovernance.geo.check.GeoChecks;
 import org.jahia.community.contentgovernance.html.rules.HtmlRule;
+import org.jahia.community.contentgovernance.page.HealthChecks;
+import org.jahia.community.contentgovernance.page.LinkChecks;
+import org.jahia.community.contentgovernance.page.ReadabilityChecks;
+import org.jahia.community.contentgovernance.page.SeoChecks;
 import org.jahia.community.contentgovernance.rules.ContentRule;
 import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jahia.community.contentgovernance.rules.RuleValues;
@@ -120,6 +124,20 @@ class CheckRegistryTest {
     }
 
     @Test
+    @DisplayName("a rule of a check of the browser never blocks, even when its node sets blocking")
+    void blocking_isNeverTrueForTheBrowser() {
+        ContentRule rule = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.vitals", RuleValues.EVALUATOR, "acme.vitals",
+                RuleValues.BLOCKING, true));
+        CheckRegistry server = new CheckRegistry();
+        server.bindCheck(PRICE, id("acme.vitals"));
+        CheckRegistry browser = new CheckRegistry();
+        browser.bindCheck(PRICE, Map.of(ContentCheck.ID, "acme.vitals", CheckRegistry.RUNTIME, CheckRegistry.BROWSER));
+
+        assertThat(server.blocking(rule)).isTrue();
+        assertThat(browser.blocking(rule)).isFalse();
+    }
+
+    @Test
     @DisplayName("a check that throws gives no finding, and the other checks still run")
     void run_survivesAFailingCheck() {
         CheckRegistry registry = new CheckRegistry();
@@ -168,6 +186,10 @@ class CheckRegistryTest {
         Set<String> registered = new HashSet<>(List.of(ContentRule.PATTERN, ContentRule.THRESHOLD, ContentRule.PRESENCE));
         registered.addAll(BrowserChecks.IDS);
         registered.addAll(GeoChecks.IDS);
+        registered.addAll(SeoChecks.IDS);
+        registered.addAll(ReadabilityChecks.IDS);
+        registered.addAll(LinkChecks.IDS);
+        registered.addAll(HealthChecks.IDS);
         Arrays.stream(HtmlRule.values()).map(HtmlRule::id).forEach(registered::add);
 
         List<String> missing = new ArrayList<>();

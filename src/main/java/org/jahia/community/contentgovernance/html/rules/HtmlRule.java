@@ -14,8 +14,6 @@ public enum HtmlRule {
 
     PAGE_LANGUAGE_MISSING("html.pageLanguageMissing", "3.1.1", Scope.PAGE),
     PAGE_LANGUAGE_MISMATCH("html.pageLanguageMismatch", "3.1.1", Scope.PAGE),
-    PAGE_TITLE_MISSING("html.pageTitleMissing", "2.4.2", Scope.PAGE),
-    PAGE_DESCRIPTION_MISSING("html.pageDescriptionMissing", "none", Scope.PAGE),
     IMAGE_ALT_MISSING("html.imageAltMissing", "1.1.1", Scope.ITEM),
     HEADING_LEVEL_SKIPPED("html.headingLevelSkipped", Wcag.INFO_AND_RELATIONSHIPS, Scope.ITEM),
     HEADING_EMPTY("html.headingEmpty", "2.4.6", Scope.ITEM),

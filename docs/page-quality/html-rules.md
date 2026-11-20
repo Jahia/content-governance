@@ -2,11 +2,20 @@
 
 The HTML check reads the HTML that Jahia renders for a page or for one content item, and reports
 the rules that the HTML breaks. It runs on the Jahia server and needs no browser, so a scheduled
-job and an AI agent can run it. The checks of the **Page quality** drawer still run in the browser
-of the editor, as [`architecture.md`](architecture.md) states.
+job and an AI agent can run it. One service, `HtmlCheck`, runs every check of the server on the
+render. These checks are the HTML rules of this page, and the checks of SEO, readability, links and
+Jahia health.
 
-Today, the two tools for AI agents and the GraphQL field `checkText` with the scope `PAGE` call the
-HTML check. The drawer and a scan of the whole site do not call it yet.
+These callers use the service, and get the same findings under the same rule ids for one page:
+
+- the GraphQL field `checkPage(path, language)`;
+- the tool `frame.check`, with a `path` instead of a `text`;
+- the tool `audit.accessibility`;
+- the GraphQL field `checkText` with the scope `PAGE`, on an HTML text that the caller gives.
+
+The drawer of **Page quality** and the scan of a whole site do not call the service yet. The drawer
+still runs its analyzers in the browser of the editor, as [`architecture.md`](architecture.md)
+states, and reports under the same rule ids.
 
 ## How a check runs
 
@@ -14,7 +23,8 @@ HTML check. The drawer and a scan of the whole site do not call it yet.
 2. The render uses the user, the workspace and the language of the call. In the `default`
    workspace, the HTML holds the changes that are not published yet.
 3. Each check of the scope `PAGE` reads the HTML with the rules of the site. These checks are the
-   16 HTML rules and the checks that other modules register. A page gets every HTML rule, and a
+   14 HTML rules, the checks of SEO, readability, links and Jahia health, and the checks that
+   other modules register. A page gets every HTML rule, and a
    content item gets only the HTML rules with the scope `item`.
 
 A content item renders with its own view, as a page includes it. The item has no language, title or
@@ -31,8 +41,6 @@ report 50 findings or fewer on one page.
 | -- | -- | -- | -- |
 | `html.pageLanguageMissing` | page | 3.1.1 | The `html` element has no `lang` attribute. |
 | `html.pageLanguageMismatch` | page | 3.1.1 | The `lang` attribute names another language than the content. |
-| `html.pageTitleMissing` | page | 2.4.2 | The page has no `title` element, or an empty one. |
-| `html.pageDescriptionMissing` | page | none | The page has no `description` meta tag, or an empty one. |
 | `html.imageAltMissing` | item | 1.1.1 | An image has no `alt` attribute. |
 | `html.headingLevelSkipped` | item | 1.3.1 | A heading is more than one level below the heading before it. |
 | `html.headingEmpty` | item | 2.4.6 | A heading has no text and no image with a text alternative. |

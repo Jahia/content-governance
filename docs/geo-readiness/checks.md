@@ -106,7 +106,7 @@ Read from the initial HTML, before any JavaScript runs.
 
 **Important.** Zero or several leave the subject of the page ambiguous to anything parsing it.
 
-*Fails when:* Zero or more than one.
+*Fails when:* Zero or more than one. Rule `html.headingH1Missing` for zero, and `html.headingH1Multiple` for more than one, the same rules as the HTML check.
 
 *Shown in the interface as:* “Zero or several H1 headings leave the main subject of the page ambiguous.”
 
@@ -136,6 +136,8 @@ Read from the initial HTML, before any JavaScript runs.
 
 **Important.** The language has to be guessed otherwise, which on a multilingual site goes wrong quietly.
 
+*Fails when:* The `html` element has no `lang` attribute. Rule `html.pageLanguageMissing`, the same rule as the HTML check.
+
 *Shown in the interface as:* “The html lang attribute is missing, so the language has to be guessed. On a multilingual site that is a real risk.”
 
 ### `structuredData` · Structured data present
@@ -152,9 +154,9 @@ Read from the initial HTML, before any JavaScript runs.
 
 ### `imageAlt` · Images carry alt text
 
-**Advisory.** To a crawler that reads only text, an image with no alt text does not exist.
+**Critical.** To a crawler that reads only text, an image with no alt text does not exist.
 
-*Fails when:* Fewer than 80% of images carry non-empty alt text. A page with no images passes. Rule `geo.imageAlt`.
+*Fails when:* An image has no alt attribute. A page with no images passes. Rule `html.imageAltMissing`, the same rule as the HTML check.
 
 *Shown in the interface as:* “Some images have no alt text. To a text-only crawler those images simply do not exist.”
 

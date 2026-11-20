@@ -13,14 +13,19 @@ import org.jahia.community.contentgovernance.audit.service.spi.AuditHistoryServi
 import org.jahia.community.contentgovernance.check.CheckRegistry;
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck;
+import org.jahia.community.contentgovernance.html.HtmlCheck;
+import org.jahia.community.contentgovernance.html.rules.Scope;
 import org.jahia.community.contentgovernance.rules.ContentRules;
+import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.modules.graphql.provider.dxm.DataFetchingException;
 import org.jahia.modules.graphql.provider.dxm.osgi.annotations.GraphQLOsgiService;
 import org.jahia.services.content.JCRSessionFactory;
+import org.jsoup.Jsoup;
 
 import javax.inject.Inject;
 import javax.jcr.RepositoryException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -50,6 +55,12 @@ public class GqlContentGovernance {
     @Inject
     @GraphQLOsgiService
     private CheckRegistry checks;
+
+    // graphql-java-annotations injects OSGi services into fields only (@GraphQLOsgiService)
+    @SuppressWarnings("java:S6813")
+    @Inject
+    @GraphQLOsgiService
+    private HtmlCheck pages;
 
     /**
      * What a site uses of the module, as the drawer and the settings screen read it. Any signed-in
@@ -124,7 +135,7 @@ public class GqlContentGovernance {
             @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey) {
         SiteAccess.site(siteKey);
         return ContentRules.forSite(siteKey).all().stream()
-                .map(rule -> new GqlContentRule(rule, checks.status(rule)))
+                .map(rule -> new GqlContentRule(rule, checks.status(rule), checks.blocking(rule)))
                 .toList();
     }
 
@@ -159,6 +170,42 @@ public class GqlContentGovernance {
         return checks.run(input, Set.of()).stream().map(checked -> new GqlCheckFinding(checked.finding())).toList();
     }
 
+    /**
+     * Renders a page or a content item as the current user, in the edit workspace, and runs every check
+     * of the server on it: the findings that {@code frame.check} gives for the same path. Any signed-in
+     * user who can read the path may ask.
+     *
+     * @param path     the path of a page or of a content item
+     * @param language the language of the content, such as en
+     * @return the findings, in the order of the rules
+     */
+    @GraphQLField
+    @GraphQLName("checkPage")
+    @GraphQLNonNull
+    @GraphQLDescription("The findings of every check of the server on a page or a content item, rendered in the edit workspace")
+    public List<GqlCheckFinding> checkPage(
+            @GraphQLName("path") @GraphQLNonNull @GraphQLDescription("Path of the page or of the content item") String path,
+            @GraphQLName("language") @GraphQLNonNull @GraphQLDescription("Language of the content, such as en") String language) {
+        if (!LANGUAGE.matcher(language).matches()) {
+            throw new DataFetchingException("Invalid language");
+        }
+        SiteAccess.site(CheckInput.page(path, language, "").siteKey());
+        Locale locale = Locales.of(language);
+        HtmlCheck.Outcome outcome;
+        try {
+            outcome = pages.render(JCRSessionFactory.getInstance().getCurrentUserSession("default", locale), path);
+        } catch (RepositoryException e) {
+            throw new DataFetchingException("The path could not be read");
+        }
+        if (outcome instanceof HtmlCheck.NotFound) {
+            throw new DataFetchingException(SiteAccess.DENIED);
+        }
+        if (!(outcome instanceof HtmlCheck.Rendered rendered)) {
+            throw new DataFetchingException("Jahia could not render " + path);
+        }
+        return pages.findings(rendered, locale).stream().map(GqlCheckFinding::new).toList();
+    }
+
     private static CheckInput checkInput(String path, String language, String text, String scope) {
         if (!LANGUAGE.matcher(language).matches()) {
             throw new DataFetchingException("Invalid language");
@@ -170,7 +217,7 @@ public class GqlContentGovernance {
             return CheckInput.value(path, language, text);
         }
         if (ContentCheck.Scope.PAGE.name().equals(scope)) {
-            return CheckInput.page(path, language, text);
+            return HtmlCheck.input(path, language, Jsoup.parse(text), Scope.PAGE);
         }
         throw new DataFetchingException("The scope is VALUE or PAGE");
     }

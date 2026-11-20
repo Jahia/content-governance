@@ -209,17 +209,17 @@ export function buildSeoRecommendations(r, rules) {
     }
 
     if (!r.lang.htmlLang) {
-        push('seo.lang', 'noLang');
+        push('html.pageLanguageMissing', 'noLang');
     } else if (r.lang.expected && !r.lang.htmlLang.startsWith(r.lang.expected)) {
-        push('seo.langMatches', 'langMismatch', {htmlLang: r.lang.htmlLang, expected: r.lang.expected});
+        push('html.pageLanguageMismatch', 'langMismatch', {htmlLang: r.lang.htmlLang, expected: r.lang.expected});
     }
 
     if (r.imagesWithoutAlt > 0) {
-        push('seo.imageAlt', 'missingAlt', {count: r.imagesWithoutAlt});
+        push('html.imageAltMissing', 'missingAlt', {count: r.imagesWithoutAlt});
     }
 
     if (r.badAnchors > 0) {
-        push('seo.genericAnchors', 'genericAnchors', {count: r.badAnchors});
+        push('html.linkTextVague', 'genericAnchors', {count: r.badAnchors});
     }
 
     return recs;

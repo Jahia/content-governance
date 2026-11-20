@@ -28,8 +28,10 @@ public final class HtmlRules {
     private static final String TITLE = "title";
     /** Link texts that say nothing about the target, in the three languages of the jContent screens. */
     private static final Set<String> VAGUE_LINK_TEXTS = Set.of("click here", "here", "read more", "more", "learn more",
-            "cliquez ici", "ici", "en savoir plus", "lire la suite", "plus", "hier klicken", "hier", "mehr",
-            "weiterlesen", "mehr erfahren");
+            "link", "see more", "view more", "submit", "send", "go", "ok", "continue", "next",
+            "cliquez ici", "ici", "en savoir plus", "lire la suite", "plus", "voir plus", "découvrir", "envoyer",
+            "soumettre", "valider", "continuer", "suivant",
+            "hier klicken", "hier", "mehr", "weiterlesen", "mehr erfahren");
 
     private HtmlRules() {
     }
@@ -67,7 +69,7 @@ public final class HtmlRules {
             String name = accessibleName(link);
             if (name.isEmpty()) {
                 findings.add(HtmlRule.LINK_NAME_MISSING, link);
-            } else if (VAGUE_LINK_TEXTS.contains(name.toLowerCase(Locale.ROOT))) {
+            } else if (VAGUE_LINK_TEXTS.contains(label(name).toLowerCase(Locale.ROOT))) {
                 findings.add(HtmlRule.LINK_TEXT_VAGUE, link);
             }
         }
@@ -109,14 +111,6 @@ public final class HtmlRules {
                 .startsWith(expectedLanguage.toLowerCase(Locale.ROOT).substring(0, 2))) {
             findings.add(HtmlRule.PAGE_LANGUAGE_MISMATCH, root);
         }
-        Element title = page.selectFirst("head title");
-        if (title == null || title.text().isBlank()) {
-            findings.add(HtmlRule.PAGE_TITLE_MISSING, title == null ? page.head() : title);
-        }
-        Element description = page.selectFirst("meta[name=description]");
-        if (description == null || description.attr("content").isBlank()) {
-            findings.add(HtmlRule.PAGE_DESCRIPTION_MISSING, description == null ? page.head() : description);
-        }
     }
 
     private static void checkHeadings(Document html, Findings findings) {
@@ -153,6 +147,20 @@ public final class HtmlRules {
                 findings.add(HtmlRule.DUPLICATE_ID, page.getElementById(id));
             }
         });
+    }
+
+    /** A link text without what decorates it at either end: "Read more +" gives "Read more". */
+    static String label(String text) {
+        String label = text.replaceAll("\\s+", " ");
+        int start = 0;
+        int end = label.length();
+        while (start < end && !Character.isLetterOrDigit(label.charAt(start))) {
+            start++;
+        }
+        while (end > start && !Character.isLetterOrDigit(label.charAt(end - 1))) {
+            end--;
+        }
+        return label.substring(start, end);
     }
 
     /** The text that a screen reader reads for an element, from its content and its labels. */

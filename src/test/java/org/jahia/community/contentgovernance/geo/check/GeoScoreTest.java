@@ -130,7 +130,7 @@ class GeoScoreTest {
             "langDeclared,          content, important",
             "structuredData,        content, important",
             "freshness,             content, advisory",
-            "imageAlt,              content, advisory",
+            "imageAlt,              content, critical",
             "robotsPresent,         files,   important",
             "llmsPresent,           files,   advisory"
         })
@@ -403,13 +403,13 @@ class GeoScoreTest {
         @ParameterizedTest(name = "{0} images, {1} with alt -> passed={2}")
         @CsvSource({
             "0,  0,  true",
-            "10, 8,  true",
-            "10, 7,  false",
+            "10, 10, true",
+            "10, 9,  false",
             "1,  0,  false",
             "1,  1,  true"
         })
-        @DisplayName("imageAlt wants eighty percent, and no images is not a failure")
-        void imageAlt_coverageIsEightyPercent(int images, int withAlt, boolean expected) {
+        @DisplayName("imageAlt wants an alt attribute on every image, and no images is not a failure")
+        void imageAlt_coversEveryImage(int images, int withAlt, boolean expected) {
             JSONObject score = GeoScore.compute(withControl(new JSONObject()
                     .put("images", images)
                     .put("imagesWithAlt", withAlt)), RULES);

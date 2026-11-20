@@ -15,22 +15,18 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The checks that the analyzers of the drawer run in the browser, on the page that the editor sees. The
- * server registers their ids so that their rules are active, and never runs them.
+ * The rules that need a browser, because they measure what a browser loads and runs: the eco-design of
+ * the web vitals, and the drawer's own access to GraphQL. The server registers their ids so that their
+ * rules are active, and never runs them. A browser rule never blocks, and the tools for agents never
+ * report it.
  */
 @Component(immediate = true)
 public class BrowserChecks {
 
-    /** The ids of the checks of {@code src/javascript/audit/analyzers}. */
+    /** The ids of the checks that {@code webVitals.js}, {@code ecodesign.js} and {@code jahiaHealth.js} run. */
     static final List<String> IDS = List.of(
             "ecodesign.autoplay", "ecodesign.imageDimensions", "ecodesign.imageFormats", "ecodesign.lazyLoading",
-            "ecodesign.oversizedImages",
-            "health.graphqlUnavailable", "health.missingTranslations", "health.placeholderText",
-            "health.rawI18nKeys", "health.unpublishedChanges",
-            "links.blankNoopener", "links.broken", "links.hardcodedUrls", "links.mixedContent",
-            "readability.hardText", "readability.headingSkips", "readability.veryHardText",
-            "seo.canonical", "seo.followLinks", "seo.genericAnchors", "seo.imageAlt", "seo.indexable", "seo.lang",
-            "seo.langMatches", "seo.openGraph", "seo.singleH1", "seo.structuredData", "seo.structuredDataValid");
+            "ecodesign.oversizedImages", "health.graphqlUnavailable");
 
     private final CheckServices services = new CheckServices();
 

@@ -43,7 +43,7 @@ shows `active: false`, `missingCheck: "model"` and `needs: "ai-assistant"` in th
 
 ```text
 contents/content-insights/
-    content-governance/rules/     the 68 rules of this module
+    content-governance/rules/     the 59 rules of this module
         seo.title                 ruleId, evaluator, severity, minimum, maximum, advice...
         ...
     <module>/rules/               the rules of another module
@@ -156,7 +156,7 @@ A check states the scopes in which it runs:
 | Scope | What the check reads | Who runs it today |
 |---|---|---|
 | `VALUE` | One value that an editor writes. | The GraphQL field `checkText`, and `frame.check` of the editorial frame. |
-| `PAGE` | The HTML of a rendered page or content item. | The HTML check of the tool `audit.accessibility`, and `checkText` with the scope `PAGE`. |
+| `PAGE` | The HTML of a rendered page or content item. | The page check (`HtmlCheck`): the GraphQL field `checkPage`, `frame.check` with a path, the tool `audit.accessibility`, and `checkText` with the scope `PAGE`. |
 | `SITE` | A whole site. | No caller yet. |
 
 A run applies each rule that the site keeps on and whose check is registered for the scope. Each
@@ -178,14 +178,43 @@ query {
 of the input whose key is the id of the rule: `input.withFact("seo.title", 72)`. With no such fact,
 they find nothing.
 
-The analyzers of Page quality run in the browser. Content-governance registers their ids with the
-property `check.runtime=browser`, so that their rules are active, and a run on the server skips them.
+The checks of SEO, readability, links and Jahia health run on the server, as checks of the scope
+`PAGE`. A few rules need a browser, because they measure what a browser loads: the eco-design rules
+of the web vitals, and `health.graphqlUnavailable`, which reports a failed GraphQL call of the drawer.
+Content-governance registers their ids with the property `check.runtime=browser`, so that their rules
+are active. A run on the server skips them, so the tools for agents never report them. A browser rule
+never blocks, even when its node sets `blocking`.
+
+## One id for each practice
+
+Version 1.12 keeps one rule id for each practice. A check on the server and a check in the drawer
+report one practice under the same id.
+
+| Removed id | Kept id |
+|---|---|
+| `seo.imageAlt`, `geo.imageAlt` | `html.imageAltMissing` |
+| `seo.lang` | `html.pageLanguageMissing` |
+| `seo.langMatches` | `html.pageLanguageMismatch` |
+| `seo.singleH1` | `html.headingH1Missing` when the page has no h1, `html.headingH1Multiple` when it has more than one |
+| `readability.headingSkips` | `html.headingLevelSkipped` |
+| `seo.genericAnchors` | `html.linkTextVague` |
+| `html.pageTitleMissing` | `seo.title`: a missing title has the length 0 |
+| `html.pageDescriptionMissing` | `seo.metaDescription`: a missing description has the length 0 |
+
+A site keeps the nodes of the removed ids until content-governance starts again, and then the table
+of [How a new version of a module updates the rules](#how-a-new-version-of-a-module-updates-the-rules)
+applies. The module removes a node that nobody changed. A node that the site changed stays, with
+`retired` set. No module registers its check any more, so its rule shows as inactive and names its
+own id as the missing check. `geo.imageAlt` is the exception: its evaluator `threshold` stays
+registered, but no caller measures its value, so it gives no finding. To keep a change, such as a
+severity, set it again on the node of the kept id.
 
 ## How a check reads the rules
 
 - The Java checks of GEO readiness read the rules of the site through `ContentRules.forSite`. A site
   scan reads them once, at its start.
-- The analyzers of Page quality read them through the GraphQL field
+- The checks of Page quality on the server read them through `ContentRules.forPath`, at the start of
+  each check. The analyzers of the drawer read them through the GraphQL field
   `contentGovernance.contentRules(siteKey)`, at the start of each audit. Each rule gives its
   `evaluator` and `blocking` there too.
 - The SEO assist reads the ranges of `seo.title` and `seo.metaDescription`, and states them in its
@@ -223,11 +252,6 @@ important. `minor` shows as advisory.
 | `seo.openGraph` | `seo.openGraph` | moderate | none | editor |
 | `seo.structuredData` | `seo.structuredData` | moderate | none | developer |
 | `seo.structuredDataValid` | `seo.structuredDataValid` | serious | none | developer |
-| `seo.lang` | `seo.lang` | moderate | none | developer |
-| `seo.langMatches` | `seo.langMatches` | serious | none | developer |
-| `seo.imageAlt` | `seo.imageAlt` | moderate | none | editor |
-| `seo.genericAnchors` | `seo.genericAnchors` | minor | none | editor |
-| `seo.singleH1` | `seo.singleH1` | serious | none | editor |
 | `geo.fetched` | `geo.fetched` | critical | none | administrator |
 | `geo.reachable` | `geo.reachable` | critical | none | administrator |
 | `geo.policyMatchesReality` | `geo.policyMatchesReality` | serious | none | administrator |
@@ -238,14 +262,12 @@ important. `minor` shows as advisory.
 | `geo.sameContentForCrawlers` | `threshold` | critical | minimum 0.5 ratio | administrator |
 | `geo.headingOutline` | `geo.headingOutline` | minor | none | editor |
 | `geo.dateModified` | `geo.dateModified` | minor | none | developer |
-| `geo.imageAlt` | `threshold` | minor | minimum 0.8 ratio | editor |
 | `geo.robotsPresent` | `geo.robotsPresent` | serious | none | administrator |
 | `geo.llmsPresent` | `geo.llmsPresent` | minor | none | administrator |
 | `readability.veryHardText` | `readability.veryHardText` | serious | none | editor |
 | `readability.hardText` | `readability.hardText` | moderate | none | editor |
 | `readability.longSentences` | `threshold` | minor | maximum 25 words | editor |
 | `readability.longParagraphs` | `threshold` | moderate | maximum 80 words | editor |
-| `readability.headingSkips` | `readability.headingSkips` | moderate | none | editor |
 | `readability.thinContent` | `threshold` | minor | minimum 300 words | editor |
 | `ecodesign.pageWeight` | `threshold` | moderate | maximum 1024 kilobytes | developer |
 | `ecodesign.requests` | `threshold` | moderate | maximum 70 requests | developer |
@@ -255,7 +277,7 @@ important. `minor` shows as advisory.
 | `ecodesign.oversizedImages` | `ecodesign.oversizedImages` | moderate | none | editor |
 | `html.*` | the id of the rule | see below | none | see below |
 
-The 16 rules `html.*` are the rules of the HTML check, and
+The 14 rules `html.*` are the rules of the HTML check, and
 [`html-rules.md`](../page-quality/html-rules.md) lists them. Each rule names a check of its own id.
 | `ecodesign.imageDimensions` | `ecodesign.imageDimensions` | moderate | none | developer |
 | `ecodesign.webFonts` | `threshold` | minor | maximum 2 files | developer |
