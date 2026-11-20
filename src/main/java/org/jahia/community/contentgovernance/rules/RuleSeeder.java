@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 
 /**
  * Copies the rules that the modules ship into each site that enables this module: one
@@ -59,6 +60,10 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
     private static final Logger logger = LoggerFactory.getLogger(RuleSeeder.class);
 
     private BundleTracker<String> tracker;
+    /** True on the processing server, and on a Jahia that is not a cluster: the node that writes at start. */
+    private boolean processingServer;
+    /** Reads whether this node is the processing server. A test replaces it, because SettingsBean needs Jahia. */
+    BooleanSupplier processingServerCheck = () -> SettingsBean.getInstance().isProcessingServer();
 
     public RuleSeeder() {
         setWorkspace(EDIT_WORKSPACE);
@@ -80,33 +85,23 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
     }
 
     /**
-     * Converts the rules and the glossary terms of an older version, on the processing server, then tracks
-     * the modules that ship rules. The tracker seeds every site with the rules of each module, this module included, as it
-     * finds them.
+     * Converts the rules and the glossary terms of an older version, then tracks the modules that ship
+     * rules. The tracker seeds every site with the rules of each module, this module included, as it finds
+     * them. The nodes of a cluster share one repository and start the module at the same time, so only the
+     * processing server converts and seeds: a browsing node never reads a node that the processing server
+     * writes in the same second.
      */
     @Activate
     public void activate(BundleContext context) {
-        migrate(SettingsBean.getInstance().isProcessingServer(), LegacyRules::migrate, LegacyTerms::migrate);
+        processingServer = processingServerCheck.getAsBoolean();
+        if (processingServer) {
+            LegacyRules.migrate();
+            LegacyTerms.migrate();
+        } else {
+            logger.debug("A browsing node leaves the conversions and the seeding to the processing server");
+        }
         tracker = new BundleTracker<>(context, Bundle.ACTIVE, this);
         tracker.open();
-    }
-
-    /**
-     * Runs the conversions of an older version on the processing server only. The nodes of a cluster share
-     * one repository and start the module at the same time, so a browsing node that converted too would
-     * read nodes that the processing server converts in the same second.
-     *
-     * @param processingServer true on the processing server, and on a Jahia that is not a cluster
-     * @param conversions      the conversions, in their order
-     */
-    static void migrate(boolean processingServer, Runnable... conversions) {
-        if (!processingServer) {
-            logger.debug("A browsing node leaves the conversions of an older version to the processing server");
-            return;
-        }
-        for (Runnable conversion : conversions) {
-            conversion.run();
-        }
     }
 
     @Deactivate
@@ -124,7 +119,9 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
         }
         ShippedRules.put(shipment);
         logger.info("Read {} content rules from the module {}", shipment.rules().size(), shipment.module());
-        seedSites(shipment.module());
+        if (processingServer) {
+            seedSites(shipment.module());
+        }
         return shipment.module();
     }
 

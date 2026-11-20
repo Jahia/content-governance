@@ -1,14 +1,24 @@
 package org.jahia.community.contentgovernance.rules;
 
+import org.jahia.services.content.JCRTemplate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
 
-import java.util.ArrayList;
+import javax.jcr.RepositoryException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
 
 class RuleSeederTest {
 
@@ -76,13 +86,51 @@ class RuleSeederTest {
 
     @Test
     @DisplayName("only the processing server converts the rules and the terms of an older version")
-    void migrate_runsOnTheProcessingServerOnly() {
-        List<String> runs = new ArrayList<>();
+    void activate_convertsOnTheProcessingServerOnly() {
+        for (boolean processing : List.of(false, true)) {
+            try (MockedStatic<LegacyRules> rules = mockStatic(LegacyRules.class);
+                 MockedStatic<LegacyTerms> terms = mockStatic(LegacyTerms.class)) {
+                RuleSeeder seeder = seeder(processing);
 
-        RuleSeeder.migrate(false, () -> runs.add("rules"), () -> runs.add("terms"));
-        assertThat(runs).as("a browsing node of a cluster converts nothing").isEmpty();
+                seeder.activate(mock(BundleContext.class));
 
-        RuleSeeder.migrate(true, () -> runs.add("rules"), () -> runs.add("terms"));
-        assertThat(runs).containsExactly("rules", "terms");
+                rules.verify(LegacyRules::migrate, processing ? times(1) : never());
+                terms.verify(LegacyTerms::migrate, processing ? times(1) : never());
+                seeder.deactivate();
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("every node reads the rules that a module ships, and only the processing server seeds the sites")
+    void addingBundle_seedsOnTheProcessingServerOnly() throws RepositoryException {
+        ShippedRules.Shipment shipment = new ShippedRules.Shipment("acme", Map.of(), true);
+        for (boolean processing : List.of(false, true)) {
+            try (MockedStatic<LegacyRules> rules = mockStatic(LegacyRules.class);
+                 MockedStatic<LegacyTerms> terms = mockStatic(LegacyTerms.class);
+                 MockedStatic<ShippedRules> shipped = mockStatic(ShippedRules.class);
+                 MockedStatic<JCRTemplate> jcr = mockStatic(JCRTemplate.class)) {
+                Bundle bundle = mock(Bundle.class);
+                shipped.when(() -> ShippedRules.load(bundle)).thenReturn(shipment);
+                JCRTemplate template = mock(JCRTemplate.class);
+                jcr.when(JCRTemplate::getInstance).thenReturn(template);
+                when(template.doExecuteWithSystemSessionAsUser(any(), any(), any(), any())).thenReturn(List.of());
+                RuleSeeder seeder = seeder(processing);
+                seeder.activate(mock(BundleContext.class));
+
+                assertThat(seeder.addingBundle(bundle, null)).isEqualTo("acme");
+
+                shipped.verify(() -> ShippedRules.put(shipment));
+                jcr.verify(JCRTemplate::getInstance, processing ? times(1) : never());
+                seeder.deactivate();
+            }
+        }
+    }
+
+    /** A seeder on the processing server, or on a browsing node of a cluster. */
+    private static RuleSeeder seeder(boolean processing) {
+        RuleSeeder seeder = new RuleSeeder();
+        seeder.processingServerCheck = () -> processing;
+        return seeder;
     }
 }
