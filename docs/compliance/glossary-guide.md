@@ -98,6 +98,10 @@ on its own, so it does not report a mandatory mention.
   letter counts as a plain letter, so ＦＲＥＥ is "free".
 - **Rich text is read as the visitor reads it.** Formatting inside a word does not hide it, so
   `<b>gra</b>tuit` is "gratuit". An HTML tag or attribute never matches.
+- **The longer term wins.** A term that matches inside a longer match of another term rule reports
+  nothing there. Example: with the rules "Baggins" to "Sacquet" and "Sackville-Baggins" to
+  "Sacquet-de-Besace", the text "Sackville-Baggins" gets one finding, for the longer rule. Two rules
+  with the same term each report it.
 - **A match inside the replacement is the right term.** Example: with the rule "mail" to "e-mail", the
   text "e-mail" passes. This search keeps the accents. With the rule "role" to "rôle", the text "rôle"
   passes and the text "role" gets a finding.
