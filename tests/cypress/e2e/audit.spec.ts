@@ -1,5 +1,7 @@
 import {deleteUser} from '@jahia/cypress';
-import {TestUser, createTestSite, createTestUser, deleteTestSite} from '../support/cg';
+import {
+    FramePageFinding, TestUser, addPageText, asRoot, createTestSite, createTestUser, deleteTestSite, framePageCheck, gqlOk
+} from '../support/cg';
 
 const BUTTON = 'Content governance';
 const DRAWER = 'dialog[aria-labelledby="content-governance-drawer-title"]';
@@ -37,7 +39,8 @@ const freshAudit = () => {
 /**
  * Readability per page language: the formula of a language that has one, no score (rather than
  * the English one) for a language without, characters instead of words where words are not
- * spaced. The scores themselves are unit-tested (src/test/javascript/readability.test.js).
+ * spaced. The server measures the page as it renders it, so each text is content of the page. The
+ * scores themselves are unit-tested (PageChecksTest).
  */
 const READABILITY = [
     {lang: 'en', expect: 'Readability score (Flesch)', text: 'The team writes short pages. Each page answers one question. Readers find what they need and leave. Short sentences help everyone read faster. Plain words work better than jargon. We test every page with real readers before it goes live.'},
@@ -47,8 +50,20 @@ const READABILITY = [
     {lang: 'ja', expect: 'Japanese is written without spaces between words', text: '私たちは短いページを書きます。各ページは一つの質問に答えます。読者は必要な情報をすぐに見つけます。'}
 ];
 
+/** What a run of the drawer stored, and what frame.check gives: the number of findings of each rule. */
+type RuleCounts = Record<string, number>;
+type StoredRecommendation = {rule?: string; items?: unknown[]};
+
+/** The tabs whose recommendations the check of the server gives, by their key in the stored results. */
+const SERVER_TABS = ['seo', 'readability', 'links', 'jahia', 'a11y'];
+
+const PAGE_AUDITS = `query A($path: String!) {
+    contentGovernance { pageAudits(path: $path, language: "en") { auditedBy results } }
+}`;
+
 describe('Content Governance - Page quality audit', () => {
     const siteKey = 'cg-audit';
+    const home = `/sites/${siteKey}/home`;
     const admin: TestUser = {username: 'cg-audit-admin', password: 'cgAdmin1234'};
 
     before(() => {
@@ -179,16 +194,11 @@ describe('Content Governance - Page quality audit', () => {
     });
 
     // The Readability tab counted skipped levels without saying which heading skips: the outline lists
-    // every heading of the main content, and what is wrong with it.
+    // every heading of the main content, and what is wrong with it. The server reads the headings, and
+    // the drawer shows one in its preview.
     it('lists the headings as an outline, with the level a heading skips and a heading without text', () => {
-        const OUTLINE = '<div id="cg-outline-fixture"><h2>Outline section</h2><h4>Outline detail</h4><h3></h3></div>';
         const outline = `${DRAWER} ol[aria-label="Heading outline"]`;
-        cy.intercept('GET', `**/cms/render/default/en/sites/${siteKey}/home.html?pageAuditRun=*`, req => {
-            req.continue(res => {
-                const body = String(res.body);
-                res.body = body.includes('</main>') ? body.replace('</main>', `${OUTLINE}</main>`) : body.replace('</body>', `${OUTLINE}</body>`);
-            });
-        });
+        addPageText(home, 'cg-outline', {en: '<h2>Outline section</h2><h4>Outline detail</h4><h3></h3>'});
         cy.login(admin.username, admin.password);
         cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
@@ -203,28 +213,25 @@ describe('Content Governance - Page quality audit', () => {
         cy.get(DRAWER).contains('li', 'Skipped heading levels').find('strong')
             .should($count => expect(Number($count.text())).to.be.greaterThan(0));
 
-        // The fixture is in the preview alone: the preview opens on the heading
+        // The selector that the server gives finds the heading in the preview, and Page Builder shows the
+        // page beside the drawer: the heading is marked there
         cy.contains(`${outline} li`, 'Outline detail').find('button').click();
-        cy.get(`${DRAWER} iframe`).its('0.contentDocument.body').find('#cg-outline-fixture h4')
+        cy.get('iframe[data-sel-role="page-builder-frame-active"]').its('0.contentDocument.body')
+            .find('h4:contains("Outline detail")')
             .should($heading => expect($heading[0].style.outline, 'marked').to.contain('3px'));
     });
 
-    READABILITY.forEach(({lang, expect, text}) => {
+    READABILITY.forEach(({lang, expect, text}, index) => {
         it(`scores readability for a page in ${lang}`, () => {
-            cy.intercept('GET', `**/cms/render/default/${lang}/sites/${siteKey}/home.html?pageAuditRun=*`, req => {
-                req.continue(res => {
-                    const body = String(res.body);
-                    const fixture = `<p id="cg-readability-fixture">${text}</p>`;
-                    res.body = body.includes('</main>') ? body.replace('</main>', `${fixture}</main>`) : body.replace('</body>', `${fixture}</body>`);
-                });
-            }).as('preview');
+            if (index === 0) {
+                addPageText(home, 'cg-readability', Object.fromEntries(READABILITY.map(item => [item.lang, `<p>${item.text}</p>`])));
+            }
             cy.login(admin.username, admin.password);
             cy.visit(`/jahia/jcontent/${siteKey}/${lang}/pages/home`);
             cy.contains('button', BUTTON, {timeout: 30000}).click();
             freshAudit();
-            cy.wait('@preview', {timeout: 30000});
             cy.get('#audit-tab-readability', {timeout: 60000}).click();
-            cy.get(DRAWER).contains(expect, {timeout: 60000}).should('exist');
+            cy.get(DRAWER).contains(expect, {timeout: 90000}).should('exist');
             if (lang === 'ja') {
                 cy.get(DRAWER).contains('Characters').should('exist');
                 cy.get(DRAWER).contains('Readability score').should('not.exist');
@@ -232,17 +239,21 @@ describe('Content Governance - Page quality audit', () => {
         });
     });
 
-    // A request that never answers costs its own tab only. The image holds the frame's load event
-    // (the audit starts once the document is parsed, after 20 s); the link holds the link check,
-    // which stops at its 45 s limit while the other tabs show their results.
+    // A request that never answers costs its own tabs only. The image holds the frame's load event (the
+    // audit starts once the document is parsed, after 20 s); the check of the server never answers, and
+    // stops at its 60 s limit, while the tabs of the browser show their results.
     it('audits a page whose requests never answer, and says which check did not finish', () => {
         const hang = {delay: 120000, statusCode: 204};
         cy.intercept('GET', '**/files/cg-never-answers.png*', req => req.reply(hang)).as('image');
-        cy.intercept({url: `**/cms/render/default/en/sites/${siteKey}/cg-never-answers.html*`}, req => req.reply(hang));
+        cy.intercept('POST', '**/modules/graphql*', req => {
+            const operations = Array.isArray(req.body) ? req.body : [req.body];
+            if (operations.some(operation => operation?.operationName === 'ContentGovernanceCheckPage')) {
+                req.reply(hang);
+            }
+        });
         cy.intercept('GET', `**/cms/render/default/en/sites/${siteKey}/home.html?pageAuditRun=*`, req => {
             req.continue(res => {
-                const fixture = `<p><img src="/files/cg-never-answers.png" alt="Waiting"> <a href="/cms/render/default/en/sites/${siteKey}/cg-never-answers.html">A page that never answers</a></p>`;
-                res.body = String(res.body).replace('</body>', `${fixture}</body>`);
+                res.body = String(res.body).replace('</body>', '<p><img src="/files/cg-never-answers.png" alt="Waiting"></p></body>');
             });
         });
         cy.login(admin.username, admin.password);
@@ -253,8 +264,50 @@ describe('Content Governance - Page quality audit', () => {
         cy.get(DRAWER).contains('automated rules passed', {timeout: 150000}).should('exist');
         cy.get('#audit-tab-links').click();
         cy.get(DRAWER).contains('This check did not finish').should('exist');
-        cy.get(DRAWER).contains('It took more than 45 seconds').should('exist');
-        cy.get('#audit-tab-seo').click();
+        cy.get(DRAWER).contains('It took more than 60 seconds').should('exist');
+        cy.get('#audit-tab-accessibility').click();
         cy.get(DRAWER).contains('This check did not finish').should('not.exist');
+    });
+
+    // The Done when of content-governance#132: the drawer reads the page check service, so it gives one
+    // page the findings that frame.check gives an agent, under the same rule ids.
+    it('gives the findings of frame.check for the page, under the same rule ids', () => {
+        const fromDrawer = (results: Record<string, {recommendations?: StoredRecommendation[]}>): RuleCounts => {
+            const counts: RuleCounts = {};
+            SERVER_TABS.forEach(tab => (results[tab]?.recommendations || []).forEach(rec => {
+                if (rec.items) {
+                    counts[rec.rule as string] = rec.items.length;
+                }
+            }));
+            return counts;
+        };
+        // The defects of the server checks, as content of the page: an http:// link opening a new window,
+        // a link that says "here" to a page that a visitor cannot open (the test site is not published:
+        // Jahia refuses to save a link to a page that does not exist), and an image without alt
+        addPageText(home, 'cg-findings', {en: `<p>Read the <a href="http://example.com/report" target="_blank">yearly report</a>, or <a href="/cms/render/default/en/sites/${siteKey}/home.html">here</a>.</p><p><img src="https://example.com/cg-none.png"></p>`});
+        cy.login(admin.username, admin.password);
+        cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);
+        cy.contains('button', BUTTON, {timeout: 30000}).click();
+        freshAudit();
+        cy.get(DRAWER).contains('automated rules passed', {timeout: 90000}).should('exist');
+        cy.get(DRAWER).contains(`by ${admin.username}`, {timeout: 30000}).should('exist');
+        cy.get('#audit-tab-links').click();
+        cy.get(DRAWER).contains('links.mixedContent').should('exist');
+        cy.get(DRAWER).contains('Not published').should('exist');
+
+        gqlOk(asRoot(), PAGE_AUDITS, {path: home}).then(data => {
+            const run = data.contentGovernance.pageAudits[0];
+            expect(run.auditedBy).to.eq(admin.username);
+            const drawer = fromDrawer(JSON.parse(run.results));
+            expect(drawer).to.include.keys('links.mixedContent', 'links.blankNoopener', 'links.broken',
+                'html.linkTextVague', 'html.imageAltMissing', 'health.unpublishedChanges');
+            framePageCheck({siteKey, locale: 'en', path: home}).then((findings: FramePageFinding[]) => {
+                const agent: RuleCounts = {};
+                findings.forEach(finding => {
+                    agent[finding.rule] = (agent[finding.rule] || 0) + 1;
+                });
+                expect(drawer).to.deep.eq(agent);
+            });
+        });
     });
 });

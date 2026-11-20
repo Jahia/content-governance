@@ -107,6 +107,18 @@ class CheckRegistryTest {
     }
 
     @Test
+    @DisplayName("a run on some rules runs those rules only")
+    void runRules_runsTheNamedRulesOnly() {
+        CheckRegistry registry = new CheckRegistry();
+        registry.bindCheck(PRICE, id("acme.erpPrice"));
+        ContentRules rules = withRule("acme.erpPrice", "acme.erpPrice");
+        CheckInput input = CheckInput.value(PAGE, "en", "12.50 EUR");
+
+        assertThat(registry.runRules(rules, input, Set.of("acme.erpPrice"))).hasSize(1);
+        assertThat(registry.runRules(rules, input, Set.of("seo.title"))).isEmpty();
+    }
+
+    @Test
     @DisplayName("a run skips a rule that is off, an evaluator the caller applies, and a check of the browser")
     void run_skips() {
         CheckRegistry registry = new CheckRegistry();

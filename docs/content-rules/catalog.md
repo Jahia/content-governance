@@ -158,7 +158,7 @@ A check states the scopes in which it runs:
 | Scope | What the check reads | Who runs it today |
 |---|---|---|
 | `VALUE` | One value that an editor writes. | The GraphQL field `checkText`, and `frame.check` of the editorial frame. |
-| `PAGE` | The HTML of a rendered page or content item. | The page check (`HtmlCheck`): the GraphQL field `checkPage`, `frame.check` with a path, the tool `audit.accessibility`, and `checkText` with the scope `PAGE`. |
+| `PAGE` | The HTML of a rendered page or content item. | The page check (`HtmlCheck`): the GraphQL field `checkPage`, which the drawer reads, `frame.check` with a path, the tool `audit.accessibility`, `checkText` with the scope `PAGE`, and the SEO checks of GEO readiness on the HTML that a crawler gets. |
 | `SITE` | A whole site. | No caller yet. |
 
 A run applies each rule that the site keeps on and whose check is registered for the scope. Each
@@ -181,11 +181,11 @@ of the input whose key is the id of the rule: `input.withFact("seo.title", 72)`.
 they find nothing.
 
 The checks of SEO, readability, links and Jahia health run on the server, as checks of the scope
-`PAGE`. A few rules need a browser, because they measure what a browser loads: the eco-design rules
-of the web vitals, and `health.graphqlUnavailable`, which reports a failed GraphQL call of the drawer.
-Content-governance registers their ids with the property `check.runtime=browser`, so that their rules
-are active. A run on the server skips them, so the tools for agents never report them. A browser rule
-never blocks, even when its node sets `blocking`.
+`PAGE`, and the drawer shows their findings. A few rules need a browser, because they measure what a
+browser loads: the eco-design rules of the web vitals. Content-governance registers their ids with
+the property `check.runtime=browser`, so that their rules are active. A run on the server skips them,
+so the tools for agents never report them. A browser rule never blocks, even when its node sets
+`blocking`. The checks of axe-core in the Accessibility tab carry no rule of the catalog.
 
 ## One id for each practice
 
@@ -202,6 +202,7 @@ report one practice under the same id.
 | `seo.genericAnchors` | `html.linkTextVague` |
 | `html.pageTitleMissing` | `seo.title`: a missing title has the length 0 |
 | `html.pageDescriptionMissing` | `seo.metaDescription`: a missing description has the length 0 |
+| `health.graphqlUnavailable` (2.0) | None: the drawer reads the state of the content from the check of the server, and a check that fails shows as unfinished in its tabs |
 
 A site keeps the nodes of the removed ids until content-governance starts again, and then the table
 of [How a new version of a module updates the rules](#how-a-new-version-of-a-module-updates-the-rules)
@@ -216,9 +217,10 @@ severity, set it again on the node of the kept id.
 - The Java checks of GEO readiness read the rules of the site through `ContentRules.forSite`. A site
   scan reads them once, at its start.
 - The checks of Page quality on the server read them through `ContentRules.forPath`, at the start of
-  each check. The analyzers of the drawer read them through the GraphQL field
-  `contentGovernance.contentRules(siteKey)`, at the start of each audit. Each rule gives its
-  `evaluator` and `blocking` there too.
+  each check. The drawer reads them through the GraphQL field
+  `contentGovernance.contentRules(siteKey)`, at the start of each audit, for the analyzers of the
+  browser, the limits in the texts of a finding, and the advice of a rule that no tab words. Each
+  rule gives its `evaluator` and `blocking` there too.
 - The SEO assist reads the ranges of `seo.title` and `seo.metaDescription`, and states them in its
   prompt.
 - The editorial frame reads the rules of the evaluator `pattern` from the live workspace.
@@ -294,4 +296,3 @@ The rules `html.*` are the rules of the HTML check, and
 | `health.unpublishedChanges` | `health.unpublishedChanges` | serious | none | editor |
 | `health.missingTranslations` | `health.missingTranslations` | serious | none | editor |
 | `health.placeholderText` | `health.placeholderText` | serious | none | editor |
-| `health.graphqlUnavailable` | `health.graphqlUnavailable` | minor | none | administrator |

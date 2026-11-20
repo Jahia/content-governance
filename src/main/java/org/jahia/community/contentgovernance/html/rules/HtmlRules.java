@@ -76,7 +76,7 @@ public final class HtmlRules {
             String name = accessibleName(link);
             if (name.isEmpty()) {
                 findings.add(HtmlRule.LINK_NAME_MISSING, link);
-            } else if (VAGUE_LINK_TEXTS.contains(label(name).toLowerCase(Locale.ROOT))) {
+            } else if (vague(name)) {
                 findings.add(HtmlRule.LINK_TEXT_VAGUE, link);
             }
         }
@@ -156,8 +156,16 @@ public final class HtmlRules {
         });
     }
 
+    /**
+     * @param name the text of a link or of a button
+     * @return true when the text says nothing about the target, such as "Read more +"
+     */
+    public static boolean vague(String name) {
+        return VAGUE_LINK_TEXTS.contains(label(name).toLowerCase(Locale.ROOT));
+    }
+
     /** A link text without what decorates it at either end: "Read more +" gives "Read more". */
-    static String label(String text) {
+    public static String label(String text) {
         Matcher label = LABEL.matcher(text.replaceAll("\\s+", " "));
         return label.find() ? label.group() : "";
     }

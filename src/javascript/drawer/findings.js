@@ -7,17 +7,23 @@ import {withoutTimingFindings} from '../audit/vitalsFindings';
  * which the module's recommendations already use), `title` is already translated, `tab` is the part
  * of the drawer tab that shows it (null for a drawer tab without parts).
  * Page quality findings also carry `detail` (what to do, translated), `rule` (the id of their rule
- * in the catalog, null for accessibility and for an audit stored before the catalog) and, for
- * accessibility, `count` (the elements that fail the rule).
+ * in the catalog, null for a check of axe-core and for an audit stored before the catalog) and
+ * `count`: the elements that fail an axe-core rule, or the findings of a rule of the server.
  */
 
 const RANK = {critical: 0, serious: 1, moderate: 2, minor: 3};
 
+/** The key of a recommendation of a rule that no tab words itself: it shows the id and the advice of the rule. */
+export const RULE_KEY = 'rule';
+
 /** A finding to deal with before publishing: its count is red and it is listed in "Fix first". */
 export const isSerious = severity => severity === 'critical' || severity === 'serious';
 
-/** Each Page quality tab with recommendations (also its key in the results) and the namespace of their texts. */
-const AUDIT_TABS = [['seo', 'seo'], ['vitals', 'vitals'], ['readability', 'readability'], ['ecodesign', 'eco'], ['links', 'links'], ['jahia', 'jahia']];
+/**
+ * Each Page quality tab with recommendations (also its key in the results) and the namespace of their
+ * texts. The recommendations of `a11y` are the HTML rules of the server that no other tab words.
+ */
+const AUDIT_TABS = [['a11y', 'a11y'], ['seo', 'seo'], ['vitals', 'vitals'], ['readability', 'readability'], ['ecodesign', 'eco'], ['links', 'links'], ['jahia', 'jahia']];
 
 /**
  * @param {Array<object>} findings findings of every section
@@ -41,6 +47,31 @@ export function rankFindings(findings, max = 5) {
  * @returns {string} the key, such as `audit.seo.shortTitle`
  */
 export const auditFindingKey = (resultKey, id) => `audit.${resultKey}.${id}`;
+
+/**
+ * The title and the detail of a recommendation of a Page quality tab: the texts of its key under
+ * `<ns>.recs`, or, for a rule that no tab words itself (`key: 'rule'`), its id and its advice.
+ *
+ * @param {{key: string, params: object, advice: ?string}} rec the recommendation
+ * @param {string} ns the namespace of the texts of the tab, such as `seo` or `eco`
+ * @param {Function} t the translation function of Page quality (`audit.` prefix)
+ * @returns {{title: string, detail: string}} the texts
+ */
+export function recommendationText(rec, ns, t) {
+    if (rec.key === RULE_KEY) {
+        return {title: t('recs.rule', rec.params), detail: rec.advice || ''};
+    }
+    return {title: t(`${ns}.recs.${rec.key}.title`, rec.params), detail: t(`${ns}.recs.${rec.key}.detail`, rec.params)};
+}
+
+/**
+ * The id of a recommendation in its tab: its key, or the id of its rule for a rule that no tab words.
+ *
+ * @param {{key: string, rule: ?string}} rec the recommendation
+ * @returns {string} the id
+ */
+export const recommendationId = rec => (rec.key === RULE_KEY ? rec.rule : rec.key);
+
 
 /**
  * The findings that the drawer hands to its tabs and to the actions on a finding: those of the
@@ -82,13 +113,13 @@ export function auditFindings(results, t) {
         const recommendations = results[tab]?.recommendations || [];
         (tab === 'vitals' ? withoutTimingFindings(recommendations) : recommendations).forEach(rec => {
             out.push({
-                key: auditFindingKey(tab, rec.key),
+                key: auditFindingKey(tab, recommendationId(rec)),
                 section: 'audit',
-                tab,
+                tab: tab === 'a11y' ? 'accessibility' : tab,
                 severity: rec.severity || 'minor',
                 rule: rec.rule || null,
-                title: t(`${ns}.recs.${rec.key}.title`, rec.params),
-                detail: t(`${ns}.recs.${rec.key}.detail`, rec.params)
+                ...recommendationText(rec, ns, t),
+                ...(rec.items ? {count: rec.items.length} : {})
             });
         });
     });

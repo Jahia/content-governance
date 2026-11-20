@@ -18,7 +18,7 @@ section, each opening the tab that explains it; it stays out of the way when the
 
 | Section | What it answers | Where it runs |
 |---|---|---|
-| **Page quality** | Is the page I am editing accessible, findable, fast, readable, light, well linked and complete in Jahia? | In the editor's browser, on a preview of the page in the editing workspace; AI on demand |
+| **Page quality** | Is the page I am editing accessible, findable, fast, readable, light, well linked and complete in Jahia? | On the server for SEO, readability, links and Jahia health, as `frame.check` checks it; in the editor's browser for accessibility, load and eco-design; both on the editing version of the page; AI on demand |
 | **GEO readiness** | Can AI assistants and their crawlers read and cite the published page? | On the server, on demand (one fetch per AI crawler) |
 | **Compliance** | Does the page, or content it shows, use a term that a term rule of the site forbids or replaces in this language? | On the server, when the section opens |
 
@@ -31,7 +31,7 @@ section, each opening the tab that explains it; it stays out of the way when the
 | **Web Vitals** | Load timings, layout shift, an estimated LCP, page weight, requests, DOM size and the heaviest resources, measured in the browser |
 | **Readability** | A score with the formula of the page language (English, French, German, Spanish, Italian, Dutch, Portuguese; LIX for Swedish, Danish, Norwegian), long sentences and heading structure; plainer rewrites suggested by AI |
 | **Ecodesign** | Page-level checks from the French RGESN 2024 referential, plus a checklist for what a page tool cannot judge (not a conformity score) |
-| **Links** | Broken internal links, absolute addresses to the site's own host, mixed content, unsafe `target="_blank"`; external links are counted, not verified |
+| **Links** | Internal links that a visitor cannot open, absolute addresses to the site's own host, `http://` links, unsafe `target="_blank"`; external links are counted, not verified |
 | **Jahia** | Unpublished content on the page, missing translations in active languages, raw resource keys and placeholder text |
 | **AI review** | A review of the page text by the configured model: each finding with its severity and the exact wording to change |
 

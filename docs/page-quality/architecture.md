@@ -5,10 +5,13 @@ maintain it. The user-facing behaviour is in [guide.md](guide.md).
 
 ## In one paragraph
 
-The automated checks run in the editor's browser. The section loads
+The checks of SEO, readability, links and Jahia health run on the server: the GraphQL field
+`checkPage` renders the page as the editor, in the edit workspace, runs every check of the server on
+it, and gives the facts that these tabs show. `frame.check` gives an agent the same findings for the
+same path. The checks that need a browser run in the editor's browser: the section loads
 `/cms/render/default/{lang}{path}.html` in a same-origin iframe, waits for it to settle, strips
-editing tooling from its DOM, and runs seven analyzers against the frame's document and performance
-entries. One of them (Jahia) also queries GraphQL through jContent's Apollo client. Results are kept
+editing tooling from its DOM, and runs axe-core, the web vitals and eco-design against the frame's
+document and performance entries. Results are kept
 in the editor's `localStorage` and, once complete, stored on the site for every editor (see
 [Shared audits](#shared-audits-and-the-site-dashboard)). The other server code specific to the section is one servlet,
 `/modules/content-governance/audit/ai-review`. It runs four server-defined AI tasks through
@@ -19,9 +22,9 @@ jContent / Page Builder header
   GovernanceAction (headerPrimaryActions:890)
     GovernanceDrawer  (portal into document.body)
       AuditSection
+        GraphQL checkPage (HtmlCheck)  -> seo, readability, links, jahia, HTML rules
         iframe  /cms/render/default/{lang}{path}.html?pageAuditRun=N
-          removeToolingElements -> webVitals -> ecodesign -> readability -> seo
-          -> accessibility (axe-core injected) -> links (HEAD/GET) -> jahiaHealth (GraphQL)
+          removeToolingElements -> webVitals -> ecodesign -> accessibility (axe-core injected)
         localStorage  content-governance:audit:{lang}:{path}
         POST /modules/content-governance/audit/ai-review  {task: review|seo|alt|simplify}
           AiReviewServlet -> AiService -> GenAiModel -> genai-connector GenAiService
@@ -36,8 +39,10 @@ jContent / Page Builder header
 | `src/javascript/drawer/FixFirst.jsx`, `findings.js` | "Fix first": each section reports `{key, section, tab, severity, title}` findings through `onFindings` (Page quality: violations by impact and every tab's recommendations, `auditFindings`; GEO: one per tab with a count, score and crawler serious, the others moderate; Compliance: one serious per term, `complianceFindings`). The drawer keeps them per section (an identical list changes nothing), `rankFindings` keeps the five most serious, ties in section order, and **Open** selects the section and passes `requestedTab` `{tab, at}`. |
 | `src/javascript/drawer/GovernanceDrawer.jsx` | The drawer: header, one section tab per switched-on section with its count badge, sections mounted on first show and kept mounted while the drawer is open. |
 | `src/javascript/drawer/useDock.js` | Docks the drawer beside the page under edit, under jContent's header, and resizes it from its left edge (see the drawer notes below). |
-| `src/javascript/audit/AuditSection.jsx` | The section: preview frame, analyzer pipeline, cache, staleness probe, export, AI task lifecycle, tab bar and badges. |
-| `src/javascript/audit/analyzers/` | One file per analyzer, plus `tooling.js` (DOM cleanup), `aiReview.js` (AI client), `headingOutline.js` (the heading outline of the Readability tab) and `cssPath.js` (the selector a highlight finds an element by). |
+| `src/javascript/audit/AuditSection.jsx` | The section: the check of the server, preview frame, analyzer pipeline, cache, staleness probe, export, AI task lifecycle, tab bar and badges. |
+| `src/javascript/audit/pageCheck.js` | Calls `checkPage`, and turns its findings and facts into the results of the tabs SEO, Readability, Links and Jahia health, and the HTML rules of the Accessibility tab. |
+| `src/javascript/audit/analyzers/` | The analyzers of the browser (`webVitals.js`, `ecodesign.js`, `accessibility.js`), plus `tooling.js` (DOM cleanup), `aiReview.js` (AI client) and `cssPath.js` (the selector a highlight finds an element by). |
+| `src/main/java/org/jahia/community/contentgovernance/page/` | The checks of the server for each domain (`SeoChecks`, `ReadabilityChecks`, `LinkChecks`, `HealthChecks`), with the facts each one measures, and `PageFacts`, which gathers them for `checkPage`. |
 | `src/javascript/audit/tabs/` | One component per tab, the three assist components, the shared `Recommendations` list, the two manual checklists. |
 | `src/javascript/common/useSiteSettings.js`, `settings.gql.js` | Site switches and AI status, from `contentGovernance.siteSettings`. |
 | `src/javascript/common/AiUnavailable.jsx` | The greyed-out box shown in place of an AI feature when no model answers the user on the site, with a message for the reason. |
@@ -78,10 +83,11 @@ jContent / Page Builder header
 
 A tab switched off is not measured. Its analyzer does not run, and its result is not cached,
 exported or sent to the AI review (`keepEnabled` in `AuditSection.jsx`). Web Vitals still runs as the
-input of Ecodesign, and the SEO read (a DOM pass) always runs for the page facts the AI tasks need:
+input of Ecodesign, and the check of the server always runs for the page facts the AI tasks need:
 `results.page` holds the title, the meta description and the number of images without alt, whatever
 the switches. Neither result is kept when its own tab is off. A cached audit that lacks a tab switched
-back on since is measured again; `CACHE_SCHEMA` 4 dropped caches from before `results.page`, 5 those from before per-language readability.
+back on since is measured again. `results.page.schema` holds `CACHE_SCHEMA`, and a stored audit of
+another schema is measured again: 6 dropped the audits from before the check of the server.
 The analyzers call no module endpoint; the server enforces the switches on the AI endpoint (see
 [Feature gates](#feature-gates)).
 
@@ -106,10 +112,11 @@ The analyzers call no module endpoint; the server enforces the switches on the A
   2. calls `removeToolingElements(doc)`, which removes `[id^="tst-"]`, `[class*="tst-"]` and
      `#personas_panel` (jExperience persona preview, injected by `wem.js` in authoring contexts),
      before any analyzer reads the DOM;
-  3. runs the analyzers in order. The four network-bound ones go through `runStep`
-     (`analyzers/timeLimit.js`) with `STEP_LIMITS_MS`: vitals 15 s, accessibility 60 s, links 45 s,
-     Jahia 30 s. A step that fails or runs out of time is left out: its tab shows `IncompleteStep`
-     (why, and **Re-run**) from `results.incomplete[<result key>]`, eco-design follows vitals, the
+  3. starts the check of the server, then runs the analyzers of the browser in order. Each step goes
+     through `runStep` (`analyzers/timeLimit.js`) with `STEP_LIMITS_MS`: the check of the server
+     60 s, vitals 15 s, accessibility 60 s. A step that fails or runs out of time is left out: its
+     tabs show `IncompleteStep` (why, and **Re-run**) from `results.incomplete[<result key>]`, the
+     check of the server for SEO, Readability, Links and Jahia health, eco-design after vitals. The
      other tabs show their results, and such a partial audit is never cached. The late answer of a
      stopped step is ignored, not cancelled.
 - When results come from the cache, the frame still loads (preview and highlight target) but the
@@ -131,26 +138,48 @@ The analyzers call no module endpoint; the server enforces the switches on the A
   `inert`, `aria-hidden`), because the analyzers read the frame's viewport and paint (LCP, images
   above the fold) and a frame with no height measures nothing. A re-run keeps the editor's choice.
 
-## The analyzers
+## The check of the server
+
+`audit/pageCheck.js` calls the GraphQL field `checkPage(path, language)` (`ContentGovernanceCheckPage`,
+`fetchPolicy: 'no-cache'`). The server renders the page as the editor, in the edit workspace, with
+`HtmlCheck`, the service that `frame.check` and `audit.accessibility` call too. It answers:
+
+- `findings`: each place where the page breaks a rule of the site, `{ruleId, severity, text, context}`,
+  in the order of the rules. A rule that the site turned off gives none.
+- `facts`: a JSON object of what the tabs show, by tab. `seo`: the tags of the head, the images and
+  the links whose label says nothing (`weakCtas`, for the SEO assist). `readability`: the statistics
+  of the main text with the formula of its language (`Readability`), its paragraphs, and the outline
+  of its headings, each with a CSS selector of the server render, which the preview resolves to
+  highlight it. `links`: the links to a page, the internal links resolved in the repository and the
+  broken ones (`missing` or `not_published`). `jahia`: the status of the page, the content items
+  read (400 at most), what is not published in the language, and what lacks an active language.
+
+Each finding goes to one tab, under the id of its rule (`tabOf`): the domain of the rule names the tab
+(`seo`, `readability`, `links`, `health` for Jahia health, `html` for Accessibility). The HTML rules
+that SEO and Readability word stay there: the language of the page, the alt texts and the vague link
+texts in SEO, the H1 and the heading levels in Readability. A rule of another domain, such as a check
+that another module registers, goes to Jahia health. A tab shows one recommendation per rule
+`{key, rule, severity, params, items}`: `items` holds each finding of the rule. The text of a rule
+that the tab words is in `audit.<ns>.recs.<key>.title|detail`. Another rule shows its id and its
+advice (`audit.recs.rule`).
+
+## The analyzers of the browser
 
 Each analyzer gets the rules of the site, which `audit/rules.js` reads at the start of the audit
 through the GraphQL field `contentRules` ([the catalog](../content-rules/catalog.md)). A finding is
 `{key, rule, severity, params}`: `key` names its text, `rule` is the id of its rule, `severity` is
 the severity of the rule, and `params` holds the `min` and `max` of the rule. A rule that the site
-turned off gives no finding.
+turned off gives no finding. These rules are browser rules: the server registers their ids and never
+runs them, and they never block.
 
 Run in this order in `handleFrameLoad`. Each returns a result object with a `recommendations` array
 of these findings; the text is in `audit.<ns>.recs.<key>.title|detail`.
 
 | Analyzer | File | Reads | Notes |
 |---|---|---|---|
-| Web Vitals | `webVitals.js` | Buffered `PerformanceObserver` (`largest-contentful-paint`, `layout-shift`, 700 ms window), navigation and resource entries, `doc.images` | Runs first so axe and link checks are not in the resource stats. LCP falls back to the `responseEnd` of the largest in-viewport image, else `domContentLoadedEventEnd` (`lcpApprox`). INP is always `null`. The timings are indicative figures: no band, no finding (they are measured on the editing preview in the editor's browser and cannot match the live site); `buildVitalsRecommendations` reads the diagnostics only, and `audit/vitalsFindings.js` drops the `slowLcp`, `highCls` and `slowTtfb` findings of audits stored before 1.11 where they are shown (`keepEnabled`, `auditFindings`). The counts stored with those audits keep them, as history. Size is `transferSize`, else `encodedBodySize` (HTTP cache hits). |
+| Web Vitals | `webVitals.js` | Buffered `PerformanceObserver` (`largest-contentful-paint`, `layout-shift`, 700 ms window), navigation and resource entries, `doc.images` | Runs first so axe is not in the resource stats. LCP falls back to the `responseEnd` of the largest in-viewport image, else `domContentLoadedEventEnd` (`lcpApprox`). INP is always `null`. The timings are indicative figures: no band, no finding (they are measured on the editing preview in the editor's browser and cannot match the live site); `buildVitalsRecommendations` reads the diagnostics only, and `audit/vitalsFindings.js` drops the `slowLcp`, `highCls` and `slowTtfb` findings of audits stored before 1.11 where the dashboard shows them (`auditFindings`). The counts stored with those audits keep them, as history. Size is `transferSize`, else `encodedBodySize` (HTTP cache hits). |
 | Ecodesign | `ecodesign.js` | Vitals diagnostics, resource entries, DOM | 10 criteria, each under the rule `ecodesign.<criterion>` of the catalog, whose maximum it reads: weight, requests, DOM size, below-the-fold images without `loading="lazy"`, fonts (WOFF2 only), autoplay media, legacy-format images over 30 kB, oversized images, missing dimensions, third-party origins. A criterion passes when its rule has no finding. Not an RGESN conformity score; `ecoChecklist.js` lists 8 whole-service criteria. |
-| Readability | `readability.js` | `main` or `body`, minus `script, style, noscript, svg, nav, header, footer, [aria-hidden="true"]` | Text nodes joined with spaces. `analyzeText` scores with the formula of the language (`FORMULAS`: Flesch and Flesch-Kincaid grade `en`, Kandel-Moles `fr`, Amstad `de`, Fernández Huerta with Law's correction `es`, Franchina-Vacca `it`, Douma `nl`, Martins `pt`; LIX for `sv da nb nn no`, `scale: 'lix'`, higher is harder, bands at the midpoints of Björnsson's 20/30/40/50/60 table), syllables by vowel groups per language (diaeresis hiatus in `fr`/`nl`, silent final e in `en`/`fr`). Another language: `scored: false`, `score: null`, no score advice. `ja zh th lo km my` (`UNSPACED`): `spaced: false`, characters and sentences (split on `。．！？!?`), no word-based field or advice. Under 30 words: `empty`, with no advice. Long sentence: over the maximum of `readability.longSentences`. H1 count on the whole document. Headings of the root through `headingOutline.js`: `collectHeadings` reads level, text (else `aria-label` or an image's `alt`) and a selector (`cssPath.js`, shared with the AI assists), and the pure `buildOutline` gives `outline` (the first 200, text cut at 160 characters, `skippedFrom` on a heading more than one level under the one before it, `empty` without text), `headingSkips` and `headingCount` over all of them. They are returned for an `empty` page too. The outline is stored with the audit; `HeadingOutline.jsx` lists it, and an audit without one (before 1.10) says to re-run. |
-| SEO | `seo.js` | `<head>` tags, JSON-LD blocks, `<html lang>`, images, links and buttons | Strips the preview prefix ("Aperçu - ", "Preview - "...) from the title. The ranges of the rules `seo.title` and `seo.metaDescription`, also in `ranges` for the SEO assist. `collectWeakCtas` keeps up to 10 distinct generic labels with their target and 300 characters of context, for the SEO assist. |
-| Accessibility | `accessibility.js` | Whole frame document | Injects axe-core (below) and runs tags `wcag2a, wcag21a, wcag2aa, wcag21aa, wcag22aa, wcag2aaa, best-practice` by tag, not by rule list, so an axe-core update brings its new rules. Keeps 25 nodes per rule. A card's percentage is passes / (passes + violations), floored; `incomplete` is outside the ratio. `a11yChecklist.js` lists 14 manual criteria. |
-| Links | `links.js` | `a[href]` | Same-origin links whose path starts with `/cms/render/`, `/cms/file/` or `/files/` are fetched with `credentials: 'same-origin'`: `HEAD`, then `GET` on 405/501, batches of 6, at most 60 distinct URLs. URLs matching `logout|login|\.do` and every other same-origin path are counted (`skippedSideEffect`) and never fetched, so a planted link cannot make the auditor's session call an action. External links are only counted. |
-| Jahia | `jahiaHealth.js` | GraphQL `pageAuditHealth`, DOM text nodes | `descendants` of type `jnt:content`, recursion stopped at `jnt:page`, `limit: 400`; publication status per node and `translationLanguages` against the site languages `activeInEdit`. DOM scan for raw keys (`namespace:key.path`) and placeholders. A GraphQL failure adds `graphqlUnavailable` (minor) instead of failing the audit. |
+| Accessibility | `accessibility.js` | Whole frame document | Injects axe-core (below) and runs tags `wcag2a, wcag21a, wcag2aa, wcag21aa, wcag22aa, wcag2aaa, best-practice` by tag, not by rule list, so an axe-core update brings its new rules. Keeps 25 nodes per rule. A card's percentage is passes / (passes + violations), floored; `incomplete` is outside the ratio. `a11yChecklist.js` lists 14 manual criteria. The tab also lists the HTML rules of the server that no other tab words. |
 
 ### axe-core injection
 
@@ -166,7 +195,7 @@ realm. Inline injection is not possible: `axe.source` was removed in axe-core 4.
 as a Module Federation singleton with `import: false`, so the bundle never ships its own copy and
 the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-cache'`:
 
-- `pageAuditHealth(path, language)`: the Jahia tab.
+- `ContentGovernanceCheckPage(path, language)`: the check of the server.
 - `pageAuditLastModified(path, language)`: `aggregatedLastModifiedDate` of the page and its content,
   stopping at sub-pages. Used as the staleness probe when results come from the cache: if it is later
   than the cached timestamp, the **Page modified since this audit** banner is shown. It compares a
@@ -176,8 +205,8 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
 
 - Results: `{a11y, vitals, ecodesign, readability, seo, links, jahia}`. AI answers are kept beside
   them (`aiReview`, `seoAssist`, `altAssist`, `simplifyAssist`).
-- Counts (`audit/tabCounts.js`): `a11y.violations.length` for Accessibility, `recommendations.length`
-  for the other analyzers, `aiReview.recommendations.length` for the AI tab, each with `serious` when
+- Counts (`audit/tabCounts.js`): the violations of axe-core and the HTML rules of the server for
+  Accessibility, `recommendations.length` for the other tabs, `aiReview.recommendations.length` for the AI tab, each with `serious` when
   one finding is critical or serious. `common/CountBadge.jsx` draws a count red (Moonstone `Badge`,
   danger) when serious and grey (`Chip`) otherwise, on the tabs of every section and on the section
   tabs, where the drawer reads the severities from the findings the section reports. The section
@@ -185,7 +214,7 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
   critical and serious findings only (`isSerious`, `drawer/findings.js`) and shows nothing without
   one. GEO readiness: Score and Crawler access are serious, the other tabs grey.
 - Cache: `localStorage` key `content-governance:audit:{language}:{path}`, entry
-  `{schema, timestamp, results, aiReview, seoAssist, altAssist, simplifyAssist}`. `CACHE_SCHEMA` is 5:
+  `{schema, timestamp, results, aiReview, seoAssist, altAssist, simplifyAssist}`. `CACHE_SCHEMA` is 6:
   bump it whenever the shape of `results` changes, or an old entry is restored into a UI expecting the
   new shape (entries with another schema are deleted on read). Pruned to the 10 most recent entries;
   on a quota error, pruned to 2 and retried once; failures are silent. Every AI result is persisted

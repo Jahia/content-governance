@@ -8,14 +8,16 @@ Jahia health.
 
 These callers use the service, and get the same findings under the same rule ids for one page:
 
-- the GraphQL field `checkPage(path, language)`;
+- the GraphQL field `checkPage(path, language)`, which the drawer of **Page quality** reads: it gives
+  the findings, and the facts that the tabs SEO, Readability, Links and Jahia health show;
 - the tool `frame.check`, with a `path` instead of a `text`;
 - the tool `audit.accessibility`;
-- the GraphQL field `checkText` with the scope `PAGE`, on an HTML text that the caller gives.
+- the GraphQL field `checkText` with the scope `PAGE`, on an HTML text that the caller gives;
+- the SEO checks of GEO readiness, on a page and in a site scan, with the HTML that a crawler gets.
 
-The drawer of **Page quality** and the scan of a whole site do not call the service yet. The drawer
-still runs its analyzers in the browser of the editor, as [`architecture.md`](architecture.md)
-states, and reports under the same rule ids.
+Example: a rich text links to `http://example.com/report`. The drawer, `frame.check` and
+`checkPage` each report it under `links.mixedContent`, whether Jahia serves the page over HTTP or
+HTTPS. [`architecture.md`](architecture.md) states how the drawer shows the findings.
 
 ## How a check runs
 
@@ -28,7 +30,9 @@ states, and reports under the same rule ids.
    content item gets only the HTML rules with the scope `item`.
 
 A content item renders with its own view, as a page includes it. The item has no language, title or
-main heading of its own, so the rules with the scope `page` do not run on it.
+main heading of its own, so the rules with the scope `page` do not run on it. A content item shown as
+its own page, such as a news item (`jmix:mainResource`), renders with its template, as a page, and
+gets every rule.
 
 ## The rules
 

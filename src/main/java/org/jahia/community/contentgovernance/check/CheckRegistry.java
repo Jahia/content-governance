@@ -120,15 +120,33 @@ public class CheckRegistry {
      * @return the findings, in the order of the rules
      */
     public List<Checked> run(CheckInput input, Set<String> skipped) {
-        return run(ContentRules.forPath(input.path()), input, skipped);
+        return run(ContentRules.forPath(input.path()), input, skipped, null);
+    }
+
+    /**
+     * {@link #run(CheckInput, Set)} on some rules of the site only, such as the SEO rules that GEO
+     * readiness reports on each page of a site.
+     *
+     * @param rules   the rules of the site of the input, read once for many inputs
+     * @param ruleIds the ids of the rules to run
+     */
+    public List<Checked> runRules(ContentRules rules, CheckInput input, Set<String> ruleIds) {
+        return run(rules, input, Set.of(), ruleIds);
     }
 
     /** {@link #run(CheckInput, Set)} with the rules of the site. */
     List<Checked> run(ContentRules rules, CheckInput input, Set<String> skipped) {
+        return run(rules, input, skipped, null);
+    }
+
+    /** The run on the rules of the site whose id {@code ruleIds} holds, or on every rule when it is null. */
+    private List<Checked> run(ContentRules rules, CheckInput input, Set<String> skipped, Set<String> ruleIds) {
         Scope scope = input.scope();
         List<Checked> out = new ArrayList<>();
         for (ContentRule rule : rules.all()) {
-            Registered registered = rule.enabled() && !skipped.contains(rule.evaluator()) ? find(rule.evaluator()) : null;
+            boolean wanted = rule.enabled() && !skipped.contains(rule.evaluator())
+                    && (ruleIds == null || ruleIds.contains(rule.id()));
+            Registered registered = wanted ? find(rule.evaluator()) : null;
             if (registered == null || registered.browser() || !registered.check().scopes().contains(scope)) {
                 continue;
             }

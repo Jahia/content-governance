@@ -1259,10 +1259,6 @@
           "placeholderText": {
             "title": "{{count}} Platzhaltertexte auf der Seite",
             "detail": "Lorem-ipsum- bzw. TODO-Text ist noch sichtbar. Ersetzen Sie ihn vor dem Veröffentlichen durch den endgültigen Inhalt."
-          },
-          "graphqlUnavailable": {
-            "title": "Repository-Prüfungen konnten nicht ausgeführt werden",
-            "detail": "Die GraphQL-Abfrage ist fehlgeschlagen, daher wurden die Prüfungen von Veröffentlichung und Übersetzungen übersprungen. Die obigen Prüfungen auf der Seite bleiben gültig."
           }
         }
       },
@@ -1376,11 +1372,13 @@
         "internal": "Intern",
         "external": "Extern",
         "checked": "{{count}} geprüft",
-        "skipped": "{{count}} übersprungen (Anmelden/Abmelden/Aktionen)",
-        "truncated": "{{count}} nicht geprüft (Limit erreicht)",
-        "externalNote": "externe Links werden nicht geprüft (Cross-Origin-Beschränkung des Browsers)",
+        "skipped": "{{count}} nicht geprüft (kein Seitenpfad, etwa eine Vanity-URL)",
+        "externalNote": "externe Links werden hier nicht geprüft",
         "broken": "Defekte Links",
-        "statusError": "Fehler",
+        "reasons": {
+          "missing": "Fehlt",
+          "not_published": "Nicht veröffentlicht"
+        },
         "recs": {
           "brokenLinks": {
             "title": "{{count}} defekte interne Links",
@@ -1391,8 +1389,8 @@
             "detail": "Links, die mit dem vollständigen http(s)://host geschrieben sind, funktionieren nicht mehr, wenn die Website die Umgebung oder Domain wechselt. Verwenden Sie stattdessen interne Seitenlinks."
           },
           "mixedContent": {
-            "title": "{{count}} http://-Links auf einer https-Seite",
-            "detail": "Browser kennzeichnen oder blockieren gemischte Inhalte. Stellen Sie diese URLs auf https um."
+            "title": "{{count}} Links über http://",
+            "detail": "Ein Browser markiert oder blockiert eine http://-Adresse auf einer über https ausgelieferten Seite, und die Verbindung des Besuchers dorthin ist nicht verschlüsselt. Stellen Sie diese Adressen auf https um."
           },
           "blankNoopener": {
             "title": "{{count}} target=\"_blank\"-Links ohne rel=\"noopener\"",
@@ -1402,7 +1400,9 @@
       },
       "recs": {
         "title": "Empfehlungen",
-        "none": "In dieser Kategorie gibt es nichts zu verbessern."
+        "none": "In dieser Kategorie gibt es nichts zu verbessern.",
+        "rule": "Regel {{rule}} ({{count}})",
+        "items": "Befunde ({{count}})"
       },
       "a11y": {
         "alt": {
@@ -1507,7 +1507,8 @@
               "detail": "Komplexe Formulare bieten Hilfe oder Anleitungen direkt dort, wo der Nutzer sie braucht (WCAG 3.3.5)."
             }
           }
-        }
+        },
+        "serverRules": "Auf dem Server geprüfte HTML-Regeln"
       },
       "vitals": {
         "labNote": "Richtwerte: Die Seite wird in ihrer Bearbeitungsvorschau gemessen, in Ihrem Browser und mit Ihrer Sitzung. Sie entsprechen daher nicht der Live-Website (kein Cache, kein CDN). Nutzen Sie sie, um vor und nach einer Änderung zu vergleichen. Was die Seite schwer macht (unten), ist auf der Live-Website dasselbe.",
@@ -1691,7 +1692,7 @@
         "readability": "Wie leicht der Text in seiner Sprache zu lesen ist: Score, lange Sätze und Überschriften, mit von der KI vorgeschlagenen einfacheren Umformulierungen.",
         "ecodesign": "Ökodesign-Prüfungen nach dem französischen Referenzrahmen RGESN: Seitengewicht, Anfragen, Bilder, Schriften, Medien und Drittanbieter.",
         "links": "Defekte interne Links, vollständig ausgeschriebene Adressen, gemischte Inhalte und Links, die ohne Schutz ein neues Fenster öffnen.",
-        "jahia": "Prüfungen, die nur Jahia durchführen kann: unveröffentlichte Inhalte auf der Seite, fehlende Übersetzungen, technische Bezeichnungen und Platzhaltertext.",
+        "jahia": "Prüfungen, die nur Jahia machen kann: unveröffentlichte Inhalte auf der Seite, fehlende Übersetzungen, rohe Bezeichner und Platzhaltertexte, sowie die Prüfungen, die andere Module hinzufügen.",
         "ai": "Eine Prüfung des Seitentextes durch das KI-Modell, das genai-connector bereitstellt, mit jedem Befund und der genauen zu ändernden Formulierung."
       }
     },

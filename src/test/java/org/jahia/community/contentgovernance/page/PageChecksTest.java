@@ -206,8 +206,8 @@ class PageChecksTest {
             CheckInput input = page("<html><body><p>jnt_news:label.title</p><p>Lorem ipsum dolor</p>"
                     + "<p>Visit https://example.com/a.b</p><script>var x = 'cg:key.one';</script></body></html>")
                     .withFact(HealthChecks.CONTENT, new HealthChecks.Content(
-                            List.of(new HealthChecks.Unpublished("/sites/digitall/home/main/intro", "modified")),
-                            List.of(new HealthChecks.Untranslated("/sites/digitall/home/main/intro", List.of("de", "fr")))));
+                            List.of(new HealthChecks.Unpublished("/sites/digitall/home/main/intro", "jnt:text", "modified")),
+                            List.of(new HealthChecks.Untranslated("/sites/digitall/home/main/intro", "jnt:text", List.of("de", "fr")))));
 
             List<Finding> found = run(input).stream().filter(finding -> finding.ruleId().startsWith("health.")).toList();
 
@@ -218,6 +218,138 @@ class PageChecksTest {
                     tuple("health.placeholderText", "Lorem ipsum"));
             assertThat(found).filteredOn(finding -> finding.ruleId().equals("health.missingTranslations"))
                     .extracting(Finding::context).containsExactly("de, fr");
+        }
+    }
+
+    @Nested
+    @DisplayName("the facts that the drawer shows")
+    class Facts {
+
+        @SuppressWarnings("unchecked")
+        private static Map<String, Object> map(Object value) {
+            return (Map<String, Object>) value;
+        }
+
+        @SuppressWarnings("unchecked")
+        private static List<Object> list(Object value) {
+            return (List<Object>) value;
+        }
+
+        /** Three sentences of ten words, every word of two syllables: ASL 10, ASW 2. */
+        private static String textOf(String word) {
+            String sentence = String.join(" ", Collections.nCopies(10, word)) + ".";
+            return String.join(" ", Collections.nCopies(3, sentence));
+        }
+
+        @Test
+        @DisplayName("the SEO facts read the tags of the head, the images and the vague links")
+        void seo() {
+            Map<String, Object> seo = SeoChecks.report(Jsoup.parse("<html lang='EN'>" + GOOD_HEAD
+                    + "<body><img src='a.png'><img src='b.png' alt=''>"
+                    + "<p>Our yearly report is out, with every number of the year. <a href='/report'>Read more</a></p>"
+                    + "<p><a href='/other'>read more »</a></p></body></html>"), "en-US");
+
+            assertThat(seo).containsEntry("title", Map.of("text", "Annual report of the Digitall company 2026", "length", 42))
+                    .containsEntry("canonical", "/home")
+                    .containsEntry("twitterCard", null)
+                    .containsEntry("jsonLd", Map.of("count", 1, "errors", 0))
+                    .containsEntry("totalImages", 2)
+                    .containsEntry("imagesWithoutAlt", 1);
+            assertThat(seo.get("lang")).isEqualTo(Map.of("htmlLang", "en", "expected", "en"));
+            assertThat(map(seo.get("robots"))).containsEntry("content", null).containsEntry("noindex", false);
+            assertThat(map(seo.get("og"))).containsEntry("title", "Report").containsEntry("description", null);
+            assertThat(list(seo.get("weakCtas"))).singleElement().satisfies(cta -> assertThat(map(cta))
+                    .containsEntry("text", "Read more").containsEntry("count", 2).containsEntry("target", "/report")
+                    .extractingByKey("context").asString().startsWith("Our yearly report"));
+        }
+
+        @Test
+        @DisplayName("the readability facts give the statistics of the main text, in English with the grade level")
+        void readability() {
+            Map<String, Object> facts = ReadabilityChecks.report(Jsoup.parse("<body><h1>Report</h1><main>"
+                    + "<p>" + textOf("pilot") + "</p></main></body>"), "en", 9);
+
+            assertThat(facts).containsEntry("lang", "en").containsEntry("spaced", true).containsEntry("empty", false)
+                    .containsEntry("scored", true).containsEntry("formula", "Flesch").containsEntry("scale", "flesch")
+                    .containsEntry("score", 27).containsEntry("band", "veryDifficult").containsEntry("gradeLevel", 11.9)
+                    .containsEntry("words", 30).containsEntry("sentences", 3).containsEntry("avgSentenceLength", 10.0)
+                    .containsEntry("avgSyllablesPerWord", 2.0).containsEntry("longSentences", 3L)
+                    .containsEntry("longSentenceWords", 9).containsEntry("readingMinutes", 1)
+                    .containsEntry("paragraphs", 1).containsEntry("avgWordsPerParagraph", 30)
+                    .containsEntry("h1Count", 1).containsEntry("headingSkips", 0).containsEntry("headingCount", 0);
+        }
+
+        @Test
+        @DisplayName("LIX reads harder upwards, and a short or unspaced text gives counts only")
+        void readability_otherLanguages() {
+            String nordic = String.join(" ", Collections.nCopies(3,
+                    String.join(" ", Collections.nCopies(6, "bok")) + " " + String.join(" ", Collections.nCopies(4, "fönstret")) + "."));
+            assertThat(Readability.statistics(nordic, "sv", null)).containsEntry("formula", "LIX")
+                    .containsEntry("scale", "lix").containsEntry("score", 50).containsEntry("band", "difficult")
+                    .containsEntry("avgSyllablesPerWord", null).containsEntry("longSentences", null);
+            assertThat(Readability.statistics("Five words are not enough.", "en", 25)).containsEntry("empty", true)
+                    .containsEntry("words", 5).containsEntry("score", null);
+            assertThat(Readability.statistics("これは文です。これも文です。", "ja", 25)).containsEntry("spaced", false)
+                    .containsEntry("empty", false).containsEntry("sentences", 2L).containsEntry("words", null);
+        }
+
+        @Test
+        @DisplayName("the outline lists the headings of the main text, its skips and a selector of each")
+        void outline() {
+            Map<String, Object> facts = ReadabilityChecks.report(Jsoup.parse("<body><h1>Site</h1><main>"
+                    + "<h2>Intro</h2><section><h4>Detail</h4></section><section id='faq'><h2><img alt='Help'></h2>"
+                    + "<h3></h3></section></main></body>"), "en", 25);
+
+            assertThat(facts).containsEntry("h1Count", 1).containsEntry("headingSkips", 1).containsEntry("headingCount", 4);
+            assertThat(list(facts.get("outline"))).containsExactly(
+                    Map.of("level", 2, "text", "Intro", "selector", "main > h2"),
+                    Map.of("level", 4, "text", "Detail", "selector", "main > section:nth-of-type(1) > h4", "skippedFrom", 2),
+                    Map.of("level", 2, "text", "Help", "selector", "#faq > h2"),
+                    Map.of("level", 3, "text", "", "selector", "#faq > h3", "empty", true));
+        }
+
+        @Test
+        @DisplayName("a selector escapes an id as CSS does")
+        void selector_escapesTheId() {
+            assertThat(HeadingOutline.escape("intro")).isEqualTo("intro");
+            assertThat(HeadingOutline.escape("1st")).isEqualTo("\\31 st");
+            assertThat(HeadingOutline.escape("a.b")).isEqualTo("a\\.b");
+        }
+
+        @Test
+        @DisplayName("the link facts count the links to a page, and the internal links that the render resolved")
+        void links() {
+            Map<String, Object> facts = LinkChecks.report(Jsoup.parse("<a href='/sites/digitall/a.html'>A</a>"
+                            + "<a href='https://example.com'>B</a><a href='http://localhost:8080/x'>C</a>"
+                            + "<a href='#top'>D</a><a href='mailto:a@b.c'>E</a>"), Set.of("localhost"),
+                    new LinkCheck.InternalLinks(1, 1, List.of(new LinkCheck.BrokenPath("/sites/digitall/a", "missing"))));
+
+            assertThat(facts).containsEntry("total", 3).containsEntry("internal", 2).containsEntry("external", 1)
+                    .containsEntry("checked", 1).containsEntry("skipped", 1)
+                    .containsEntry("broken", List.of(Map.of("path", "/sites/digitall/a", "reason", "missing")));
+            assertThat(LinkChecks.report(Jsoup.parse(""), null, null)).containsEntry("checked", null)
+                    .containsEntry("broken", List.of());
+        }
+
+        @Test
+        @DisplayName("the health facts give the state of the content, and nothing when it could not be read")
+        void health() {
+            Map<String, Object> facts = HealthChecks.report(new HealthChecks.Content(
+                    List.of(new HealthChecks.Unpublished(PATH, "jnt:page", "modified")),
+                    List.of(new HealthChecks.Untranslated(PATH + "/main/intro", "jnt:text", List.of("fr"))),
+                    3, List.of("en", "fr"), "modified"));
+
+            assertThat(facts).containsEntry("pageStatus", "modified").containsEntry("scanned", 3)
+                    .containsEntry("activeLanguages", List.of("en", "fr"))
+                    .containsEntry("unpublished", List.of(Map.of("path", PATH, "type", "jnt:page", "status", "modified")));
+            assertThat(HealthChecks.report(null)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("the facts of a page hold one entry for each tab")
+        void pageFacts() {
+            assertThat(PageFacts.of(Jsoup.parse("<html>" + GOOD_HEAD + "<body></body></html>"), Map.of(), "en", 25))
+                    .containsOnlyKeys("seo", "readability", "links", "jahia");
         }
     }
 

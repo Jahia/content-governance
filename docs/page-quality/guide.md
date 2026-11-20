@@ -5,8 +5,11 @@ are editing before you publish it: accessibility, SEO, speed, readability, eco-d
 Jahia-specific problems such as missing translations. When a server administrator has configured an
 AI model, it can also write suggestions for you to copy into the page.
 
-Everything runs in your browser, on a preview of the page in the language you are editing. The
-preview shows the editing version of the page, so it includes changes you have not published yet.
+The checks run on the editing version of the page, in the language you are editing, so they include
+changes you have not published yet. The server checks SEO, readability, links and Jahia health, with
+the rules that an AI agent gets from `frame.check`: one page gets the same findings in both. Your
+browser checks what needs a browser, on a preview of the page: accessibility with axe-core, load
+figures and eco-design.
 Nothing in this section changes your content: you read the findings, then fix them in Page Builder
 or Content Editor.
 
@@ -164,6 +167,9 @@ best-practice rules.
   number of elements. Open it to see what the rule checks (with a link to its documentation), the
   HTML of up to 25 failing elements, what is wrong with each, and **Highlight on the page**.
 - **Automated checks needing human review**: cases marked **To verify**. Look at each one.
+- **HTML rules checked on the server**: the accessibility rules of the server that no other tab
+  shows, such as a button with no name or two elements with the same id. Each one shows its rule id
+  and the elements that break it.
 - **Manual checklist (not automatable)**: 14 WCAG criteria no tool can judge, such as keyboard use,
   meaningful alt text, captions, focus order, 200% zoom. Review them once per page type.
 - **AI alt text**: see [AI assists](#ai-assists).
@@ -278,22 +284,19 @@ loading in templates, third-party scripts.
 
 ### Links
 
-- **Link summary**: total links, internal links (how many were verified, skipped or not verified
-  because of the limit) and external links.
-- **Broken links**: each with its HTTP status (or "error" when the request failed), its text, its
-  URL and **Highlight on the page**.
+- **Link summary**: total links to a page, internal links (how many were checked, and how many were
+  not because they name no page, such as a vanity URL) and external links.
+- **Broken links**: each internal link that a visitor cannot open, with its reason, **Missing** (no
+  such page) or **Not published**, its path and **Highlight on the page**.
 - **Recommendations**: broken internal links, absolute URLs hardcoded to this host (they break when
-  the site moves to another domain: use an internal page link instead), `http://` links on an
-  `https` page, `target="_blank"` links without `rel="noopener"`.
+  the site moves to another domain: use an internal page link instead), `http://` links,
+  `target="_blank"` links without `rel="noopener"`. Open **Findings** under a recommendation to see
+  each link.
 
-Only internal links to pages and files are requested (paths under `/cms/render`, `/cms/file` and
-`/files`), at most 60 different URLs, with your own session. Login, logout and action URLs are never
-requested, and neither is any other internal path: they are all counted under "skipped
-(login/logout/actions)". External links are counted but cannot be verified from the browser: "external
-links are not verified (browser cross-origin restriction)".
-
-Because the check runs as you on the editing version, a link to a page you can see but visitors
-cannot (not published yet, restricted) passes here.
+The server checks each internal link in the live workspace, as a visitor would open it. A link to a
+page that is not published yet is broken, even though you can open it while you edit. External links
+are counted, not checked. Every `http://` link is a finding, whatever the address of the page you
+edit: the published site is served over `https`.
 
 ### Jahia
 
@@ -311,8 +314,8 @@ The checks only Jahia can do.
 - **Placeholder text**: "lorem ipsum", "TODO", "FIXME", "XXX", "à compléter", "to be completed".
 
 The check covers up to 400 content items stored under the page, and stops at sub-pages. Content
-displayed from elsewhere (a listing, a reused item) is not checked. If the repository query fails,
-the tab says **Repository checks could not run** and keeps the on-page checks.
+displayed from elsewhere (a listing, a reused item) is not checked. A check that another module adds
+on the server, with no tab of its own, shows here with its rule id and its advice.
 
 ### AI review
 
@@ -406,8 +409,7 @@ fix the first ones, **Re-run**, then ask again.
 - **Readability**: a formula based on sentence and word length, with syllables estimated from vowel
   groups. It does not judge jargon or clarity, and only English, French, German, Spanish, Italian,
   Dutch and Portuguese get a score.
-- **Links**: external links are not verified. Internal links are verified as you, on the editing
-  version, up to 60 URLs.
+- **Links**: external links are not checked. Internal links are checked in the live workspace.
 - **Jahia**: only content stored under the page, up to 400 items.
 - **AI**: suggestions can be wrong and are never applied for you. The page text sent includes
   unpublished content.

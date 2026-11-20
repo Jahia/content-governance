@@ -6,6 +6,7 @@ import org.jahia.community.contentgovernance.geo.check.ScanStore;
 import org.jahia.community.contentgovernance.geo.check.SiteScorer;
 import org.jahia.community.contentgovernance.geo.util.PublicUrls;
 import org.jahia.community.contentgovernance.geo.util.SiteScope;
+import org.jahia.community.contentgovernance.html.HtmlCheck;
 import org.jahia.community.contentgovernance.settings.Features;
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
 import org.jahia.services.content.JCRCallback;
@@ -16,6 +17,9 @@ import org.jahia.services.content.decorator.JCRUserNode;
 import org.jahia.services.usermanager.JahiaUserManagerService;
 import org.jahia.services.scheduler.BackgroundJob;
 import org.jahia.settings.SettingsBean;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.ServiceReference;
 import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.slf4j.Logger;
@@ -95,6 +99,15 @@ public class SiteScanJob extends BackgroundJob {
         opts.maxBodyBytes = intOr(data, MAX_BYTES, 1_500_000);
         opts.maxPages = intOr(data, MAX_PAGES, DEFAULT_MAX_PAGES);
 
+        // A Quartz job gets no injection: it asks the bundle for the page check service, for this run.
+        BundleContext bundle = FrameworkUtil.getBundle(SiteScanJob.class).getBundleContext();
+        ServiceReference<HtmlCheck> reference = bundle == null ? null : bundle.getServiceReference(HtmlCheck.class);
+        opts.pages = reference == null ? null : bundle.getService(reference);
+        if (opts.pages == null) {
+            logger.warn("GEO scan of {} [{}] skipped: the page check service is not started", sitePath, language);
+            return;
+        }
+
         long t0 = System.currentTimeMillis();
         try {
             SiteScorer.scan(sitePath, language, opts);
@@ -111,6 +124,8 @@ public class SiteScanJob extends BackgroundJob {
             ScanStore.failRun(sitePath, language, "scan failed");
             logger.error("GEO scan of {} [{}] failed", sitePath, language, e);
             throw e;
+        } finally {
+            bundle.ungetService(reference);
         }
     }
 

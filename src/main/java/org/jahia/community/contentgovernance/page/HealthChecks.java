@@ -21,6 +21,7 @@ import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -65,17 +66,42 @@ public class HealthChecks {
             PublicationInfo.UNPUBLISHED, "unpublished",
             PublicationInfo.MARKED_FOR_DELETION, "marked_for_deletion",
             PublicationInfo.CONFLICT, "conflict");
+    /** Every status, for the status of the page that the drawer shows. */
+    private static final Map<Integer, String> STATUSES = Map.ofEntries(
+            Map.entry(PublicationInfo.PUBLISHED, "published"),
+            Map.entry(PublicationInfo.MODIFIED, "modified"),
+            Map.entry(PublicationInfo.NOT_PUBLISHED, "not_published"),
+            Map.entry(PublicationInfo.UNPUBLISHED, "unpublished"),
+            Map.entry(PublicationInfo.MANDATORY_LANGUAGE_UNPUBLISHABLE, "mandatory_language_unpublishable"),
+            Map.entry(PublicationInfo.LIVE_MODIFIED, "live_modified"),
+            Map.entry(PublicationInfo.LIVE_ONLY, "live_only"),
+            Map.entry(PublicationInfo.CONFLICT, "conflict"),
+            Map.entry(PublicationInfo.MANDATORY_LANGUAGE_VALID, "mandatory_language_valid"),
+            Map.entry(PublicationInfo.DELETED, "deleted"),
+            Map.entry(PublicationInfo.MARKED_FOR_DELETION, "marked_for_deletion"));
 
-    /** A node whose live version differs from its edit version, and its status. */
-    public record Unpublished(String path, String status) {
+    /** A node whose live version differs from its edit version, its primary type, and its status. */
+    public record Unpublished(String path, String type, String status) {
     }
 
-    /** A content item that has translations, and the active languages of the site that it lacks. */
-    public record Untranslated(String path, List<String> missing) {
+    /** A content item that has translations, its primary type, and the active languages of the site that it lacks. */
+    public record Untranslated(String path, String type, List<String> missing) {
     }
 
-    /** The state of a page and of its content items, in one language. */
-    public record Content(List<Unpublished> unpublished, List<Untranslated> untranslated) {
+    /**
+     * The state of a page and of its content items, in one language.
+     *
+     * @param scanned         the nodes read: the page and its content items, at most {@link #MAX_ITEMS} items
+     * @param activeLanguages the languages of the site that are active in the edit workspace
+     * @param pageStatus      the status of the page itself, such as {@code published}, or null when unknown
+     */
+    public record Content(List<Unpublished> unpublished, List<Untranslated> untranslated, int scanned,
+                          List<String> activeLanguages, String pageStatus) {
+
+        /** The state of a node with no count and no language, as a test gives it. */
+        public Content(List<Unpublished> unpublished, List<Untranslated> untranslated) {
+            this(unpublished, untranslated, 0, List.of(), null);
+        }
     }
 
     private final CheckServices services = new CheckServices();
@@ -134,14 +160,19 @@ public class HealthChecks {
         items.add(node);
         collect(node, items);
         JCRSessionWrapper session = node.getSession();
+        String[] pageStatus = new String[1];
         List<Unpublished> unpublished = JCRTemplate.getInstance().doExecute(session.getUser(), Constants.LIVE_WORKSPACE,
                 session.getLocale(), live -> {
                     List<Unpublished> out = new ArrayList<>();
-                    for (JCRNodeWrapper item : items) {
-                        String status = BAD_STATUSES.get(JCRPublicationService.getInstance().getStatus(item, live,
-                                Set.of(language)));
+                    for (int i = 0; i < items.size(); i++) {
+                        JCRNodeWrapper item = items.get(i);
+                        int code = JCRPublicationService.getInstance().getStatus(item, live, Set.of(language));
+                        if (i == 0) {
+                            pageStatus[0] = STATUSES.get(code);
+                        }
+                        String status = BAD_STATUSES.get(code);
                         if (status != null) {
-                            out.add(new Unpublished(item.getPath(), status));
+                            out.add(new Unpublished(item.getPath(), item.getPrimaryNodeTypeName(), status));
                         }
                     }
                     return out;
@@ -154,11 +185,38 @@ public class HealthChecks {
             if (!present.isEmpty()) {
                 List<String> missing = active.stream().filter(code -> !present.contains(code)).sorted().toList();
                 if (!missing.isEmpty()) {
-                    untranslated.add(new Untranslated(item.getPath(), missing));
+                    untranslated.add(new Untranslated(item.getPath(), item.getPrimaryNodeTypeName(), missing));
                 }
             }
         }
-        return new Content(List.copyOf(unpublished), List.copyOf(untranslated));
+        return new Content(List.copyOf(unpublished), List.copyOf(untranslated), items.size() - 1,
+                List.copyOf(active), pageStatus[0]);
+    }
+
+    /**
+     * What the Jahia health tab of the drawer shows: the state of the content. The raw keys and the
+     * placeholder texts are findings of their rules.
+     *
+     * @param content the state of the content, or null when it could not be read
+     * @return {@code pageStatus}, {@code activeLanguages}, {@code scanned}, {@code unpublished} as
+     *     {@code {path, type, status}} and {@code untranslated} as {@code {path, type, missing}}; an empty map
+     *     with no state
+     */
+    public static Map<String, Object> report(Content content) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        if (content == null) {
+            return out;
+        }
+        out.put("pageStatus", content.pageStatus());
+        out.put("activeLanguages", content.activeLanguages());
+        out.put("scanned", content.scanned());
+        out.put("unpublished", content.unpublished().stream()
+                .map(node -> Map.of("path", node.path(), "type", node.type(), "status", node.status()))
+                .toList());
+        out.put("untranslated", content.untranslated().stream()
+                .map(node -> Map.of("path", node.path(), "type", node.type(), "missing", node.missing()))
+                .toList());
+        return out;
     }
 
     /** The content items under a node, in document order, down to the next page, at most {@link #MAX_ITEMS}. */

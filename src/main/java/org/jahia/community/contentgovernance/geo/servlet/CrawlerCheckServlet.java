@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.servlet;
 
+import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.community.contentgovernance.geo.check.AiCrawlers;
 import org.jahia.community.contentgovernance.geo.check.GeoScore;
@@ -19,6 +20,7 @@ import org.jahia.community.contentgovernance.geo.check.SiteFilesChecker;
 import org.jahia.community.contentgovernance.geo.config.GeoReadinessConfigService;
 import org.jahia.community.contentgovernance.geo.util.PublicUrls;
 import org.jahia.community.contentgovernance.geo.util.SiteScope;
+import org.jahia.community.contentgovernance.html.HtmlCheck;
 import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jahia.community.contentgovernance.settings.Features;
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
@@ -28,6 +30,7 @@ import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.usermanager.JahiaUser;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.jsoup.Jsoup;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -46,6 +49,7 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -129,10 +133,13 @@ public class CrawlerCheckServlet extends GeoServlet {
      * the container shares between threads holds nothing mutable.
      */
     private final transient GeoReadinessConfigService config;
+    /** The page check service, which checks the SEO rules of the page as the control got it. */
+    private final transient HtmlCheck pages;
 
     @Activate
-    public CrawlerCheckServlet(@Reference GeoReadinessConfigService config) {
+    public CrawlerCheckServlet(@Reference GeoReadinessConfigService config, @Reference HtmlCheck pages) {
         this.config = config;
+        this.pages = pages;
     }
 
     /**
@@ -296,7 +303,8 @@ public class CrawlerCheckServlet extends GeoServlet {
         RobotsRules rules = rulesOf(siteFiles);
         out.put("siteFiles", siteFiles);
 
-        tally(out, probeAgents(publicUrl, target.base), rules, target.pagePath);
+        Map<String, String> bodies = new ConcurrentHashMap<>();
+        tally(out, probeAgents(publicUrl, target.base, bodies), rules, target.pagePath);
 
         // GEO-19 for this one page. A crawler served a login form gets a cheerful
         // 200, so the fetch above cannot tell the difference. The repository can.
@@ -307,7 +315,9 @@ public class CrawlerCheckServlet extends GeoServlet {
         }
 
         // The score reads only what is already in the report. It adds no requests.
-        JSONObject score = GeoScore.compute(out, ContentRules.forPath(path));
+        ContentRules contentRules = ContentRules.forPath(path);
+        addPageFindings(out, path, language, bodies, contentRules);
+        JSONObject score = GeoScore.compute(out, contentRules);
         out.put("score", score);
 
         boolean storedScanAllowed = mayReadStoredScan(path, language);
@@ -316,6 +326,27 @@ public class CrawlerCheckServlet extends GeoServlet {
         }
         addSchema(out, path, language, req, storedScanAllowed);
         return out;
+    }
+
+    /**
+     * The rules of the page check service that the HTML of the control breaks, under
+     * {@link GeoScore#PAGE_FINDINGS}: the control is the first agent that got the page, as GeoScore reads it.
+     * None when no agent got it, so that GeoScore fails these checks.
+     */
+    private void addPageFindings(JSONObject out, String path, String language, Map<String, String> bodies,
+                                 ContentRules contentRules) {
+        JSONArray agents = out.optJSONArray(AGENTS);
+        for (int i = 0; agents != null && i < agents.length(); i++) {
+            JSONObject agent = agents.getJSONObject(i);
+            String body = bodies.get(agent.optString("name", ""));
+            if (agent.optInt("status", 0) == 200 && agent.optJSONObject("html") != null && body != null) {
+                JSONArray ids = new JSONArray();
+                pages.findings(contentRules, path, language, Jsoup.parse(body), GeoScore.PAGE_RULES).stream()
+                        .map(Finding::ruleId).distinct().forEach(ids::put);
+                out.put(GeoScore.PAGE_FINDINGS, ids);
+                return;
+            }
+        }
     }
 
     /**
@@ -370,12 +401,12 @@ public class CrawlerCheckServlet extends GeoServlet {
     }
 
     /**
-     * One probe per bot user agent.
+     * One probe per bot user agent. The body that each agent got lands in {@code bodies}, by its name.
      *
      * Fetched a few at a time, but returned strictly in submission order: the
      * control agent must stay first, because it is where controlWords comes from.
      */
-    private List<JSONObject> probeAgents(String publicUrl, String origin) {
+    private List<JSONObject> probeAgents(String publicUrl, String origin, Map<String, String> bodies) {
         Map<String, String> toFetch = agents();
         List<String> names = new ArrayList<>(toFetch.keySet());
         List<JSONObject> probed = new ArrayList<>(names.size());
@@ -387,7 +418,7 @@ public class CrawlerCheckServlet extends GeoServlet {
                 String ua = toFetch.get(name);
                 futures.add(pool.submit((Callable<JSONObject>) () -> PageFetch.probe(
                         publicUrl, origin, name, ua,
-                        config.getFetchTimeoutMs(), config.getMaxBodyBytes())));
+                        config.getFetchTimeoutMs(), config.getMaxBodyBytes(), body -> bodies.put(name, body))));
             }
             for (int i = 0; i < futures.size(); i++) {
                 probed.add(resultOf(futures.get(i), names.get(i)));

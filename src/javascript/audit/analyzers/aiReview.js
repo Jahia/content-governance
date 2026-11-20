@@ -56,7 +56,7 @@ export function buildDigest(results) {
     if (results.links) {
         lines.push(`Links: ${results.links.total} total, ${results.links.broken.length} broken, ${results.links.external} external unchecked`);
         results.links.broken.slice(0, 5).forEach(l =>
-            lines.push(`[link broken ${l.status}] ${l.url}`));
+            lines.push(`[link broken ${l.reason}] ${l.path}`));
     }
 
     if (results.jahia) {

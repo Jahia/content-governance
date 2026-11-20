@@ -9,6 +9,7 @@ import org.jahia.community.contentgovernance.geo.check.StructuredData;
 import org.jahia.community.contentgovernance.geo.check.ScanInProgressException;
 import org.jahia.community.contentgovernance.geo.check.ScanStore;
 import org.jahia.community.contentgovernance.geo.check.SiteScorer;
+import org.jahia.community.contentgovernance.html.HtmlCheck;
 import org.jahia.community.contentgovernance.geo.check.SitemapCheck;
 import org.jahia.community.contentgovernance.geo.scheduler.ScanScheduler;
 import org.jahia.community.contentgovernance.geo.scheduler.SiteScanJob;
@@ -82,10 +83,13 @@ public class SiteScanServlet extends GeoServlet {
      * the container shares between threads holds nothing mutable.
      */
     private final transient GeoReadinessConfigService config;
+    /** The page check service, which checks the SEO rules of each page. */
+    private final transient HtmlCheck pages;
 
     @Activate
-    public SiteScanServlet(@Reference GeoReadinessConfigService config) {
+    public SiteScanServlet(@Reference GeoReadinessConfigService config, @Reference HtmlCheck pages) {
         this.config = config;
+        this.pages = pages;
     }
 
     @Override
@@ -318,6 +322,7 @@ public class SiteScanServlet extends GeoServlet {
     private void runScan(String sitePath, String language, String scope, HttpServletRequest req)
             throws Exception {
         SiteScorer.Options opts = new SiteScorer.Options();
+        opts.pages = pages;
         opts.fetchTimeoutMs = config.getFetchTimeoutMs();
         opts.maxBodyBytes = config.getMaxBodyBytes();
         // A manual run has a request, so the base url is known exactly rather

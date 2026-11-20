@@ -4,6 +4,7 @@ import {Button} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../../common/i18n';
 import {MANUAL_CHECKLIST} from './a11yChecklist';
 import {AltAssist} from './AltAssist';
+import {Recommendations} from './Recommendations';
 import {auditFindingKey} from '../../drawer/findings';
 import {FindingActions} from '../../drawer/FindingActions';
 import styles from './Tabs.module.css';
@@ -135,6 +136,10 @@ export function AccessibilityTab({result, onHighlight, assist}) {
                     findingKey={auditFindingKey('a11y', v.id)}
                 />
             ))}
+
+            {result.recommendations?.length > 0 && (
+                <Recommendations items={result.recommendations} ns="a11y" tab="a11y" title={t('a11y.serverRules')}/>
+            )}
 
             <AltAssist {...assist}/>
 

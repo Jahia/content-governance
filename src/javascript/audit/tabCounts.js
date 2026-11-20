@@ -16,7 +16,8 @@ const countOf = list => ({count: list.length, serious: list.some(item => isSerio
 export function tabCounts(results, aiReview) {
     const counts = {};
     if (results?.a11y) {
-        counts.accessibility = countOf(results.a11y.violations || []);
+        // The checks of axe-core, and the HTML rules of the server that no other tab words
+        counts.accessibility = countOf([...(results.a11y.violations || []), ...(results.a11y.recommendations || [])]);
     }
     Object.entries(RECOMMENDATION_TABS).forEach(([tab, key]) => {
         if (results?.[key]) {
