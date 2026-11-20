@@ -302,7 +302,7 @@ public final class RuleChecker {
     private static final class Spans {
         private final List<Pattern> patterns;
         private final String text;
-        private List<int[]> spans;
+        private List<int[]> places;
 
         Spans(List<Pattern> patterns, String text) {
             this.patterns = patterns;
@@ -313,16 +313,16 @@ public final class RuleChecker {
             if (patterns.isEmpty()) {
                 return false;
             }
-            if (spans == null) {
-                spans = new ArrayList<>();
+            if (places == null) {
+                places = new ArrayList<>();
                 for (Pattern pattern : patterns) {
                     Matcher found = pattern.matcher(text);
                     while (found.find()) {
-                        spans.add(new int[]{found.start(), found.end()});
+                        places.add(new int[]{found.start(), found.end()});
                     }
                 }
             }
-            for (int[] span : spans) {
+            for (int[] span : places) {
                 if (start >= span[0] && end <= span[1]) {
                     return true;
                 }
