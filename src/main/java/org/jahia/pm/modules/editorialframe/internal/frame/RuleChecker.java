@@ -23,7 +23,8 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 /**
- * Checks the writing rules on a text, with no model. A term matches as {@link TermPattern} states: a
+ * Checks the writing rules on a text, with no model. A glossary term also reports a form of another
+ * language, as {@link ForeignForms} states. A term matches as {@link TermPattern} states: a
  * whole word or phrase, in any case and with or without accents. "robust" matches "Robust" and not
  * "robustness". A regex matches the text as it is written, in any case, as a term does: a regex that must
  * respect the case starts with {@code (?-i)}.
@@ -71,7 +72,7 @@ public final class RuleChecker {
          */
         public Finder(List<WritingRule> rules, String language, int maxPerRule) {
             this.maxPerRule = maxPerRule;
-            for (WritingRule rule : rules) {
+            for (WritingRule rule : ForeignForms.with(rules, language)) {
                 Compiled one = rule.kind() == Kind.MANDATORY || !rule.appliesTo(language) ? null : Compiled.of(rule);
                 if (one != null) {
                     compiled.add(one);
@@ -106,7 +107,7 @@ public final class RuleChecker {
         Searched searched = new Searched(text);
         List<Compiled> applying = new ArrayList<>();
         List<Compiled> forbidding = new ArrayList<>();
-        for (WritingRule rule : rules) {
+        for (WritingRule rule : ForeignForms.with(rules, language)) {
             Compiled compiled = rule.appliesTo(language) ? Compiled.of(rule) : null;
             if (compiled != null) {
                 applying.add(compiled);

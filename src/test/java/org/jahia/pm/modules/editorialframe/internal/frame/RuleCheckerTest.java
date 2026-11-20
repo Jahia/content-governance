@@ -244,4 +244,57 @@ class RuleCheckerTest {
                 "A free and seamless offer.", true);
         assertEquals(List.of("free", "capital at risk", "seamless"), found.stream().map(RuleViolation::pattern).toList());
     }
+
+    private static WritingRule name(String id, String term, String form, String language) {
+        return new WritingRule(id, Kind.REPLACE, term, MatchMode.TERM, form, language, Severity.WARNING, null, "site",
+                List.of(), List.of(), null, null, null, null, List.of(), List.of(), "en", "/sites/tolkien/contents/names");
+    }
+
+    @Test
+    void aFormOfAnotherLanguageOfAGlossaryTermGetsTheFormOfTheLanguageOfTheText() {
+        List<WritingRule> names = List.of(name("glossary.frodo-fr", "Frodo", "Frodon", "fr"),
+                name("glossary.frodo-es", "Frodo", "Frodo", "es"), name("glossary.baggins-es", "Baggins", "Bolsón", "es"));
+
+        List<RuleViolation> spanish = RuleChecker.check(names, "es", "Frodon Bolsón abandona la Comarca.", false);
+        assertEquals(1, spanish.size());
+        assertEquals("Frodon", spanish.get(0).match());
+        assertEquals("Frodo", spanish.get(0).replacement());
+        assertEquals("glossary.frodo-fr", spanish.get(0).ruleId());
+        assertEquals("/sites/tolkien/contents/names", spanish.get(0).folder());
+
+        List<RuleViolation> english = RuleChecker.check(names, "en", "Frodon leaves the Shire.", false);
+        assertEquals(List.of("Frodo"), english.stream().map(RuleViolation::replacement).toList());
+
+        List<RuleViolation> french = RuleChecker.check(names, "fr", "Frodo quitte la Comté.", false);
+        assertEquals(1, french.size(), "The French rule reports the English form once");
+        assertTrue(RuleChecker.check(names, "de", "Frodon verlässt das Auenland.", false).isEmpty(),
+                "A language with no form of the term gets nothing");
+    }
+
+    @Test
+    void aFinderReportsAFormOfAnotherLanguageToo() {
+        RuleChecker.Finder finder = new RuleChecker.Finder(List.of(name("glossary.frodo-fr", "Frodo", "Frodon", "fr"),
+                name("glossary.frodo-es", "Frodo", "Frodo", "es")), "es", 10);
+        assertEquals(1, finder.find("Frodon abandona la Comarca.").size());
+    }
+
+    @Test
+    void aTextOfARegionalLanguageGetsTheFormOfItsLanguage() {
+        List<WritingRule> names = List.of(name("glossary.frodo-fr", "Frodo", "Frodon", "fr"),
+                name("glossary.frodo-es", "Frodo", "Frodo", "es"));
+
+        List<RuleViolation> found = RuleChecker.check(names, "es_ES", "Frodon abandona la Comarca.", false);
+        assertEquals(1, found.size());
+        assertEquals("Frodo", found.get(0).replacement());
+    }
+
+    @Test
+    void aFormThatTwoOtherLanguagesShareIsReportedOnce() {
+        List<WritingRule> names = List.of(name("glossary.frodo-fr", "Frodo", "Frodon", "fr"),
+                name("glossary.frodo-it", "Frodo", "Frodon", "it"), name("glossary.frodo-es", "Frodo", "Frodo", "es"));
+
+        List<RuleViolation> found = RuleChecker.check(names, "es", "Frodon abandona la Comarca.", false);
+        assertEquals(1, found.size());
+        assertEquals("glossary.frodo-fr", found.get(0).ruleId());
+    }
 }

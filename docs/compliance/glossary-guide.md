@@ -119,6 +119,11 @@ A French text that holds "access token" gets a finding with the replacement "jet
 `frame.check` also checks a translation against its source. If the source holds "access token" and
 the translation lacks "jeton d'accès", the tool reports the missing term.
 
+A form of the term that belongs to another language also gets a finding. Example: the term "Frodo"
+(`en`) is "Frodon" in `fr` and "Frodo" in `es`. A Spanish text that holds "Frodon" gets a finding with
+the replacement "Frodo", and the finding names the French rule. A language that has no form of the
+term gets no such finding, because the form to write is unknown.
+
 The brand can also forbid a translation, with a rule of the language of the translation. Example: the
 rule of `fr` replaces "jeton d'authentification" with "jeton d'accès".
 
