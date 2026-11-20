@@ -168,8 +168,11 @@ public final class RuleChecker {
         }
     }
 
-    /** One rule, compiled: a term that reads the folded text, or a regex that reads the text. */
-    private record Compiled(WritingRule rule, TermPattern term, Pattern regex) {
+    /**
+     * One rule, compiled: a term that reads the folded text, or a regex that reads the text, and the forms
+     * of its replacement. A scan of a site reads thousands of texts with one compiled rule.
+     */
+    private record Compiled(WritingRule rule, TermPattern term, Pattern regex, List<Pattern> replacements) {
 
         /** The compiled rule, or null for a rule with no pattern or with a regex that does not compile. */
         static Compiled of(WritingRule rule) {
@@ -178,19 +181,20 @@ public final class RuleChecker {
             }
             if (rule.matchMode() == WritingRule.MatchMode.REGEX) {
                 try {
-                    return new Compiled(rule, null, Pattern.compile(rule.pattern(), Pattern.UNICODE_CASE));
+                    return new Compiled(rule, null, Pattern.compile(rule.pattern(), Pattern.UNICODE_CASE),
+                            replacementPatterns(rule));
                 } catch (PatternSyntaxException e) {
                     logger.warn("The writing rule {} has a pattern that does not compile: {}", rule.id(), e.getDescription());
                     return null;
                 }
             }
             TermPattern term = TermPattern.of(rule.allPatternForms());
-            return term == null ? null : new Compiled(rule, term, null);
+            return term == null ? null : new Compiled(rule, term, null, replacementPatterns(rule));
         }
 
         /** The places where the text breaks the rule, at most {@code max}. */
         List<Match> matches(Searched searched, int max) {
-            List<int[]> allowed = replacementSpans(rule, searched.text());
+            Spans allowed = new Spans(replacements, searched.text());
             List<Match> found = new ArrayList<>();
             long end = System.nanoTime() + MAX_RULE_NANOS;
             try {
@@ -215,8 +219,8 @@ public final class RuleChecker {
         }
 
         /** Adds a match, unless it is empty or the right term: "mail" inside "e-mail", for a rule that says to write "e-mail". */
-        private void add(List<Match> found, List<int[]> allowed, int start, int end) {
-            if (end > start && !inside(allowed, start, end)) {
+        private void add(List<Match> found, Spans allowed, int start, int end) {
+            if (end > start && !allowed.covers(start, end)) {
                 found.add(new Match(rule, start, end));
             }
         }
@@ -278,25 +282,55 @@ public final class RuleChecker {
     }
 
     /**
-     * Where a form of the replacement of a rule appears in the text: a match inside it is the right term.
+     * The forms of the replacement of a replace rule, which a match inside one of them is the right term of.
      * The search ignores case and keeps accents, so "role" is wrong where the rule says to write "rôle".
      */
-    static List<int[]> replacementSpans(WritingRule rule, String text) {
-        List<int[]> spans = new ArrayList<>();
-        if (rule.kind() != Kind.REPLACE) {
-            return spans;
-        }
-        for (String form : rule.allReplacementForms()) {
-            if (form.isBlank()) {
-                continue;
-            }
-            Matcher found = Pattern.compile(literal(form.trim()), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE)
-                    .matcher(text);
-            while (found.find()) {
-                spans.add(new int[]{found.start(), found.end()});
+    private static List<Pattern> replacementPatterns(WritingRule rule) {
+        List<Pattern> patterns = new ArrayList<>();
+        if (rule.kind() == Kind.REPLACE) {
+            for (String form : rule.allReplacementForms()) {
+                if (!form.isBlank()) {
+                    patterns.add(Pattern.compile(literal(form.trim()), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE));
+                }
             }
         }
-        return spans;
+        return patterns;
+    }
+
+    /**
+     * Where the forms of a replacement appear in a text, searched once, at the first match of the rule:
+     * "mail" inside "e-mail" is the right term, for a rule that says to write "e-mail".
+     */
+    private static final class Spans {
+        private final List<Pattern> patterns;
+        private final String text;
+        private List<int[]> spans;
+
+        Spans(List<Pattern> patterns, String text) {
+            this.patterns = patterns;
+            this.text = text;
+        }
+
+        boolean covers(int start, int end) {
+            if (patterns.isEmpty()) {
+                return false;
+            }
+            if (spans == null) {
+                spans = new ArrayList<>();
+                for (Pattern pattern : patterns) {
+                    Matcher found = pattern.matcher(text);
+                    while (found.find()) {
+                        spans.add(new int[]{found.start(), found.end()});
+                    }
+                }
+            }
+            for (int[] span : spans) {
+                if (start >= span[0] && end <= span[1]) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     /** The regex of a text as written, where a space matches any white space and an apostrophe a straight or a curly one. */
@@ -324,15 +358,6 @@ public final class RuleChecker {
             regex.append(Pattern.quote(plain.toString()));
         }
         return regex.toString();
-    }
-
-    private static boolean inside(List<int[]> spans, int start, int end) {
-        for (int[] span : spans) {
-            if (start >= span[0] && end <= span[1]) {
-                return true;
-            }
-        }
-        return false;
     }
 
     static String excerpt(String text, int start, int end) {
