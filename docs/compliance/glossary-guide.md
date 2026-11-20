@@ -102,7 +102,8 @@ on its own, so it does not report a mandatory mention.
   text "e-mail" passes. This search keeps the accents. With the rule "role" to "rôle", the text "rôle"
   passes and the text "role" gets a finding.
 - **The Match value Regular expression** reads the text as it is written, in any case, and keeps the
-  accents. A pattern that must respect the case starts with `(?-i)`, such as `(?-i)\bJAHIA\b`.
+  accents. A pattern that must respect the case starts with `(?-i)`, such as `(?-i)\bJAHIA\b`. An
+  inline flag keeps the case of one part only, such as `\b(?-i:JAHIA)\b`.
 
 ## Glossary terms to translate
 

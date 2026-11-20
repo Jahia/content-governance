@@ -182,4 +182,13 @@ class RuleCheckerTest {
         assertTrue(RuleChecker.check(List.of(exact), "en", "Built on Jahia.", false).isEmpty(), "(?-i) keeps the case");
         assertEquals(1, RuleChecker.check(List.of(exact), "en", "Built on JAHIA.", false).size());
     }
+
+    @Test
+    void aRegexIgnoresTheCaseOfAnAccentedCapitalAndOfAMandatoryMention() {
+        WritingRule summer = rule(Kind.FORBIDDEN, "\\bété\\b", MatchMode.REGEX, null, "fr");
+        assertEquals("ÉTÉ", RuleChecker.check(List.of(summer), "fr", "Les soldes d'ÉTÉ.", false).get(0).match());
+        WritingRule risk = rule(Kind.MANDATORY, "capital at risk", MatchMode.REGEX, null, "en");
+        assertTrue(RuleChecker.check(List.of(risk), "en", "Invest now. CAPITAL AT RISK.", true).isEmpty(),
+                "The mandatory mention is found in another case");
+    }
 }
