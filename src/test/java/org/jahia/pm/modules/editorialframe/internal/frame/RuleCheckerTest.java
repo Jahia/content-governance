@@ -191,4 +191,57 @@ class RuleCheckerTest {
         assertTrue(RuleChecker.check(List.of(risk), "en", "Invest now. CAPITAL AT RISK.", true).isEmpty(),
                 "The mandatory mention is found in another case");
     }
+
+    @Test
+    void aTermInsideALongerMatchOfAnotherTermReportsNothingThere() {
+        WritingRule baggins = rule(Kind.REPLACE, "Baggins", MatchMode.TERM, "Sacquet", "fr");
+        WritingRule sackville = rule(Kind.REPLACE, "Sackville-Baggins", MatchMode.TERM, "Sacquet-de-Besace", "fr");
+        List<RuleViolation> found = RuleChecker.check(List.of(baggins, sackville), "fr",
+                "Lobelia Sackville-Baggins convoitait Cul-de-Sac.", false);
+        assertEquals(1, found.size());
+        assertEquals("Sacquet-de-Besace", found.get(0).replacement());
+
+        List<RuleViolation> both = RuleChecker.check(List.of(baggins, sackville), "fr",
+                "Bilbo Baggins et Lobelia Sackville-Baggins.", false);
+        assertEquals(List.of("Baggins", "Sackville-Baggins"), both.stream().map(RuleViolation::match).toList());
+    }
+
+    @Test
+    void aFinderDropsATermInsideALongerTermToo() {
+        RuleChecker.Finder finder = new RuleChecker.Finder(List.of(
+                rule(Kind.REPLACE, "Baggins", MatchMode.TERM, "Sacquet", "fr"),
+                rule(Kind.REPLACE, "Sackville-Baggins", MatchMode.TERM, "Sacquet-de-Besace", "fr")), "fr", 10);
+        List<RuleChecker.Match> found = finder.find("Lobelia Sackville-Baggins.");
+        assertEquals(1, found.size());
+        assertEquals("id-Sackville-Baggins", found.get(0).rule().id());
+    }
+
+    @Test
+    void twoRulesWithTheSameTermEachReport() {
+        WritingRule legal = new WritingRule("legal.free", Kind.FORBIDDEN, "free", MatchMode.TERM, null, null,
+                Severity.WARNING, null, "site", List.of(), List.of(), null, null, null, null);
+        WritingRule brand = new WritingRule("brand.free", Kind.FORBIDDEN, "free", MatchMode.TERM, null, null,
+                Severity.WARNING, null, "site", List.of(), List.of(), null, null, null, null);
+        assertEquals(2, RuleChecker.check(List.of(legal, brand), "en", "A free offer.", false).size());
+    }
+
+    @Test
+    void aTermStillReportsAfterManyMatchesInsideALongerTerm() {
+        WritingRule baggins = rule(Kind.REPLACE, "Baggins", MatchMode.TERM, "Sacquet", "fr");
+        WritingRule sackville = rule(Kind.REPLACE, "Sackville-Baggins", MatchMode.TERM, "Sacquet-de-Besace", "fr");
+        String text = "Lobelia Sackville-Baggins. ".repeat(120) + "Bilbo Baggins.";
+        List<RuleViolation> found = RuleChecker.check(List.of(baggins, sackville), "fr", text, false);
+        assertEquals(List.of("Sacquet", "Sacquet-de-Besace", "Sacquet-de-Besace", "Sacquet-de-Besace"),
+                found.stream().map(RuleViolation::replacement).toList());
+    }
+
+    @Test
+    void theViolationsComeInTheOrderOfTheRules() {
+        WritingRule free = rule(Kind.FORBIDDEN, "free", MatchMode.TERM, null, "en");
+        WritingRule risk = rule(Kind.MANDATORY, "capital at risk", MatchMode.TERM, null, "en");
+        WritingRule seamless = rule(Kind.REPLACE, "seamless", MatchMode.TERM, "smooth", "en");
+        List<RuleViolation> found = RuleChecker.check(List.of(free, risk, seamless), "en",
+                "A free and seamless offer.", true);
+        assertEquals(List.of("free", "capital at risk", "seamless"), found.stream().map(RuleViolation::pattern).toList());
+    }
 }
