@@ -53,12 +53,12 @@ public class HealthChecks {
     private static final String CONTENT_TYPE = "jnt:content";
     private static final Set<String> NOT_TEXT = Set.of("script", "style", "noscript", "template");
     /** namespace:key.path: a scheme or an address never matches, since it needs a dotted part and no slash. */
-    private static final Pattern RAW_KEY = Pattern.compile("\\b[a-z][a-zA-Z0-9_-]{1,30}:[a-zA-Z0-9_-]+(?:\\.[a-zA-Z0-9_-]+)+\\b");
+    private static final Pattern RAW_KEY = Pattern.compile("\\b[a-z][a-zA-Z0-9_-]{1,30}:[a-zA-Z0-9_-]+(?:\\.[a-zA-Z0-9_-]+)++\\b");
     private static final Pattern SCHEME = Pattern.compile("^(https?|mailto|tel|urn|data|javascript|file|ftp):",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern PLACEHOLDER = Pattern.compile(
             "lorem ipsum|\\bTODO\\b|\\bFIXME\\b|\\bXXX\\b|à compléter|to be completed",
-            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.CANON_EQ);
     private static final Map<Integer, String> BAD_STATUSES = Map.of(
             PublicationInfo.MODIFIED, "modified",
             PublicationInfo.NOT_PUBLISHED, "not_published",
@@ -147,7 +147,7 @@ public class HealthChecks {
                     return out;
                 });
         JCRSiteNode site = node.getResolveSite();
-        Set<String> active = site == null ? Set.of() : site.getActiveLanguages();
+        Set<String> active = activeLanguages(site);
         List<Untranslated> untranslated = new ArrayList<>();
         for (JCRNodeWrapper item : items.subList(1, items.size())) {
             Set<String> present = translations(item);
@@ -175,6 +175,16 @@ public class HealthChecks {
             }
             collect(child, items);
         }
+    }
+
+    /** The languages of the site that are active in the edit workspace. */
+    private static Set<String> activeLanguages(JCRSiteNode site) {
+        if (site == null) {
+            return Set.of();
+        }
+        Set<String> out = new LinkedHashSet<>(site.getLanguages());
+        out.removeAll(site.getInactiveLanguages());
+        return out;
     }
 
     private static Set<String> translations(JCRNodeWrapper node) throws RepositoryException {

@@ -32,8 +32,6 @@ final class Family {
 
     /** What one reading of an input found, by check id. */
     static final class Found {
-        static final Found NONE = new Found();
-
         private final Map<String, List<Hit>> byCheck = new LinkedHashMap<>();
 
         Found add(String checkId, String text, String context) {

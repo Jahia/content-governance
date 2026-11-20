@@ -225,7 +225,7 @@ class PageChecksTest {
     @DisplayName("each page check is a check of the scope PAGE, under the id of a shipped rule")
     void eachCheck_isShipped() {
         for (List<String> ids : List.of(SeoChecks.IDS, ReadabilityChecks.IDS, LinkChecks.IDS, HealthChecks.IDS)) {
-            Family.checks(ids, "x", input -> Family.Found.NONE).forEach((id, check) -> {
+            Family.checks(ids, "x", input -> new Family.Found()).forEach((id, check) -> {
                 assertThat(check.scopes()).containsExactly(ContentCheck.Scope.PAGE);
                 assertThat(ContentRules.base().get(id).evaluator()).isEqualTo(id);
             });

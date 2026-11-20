@@ -44,7 +44,7 @@ public class SeoChecks {
     /** The label that the preview of Jahia puts before the title of a page in the edit workspace. */
     private static final Pattern PREVIEW_LABEL = Pattern.compile(
             "^(aperçu|preview|vorschau|anteprima|vista previa)\\s*[-–:]\\s*",
-            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.CANON_EQ);
 
     private final CheckServices services = new CheckServices();
 
@@ -79,7 +79,7 @@ public class SeoChecks {
 
     static Family.Found read(CheckInput input) {
         if (!Family.wholePage(input)) {
-            return Family.Found.NONE;
+            return new Family.Found();
         }
         Document html = Family.document(input);
         Family.Found found = new Family.Found();

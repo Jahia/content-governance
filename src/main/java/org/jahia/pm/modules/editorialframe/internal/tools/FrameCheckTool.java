@@ -38,7 +38,9 @@ public class FrameCheckTool implements JahiaMcpTool {
 
     static final int MAX_TEXT = 100_000;
 
+    static final String NAME = "frame.check";
     static final String PATH = "path";
+    private static final String LOCALE = "locale";
 
     @Reference
     private EditorialFrameService frames;
@@ -61,7 +63,7 @@ public class FrameCheckTool implements JahiaMcpTool {
 
     @Override
     public String name() {
-        return "frame.check";
+        return NAME;
     }
 
     @Override
@@ -82,7 +84,7 @@ public class FrameCheckTool implements JahiaMcpTool {
     public JsonNode inputSchema() {
         ObjectNode schema = FrameTools.schema("A text to check");
         FrameTools.property(schema, FrameTools.SITE_KEY_INPUT, FrameTools.STRING_TYPE, "The key of the site, such as digitall.", true);
-        FrameTools.property(schema, "locale", FrameTools.STRING_TYPE, "The language of the text, such as en or fr.", true);
+        FrameTools.property(schema, LOCALE, FrameTools.STRING_TYPE, "The language of the text, such as en or fr.", true);
         FrameTools.property(schema, "text", FrameTools.STRING_TYPE, "The text, plain or HTML. Required without a path.", false);
         FrameTools.property(schema, PATH, FrameTools.STRING_TYPE,
                 "The absolute path of a page or of a content item of the site, such as /sites/digitall/home/about, to "
@@ -118,15 +120,15 @@ public class FrameCheckTool implements JahiaMcpTool {
         String path = FrameTools.text(input, PATH);
         String text = FrameTools.text(input, "text");
         if (path != null && text == null) {
-            ToolResult result = checkPage(siteKey, path, FrameTools.text(input, "locale"), ctx);
-            ctx.audit().recordEvent("frame.check", Map.of(FrameTools.SITE_KEY_INPUT, siteKey, PATH, path, "ok", result.isOk()));
+            ToolResult result = checkPage(siteKey, path, FrameTools.text(input, LOCALE), ctx);
+            ctx.audit().recordEvent(NAME, Map.of(FrameTools.SITE_KEY_INPUT, siteKey, PATH, path, "ok", result.isOk()));
             return result;
         }
         if (text == null || text.length() > MAX_TEXT) {
             return ToolResult.error(ToolError.CODE_VALIDATION, "text is missing or longer than " + MAX_TEXT + " characters",
                     "Check one page or one field at a time.");
         }
-        String locale = FrameTools.text(input, "locale");
+        String locale = FrameTools.text(input, LOCALE);
         boolean document = input.path("document").asBoolean(false);
         String sourceText = FrameTools.text(input, "sourceText");
         String sourceLocale = FrameTools.text(input, "sourceLocale");
@@ -138,6 +140,13 @@ public class FrameCheckTool implements JahiaMcpTool {
         List<RuleViolation> violations = sourceText == null || sourceLocale == null
                 ? frames.check(siteKey, language, text, document)
                 : frames.checkTranslation(siteKey, sourceLocale, sourceText, language, text, document);
+        ObjectNode result = violations(violations);
+        result.put("ok", violations.isEmpty());
+        ctx.audit().recordEvent(NAME, Map.of(FrameTools.SITE_KEY_INPUT, siteKey, "violations", violations.size()));
+        return ToolResult.ok(result);
+    }
+
+    private static ObjectNode violations(List<RuleViolation> violations) {
         ObjectNode result = FrameTools.MAPPER.createObjectNode();
         ArrayNode list = result.putArray("violations");
         for (RuleViolation violation : violations) {
@@ -158,9 +167,7 @@ public class FrameCheckTool implements JahiaMcpTool {
             item.put("justification", violation.justification());
             item.put("excerpt", violation.excerpt());
         }
-        result.put("ok", violations.isEmpty());
-        ctx.audit().recordEvent("frame.check", Map.of(FrameTools.SITE_KEY_INPUT, siteKey, "violations", violations.size()));
-        return ToolResult.ok(result);
+        return result;
     }
 
     private ToolResult checkPage(String siteKey, String path, String locale, ToolContext ctx) {

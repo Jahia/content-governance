@@ -87,7 +87,7 @@ public class ReadabilityChecks {
         if (measure.band() == Readability.Band.DIFFICULT) {
             return new Family.Found().add(HARD, String.valueOf(measure.score()), measure.formula());
         }
-        return Family.Found.NONE;
+        return new Family.Found();
     }
 
     static Readability.Measure measure(Document html, String language) {

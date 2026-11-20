@@ -62,21 +62,25 @@ public class LinkChecks {
         Set<String> localHosts = localHosts(input);
         for (Element link : Family.document(input).select("a[href]")) {
             String href = link.attr("href").trim();
-            if (href.isEmpty() || NOT_A_PAGE.matcher(href).find()) {
-                continue;
-            }
-            String lower = href.toLowerCase(Locale.ROOT);
-            if ((lower.startsWith("http://") || lower.startsWith("https://")) && localHosts.contains(host(href))) {
-                found.add(HARDCODED, href, null);
-            }
-            if (lower.startsWith("http://")) {
-                found.add(MIXED, href, null);
-            }
-            if ("_blank".equals(link.attr("target")) && !link.attr("rel").toLowerCase(Locale.ROOT).contains("noopener")) {
-                found.add(BLANK_NOOPENER, Family.tag(link), null);
+            if (!href.isEmpty() && !NOT_A_PAGE.matcher(href).find()) {
+                read(link, href, localHosts, found);
             }
         }
         return found;
+    }
+
+    private static void read(Element link, String href, Set<String> localHosts, Family.Found found) {
+        String lower = href.toLowerCase(Locale.ROOT);
+        boolean http = lower.startsWith("http://");
+        if ((http || lower.startsWith("https://")) && localHosts.contains(host(href))) {
+            found.add(HARDCODED, href, null);
+        }
+        if (http) {
+            found.add(MIXED, href, null);
+        }
+        if ("_blank".equals(link.attr("target")) && !link.attr("rel").toLowerCase(Locale.ROOT).contains("noopener")) {
+            found.add(BLANK_NOOPENER, Family.tag(link), null);
+        }
     }
 
     @SuppressWarnings("unchecked")
