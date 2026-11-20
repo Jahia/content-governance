@@ -1,5 +1,5 @@
 import {enableModule} from '@jahia/cypress';
-import {MODULE_NAME, addNodeTree, asRoot, createTestSite, deleteTestSite, gql, gqlOk, nodeExists} from '../support/cg';
+import {MODULE_NAME, addNodeTree, asRoot, createTestSite, deleteTestSite, gql, gqlOk, jahiaOrigin, nodeExists} from '../support/cg';
 
 const NODE = `query N($path: String!) { jcr { nodeByPath(path: $path) {
     uuid primaryNodeType { name }
@@ -96,7 +96,12 @@ describe('Content Governance - conversion of the glossaries of an older version'
             .then(body => (body.data?.jcr as {nodeByPath?: {primaryNodeType: {name: string}}})?.nodeByPath?.primaryNodeType.name === 'ccs:contentRule'),
         {timeout: 60000, interval: 2000, errorMsg: 'the module did not convert the glossary terms'});
         // The GraphQL fields of the module come back once the module registered them again.
-        cy.waitUntil(() => gql(asRoot(), SCAN_PAGE, {path: pagePath}).then(body => !body.errors),
+        cy.waitUntil(() => cy.request({
+            method: 'POST', url: '/modules/graphql', failOnStatusCode: false,
+            auth: {username: asRoot().username, password: asRoot().password},
+            headers: {Origin: jahiaOrigin(), 'Content-Type': 'application/json'},
+            body: {query: SCAN_PAGE, variables: {path: pagePath}}
+        }).then(response => response.status === 200 && !response.body.errors),
             {timeout: 60000, interval: 2000, errorMsg: 'the compliance scan did not answer after the restart'});
     });
 

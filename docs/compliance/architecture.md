@@ -263,9 +263,4 @@ valid; checked on a local Jahia 8.2.3.2 through a full restart. What authors see
   the section says so.
 - Labels and icons of the glossary types on an instance migrated from Content Compliance Scan (above).
 - Publication is not blocked: [`publication-blocking.md`](publication-blocking.md).
-- Unit tests cover matching, rich text (hostile values included), excerpts, the rule selection, the
-  conversion of the old types and the rendered-path filter (`TermPatternTest`, `RuleCheckerTest`,
-  `ComplianceRulesTest`, `LegacyTermsTest`, `PlainTextTest`, `ExcerptTest`, `RenderedRootsTest`) and
-  the feature ids (`FeaturesTest`). The Cypress suite covers the example rule, a page scan and a site
-  scan, the refusals and the refusal once the section is switched off (`compliance.spec.ts`), and two
-  folders of rules with their own permissions (`termRules.spec.ts`).
+- The unit tests and the Cypress suite of the module cover the section.
