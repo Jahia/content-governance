@@ -36,32 +36,44 @@ public final class FoldedText {
         int[] ends = new int[original.length() + 8];
         int i = 0;
         while (i < original.length()) {
-            int cp = original.codePointAt(i);
-            int next = i + Character.charCount(cp);
-            String folded;
-            if (next < original.length() && isKanaVoicedMark(original.charAt(next)) && isKana(cp)) {
-                // Decomposed kana (カ + U+3099, as macOS writes file names): compose, so it matches ガ.
-                String composed = Normalizer.normalize(original.substring(i, next + 1), Normalizer.Form.NFC);
-                folded = composed.codePointCount(0, composed.length()) == 1 ? fold(composed.codePointAt(0)) : fold(cp);
-                if (composed.codePointCount(0, composed.length()) == 1) {
-                    next++;
-                }
-            } else {
-                folded = fold(cp);
+            int next = characterEnd(original, i);
+            String folded = foldCharacter(original.substring(i, next));
+            if (out.length() + folded.length() > starts.length) {
+                starts = Arrays.copyOf(starts, (out.length() + folded.length()) * 2);
+                ends = Arrays.copyOf(ends, starts.length);
             }
             for (int k = 0; k < folded.length(); k++) {
-                int at = out.length();
-                if (at >= starts.length) {
-                    starts = Arrays.copyOf(starts, starts.length * 2);
-                    ends = Arrays.copyOf(ends, ends.length * 2);
-                }
-                starts[at] = i;
-                ends[at] = next;
+                starts[out.length()] = i;
+                ends[out.length()] = next;
                 out.append(folded.charAt(k));
             }
             i = next;
         }
         return new FoldedText(original, out.toString(), starts, ends);
+    }
+
+    /**
+     * Where the character at {@code start} ends: after its code point, or after the voiced mark that
+     * follows a kana when the two compose into one letter. Decomposed kana (カ + U+3099, as macOS writes
+     * file names) then match ガ.
+     */
+    private static int characterEnd(String original, int start) {
+        int cp = original.codePointAt(start);
+        int next = start + Character.charCount(cp);
+        if (next < original.length() && isKanaVoicedMark(original.charAt(next)) && isKana(cp)) {
+            String composed = Normalizer.normalize(original.substring(start, next + 1), Normalizer.Form.NFC);
+            if (composed.codePointCount(0, composed.length()) == 1) {
+                return next + 1;
+            }
+        }
+        return next;
+    }
+
+    /** The folded form of one character, which is one code point or a kana with its voiced mark. */
+    private static String foldCharacter(String character) {
+        String composed = character.codePointCount(0, character.length()) == 1
+                ? character : Normalizer.normalize(character, Normalizer.Form.NFC);
+        return fold(composed.codePointAt(0));
     }
 
     /**

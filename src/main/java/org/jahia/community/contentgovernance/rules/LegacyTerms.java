@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Converts the glossary terms of an older version into content rules of the evaluator {@code pattern},
@@ -49,6 +50,9 @@ final class LegacyTerms {
     static final String COMPLIANCE_TERM = "ccs:glossaryTerm";
     static final String COMPLIANCE_GLOSSARY = "ccs:glossary";
     static final String FRAME_TERM = "efnt:glossaryTerm";
+    private static final List<String> LEGACY_TYPES = List.of(COMPLIANCE_GLOSSARY, COMPLIANCE_TERM, FRAME_TERM);
+    private static final String TERM = "term";
+    private static final String SITES = "/sites/";
     static final String COMPLIANCE_DOMAIN = "compliance";
     static final String GLOSSARY_DOMAIN = "glossary";
     private static final String CONTENT_FOLDER = "jnt:contentFolder";
@@ -61,8 +65,8 @@ final class LegacyTerms {
     private static final String REPLACE = "replace";
     private static final String STEM = "*";
     /** The properties of the old types that a content rule does not declare, or declares with other values. */
-    private static final List<String> COMPLIANCE_PROPERTIES = List.of("term", "matchMode", "reason", "alternative");
-    private static final List<String> FRAME_PROPERTIES = List.of("term", "termLanguage", "translation",
+    private static final List<String> COMPLIANCE_PROPERTIES = List.of(TERM, "matchMode", "reason", "alternative");
+    private static final List<String> FRAME_PROPERTIES = List.of(TERM, "termLanguage", "translation",
             "translationLanguage", "note", "termForms", "translationForms", "definition", "status");
     private static final List<String> GLOSSARY_PROPERTIES = List.of("language", "description");
     private static final Logger logger = LoggerFactory.getLogger(LegacyTerms.class);
@@ -140,9 +144,9 @@ final class LegacyTerms {
             NodeIterator children = glossary.getNodes();
             while (children.hasNext()) {
                 Node child = children.nextNode();
-                if (child.isNodeType(COMPLIANCE_TERM) && text(child, "term") != null) {
+                if (child.isNodeType(COMPLIANCE_TERM) && text(child, TERM) != null) {
                     String id = id(session, child, COMPLIANCE_DOMAIN, ids, taken);
-                    conversions.add(new Conversion(child, id, complianceRule(id, text(child, "term"),
+                    conversions.add(new Conversion(child, id, complianceRule(id, text(child, TERM),
                             text(child, "matchMode"), text(child, "alternative"), language), COMPLIANCE_PROPERTIES,
                             text(child, "reason")));
                 }
@@ -195,7 +199,7 @@ final class LegacyTerms {
     }
 
     private static FrameTerm frameTerm(Node node) throws RepositoryException {
-        String term = text(node, "term");
+        String term = text(node, TERM);
         String termLanguage = text(node, "termLanguage");
         String translation = text(node, "translation");
         String translationLanguage = text(node, "translationLanguage");
@@ -289,7 +293,7 @@ final class LegacyTerms {
         values.put(RuleValues.BLOCKING, false);
         values.put(RuleValues.ENABLED, true);
         values.put(RuleValues.FIXER, "editor");
-        values.put(RuleValues.MATCH_MODE, "term");
+        values.put(RuleValues.MATCH_MODE, TERM);
         return values;
     }
 
@@ -350,17 +354,17 @@ final class LegacyTerms {
 
     /** A folder that took only glossaries or terms takes content rules. */
     private static void retypeFolders(JCRSessionWrapper session) throws RepositoryException {
+        String legacy = LEGACY_TYPES.stream().map(type -> "[" + CONTRIBUTE_TYPES + "] = '" + type + "'")
+                .collect(Collectors.joining(" OR "));
         Query query = session.getWorkspace().getQueryManager().createQuery("SELECT * FROM [" + CONTRIBUTE_MODE
-                + "] WHERE [" + CONTRIBUTE_TYPES + "] = '" + COMPLIANCE_GLOSSARY + "' OR [" + CONTRIBUTE_TYPES + "] = '"
-                + COMPLIANCE_TERM + "' OR [" + CONTRIBUTE_TYPES + "] = '" + FRAME_TERM + "'", Query.JCR_SQL2);
+                + "] WHERE " + legacy, Query.JCR_SQL2);
         NodeIterator folders = query.execute().getNodes();
         while (folders.hasNext()) {
             JCRNodeWrapper folder = (JCRNodeWrapper) folders.nextNode();
             Set<String> types = new LinkedHashSet<>();
             for (Value value : folder.getProperty(CONTRIBUTE_TYPES).getValues()) {
                 String type = value.getString();
-                boolean legacy = COMPLIANCE_GLOSSARY.equals(type) || COMPLIANCE_TERM.equals(type) || FRAME_TERM.equals(type);
-                types.add(legacy ? ContentRules.TYPE : type);
+                types.add(LEGACY_TYPES.contains(type) ? ContentRules.TYPE : type);
             }
             folder.setProperty(CONTRIBUTE_TYPES, types.toArray(new String[0]));
         }
@@ -414,10 +418,10 @@ final class LegacyTerms {
     }
 
     private static String sitePathOf(String path) {
-        if (!path.startsWith("/sites/")) {
+        if (!path.startsWith(SITES)) {
             return null;
         }
-        int end = path.indexOf('/', "/sites/".length());
+        int end = path.indexOf('/', SITES.length());
         return end < 0 ? path : path.substring(0, end);
     }
 

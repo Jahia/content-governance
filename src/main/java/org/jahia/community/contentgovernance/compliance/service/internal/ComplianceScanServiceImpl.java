@@ -303,24 +303,28 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         }
         scan.scanned++;
         scanProperties(node, origin, originPath, scan);
-
         if (scan.followReferences && node.isNodeType(NODE_REFERENCE_TYPE) && node.hasProperty(REFERENCE_PROPERTY)) {
-            try {
-                JCRNodeWrapper target = (JCRNodeWrapper) node.getProperty(REFERENCE_PROPERTY).getNode();
-                if (target != null) {
-                    walk(target, IssueOrigin.REFERENCE, origin == IssueOrigin.REFERENCE ? originPath : node.getPath(), scan, false);
-                }
-            } catch (ItemNotFoundException | PathNotFoundException e) {
-                logger.debug("Reference {} points to a node the session cannot read", node.getPath());
-            }
+            followReference(node, origin, originPath, scan);
         }
-
         for (JCRNodeIteratorWrapper it = node.getNodes(); it.hasNext() && !scan.full(); ) {
             JCRNodeWrapper child = (JCRNodeWrapper) it.nextNode();
             // j:translation_*, j:acl, j:conditionalVisibility, vanityUrlMapping...: system children, no visitor text.
             if (!child.getName().startsWith("j:") && !child.isNodeType("jnt:vanityUrls")) {
                 walk(child, origin, originPath, scan, false);
             }
+        }
+    }
+
+    /** Walks the content that a content reference of the page points to. */
+    private void followReference(JCRNodeWrapper node, IssueOrigin origin, String originPath, Scan scan)
+            throws RepositoryException {
+        try {
+            JCRNodeWrapper target = (JCRNodeWrapper) node.getProperty(REFERENCE_PROPERTY).getNode();
+            if (target != null) {
+                walk(target, IssueOrigin.REFERENCE, origin == IssueOrigin.REFERENCE ? originPath : node.getPath(), scan, false);
+            }
+        } catch (ItemNotFoundException | PathNotFoundException e) {
+            logger.debug("Reference {} points to a node the session cannot read", node.getPath());
         }
     }
 
@@ -343,24 +347,36 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
             }
             Value[] values = property.isMultiple() ? property.getValues() : new Value[]{property.getValue()};
             for (Value value : values) {
-                String raw = value.getString();
-                if (raw == null || raw.isBlank()) {
-                    continue;
-                }
-                String text = definition.getSelector() == SelectorType.RICHTEXT ? PlainText.fromHtml(raw) : PlainText.collapse(raw);
-                List<RuleChecker.Match> matches = new ArrayList<>(scan.finder.find(text));
-                matches.sort(Comparator.comparingInt(RuleChecker.Match::start).thenComparingInt(RuleChecker.Match::end));
-                for (RuleChecker.Match match : matches) {
-                    if (scan.issueCount >= scan.maxIssues) {
-                        scan.truncated = true;
-                        return;
-                    }
-                    scan.issues.add(issue(node, property, definition, text, match, scan.rules.rules().get(match.rule().id()),
-                            origin, originPath, scan.uiLocale));
-                    scan.issueCount++;
+                if (!scanValue(node, property, definition, value.getString(), origin, originPath, scan)) {
+                    return;
                 }
             }
         }
+    }
+
+    /**
+     * Adds an issue for each place where one value breaks a rule, in the order of the text.
+     *
+     * @return false once the scan reached its limit of issues
+     */
+    private static boolean scanValue(JCRNodeWrapper node, JCRPropertyWrapper property, ExtendedPropertyDefinition definition,
+                                     String raw, IssueOrigin origin, String originPath, Scan scan) throws RepositoryException {
+        if (raw == null || raw.isBlank()) {
+            return true;
+        }
+        String text = definition.getSelector() == SelectorType.RICHTEXT ? PlainText.fromHtml(raw) : PlainText.collapse(raw);
+        List<RuleChecker.Match> matches = new ArrayList<>(scan.finder.find(text));
+        matches.sort(Comparator.comparingInt(RuleChecker.Match::start).thenComparingInt(RuleChecker.Match::end));
+        for (RuleChecker.Match match : matches) {
+            if (scan.issueCount >= scan.maxIssues) {
+                scan.truncated = true;
+                return false;
+            }
+            scan.issues.add(issue(node, property, definition, text, match, scan.rules.rules().get(match.rule().id()),
+                    origin, originPath, scan.uiLocale));
+            scan.issueCount++;
+        }
+        return true;
     }
 
     /** @return the definition of a property that holds visitor text, {@code null} for any other property */

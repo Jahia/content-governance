@@ -107,16 +107,14 @@ public final class RuleChecker {
             if (compiled == null) {
                 continue;
             }
-            if (rule.kind() == Kind.MANDATORY) {
-                // The part of a cut text that is left out may hold the term, so only a whole text lacks it.
-                if (document && !cut && !compiled.found(searched)) {
-                    found.add(violation(rule, null, null));
+            if (rule.kind() != Kind.MANDATORY) {
+                for (Match match : compiled.matches(searched, MAX_MATCHES_PER_RULE)) {
+                    found.add(violation(rule, text.substring(match.start(), match.end()),
+                            excerpt(text, match.start(), match.end())));
                 }
-                continue;
-            }
-            for (Match match : compiled.matches(searched, MAX_MATCHES_PER_RULE)) {
-                found.add(violation(rule, text.substring(match.start(), match.end()),
-                        excerpt(text, match.start(), match.end())));
+            } else if (document && !cut && !compiled.found(searched)) {
+                // The part of a cut text that is left out may hold the term, so only a whole text lacks it.
+                found.add(violation(rule, null, null));
             }
         }
         return found;
