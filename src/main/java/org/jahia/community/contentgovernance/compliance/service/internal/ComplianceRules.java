@@ -19,8 +19,9 @@ import java.util.Map;
 
 /**
  * The rules that the Compliance section applies to the texts of one language of a site: each rule of the
- * evaluator {@code pattern} that the site keeps on, that applies on the day and to the language, and that
- * one text can break. A mandatory mention needs a whole page, so it is left out. Example: the rule
+ * evaluator {@code pattern} that the site keeps on, that applies on the day and that one text can break, of
+ * every language. The checker keeps the rules of the language, and a glossary rule of another language
+ * reports a form of its term. A mandatory mention needs a whole page, so it is left out. Example: the rule
  * {@code compliance.click-here} of the folder of the legal team, and the rule {@code glossary.access-token},
  * which replaces "access token" with "jeton d'accès" in French.
  *
@@ -53,7 +54,10 @@ record ComplianceRules(Map<String, ContentRule> rules, List<WritingRule> writing
         Glossary read(String path);
     }
 
-    /** The rules among {@code all} that apply to the language on the day. */
+    /**
+     * The rules among {@code all} that apply on the day, of every language. The folders count the rules of the
+     * language only.
+     */
     static ComplianceRules of(Collection<ContentRule> all, String language, LocalDate day, FolderReader folders) {
         Map<String, ContentRule> rules = new LinkedHashMap<>();
         List<WritingRule> writing = new ArrayList<>();

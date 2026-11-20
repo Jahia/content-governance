@@ -277,4 +277,24 @@ class RuleCheckerTest {
                 name("glossary.frodo-es", "Frodo", "Frodo", "es")), "es", 10);
         assertEquals(1, finder.find("Frodon abandona la Comarca.").size());
     }
+
+    @Test
+    void aTextOfARegionalLanguageGetsTheFormOfItsLanguage() {
+        List<WritingRule> names = List.of(name("glossary.frodo-fr", "Frodo", "Frodon", "fr"),
+                name("glossary.frodo-es", "Frodo", "Frodo", "es"));
+
+        List<RuleViolation> found = RuleChecker.check(names, "es_ES", "Frodon abandona la Comarca.", false);
+        assertEquals(1, found.size());
+        assertEquals("Frodo", found.get(0).replacement());
+    }
+
+    @Test
+    void aFormThatTwoOtherLanguagesShareIsReportedOnce() {
+        List<WritingRule> names = List.of(name("glossary.frodo-fr", "Frodo", "Frodon", "fr"),
+                name("glossary.frodo-it", "Frodo", "Frodon", "it"), name("glossary.frodo-es", "Frodo", "Frodo", "es"));
+
+        List<RuleViolation> found = RuleChecker.check(names, "es", "Frodon abandona la Comarca.", false);
+        assertEquals(1, found.size());
+        assertEquals("glossary.frodo-fr", found.get(0).ruleId());
+    }
 }

@@ -45,11 +45,13 @@ final class ForeignForms {
             if (own.isEmpty()) {
                 continue;
             }
-            Set<String> ownFolded = folded(own);
-            // The rules of the language report the term itself already, such as "Frodo" in a French text.
-            term.forEach(rule -> rule.allPatternForms().forEach(form -> ownFolded.add(FoldedText.foldString(form.trim()))));
+            // The forms already reported: the forms of the language, and the term itself, which the rules of
+            // the language report, such as "Frodo" in a French text. A form that two other languages share,
+            // such as "Frodon", is reported once, by the first rule that holds it.
+            Set<String> seen = folded(own);
+            term.forEach(rule -> rule.allPatternForms().forEach(form -> seen.add(FoldedText.foldString(form.trim()))));
             for (WritingRule rule : term) {
-                WritingRule foreign = base(rule.language()).equals(text) ? null : foreignRule(rule, own, ownFolded, language);
+                WritingRule foreign = base(rule.language()).equals(text) ? null : foreignRule(rule, own, seen, text);
                 if (foreign != null) {
                     out.add(foreign);
                 }
@@ -62,9 +64,8 @@ final class ForeignForms {
      * The rule that reports the forms of a rule of another language that the language of the text does not
      * share, with the form of that language as replacement, or null when the forms are the same.
      */
-    private static WritingRule foreignRule(WritingRule rule, List<String> own, Set<String> ownFolded, String language) {
+    private static WritingRule foreignRule(WritingRule rule, List<String> own, Set<String> seen, String language) {
         List<String> foreign = new ArrayList<>();
-        Set<String> seen = new LinkedHashSet<>(ownFolded);
         for (String form : rule.allReplacementForms()) {
             if (seen.add(FoldedText.foldString(form.trim()))) {
                 foreign.add(form.trim());
