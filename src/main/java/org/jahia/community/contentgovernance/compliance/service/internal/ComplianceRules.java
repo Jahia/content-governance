@@ -27,9 +27,10 @@ import java.util.Map;
  * <p>The rules are those that {@link ContentRules} reads, with a system session: a rule applies to a text
  * even when the editor cannot read its folder.</p>
  *
- * @param rules   the rules, by id
+ * @param rules   the rules of every language, by id: a glossary rule of another language reports a form
+ *                of its term that a text of the language holds
  * @param writing the same rules, as the pattern evaluator checks them
- * @param folders the folders of the rules, in path order
+ * @param folders the folders of the rules of the language, in path order
  */
 record ComplianceRules(Map<String, ContentRule> rules, List<WritingRule> writing, List<Glossary> folders) {
 
@@ -60,13 +61,12 @@ record ComplianceRules(Map<String, ContentRule> rules, List<WritingRule> writing
         for (ContentRule rule : all) {
             WritingRule pattern = rule.enabled() && ContentRule.PATTERN.equals(rule.evaluator())
                     ? PatternCheck.writingRule(rule) : null;
-            if (pattern == null || pattern.kind() == WritingRule.Kind.MANDATORY || !pattern.inForceOn(day)
-                    || !pattern.appliesTo(language)) {
+            if (pattern == null || pattern.kind() == WritingRule.Kind.MANDATORY || !pattern.inForceOn(day)) {
                 continue;
             }
             rules.put(rule.id(), rule);
             writing.add(pattern);
-            if (rule.folder() != null) {
+            if (rule.folder() != null && pattern.appliesTo(language)) {
                 counts.merge(rule.folder(), 1, Integer::sum);
             }
         }

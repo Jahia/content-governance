@@ -32,7 +32,7 @@ class ComplianceRulesTest {
     }
 
     @Test
-    void appliesThePatternRulesOfTheLanguageThatOneTextCanBreak() {
+    void keepsThePatternRulesThatOneTextCanBreak() {
         ComplianceRules applied = of("en",
                 rule("compliance.free", LEGAL, Map.of(RuleValues.RULE_LANGUAGE, "en")),
                 rule("brand.seamless", BRAND, Map.of()),
@@ -42,8 +42,11 @@ class ComplianceRulesTest {
                 rule("brand.off", BRAND, Map.of(RuleValues.ENABLED, false)),
                 rule("brand.later", BRAND, Map.of(RuleValues.VALID_FROM, DAY.plusDays(1))));
 
-        assertThat(applied.rules()).containsOnlyKeys("compliance.free", "brand.seamless");
-        assertThat(applied.writing()).extracting(w -> w.folder()).containsExactly(LEGAL, BRAND);
+        // A rule of another language stays: a glossary rule reports a form of its term in any language.
+        assertThat(applied.rules()).containsOnlyKeys("compliance.free", "brand.seamless", "glossary.jeton");
+        assertThat(applied.writing()).extracting(w -> w.folder()).containsExactly(LEGAL, BRAND, BRAND);
+        assertThat(applied.folders()).extracting(Glossary::path, Glossary::termCount)
+                .containsExactly(tuple(BRAND, 1), tuple(LEGAL, 1));
     }
 
     @Test
@@ -60,10 +63,9 @@ class ComplianceRulesTest {
     }
 
     @Test
-    void appliesNothingWhenNoPatternRuleFits() {
+    void namesNoFolderWhenNoRuleOfTheLanguageFits() {
         ComplianceRules applied = of("de", rule("compliance.free", LEGAL, Map.of(RuleValues.RULE_LANGUAGE, "en")));
 
-        assertThat(applied.writing()).isEmpty();
         assertThat(applied.folders()).isEmpty();
     }
 }
