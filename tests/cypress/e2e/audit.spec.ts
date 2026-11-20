@@ -268,7 +268,7 @@ describe('Content Governance - Page quality audit', () => {
 
     // A step that fails costs its own tabs only. The image holds the frame's load event (the audit
     // starts once the document is parsed, after 20 s); the server check fails, and the tabs it fills
-    // say so while the accessibility tab shows its results.
+    // say so, while the vitals tab shows its results.
     it('audits a page whose server check fails, and says which check did not finish', () => {
         const hang = {delay: 120000, statusCode: 204};
         cy.intercept('GET', '**/files/cg-never-answers.png*', req => req.reply(hang)).as('image');
@@ -291,7 +291,11 @@ describe('Content Governance - Page quality audit', () => {
         cy.get(DRAWER).contains('This check failed').should('exist');
         cy.get('#audit-tab-seo').click();
         cy.get(DRAWER).contains('This check failed').should('exist');
+        // Accessibility keeps the results of axe-core, and says that the HTML rules of the server are missing
         cy.get('#audit-tab-accessibility').click();
+        cy.get(DRAWER).contains('This check failed').should('exist');
+        cy.get(DRAWER).contains('automated rules passed').should('exist');
+        cy.get('#audit-tab-vitals').click();
         cy.get(DRAWER).contains('This check failed').should('not.exist');
     });
 });

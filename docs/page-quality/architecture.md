@@ -431,5 +431,4 @@ shared across cluster nodes.
 
 Facts from the merge that a maintainer may trip on:
 
-- Web Vitals runs before axe is injected and before the link checks, or their requests would count
-  in the page's own statistics; `webVitals.js` also filters `/modules/content-governance/`.
+- Web Vitals runs before axe is injected, or its requests would count in the page's own statistics; `webVitals.js` also filters `/modules/content-governance/`.

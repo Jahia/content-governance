@@ -248,7 +248,8 @@ async function auditFrame(frame, {isOn, language, path, apolloClient}) {
     const axe = isOn('accessibility') ? await step('a11y', () => runAccessibility(frame)) : null;
     const {a11y: htmlRules, ...server} = (await checked) || {};
     if (incomplete.server) {
-        SERVER_KEYS.forEach(key => {
+        // The accessibility tab misses the HTML rules of the server, beside the results of axe-core
+        [...SERVER_KEYS, 'a11y'].forEach(key => {
             incomplete[key] = incomplete.server;
         });
     }

@@ -37,6 +37,15 @@ public final class PageFindings {
      * @return the ids of the rules that the HTML breaks, or null when the check service is not started
      */
     public static JSONArray of(String path, String language, String html) {
+        return of(ContentRules.forPath(path), path, language, html);
+    }
+
+    /**
+     * {@link #of(String, String, String)} with the rules of the site, which a site scan reads once.
+     *
+     * @param rules the rules of the site of the page
+     */
+    public static JSONArray of(ContentRules rules, String path, String language, String html) {
         Bundle bundle = FrameworkUtil.getBundle(PageFindings.class);
         BundleContext context = bundle == null ? null : bundle.getBundleContext();
         ServiceReference<CheckRegistry> reference = context == null ? null : context.getServiceReference(CheckRegistry.class);
@@ -45,7 +54,7 @@ public final class PageFindings {
             return null;
         }
         try {
-            return of(checks, ContentRules.forPath(path), path, language, html);
+            return of(checks, rules, path, language, html);
         } finally {
             context.ungetService(reference);
         }

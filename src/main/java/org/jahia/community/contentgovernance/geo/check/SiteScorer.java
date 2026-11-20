@@ -468,7 +468,7 @@ public final class SiteScorer {
 
             JSONObject report = drawerReport(url, agent, visibility, siteFiles, rules);
             if (body[0] != null && agent.optInt(STATUS, 0) == 200) {
-                report.put(PageFindings.KEY, PageFindings.of(path, language, body[0]));
+                report.put(PageFindings.KEY, PageFindings.of(contentRules, path, language, body[0]));
             }
             JSONObject score = GeoScore.compute(report, contentRules);
             return summarise(out, score);
