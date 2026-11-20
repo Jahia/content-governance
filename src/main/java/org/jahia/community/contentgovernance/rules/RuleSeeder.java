@@ -79,12 +79,14 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
     }
 
     /**
-     * Converts the rules of an older version, then tracks the modules that ship rules. The tracker
-     * seeds every site with the rules of each module, this module included, as it finds them.
+     * Converts the rules and the glossary terms of an older version, then tracks the modules that ship
+     * rules. The tracker seeds every site with the rules of each module, this module included, as it
+     * finds them.
      */
     @Activate
     public void activate(BundleContext context) {
         LegacyRules.migrate();
+        LegacyTerms.migrate();
         tracker = new BundleTracker<>(context, Bundle.ACTIVE, this);
         tracker.open();
     }

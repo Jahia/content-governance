@@ -17,22 +17,22 @@ Who sees it:
 
 ## The summary card
 
-- **Compliant**, **Not compliant** or **Not checked** (no glossary for this language), and the number
-  of uses on how many pages and content items.
-- How much was read ("Pages read: ... Contents read: ..."), and the glossaries applied, under
-  **Glossaries applied:**; click one to open it in Content Editor.
+- **Compliant**, **Not compliant** or **Not checked** (no term rule for this language), and the
+  number of uses on how many pages and content items.
+- How much was read ("Pages read: ... Contents read: ..."), and the folders of the rules applied,
+  under **Rule folders applied:**. Click a folder to open it in Content Editor.
 - A warning when pages or content items could not be read (a missing content type, an external
   provider down): they are left out of the report and the Jahia log names them.
 - A warning when the site is larger than one scan reads (20,000 contents or 5,000 issues): the report
   then covers the first part of the site only.
 
-When no glossary exists for the language, the card says how to create one and the two tables below
+When no term rule applies to the language, the card says how to create one and the two tables below
 are not shown.
 
 ## Terms found
 
-One row per term and glossary (the glossary is named under the term when several apply): the
-**Reason** with the suggested wording (**Write instead**), the number of **Uses**, and the number of
+One row per rule, with its id and its folder under the term: the **Reason** with the replacement
+(**Write instead**), the number of **Uses**, and the number of
 **Pages and items** that use it. The most used terms come first: they are where a wording change pays
 off most.
 
@@ -40,7 +40,7 @@ off most.
 
 One row per page, then one per content item of the content folders (articles, news items), with
 their number of issues. Expand a row to see each issue: the content and field, the sentence with the
-term highlighted, the term and the reason (and the glossary when several apply).
+term highlighted, the term, the reason, the id of the rule and its folder.
 
 - **Open in Page Builder** opens a page, where the Compliance section of the drawer gives the full
   detail.
@@ -60,10 +60,11 @@ pages, and is greyed out on an article or news item opened on its own.
 Both buttons are in the page header.
 
 - **Export CSV**: one row per issue, with the page or content item, the content, the field, the term,
-  the matched text, the sentence, the reason, the suggested wording, the glossary name and its path.
+  the matched text, the sentence, the reason, the replacement, the folder name, its path and the
+  rule id.
   It opens in Excel with accents intact (UTF-8 with a byte order mark). A cell that starts with `=`,
   `+`, `-` or `@` gets a leading apostrophe, so a spreadsheet never runs it as a formula. Not
-  available when no glossary exists for the language.
+  available when no term rule applies to the language.
 - **Export JSON**: the whole report as the dashboard received it, with the time of the scan.
 
 File names carry the site, the language and the date: `compliance-<site>-<language>-<date>.csv`

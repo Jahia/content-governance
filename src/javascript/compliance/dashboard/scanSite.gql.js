@@ -18,7 +18,9 @@ export const SCAN_SITE = gql`
                     termCount
                 }
                 terms {
+                    ruleId
                     term
+                    folder
                     glossaryPath
                     reason
                     alternative
@@ -39,6 +41,9 @@ export const SCAN_SITE = gql`
                         nodeType
                         propertyName
                         propertyLabel
+                        ruleId
+                        severity
+                        folder
                         term
                         matchedText
                         before

@@ -2,6 +2,8 @@ package org.jahia.community.contentgovernance.rules;
 
 import org.jahia.services.content.JCRNodeWrapper;
 
+import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import java.time.LocalDate;
@@ -40,7 +42,31 @@ final class RuleNodes {
                 values.put(key, value);
             }
         }
+        if (!values.containsKey(RuleValues.ADVICE)) {
+            String advice = adviceInAnyLanguage(node);
+            if (advice != null) {
+                values.put(RuleValues.ADVICE, advice);
+            }
+        }
         return values;
+    }
+
+    /**
+     * The advice of a node that has none in English, in the first language that has one. Example: the
+     * example rule of a French site, whose advice the seeder wrote in French.
+     */
+    private static String adviceInAnyLanguage(JCRNodeWrapper node) throws RepositoryException {
+        NodeIterator translations = node.getRealNode().getNodes("j:translation_*");
+        while (translations.hasNext()) {
+            Node translation = translations.nextNode();
+            if (translation.hasProperty(RuleValues.ADVICE)) {
+                String advice = translation.getProperty(RuleValues.ADVICE).getString();
+                if (!advice.isBlank()) {
+                    return advice;
+                }
+            }
+        }
+        return null;
     }
 
     private static Object value(JCRNodeWrapper node, String key) throws RepositoryException {

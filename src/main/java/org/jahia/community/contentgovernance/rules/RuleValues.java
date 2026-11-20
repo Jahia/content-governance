@@ -42,14 +42,24 @@ public final class RuleValues {
     public static final String DECIDED_ON = "decidedOn";
     public static final String VALID_FROM = "validFrom";
     public static final String VALID_UNTIL = "validUntil";
+    /** The other forms of the pattern of a term, such as the plural "access tokens". */
+    public static final String PATTERN_FORMS = "patternForms";
+    /** The other forms of the replacement, such as the plural "jetons d'accès". */
+    public static final String REPLACEMENT_FORMS = "replacementForms";
+    /** The language of the pattern of a glossary term that the rule translates, such as {@code en}. */
+    public static final String PATTERN_LANGUAGE = "patternLanguage";
 
-    /** Every property that a rule file sets, in the order of the digest. */
+    /**
+     * Every property that a rule file sets, in the order of the digest. A new key goes last, so that the
+     * digest of a rule without it stays the same.
+     */
     public static final List<String> KEYS = List.of(RULE_ID, EVALUATOR, DOMAIN, ENABLED, SEVERITY, BLOCKING, FIXER,
             ADVICE, UNIT, MINIMUM, MAXIMUM, KIND, PATTERN, MATCH_MODE, REPLACEMENT, RULE_LANGUAGE, WRONG_EXAMPLES,
-            RIGHT_EXAMPLES, OWNER, DECIDED_ON, VALID_FROM, VALID_UNTIL);
+            RIGHT_EXAMPLES, OWNER, DECIDED_ON, VALID_FROM, VALID_UNTIL, PATTERN_FORMS, REPLACEMENT_FORMS,
+            PATTERN_LANGUAGE);
     public static final List<String> BOOLEANS = List.of(ENABLED, BLOCKING);
     public static final List<String> NUMBERS = List.of(MINIMUM, MAXIMUM);
-    public static final List<String> LISTS = List.of(WRONG_EXAMPLES, RIGHT_EXAMPLES);
+    public static final List<String> LISTS = List.of(WRONG_EXAMPLES, RIGHT_EXAMPLES, PATTERN_FORMS, REPLACEMENT_FORMS);
     public static final List<String> DAYS = List.of(DECIDED_ON, VALID_FROM, VALID_UNTIL);
 
     private static final String DEFAULT_FIXER = "editor";
@@ -134,7 +144,7 @@ public final class RuleValues {
                 severity != null && ContentRule.SEVERITIES.contains(severity) ? severity : "moderate",
                 Boolean.TRUE.equals(all.get(BLOCKING)), Boolean.TRUE.equals(all.get(ENABLED)),
                 ContentRule.FIXERS.contains(fixer) ? fixer : DEFAULT_FIXER, string(all, ADVICE), string(all, UNIT),
-                (Double) all.get(MINIMUM), (Double) all.get(MAXIMUM), all);
+                (Double) all.get(MINIMUM), (Double) all.get(MAXIMUM), all, null);
     }
 
     private static String string(Map<String, Object> values, String key) {
