@@ -31,7 +31,7 @@ public class ReadabilityChecks {
     static final String HARD = "readability.hardText";
     public static final String LONG_SENTENCES = "readability.longSentences";
     static final String LONG_PARAGRAPHS = "readability.longParagraphs";
-    static final String THIN_CONTENT = "readability.thinContent";
+    public static final String THIN_CONTENT = "readability.thinContent";
     /** The ids of the checks, which are the ids of their rules. */
     public static final List<String> IDS = List.of(VERY_HARD, HARD);
 

@@ -208,6 +208,9 @@ public class HtmlCheck {
         Map<String, Object> measured = new LinkedHashMap<>(ReadabilityChecks.facts(html, language));
         if (scope == Scope.PAGE) {
             measured.putAll(SeoChecks.facts(html));
+        } else {
+            // The words of one item say nothing of the length of its page
+            measured.remove(ReadabilityChecks.THIN_CONTENT);
         }
         for (Map.Entry<String, Object> fact : measured.entrySet()) {
             input = input.withFact(fact.getKey(), fact.getValue());

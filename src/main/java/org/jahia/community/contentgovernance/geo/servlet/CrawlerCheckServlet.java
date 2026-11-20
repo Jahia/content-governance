@@ -50,7 +50,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 /**
@@ -298,12 +297,11 @@ public class CrawlerCheckServlet extends GeoServlet {
         RobotsRules rules = rulesOf(siteFiles);
         out.put("siteFiles", siteFiles);
 
-        AtomicReference<String> control = new AtomicReference<>();
+        Control control = new Control();
         List<JSONObject> probed = probeAgents(publicUrl, target.base, control);
         tally(out, probed, rules, target.pagePath);
-        // The first agent is the control when it answered: another control leaves the page checks out
-        if (control.get() != null && !probed.isEmpty() && probed.get(0).optInt("status", 0) == 200) {
-            out.put(PageFindings.KEY, PageFindings.of(path, language, control.get()));
+        if (control.body() != null) {
+            out.put(PageFindings.KEY, PageFindings.of(path, language, control.body()));
         }
 
         // GEO-19 for this one page. A crawler served a login form gets a cheerful
@@ -383,7 +381,7 @@ public class CrawlerCheckServlet extends GeoServlet {
      * Fetched a few at a time, but returned strictly in submission order: the
      * control agent must stay first, because it is where controlWords comes from.
      */
-    private List<JSONObject> probeAgents(String publicUrl, String origin, AtomicReference<String> control) {
+    private List<JSONObject> probeAgents(String publicUrl, String origin, Control control) {
         Map<String, String> toFetch = agents();
         List<String> names = new ArrayList<>(toFetch.keySet());
         List<JSONObject> probed = new ArrayList<>(names.size());
@@ -391,12 +389,14 @@ public class CrawlerCheckServlet extends GeoServlet {
                 Math.min(FETCH_CONCURRENCY, Math.max(1, names.size())));
         try {
             List<Future<JSONObject>> futures = new ArrayList<>(names.size());
-            for (String name : names) {
+            for (int i = 0; i < names.size(); i++) {
+                String name = names.get(i);
                 String ua = toFetch.get(name);
+                int rank = i;
                 futures.add(pool.submit((Callable<JSONObject>) () -> PageFetch.probe(
                         publicUrl, origin, name, ua,
                         config.getFetchTimeoutMs(), config.getMaxBodyBytes(),
-                        name.equals(names.get(0)) ? control::set : null)));
+                        (status, html) -> control.offer(rank, status, html))));
             }
             for (int i = 0; i < futures.size(); i++) {
                 probed.add(resultOf(futures.get(i), names.get(i)));
@@ -405,6 +405,26 @@ public class CrawlerCheckServlet extends GeoServlet {
             pool.shutdownNow();
         }
         return probed;
+    }
+
+    /**
+     * The HTML of the control, the first agent in the list that answered 200, as {@link GeoScore} reads it.
+     * It keeps one body, whatever the number of agents.
+     */
+    static final class Control {
+        private int rank = Integer.MAX_VALUE;
+        private String body;
+
+        synchronized void offer(int agentRank, int status, String html) {
+            if (status == 200 && agentRank < rank) {
+                rank = agentRank;
+                body = html;
+            }
+        }
+
+        synchronized String body() {
+            return body;
+        }
     }
 
     /** One agent's result, or a synthetic failure: one agent must not lose the rest. */

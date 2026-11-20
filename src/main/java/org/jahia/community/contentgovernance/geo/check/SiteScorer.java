@@ -23,7 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
  * GEO-17. Scores every published page of a site, on a schedule.
@@ -460,7 +460,7 @@ public final class SiteScorer {
             String url = resolveUrl(path, language, opts, out);
 
             String[] body = {null};
-            JSONObject agent = fetch(url, visibility, siteBase, opts, html -> {
+            JSONObject agent = fetch(url, visibility, siteBase, opts, (status, html) -> {
                 body[0] = html;
                 LinkGraph.addPage(links, PublishedMap.pathOf(url), html);
             });
@@ -503,7 +503,7 @@ public final class SiteScorer {
          * it, and the critical guestReadable check does the talking.
          */
         private static JSONObject fetch(String url, JSONObject visibility, String siteBase, Options opts,
-                Consumer<String> body) {
+                BiConsumer<Integer, String> body) {
             if (!visibility.optBoolean(GUEST_READABLE, true) || url == null) {
                 JSONObject agent = new JSONObject();
                 agent.put("name", SCAN_AGENT);

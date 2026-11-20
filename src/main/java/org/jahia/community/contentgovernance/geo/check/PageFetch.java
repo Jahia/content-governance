@@ -18,6 +18,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.function.BiConsumer;
 
 /**
  * One fetch of one page as one crawler, and what can be read out of the HTML
@@ -112,7 +113,7 @@ public final class PageFetch {
     }
 
     /**
-     * As above, but hands the raw body to `bodySink` before discarding it.
+     * As above, but hands the HTTP status and the raw body to `bodySink` before discarding the body.
      *
      * The site scan builds its link graph from the rendered HTML of pages it is
      * already fetching. Returning the body in the report instead would put a
@@ -120,7 +121,7 @@ public final class PageFetch {
      * serve one caller.
      */
     public static JSONObject probe(String url, String base, String name, String ua, int timeoutMs, int maxBytes,
-            java.util.function.Consumer<String> bodySink) {
+            BiConsumer<Integer, String> bodySink) {
         JSONObject r = new JSONObject();
         r.put("name", name);
         long t0 = System.currentTimeMillis();
@@ -141,7 +142,7 @@ public final class PageFetch {
             if (!html.isEmpty()) {
                 r.put("html", analyse(html));
                 if (bodySink != null) {
-                    bodySink.accept(html);
+                    bodySink.accept(status, html);
                 }
             }
         } catch (Exception e) {

@@ -9,8 +9,11 @@ Jahia health.
 These callers use the service, and get the same findings under the same rule ids for one page:
 
 - the GraphQL field `checkPage(path, language)`, which the drawer of **Page quality** calls;
-- the tool `frame.check`, with a `path` instead of a `text`;
-- the GraphQL field `checkText` with the scope `PAGE`, on an HTML text that the caller gives.
+- the tool `frame.check`, with a `path` instead of a `text`.
+
+The GraphQL field `checkText` with the scope `PAGE` runs the same checks on an HTML text that the
+caller gives. It reads nothing in the repository, so it gives no finding of broken internal links,
+unpublished content or missing translations.
 
 The tool `audit.accessibility` calls the service too, and keeps only the findings of the HTML rules
 and of the rules `seo.title` and `seo.metaDescription`.
@@ -103,7 +106,7 @@ adds no tool.
 
 | Tool | What it returns |
 | -- | -- |
-| `audit.accessibility` | The findings of the rules, each with its rule, its WCAG criterion, its scope and its element. |
+| `audit.accessibility` | The findings of the rules, each with its rule and its element. A finding of an HTML rule also has its WCAG criterion and its scope. |
 | `audit.links` | The broken internal links, and the external links by state. |
 
 Each tool takes two inputs:

@@ -11,7 +11,12 @@ The diagram shows who calls the frame, and which workspace each path reads.
 ```
 ai-assistant, other modules ──► EditorialFrameService ──► FrameReader, checkers ──► JCR (live workspace)
 mcp-server (optional) ──► frame.check ──────────────────┘
+                              │ with a path
+                              └──► HtmlCheck (Page quality) ──► render as the user (edit workspace)
 ```
+
+With a `path`, `frame.check` renders the page or the content item through `HtmlCheck`, the check
+service of Page quality, and returns its findings.
 
 ## Code
 

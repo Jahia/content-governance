@@ -158,7 +158,7 @@ A check states the scopes in which it runs:
 | Scope | What the check reads | Who runs it today |
 |---|---|---|
 | `VALUE` | One value that an editor writes. | The GraphQL field `checkText`, and `frame.check` of the editorial frame. |
-| `PAGE` | The HTML of a rendered page or content item. | The page check (`HtmlCheck`): the GraphQL field `checkPage`, `frame.check` with a path, the tool `audit.accessibility`, and `checkText` with the scope `PAGE`. |
+| `PAGE` | The HTML of a rendered page or content item. | The page check (`HtmlCheck`): the GraphQL field `checkPage`, `frame.check` with a path, the tool `audit.accessibility`, and `checkText` with the scope `PAGE`. The GEO site scan and the GEO readiness tab of the drawer run some of its rules on the HTML that a crawler fetched. |
 | `SITE` | A whole site. | No caller yet. |
 
 A run applies each rule that the site keeps on and whose check is registered for the scope. Each
@@ -239,7 +239,7 @@ important. `minor` shows as advisory.
 - The accessibility findings keep the ids and the impacts of axe-core.
 - The readability bands come from the formula of each language. The rules `readability.hardText`
   and `readability.veryHardText` have a switch and a severity, and no limit.
-- The limits of a scan, such as the number of links that the Links tab checks, are not rules.
+- The limits of a scan, such as the number of content items that the Jahia tab reads, are not rules.
 - The length hints of the social card of the SEO assist (`og:description`) are not rules.
 - The instructions that ai-assistant gives a model for an SEO review state the default ranges of
   `seo.title` and `seo.metaDescription`. A change on a site does not reach them.

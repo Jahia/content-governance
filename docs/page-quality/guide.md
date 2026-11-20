@@ -166,6 +166,9 @@ best-practice rules.
 - **Violations**, most severe first. Each line shows the severity, the WCAG level, the rule and the
   number of elements. Open it to see what the rule checks (with a link to its documentation), the
   HTML of up to 25 failing elements, what is wrong with each, and **Highlight on the page**.
+- **Recommendations** of the HTML rules that the server checks, such as a form field without a
+  label. Each one shows the advice of its rule and up to three places that break it. The tab counts
+  them with the violations.
 - **Automated checks needing human review**: cases marked **To verify**. Look at each one.
 - **Manual checklist (not automatable)**: 14 WCAG criteria no tool can judge, such as keyboard use,
   meaningful alt text, captions, focus order, 200% zoom. Review them once per page type.

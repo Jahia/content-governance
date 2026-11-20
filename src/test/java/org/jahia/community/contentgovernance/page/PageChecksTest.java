@@ -304,6 +304,18 @@ class PageChecksTest {
         }
 
         @Test
+        @DisplayName("a content item of 120 words is not thin content: the length belongs to a whole page")
+        void item_isNotThinContent() {
+            String text = String.join(" ", Collections.nCopies(12, "Pilots read short pages every day."));
+            CheckInput item = HtmlCheck.input(PATH + "/main/intro", "en", Jsoup.parse("<p>" + text + "</p>"), Scope.ITEM);
+
+            assertThat(item.fact("readability.thinContent")).isNull();
+            assertThat(rules(run(item))).doesNotContain("readability.thinContent");
+            assertThat(rules(run(page("<html lang='en'><body><p>" + text + "</p></body></html>"))))
+                    .contains("readability.thinContent");
+        }
+
+        @Test
         @DisplayName("a content item gets no SEO facts")
         void item_hasNoSeoFacts() {
             HtmlCheck.Rendered item = new HtmlCheck.Rendered(PATH + "/main/intro", "jnt:text", Scope.ITEM,

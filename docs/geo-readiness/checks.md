@@ -110,7 +110,7 @@ Read from the initial HTML, before any JavaScript runs.
 
 **Important.** Zero or several leave the subject of the page ambiguous to anything parsing it.
 
-*Fails when:* Zero or more than one. Rule `html.headingH1Missing` for zero, and `html.headingH1Multiple` for more than one, the same rules as the HTML check.
+*Fails when:* Zero while the page has other headings, or more than one. Rule `html.headingH1Missing` for zero, and `html.headingH1Multiple` for more than one, the same rules as the HTML check. A page with no heading at all passes.
 
 *Shown in the interface as:* “Zero or several H1 headings leave the main subject of the page ambiguous.”
 

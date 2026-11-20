@@ -111,8 +111,8 @@ The analyzers call no module endpoint; the server enforces the switches on the A
      `#personas_panel` (jExperience persona preview, injected by `wem.js` in authoring contexts),
      before any analyzer reads the DOM;
   3. sends the server check, then runs the analyzers in order while the server answers. The three
-     network-bound steps go through `runStep` (`analyzers/timeLimit.js`) with `STEP_LIMITS_MS`:
-     vitals 15 s, accessibility 60 s, server check 60 s. A step that fails or runs out of time is
+     network-bound steps go through `runStep` (`analyzers/timeLimit.js`) with their limit in
+     `STEP_LIMITS_MS`. A step that fails or runs out of time is
      left out: its tabs show `IncompleteStep` (why, and **Re-run**) from
      `results.incomplete[<result key>]`. Eco-design follows vitals, and the server check fills four
      tabs: SEO, readability, links and Jahia. The other tabs show their results, and such a partial
@@ -205,7 +205,8 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
 ## Results, badges, cache and export
 
 - Results: `{version, page, a11y, vitals, ecodesign, readability, seo, links, jahia}`. `version` is
-  2 since the server checks the page. A stored audit of another version is measured again
+  `RESULTS_VERSION`, which changed when the server started to check the page. A stored audit of
+  another version is measured again
   (`keepEnabled`), and `AuditResults` keeps the version on the server. AI answers are kept beside
   them (`aiReview`, `seoAssist`, `altAssist`, `simplifyAssist`).
 - Counts (`audit/tabCounts.js`): `a11y.violations.length` plus `a11y.recommendations.length`, the
@@ -218,8 +219,8 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
   critical and serious findings only (`isSerious`, `drawer/findings.js`) and shows nothing without
   one. GEO readiness: Score and Crawler access are serious, the other tabs grey.
 - Cache: `localStorage` key `content-governance:audit:{language}:{path}`, entry
-  `{schema, timestamp, results, aiReview, seoAssist, altAssist, simplifyAssist}`. `CACHE_SCHEMA` is 6:
-  bump it whenever the shape of `results` changes, or an old entry is restored into a UI expecting the
+  `{schema, timestamp, results, aiReview, seoAssist, altAssist, simplifyAssist}`. Bump `CACHE_SCHEMA`
+  whenever the shape of `results` changes, or an old entry is restored into a UI expecting the
   new shape (entries with another schema are deleted on read). Pruned to the 10 most recent entries;
   on a quota error, pruned to 2 and retried once; failures are silent. Every AI result is persisted
   through `persistAi`, which rewrites all four AI fields, so saving one never drops the others.
@@ -234,15 +235,16 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
   writes with system sessions in the site's private module node
   (`/sites/<key>/content-governance`, `PrivateStore`), under `audits/<language>/<page identifier>`.
   - The page node holds the latest audit's `summary` (counts per tab, total, critical and serious
-    accessibility violations), `auditedAt`,
+    accessibility findings), `auditedAt`,
     `auditedBy`, `path`, `title` and `previousTotal` (the total of the audit before, -1 for none).
   - One `run-<millis>` child per audit holds `results` (the JSON), `summary`, `auditedAt` and
     `auditedBy`.
   - The page keeps `MAX_RUNS` (10). Keyed by identifier, so a moved page keeps its audits.
 - **Input:** `AuditResults.parse` accepts a JSON object of at most 1,000,000 characters. It keeps the
-  tab results (`a11y seo vitals readability ecodesign links jahia`) and `page`, and drops anything
-  else. The counts come from `AuditSummary.of` on the server: accessibility violations, and the
-  recommendations of every other tab.
+  tab results (`a11y seo vitals readability ecodesign links jahia`), `page` and `version`, and drops
+  anything else. The counts come from `AuditSummary.of` on the server: for accessibility, the
+  violations of axe-core and the findings of the HTML rules, and the recommendations of every other
+  tab.
 - **GraphQL**, under `contentGovernance` (`audit/graphql/AuditFields`):
   - `saveAudit(path, language, results)` (mutation, once per request);
   - `pageAudits(path, language)`: newest first, only the newest with `results`, at most 5 per
@@ -271,7 +273,7 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
   - It shows for the page in view only (`state.jcontent.path`), on a `jnt:page` or
     `jmix:mainResource` of a site that enables the module.
   - It reads `pageAudits` (summary only: `total`, `seriousAccessibility`, the critical and serious
-    violations counted by `AuditSummary`) and, with `jcr:write`, `complianceScan.scanPage` (with the
+    accessibility findings counted by `AuditSummary`) and, with `jcr:write`, `complianceScan.scanPage` (with the
     Page Builder frame's rendered paths, as the drawer does).
   - The label (`publishCheck.*`) depends on the sections the site keeps on; nothing shows when
     nothing was found.
