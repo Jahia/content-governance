@@ -18,7 +18,7 @@ section, each opening the tab that explains it; it stays out of the way when the
 
 | Section | What it answers | Where it runs |
 |---|---|---|
-| **Page quality** | Is the page I am editing accessible, findable, fast, readable, light, well linked and complete in Jahia? | In the editor's browser, on a preview of the page in the editing workspace; AI on demand |
+| **Page quality** | Is the page I am editing accessible, findable, fast, readable, light, well linked and complete in Jahia? | On the server, which renders the page in the editing workspace, and in the editor's browser, on a preview of that page; AI on demand |
 | **GEO readiness** | Can AI assistants and their crawlers read and cite the published page? | On the server, on demand (one fetch per AI crawler) |
 | **Compliance** | Does the page, or content it shows, use a term that a term rule of the site forbids or replaces in this language? | On the server, when the section opens |
 
@@ -289,7 +289,8 @@ store their results there.
 
 ## What leaves the server
 
-- **Nothing by default.** Page quality runs in the editor's browser against the editing workspace.
+- **Nothing by default.** Page quality runs on the server and in the editor's browser, against the
+  editing workspace.
 - **GEO readiness** fetches the site's own public pages and files, as each AI crawler would.
 - **AI features** send data only once genai-connector serves a model, and only to the provider of
   that model. Page tasks send the page text, its metadata and a digest of the automated findings.

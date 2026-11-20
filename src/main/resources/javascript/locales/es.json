@@ -1259,7 +1259,8 @@
             "title": "{{count}} textos de relleno en la página",
             "detail": "Todavía se ve texto Lorem ipsum / TODO. Sustitúyalo por el contenido definitivo antes de publicar."
           }
-        }
+        },
+        "contentUnavailable": "No se pudo leer el estado de publicación y traducción del contenido. El registro de Jahia indica el motivo."
       },
       "seo": {
         "preview": "Vista previa para redes sociales",
@@ -1393,7 +1394,8 @@
         "reasons": {
           "missing": "No existe",
           "not_published": "No publicado"
-        }
+        },
+        "internalUnavailable": "No se pudieron comprobar los enlaces internos. El registro de Jahia indica el motivo."
       },
       "recs": {
         "title": "Recomendaciones",

@@ -1259,7 +1259,8 @@
             "title": "{{count}} Platzhaltertexte auf der Seite",
             "detail": "Lorem-ipsum- bzw. TODO-Text ist noch sichtbar. Ersetzen Sie ihn vor dem Veröffentlichen durch den endgültigen Inhalt."
           }
-        }
+        },
+        "contentUnavailable": "Der Veröffentlichungs- und Übersetzungsstand der Inhalte konnte nicht gelesen werden. Das Jahia-Protokoll nennt den Grund."
       },
       "seo": {
         "preview": "Vorschau beim Teilen in sozialen Netzwerken",
@@ -1393,7 +1394,8 @@
         "reasons": {
           "missing": "Fehlt",
           "not_published": "Nicht veröffentlicht"
-        }
+        },
+        "internalUnavailable": "Die internen Links konnten nicht geprüft werden. Das Jahia-Protokoll nennt den Grund."
       },
       "recs": {
         "title": "Empfehlungen",

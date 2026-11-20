@@ -17,7 +17,9 @@ export const CHECK_PAGE = gql`
     }
 `;
 
+// The server keeps 50 findings of a rule: a count the facts hold is the whole count
 const count = (facts, hits) => ({count: hits.length});
+const counted = read => facts => ({count: read(facts)});
 
 /**
  * The finding of a rule that a tab words itself: the tab, the key of its text under `<ns>.recs`, and its
@@ -34,7 +36,7 @@ const WORDED = {
     'seo.structuredData': {tab: 'seo', key: () => 'noStructuredData'},
     'html.pageLanguageMissing': {tab: 'seo', key: () => 'noLang'},
     'html.pageLanguageMismatch': {tab: 'seo', key: () => 'langMismatch', params: f => ({htmlLang: f.seo.lang.htmlLang, expected: f.seo.lang.expected})},
-    'html.imageAltMissing': {tab: 'seo', key: () => 'missingAlt', params: count},
+    'html.imageAltMissing': {tab: 'seo', key: () => 'missingAlt', params: counted(f => f.seo.imagesWithoutAlt)},
     'html.linkTextVague': {tab: 'seo', key: () => 'genericAnchors', params: count},
     'readability.veryHardText': {tab: 'readability', key: f => (f.readability.scale === 'lix' ? 'veryHardTextLix' : 'veryHardText'), params: f => ({score: f.readability.score})},
     'readability.hardText': {tab: 'readability', key: f => (f.readability.scale === 'lix' ? 'hardTextLix' : 'hardText'), params: f => ({score: f.readability.score})},
@@ -44,14 +46,14 @@ const WORDED = {
     'html.headingH1Missing': {tab: 'readability', key: () => 'h1Count', params: f => ({count: f.readability.h1Count})},
     'html.headingH1Multiple': {tab: 'readability', key: () => 'h1Count', params: f => ({count: f.readability.h1Count})},
     'html.headingLevelSkipped': {tab: 'readability', key: () => 'headingSkips', params: count},
-    'links.broken': {tab: 'links', key: () => 'brokenLinks', params: count},
-    'links.hardcodedUrls': {tab: 'links', key: () => 'hardcodedUrls', params: count},
-    'links.mixedContent': {tab: 'links', key: () => 'mixedContent', params: count},
-    'links.blankNoopener': {tab: 'links', key: () => 'blankNoopener', params: count},
-    'health.rawI18nKeys': {tab: 'jahia', key: () => 'rawI18nKeys', params: count},
-    'health.unpublishedChanges': {tab: 'jahia', key: () => 'unpublishedChanges', params: count},
-    'health.missingTranslations': {tab: 'jahia', key: () => 'missingTranslations', params: (f, hits) => ({count: hits.length, languages: [...new Set(hits.flatMap(hit => (hit.context || '').split(', ')))].join(', ')})},
-    'health.placeholderText': {tab: 'jahia', key: () => 'placeholderText', params: count}
+    'links.broken': {tab: 'links', key: () => 'brokenLinks', params: counted(f => f.links.broken.length)},
+    'links.hardcodedUrls': {tab: 'links', key: () => 'hardcodedUrls', params: counted(f => f.links.hardcodedHost)},
+    'links.mixedContent': {tab: 'links', key: () => 'mixedContent', params: counted(f => f.links.mixedContent)},
+    'links.blankNoopener': {tab: 'links', key: () => 'blankNoopener', params: counted(f => f.links.blankNoopener)},
+    'health.rawI18nKeys': {tab: 'jahia', key: () => 'rawI18nKeys', params: counted(f => f.jahia.rawKeys.count)},
+    'health.unpublishedChanges': {tab: 'jahia', key: () => 'unpublishedChanges', params: counted(f => f.jahia.unpublished.length)},
+    'health.missingTranslations': {tab: 'jahia', key: () => 'missingTranslations', params: f => ({count: f.jahia.untranslated.length, languages: [...new Set(f.jahia.untranslated.flatMap(node => node.missing))].join(', ')})},
+    'health.placeholderText': {tab: 'jahia', key: () => 'placeholderText', params: counted(f => f.jahia.placeholders.count)}
 };
 
 /** The tab that lists the findings of another rule, by the domain of the rule; any other domain goes to Jahia. */

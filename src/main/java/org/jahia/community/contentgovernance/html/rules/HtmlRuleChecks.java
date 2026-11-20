@@ -34,11 +34,16 @@ public class HtmlRuleChecks {
 
     @Activate
     void activate(BundleContext context) {
+        services.open(context, checks(), false);
+    }
+
+    /** The check of each HTML rule, by its id. */
+    public static Map<String, ContentCheck> checks() {
         Map<String, ContentCheck> checks = new LinkedHashMap<>();
         for (HtmlRule rule : HtmlRule.values()) {
             checks.put(rule.id(), new Check(rule));
         }
-        services.open(context, checks, false);
+        return checks;
     }
 
     @Deactivate

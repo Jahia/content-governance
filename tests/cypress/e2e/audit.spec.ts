@@ -1,5 +1,5 @@
 import {deleteUser} from '@jahia/cypress';
-import {TestUser, addNodeTree, asRoot, createTestSite, createTestUser, deleteTestSite, gqlOk} from '../support/cg';
+import {TestUser, addNodeTree, asRoot, createTestSite, createTestUser, deleteTestSite, framePageCheck, gqlOk} from '../support/cg';
 
 const BUTTON = 'Content governance';
 const DRAWER = 'dialog[aria-labelledby="content-governance-drawer-title"]';
@@ -48,18 +48,22 @@ const READABILITY = [
     {lang: 'ja', expect: 'Japanese is written without spaces between words', text: '私たちは短いページを書きます。各ページは一つの質問に答えます。読者は必要な情報をすぐに見つけます。'}
 ];
 
-/** Headings that skip a level and a heading without text, as content of a page the server renders. */
-const OUTLINE = '<h2>Outline section</h2><h4>Outline detail</h4><h3></h3>';
+/**
+ * Headings and a heading without text, as content of a page the server renders. The rich text of
+ * classic-templates renumbers its headings so that none skips a level, so PageChecksTest covers a skip.
+ */
+const OUTLINE = '<h2>Outline section</h2><h3>Outline detail</h3><h3></h3>';
 
 const CHECK_PAGE = `query P($path: String!) {
     contentGovernance { checkPage(path: $path, language: "en") { findings { ruleId } } }
 }`;
 
-/** A page of the test site, with the given content items in its main area. */
-const page = (name: string, items: Record<string, unknown>[]) => ({
+/** A page with the template of the home page of classic-templates, and a rich text in its main area. */
+const page = (name: string, body: {language: string; value: string}[]) => ({
     name, type: 'jnt:page',
-    props: [{name: 'j:templateName', value: 'simple'}, {name: 'jcr:title', language: 'en', value: name}],
-    children: [{name: 'area-main', primaryNodeType: 'jnt:contentList', children: items}]
+    props: [{name: 'j:templateName', value: 'home'}, {name: 'jcr:title', language: 'en', value: name}],
+    children: [{name: 'main', primaryNodeType: 'ctpl:pageArea', children: [{name: 'text', primaryNodeType: 'ctpl:richText',
+        properties: body.map(({language, value}) => ({name: 'body', language, value}))}]}]
 });
 
 describe('Content Governance - Page quality audit', () => {
@@ -69,10 +73,9 @@ describe('Content Governance - Page quality audit', () => {
     before(() => {
         createTestSite(siteKey, true, `en,fr,${READABILITY.map(r => r.lang).filter(l => l !== 'en').join(',')}`);
         createTestUser(admin, `/sites/${siteKey}`, ['site-administrator']);
-        addNodeTree(`/sites/${siteKey}/home`, page('cg-outline', [{name: 'outline', primaryNodeType: 'jnt:bigText',
-            properties: [{name: 'text', language: 'en', value: OUTLINE}]}]));
-        addNodeTree(`/sites/${siteKey}/home`, page('cg-readability', [{name: 'text', primaryNodeType: 'jnt:text',
-            properties: READABILITY.map(({lang, text}) => ({name: 'text', language: lang, value: text}))}]));
+        addNodeTree(`/sites/${siteKey}/home`, page('cg-outline', [{language: 'en', value: OUTLINE}]));
+        addNodeTree(`/sites/${siteKey}/home`, page('cg-readability',
+            READABILITY.map(({lang, text}) => ({language: lang, value: `<p>${text}</p>`}))));
     });
 
     beforeEach(() => {
@@ -199,7 +202,7 @@ describe('Content Governance - Page quality audit', () => {
 
     // The Readability tab counted skipped levels without saying which heading skips: the outline lists
     // every heading of the main content, and what is wrong with it.
-    it('lists the headings as an outline, with the level a heading skips and a heading without text', () => {
+    it('lists the headings as an outline, with a heading without text', () => {
         const outline = `${DRAWER} ol[aria-label="Heading outline"]`;
         cy.login(admin.username, admin.password);
         cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home/cg-outline`);
@@ -209,15 +212,12 @@ describe('Content Governance - Page quality audit', () => {
         cy.get('#audit-tab-readability').click();
         cy.contains(`${outline} li`, 'Outline section', {timeout: 30000})
             .should('contain.text', 'H2').and('not.contain.text', 'Skips');
-        cy.contains(`${outline} li`, 'Outline detail')
-            .should('contain.text', 'H4').and('contain.text', 'Skips from H2 to H4');
+        cy.contains(`${outline} li`, 'Outline detail').should('contain.text', 'H3').and('not.contain.text', 'Skips');
         cy.contains(`${outline} li`, '(no text)').should('contain.text', 'H3').and('contain.text', 'Empty');
-        cy.get(DRAWER).contains('li', 'Skipped heading levels').find('strong')
-            .should($count => expect(Number($count.text())).to.be.greaterThan(0));
 
         // The heading is content of the page: it is marked in the page under edit
         cy.contains(`${outline} li`, 'Outline detail').find('button').click();
-        cy.get('iframe[data-sel-role="page-builder-frame-active"]').its('0.contentDocument.body').contains('h4', 'Outline detail')
+        cy.get('iframe[data-sel-role="page-builder-frame-active"]').its('0.contentDocument.body').contains('h3', 'Outline detail')
             .should($heading => expect($heading[0].style.outline, 'marked').to.contain('3px'));
     });
 
@@ -247,7 +247,7 @@ describe('Content Governance - Page quality audit', () => {
         cy.get(DRAWER).contains('automated rules passed', {timeout: 90000}).should('exist');
         gqlOk(asRoot(), CHECK_PAGE, {path}).then(data => {
             const expected = [...new Set((data.contentGovernance.checkPage.findings as {ruleId: string}[]).map(f => f.ruleId))];
-            expect(expected, 'the page breaks some rules').to.include('html.headingLevelSkipped');
+            expect(expected, 'the page breaks some rules').to.include('html.headingEmpty');
             const shown: string[] = [];
             ['accessibility', 'seo', 'readability', 'links', 'jahia'].forEach(tab => {
                 cy.get(`#audit-tab-${tab}`).click();
@@ -256,6 +256,9 @@ describe('Content Governance - Page quality audit', () => {
                 });
             });
             cy.wrap(shown).should(ids => expect(ids).to.include.members(expected));
+            framePageCheck({siteKey, locale: 'en', path}).then(findings => {
+                expect([...new Set(findings.map(finding => finding.rule))], 'frame.check reports the same rules').to.have.members(expected);
+            });
         });
     });
 

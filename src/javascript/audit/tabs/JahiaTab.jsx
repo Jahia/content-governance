@@ -12,6 +12,8 @@ export function JahiaTab({result, onHighlightText}) {
         <div>
             <Recommendations items={result.recommendations} ns="jahia" tab="jahia"/>
 
+            {result.contentRead === false && <p className={styles.warn}>{t('jahia.contentUnavailable')}</p>}
+
             <h4 className={styles.sectionTitle}>{t('jahia.summary')}</h4>
             <ul className={styles.statList}>
                 <li>{t('jahia.scanned', {count: result.scanned})}</li>

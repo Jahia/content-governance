@@ -120,9 +120,9 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   `pom.xml`). With them the read of the rule files fails with a `LinkageError`, on a Jahia that
   exports snakeyaml (8.2.4.0 does). Check the jar after a change of the parent or of the plugin.
 - **A readability score uses a formula published for the page language** (2026-10-31): one entry
-  per language in `FORMULAS` (`audit/analyzers/readability.js`), an adaptation of Flesch on its
-  0-100 scale so the bands and advice stay shared, its vowels in `VOWELS`, its source in the file
-  comment, and a hand-computed case in `src/test/javascript/readability.test.js`. A language without
+  per language in `FORMULAS` (`page/Readability.java`), an adaptation of Flesch on its
+  0-100 scale so the bands and advice stay shared, its vowels in `VOWELS`, its source in the class
+  comment, and a hand-computed case in `PageChecksTest.ReadabilityRules`. A language without
   one gets no score, never another language's; a language written without spaces gets no word count.
   A scale that reads the other way round (LIX) sets `scale` and is judged by `band`, never by
   comparing the raw score with Flesch thresholds.
@@ -136,7 +136,7 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   when it does not finish; the frame is audited after `FRAME_LOAD_LIMIT_MS` when its load event does
   not come. The audit spec's never-answering page proves both.
 - **Shared audits are counted and checked on the server** (2026-10-31): the drawer sends the
-  results; `AuditResults` keeps the tab results and `page` only, `AuditSummary` counts the issues,
+  results; `AuditResults` keeps the tab results, `page` and `version` only, `AuditSummary` counts the issues,
   `AuditAccess` checks `jContentAccess`, the section and the page with the caller's session before
   the store's system session. Only complete audits are stored, the last 10 per page and language;
   a tab added to the results gets its key in `AuditSummary.TAB_RESULTS`, its count in

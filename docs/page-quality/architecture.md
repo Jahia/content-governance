@@ -79,11 +79,12 @@ jContent / Page Builder header
   `common/HelpTab.jsx`) says what it is for, then `audit.tabs.aiNoAccess` when `settings.ai.reason`
   is `noAccess`, else `audit.tabs.aiNotConfigured`.
 
-A tab switched off is not measured. Its analyzer does not run, and its result is not cached,
-exported or sent to the AI review (`keepEnabled` in `AuditSection.jsx`). Web Vitals still runs as the
-input of Ecodesign, and the SEO read (a DOM pass) always runs for the page facts the AI tasks need:
+A tab switched off is not measured in the browser. Its analyzer does not run, and its result is not
+cached, exported or sent to the AI review (`keepEnabled` in `AuditSection.jsx`). Web Vitals still
+runs as the input of Ecodesign. The server check always runs, for the page facts the AI tasks need:
 `results.page` holds the title, the meta description and the number of images without alt, whatever
-the switches. Neither result is kept when its own tab is off. A cached audit that lacks a tab switched
+the switches. The server checks every tab that it fills, and the drawer drops the results of a tab
+that is off. No result is kept when its own tab is off. A cached audit that lacks a tab switched
 back on since is measured again; `CACHE_SCHEMA` 4 dropped caches from before `results.page`, 5 those from before per-language readability.
 The analyzers call no module endpoint; the server enforces the switches on the AI endpoint (see
 [Feature gates](#feature-gates)).

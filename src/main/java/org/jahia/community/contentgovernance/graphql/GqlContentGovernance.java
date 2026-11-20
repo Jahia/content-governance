@@ -195,7 +195,7 @@ public class GqlContentGovernance {
         Locale locale = Locales.of(language);
         HtmlCheck.Outcome outcome;
         try {
-            outcome = pages.render(JCRSessionFactory.getInstance().getCurrentUserSession("default", locale), path);
+            outcome = pages.renderWithState(JCRSessionFactory.getInstance().getCurrentUserSession("default", locale), path);
         } catch (RepositoryException e) {
             throw new DataFetchingException("The path could not be read");
         }

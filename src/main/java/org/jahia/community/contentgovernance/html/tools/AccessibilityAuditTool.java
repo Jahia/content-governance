@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.community.contentgovernance.html.HtmlCheck;
 import org.jahia.community.contentgovernance.html.rules.HtmlRule;
+import org.jahia.community.contentgovernance.page.SeoChecks;
 import org.jahia.community.contentgovernance.html.rules.HtmlRules;
 import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.modules.mcp.spi.tool.JahiaMcpTool;
@@ -100,11 +101,19 @@ public class AccessibilityAuditTool implements JahiaMcpTool {
                 if (!(outcome instanceof HtmlCheck.Rendered rendered)) {
                     return AuditTools.failed(outcome);
                 }
-                return ToolResult.ok(report(rendered, request, ctx.workspace(), check.findings(rendered, locale)));
+                return ToolResult.ok(report(rendered, request, ctx.workspace(), accessibility(check.findings(rendered, locale))));
             });
         } catch (RepositoryException e) {
             return AuditTools.unreadable();
         }
+    }
+
+    /** The findings of the HTML rules, and of the title and the description of a page. */
+    static List<Finding> accessibility(List<Finding> findings) {
+        return findings.stream()
+                .filter(finding -> HtmlRule.byId(finding.ruleId()) != null
+                        || SeoChecks.TITLE.equals(finding.ruleId()) || SeoChecks.DESCRIPTION.equals(finding.ruleId()))
+                .toList();
     }
 
     static ObjectNode report(HtmlCheck.Rendered rendered, AuditTools.Request request, String workspace,

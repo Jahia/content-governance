@@ -126,6 +126,7 @@ public class HealthChecks {
     public static Map<String, Object> describe(CheckInput input) {
         Family.Found found = read(input);
         Map<String, Object> out = new LinkedHashMap<>();
+        out.put("contentRead", input.fact(CONTENT) instanceof Content);
         if (input.fact(CONTENT) instanceof Content content) {
             out.put("scanned", content.scanned());
             out.put("activeLanguages", content.languages());

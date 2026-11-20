@@ -55,7 +55,7 @@ describe('the results of the check of the page on the server', () => {
             ['readability.veryHardText', 'veryHardTextLix'], ['html.headingH1Missing', 'h1Count']
         ]);
         expect(r.links.recommendations).toEqual([{key: 'brokenLinks', rule: 'links.broken', severity: 'critical', params: {count: 1}}]);
-        expect(r.jahia.recommendations[0].params).toEqual({count: 2, languages: 'fr, de'});
+        expect(r.jahia.recommendations[0].params, 'the counts come from the facts').toEqual({count: 1, languages: 'fr'});
     });
 
     it('lists another rule under the advice of the rule, in the tab of its domain', () => {

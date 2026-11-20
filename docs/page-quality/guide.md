@@ -5,8 +5,11 @@ are editing before you publish it: accessibility, SEO, speed, readability, eco-d
 Jahia-specific problems such as missing translations. When a server administrator has configured an
 AI model, it can also write suggestions for you to copy into the page.
 
-Everything runs in your browser, on a preview of the page in the language you are editing. The
-preview shows the editing version of the page, so it includes changes you have not published yet.
+The server checks the editing version of the page, in the language you are editing, for SEO,
+readability, links and Jahia problems. Your browser measures accessibility, speed and eco-design on a
+preview of the same version. Both include changes you have not published yet. An AI agent that calls
+the tool `frame.check` on the page gets the same findings as the server check, under the same rule
+ids.
 Nothing in this section changes your content: you read the findings, then fix them in Page Builder
 or Content Editor.
 
@@ -21,7 +24,7 @@ The first time, the section shows "Loading page preview…" then "Analyzing page
 waits for the page to settle before it measures, so expect several seconds.
 
 A page that keeps loading (an image, a font or a script that never answers) is audited after 20
-seconds as it stands. A check that takes too long (Accessibility 60 seconds, Links 45, Jahia 30, Web
+seconds as it stands. A check that takes too long (Accessibility 60 seconds, the server check 60, Web
 Vitals 15) or fails is stopped: its tab says "This check did not finish" or "This check failed" with
 a **Re-run** button, and the other tabs show their results. Such an audit is not kept for the next
 opening.
@@ -278,29 +281,27 @@ loading in templates, third-party scripts.
 
 ### Links
 
-- **Link summary**: total links, internal links (how many were verified, skipped or not verified
-  because of the limit) and external links.
-- **Broken links**: each with its HTTP status (or "error" when the request failed), its text, its
-  URL and **Highlight on the page**.
+- **Link summary**: total links, internal links and external links.
+- **Broken links**: each internal link that visitors cannot open, with its reason and **Highlight on
+  the page**. **Missing** means that no page or file is at the link's path. **Not published** means
+  that the target exists in the editing version but not on the live site.
 - **Recommendations**: broken internal links, absolute URLs hardcoded to this host (they break when
-  the site moves to another domain: use an internal page link instead), `http://` links on an
-  `https` page, `target="_blank"` links without `rel="noopener"`.
+  the site moves to another domain: use an internal page link instead), `http://` links,
+  `target="_blank"` links without `rel="noopener"`.
 
-Only internal links to pages and files are requested (paths under `/cms/render`, `/cms/file` and
-`/files`), at most 60 different URLs, with your own session. Login, logout and action URLs are never
-requested, and neither is any other internal path: they are all counted under "skipped
-(login/logout/actions)". External links are counted but cannot be verified from the browser: "external
-links are not verified (browser cross-origin restriction)".
+The server reads each internal link in the live site, as you, without an HTTP request. A link with
+no repository path, such as a vanity URL, is not checked. External links are counted and not
+verified.
 
-Because the check runs as you on the editing version, a link to a page you can see but visitors
-cannot (not published yet, restricted) passes here.
+When the server cannot check the internal links, the tab says **The internal links could not be
+checked** and the Jahia log gives the reason.
 
 ### Jahia
 
 The checks only Jahia can do.
 
-- **Page summary**: **Page publication status**, the number of content items analysed, the site
-  languages checked.
+- **Page summary**: the number of content items analysed and the site languages checked. The page
+  itself is listed as `/` when it has changes that are not published.
 - **Content not visible to visitors**: content items of the page that are modified, never
   published, unpublished, marked for deletion or in conflict. Publish the page to align what
   visitors see with what you edit.
@@ -311,8 +312,9 @@ The checks only Jahia can do.
 - **Placeholder text**: "lorem ipsum", "TODO", "FIXME", "XXX", "à compléter", "to be completed".
 
 The check covers up to 400 content items stored under the page, and stops at sub-pages. Content
-displayed from elsewhere (a listing, a reused item) is not checked. If the repository query fails,
-the tab says **Repository checks could not run** and keeps the on-page checks.
+displayed from elsewhere (a listing, a reused item) is not checked. If the server cannot read the
+state of the content, the tab says so, the Jahia log gives the reason, and the checks of the page text
+still run.
 
 ### AI review
 
@@ -406,8 +408,7 @@ fix the first ones, **Re-run**, then ask again.
 - **Readability**: a formula based on sentence and word length, with syllables estimated from vowel
   groups. It does not judge jargon or clarity, and only English, French, German, Spanish, Italian,
   Dutch and Portuguese get a score.
-- **Links**: external links are not verified. Internal links are verified as you, on the editing
-  version, up to 60 URLs.
+- **Links**: external links are not verified. Internal links are read in the live site, as you.
 - **Jahia**: only content stored under the page, up to 400 items.
 - **AI**: suggestions can be wrong and are never applied for you. The page text sent includes
   unpublished content.

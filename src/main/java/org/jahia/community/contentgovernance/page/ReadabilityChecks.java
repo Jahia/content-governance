@@ -105,6 +105,9 @@ public class ReadabilityChecks {
         out.put("spaced", spaced);
         List<Integer> paragraphs = paragraphWords(html);
         out.put("paragraphs", paragraphs.size());
+        for (String unmeasured : List.of("words", "gradeLevel", "readingMinutes", "longSentences")) {
+            out.put(unmeasured, null);
+        }
         if (!spaced) {
             String text = text(html);
             long characters = LETTER_OR_DIGIT.matcher(text).results().count();

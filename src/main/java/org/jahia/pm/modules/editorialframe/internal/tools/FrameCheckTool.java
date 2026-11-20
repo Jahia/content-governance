@@ -182,7 +182,7 @@ public class FrameCheckTool implements JahiaMcpTool {
         Locale language = Locales.of(locale == null ? "en" : locale);
         try {
             return ctx.withUserSession(language, session -> {
-                HtmlCheck.Outcome outcome = pages.render((JCRSessionWrapper) session, path);
+                HtmlCheck.Outcome outcome = pages.renderWithState((JCRSessionWrapper) session, path);
                 if (outcome instanceof HtmlCheck.NotFound) {
                     return ToolResult.error(ToolError.CODE_NOT_FOUND, "No page or content item at " + path + " for this user.",
                             "Check the path. Find a page with page.list, or a content item with content.search.");

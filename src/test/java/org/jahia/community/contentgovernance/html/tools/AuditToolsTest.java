@@ -65,6 +65,18 @@ class AuditToolsTest {
     }
 
     @Test
+    void keepsForAccessibilityTheHtmlRulesAndTheTitleAndDescriptionOfAPage() {
+        List<Finding> all = List.of(
+                new Finding("html.formLabelMissing", "critical", "<input>", null),
+                new Finding("seo.title", "serious", "0", null),
+                new Finding("links.broken", "critical", "/sites/digitall/old", "missing"),
+                new Finding("readability.hardText", "moderate", "41", "Flesch"));
+
+        assertEquals(List.of("html.formLabelMissing", "seo.title"),
+                AccessibilityAuditTool.accessibility(all).stream().map(Finding::ruleId).toList());
+    }
+
+    @Test
     void reportsEachFindingWithItsRuleCriterionAndScope() throws Exception {
         HtmlCheck.Rendered rendered = new HtmlCheck.Rendered("/sites/digitall/home", "jnt:page", Scope.PAGE,
                 Jsoup.parse(""), Set.of("localhost"), Map.of());

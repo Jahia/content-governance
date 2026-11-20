@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -308,7 +309,7 @@ class PageChecksTest {
             HtmlCheck.Rendered item = new HtmlCheck.Rendered(PATH + "/main/intro", "jnt:text", Scope.ITEM,
                     Jsoup.parse("<p>Intro</p>"), Set.of("localhost"));
 
-            assertThat(HtmlCheck.facts(item, java.util.Locale.ENGLISH, ContentRules.base()))
+            assertThat(HtmlCheck.facts(item, Locale.ENGLISH, ContentRules.base()))
                     .containsOnlyKeys("readability", "links", "jahia");
         }
     }

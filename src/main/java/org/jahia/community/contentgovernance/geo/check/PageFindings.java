@@ -3,6 +3,7 @@ package org.jahia.community.contentgovernance.geo.check;
 import org.jahia.community.contentgovernance.check.CheckRegistry;
 import org.jahia.community.contentgovernance.html.HtmlCheck;
 import org.jahia.community.contentgovernance.html.rules.Scope;
+import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.json.JSONArray;
 import org.jsoup.Jsoup;
 import org.osgi.framework.Bundle;
@@ -44,14 +45,19 @@ public final class PageFindings {
             return null;
         }
         try {
-            JSONArray out = new JSONArray();
-            checks.runRules(HtmlCheck.input(path, language, Jsoup.parse(html), Scope.PAGE), RULE_IDS).stream()
-                    .map(checked -> checked.rule().id())
-                    .distinct()
-                    .forEach(out::put);
-            return out;
+            return of(checks, ContentRules.forPath(path), path, language, html);
         } finally {
             context.ungetService(reference);
         }
+    }
+
+    /** {@link #of(String, String, String)} with the given registry and rules. */
+    static JSONArray of(CheckRegistry checks, ContentRules rules, String path, String language, String html) {
+        JSONArray out = new JSONArray();
+        checks.runRules(rules, HtmlCheck.input(path, language, Jsoup.parse(html), Scope.PAGE), RULE_IDS).stream()
+                .map(checked -> checked.rule().id())
+                .distinct()
+                .forEach(out::put);
+        return out;
     }
 }

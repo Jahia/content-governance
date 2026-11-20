@@ -1259,7 +1259,8 @@
             "title": "{{count}} placeholder texts on the page",
             "detail": "Lorem ipsum / TODO text is still visible. Replace it with final content before publishing."
           }
-        }
+        },
+        "contentUnavailable": "The publication and translation state of the content could not be read. The Jahia log says why."
       },
       "seo": {
         "preview": "Social sharing preview",
@@ -1393,7 +1394,8 @@
         "reasons": {
           "missing": "Missing",
           "not_published": "Not published"
-        }
+        },
+        "internalUnavailable": "The internal links could not be checked. The Jahia log says why."
       },
       "recs": {
         "title": "Recommendations",

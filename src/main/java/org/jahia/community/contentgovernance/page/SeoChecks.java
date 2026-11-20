@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jahia.community.contentgovernance.check.CheckServices;
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
+import org.jahia.community.contentgovernance.check.spi.ContentCheck;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.osgi.framework.BundleContext;
@@ -50,7 +51,12 @@ public class SeoChecks {
 
     @Activate
     void activate(BundleContext context) {
-        services.open(context, Family.checks(IDS, SHARED, SeoChecks::read), false);
+        services.open(context, checks(), false);
+    }
+
+    /** The check of each SEO rule of a whole page, by its id. */
+    public static Map<String, ContentCheck> checks() {
+        return Family.checks(IDS, SHARED, SeoChecks::read);
     }
 
     @Deactivate

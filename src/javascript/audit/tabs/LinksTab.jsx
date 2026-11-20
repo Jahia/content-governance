@@ -18,6 +18,8 @@ export function LinksTab({result, onHighlight}) {
         <div>
             <Recommendations items={result.recommendations} ns="links" tab="links"/>
 
+            {result.brokenRead === false && <p className={styles.warn}>{t('links.internalUnavailable')}</p>}
+
             <h4 className={styles.sectionTitle}>{t('links.summary')}</h4>
             <ul className={styles.statList}>
                 <li>{t('links.total')}: <strong>{result.total}</strong></li>

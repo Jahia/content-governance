@@ -132,7 +132,12 @@ public class CheckRegistry {
      * @return the findings, in the order of the rules
      */
     public List<Checked> runRules(CheckInput input, Set<String> ruleIds) {
-        return run(ContentRules.forPath(input.path()), input, rule -> ruleIds.contains(rule.id()));
+        return runRules(ContentRules.forPath(input.path()), input, ruleIds);
+    }
+
+    /** {@link #runRules(CheckInput, Set)} with the rules of the site. */
+    public List<Checked> runRules(ContentRules rules, CheckInput input, Set<String> ruleIds) {
+        return run(rules, input, rule -> ruleIds.contains(rule.id()));
     }
 
     /** {@link #run(CheckInput, Set)} with the rules of the site. */

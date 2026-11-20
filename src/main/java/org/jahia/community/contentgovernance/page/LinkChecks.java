@@ -98,6 +98,7 @@ public class LinkChecks {
         out.put("total", total);
         out.put("internal", total - external);
         out.put("external", external);
+        out.put("brokenRead", input.fact(BROKEN) instanceof List);
         out.put("broken", found.of(BROKEN_LINKS).stream()
                 .map(hit -> Map.of("path", hit.text(), "reason", hit.context()))
                 .toList());

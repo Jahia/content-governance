@@ -47,10 +47,10 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 /**
@@ -298,12 +298,12 @@ public class CrawlerCheckServlet extends GeoServlet {
         RobotsRules rules = rulesOf(siteFiles);
         out.put("siteFiles", siteFiles);
 
-        Map<String, String> bodies = new ConcurrentHashMap<>();
-        List<JSONObject> probed = probeAgents(publicUrl, target.base, bodies);
+        AtomicReference<String> control = new AtomicReference<>();
+        List<JSONObject> probed = probeAgents(publicUrl, target.base, control);
         tally(out, probed, rules, target.pagePath);
-        String control = controlBody(probed, bodies);
-        if (control != null) {
-            out.put(PageFindings.KEY, PageFindings.of(path, language, control));
+        // The first agent is the control when it answered: another control leaves the page checks out
+        if (control.get() != null && !probed.isEmpty() && probed.get(0).optInt("status", 0) == 200) {
+            out.put(PageFindings.KEY, PageFindings.of(path, language, control.get()));
         }
 
         // GEO-19 for this one page. A crawler served a login form gets a cheerful
@@ -383,7 +383,7 @@ public class CrawlerCheckServlet extends GeoServlet {
      * Fetched a few at a time, but returned strictly in submission order: the
      * control agent must stay first, because it is where controlWords comes from.
      */
-    private List<JSONObject> probeAgents(String publicUrl, String origin, Map<String, String> bodies) {
+    private List<JSONObject> probeAgents(String publicUrl, String origin, AtomicReference<String> control) {
         Map<String, String> toFetch = agents();
         List<String> names = new ArrayList<>(toFetch.keySet());
         List<JSONObject> probed = new ArrayList<>(names.size());
@@ -395,7 +395,8 @@ public class CrawlerCheckServlet extends GeoServlet {
                 String ua = toFetch.get(name);
                 futures.add(pool.submit((Callable<JSONObject>) () -> PageFetch.probe(
                         publicUrl, origin, name, ua,
-                        config.getFetchTimeoutMs(), config.getMaxBodyBytes(), html -> bodies.put(name, html))));
+                        config.getFetchTimeoutMs(), config.getMaxBodyBytes(),
+                        name.equals(names.get(0)) ? control::set : null)));
             }
             for (int i = 0; i < futures.size(); i++) {
                 probed.add(resultOf(futures.get(i), names.get(i)));
@@ -404,16 +405,6 @@ public class CrawlerCheckServlet extends GeoServlet {
             pool.shutdownNow();
         }
         return probed;
-    }
-
-    /** The HTML that the control received, the first agent that answered 200, or null when none did. */
-    private static String controlBody(List<JSONObject> probed, Map<String, String> bodies) {
-        for (JSONObject r : probed) {
-            if (r.optInt("status", 0) == 200 && r.optJSONObject("html") != null) {
-                return bodies.get(r.optString("name", ""));
-            }
-        }
-        return null;
     }
 
     /** One agent's result, or a synthetic failure: one agent must not lose the rest. */

@@ -91,12 +91,27 @@ public class HtmlCheck {
     }
 
     /**
-     * Renders the node at the path with the session.
+     * Renders the node at the path with the session, and reads only its HTML.
      *
      * @param session the session of the user, in the workspace and the locale to check
      * @param path    the absolute path of a page or of a content item
      */
     public Outcome render(JCRSessionWrapper session, String path) throws RepositoryException {
+        return render(session, path, false);
+    }
+
+    /**
+     * Renders the node at the path with the session, and reads in the repository the state of its content
+     * and of its internal links, which the checks of links and of Jahia health need.
+     *
+     * @param session the session of the user, in the workspace and the locale to check
+     * @param path    the absolute path of a page or of a content item
+     */
+    public Outcome renderWithState(JCRSessionWrapper session, String path) throws RepositoryException {
+        return render(session, path, true);
+    }
+
+    private Outcome render(JCRSessionWrapper session, String path, boolean withState) throws RepositoryException {
         JCRNodeWrapper node;
         try {
             node = session.getNode(path);
@@ -113,7 +128,7 @@ public class HtmlCheck {
         Document document = Jsoup.parse(html);
         Set<String> hosts = localHosts(node.getResolveSite());
         return new Rendered(node.getPath(), node.getPrimaryNodeTypeName(), scope, document, hosts,
-                repositoryFacts(node, document, hosts, session));
+                withState ? repositoryFacts(node, document, hosts, session) : Map.of(LinkChecks.LOCAL_HOSTS, hosts));
     }
 
     /** The state of the content and of its internal links. A part that cannot be read is left out, and logged. */
