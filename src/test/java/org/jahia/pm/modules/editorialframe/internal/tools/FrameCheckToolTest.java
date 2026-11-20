@@ -10,12 +10,8 @@ import org.jahia.modules.mcp.spi.tool.ToolContext;
 import org.jahia.modules.mcp.spi.tool.ToolResult;
 import org.jahia.pm.modules.editorialframe.api.EditorialFrameService;
 import org.jahia.pm.modules.editorialframe.api.Frame;
-import org.jahia.pm.modules.editorialframe.api.FrameContext;
-import org.jahia.pm.modules.editorialframe.api.FrameRequest;
 import org.jahia.pm.modules.editorialframe.api.GlossaryTerm;
 import org.jahia.pm.modules.editorialframe.api.RuleViolation;
-import org.jahia.pm.modules.editorialframe.api.SkillContent;
-import org.jahia.pm.modules.editorialframe.api.SkillSummary;
 import org.jahia.pm.modules.editorialframe.api.WritingRule.Kind;
 import org.jahia.pm.modules.editorialframe.api.WritingRule.Severity;
 import org.junit.jupiter.api.Test;
@@ -50,6 +46,17 @@ class FrameCheckToolTest {
         assertFalse(violations.get(0).has("match"), "A missing mention has no match");
         assertEquals("Robust", violations.get(1).path("match").asText());
         assertFalse(violations.get(1).has("missing"));
+    }
+
+    @Test
+    void eachViolationNamesItsRuleAndTheFolderOfTheRule() {
+        Frames frames = new Frames(List.of(new RuleViolation("compliance.guaranteed", Kind.FORBIDDEN, Severity.WARNING,
+                "guaranteed", "Guaranteed", null, null, "Guaranteed results", "/sites/digitall/contents/legal")));
+
+        JsonNode violation = new FrameCheckTool(frames).execute(input(null), new Context()).payload().path("violations").get(0);
+
+        assertEquals("compliance.guaranteed", violation.path("ruleId").asText());
+        assertEquals("/sites/digitall/contents/legal", violation.path("folder").asText());
     }
 
     @Test
@@ -166,36 +173,6 @@ class FrameCheckToolTest {
         @Override
         public Frame getFrame(String siteKey, String language) {
             throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public FrameContext buildContext(FrameRequest request) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Optional<String> authorVoice(String siteKey, String language, String username, String contentPath) {
-            return Optional.empty();
-        }
-
-        @Override
-        public List<SkillSummary> listSkills(String siteKey, String consumer) {
-            return List.of();
-        }
-
-        @Override
-        public List<SkillContent> listModuleSkills(String consumer) {
-            return List.of();
-        }
-
-        @Override
-        public Optional<SkillContent> readSkill(String siteKey, String name) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<String> readSkillFile(String siteKey, String name, String relativePath) {
-            return Optional.empty();
         }
     }
 

@@ -25,11 +25,10 @@ every tab shows, which findings are yours to fix and which belong to a developer
 - **[`compliance/glossary-guide.md`](compliance/glossary-guide.md)**: for the people who own the
   wording (Legal, compliance): writing glossaries and terms, how matching works.
 
-## If you own the voice and the writing rules of the brand
+## If you own the writing rules of the brand
 
 - **[`editorial-frame/guide.md`](editorial-frame/guide.md)**: the editorial frame, which holds the
-  voice, the personas, the writing rules, the translation glossary and the skills. The guide states
-  where they live, who reads them, the import and the endpoints.
+  writing rules and the translation glossary. The guide states where they live and who reads them.
 
 ## If you are a site administrator
 

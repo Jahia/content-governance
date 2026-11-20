@@ -7,6 +7,7 @@ import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.content.JCRTemplate;
 import org.jahia.services.content.decorator.JCRSiteNode;
+import org.jahia.settings.SettingsBean;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleEvent;
@@ -30,15 +31,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 
 /**
  * Copies the rules that the modules ship into each site that enables this module: one
  * {@value ContentRules#TYPE} node per rule, in the folder {@link ContentRules#folderOf} of the module.
  * A site gets the rules of this module, and of each other module that it installs.
  *
- * <p>Runs when a site installs a module, when a module that ships rules starts, and for every site when
- * this module starts. Each node keeps the fingerprint of the values that the seeder wrote, so a new
- * version of a module tells a rule that a site changed from a rule that nobody changed:</p>
+ * <p>Runs on the node where a site installs a module, for that site. Runs on the processing server when a
+ * module that ships rules starts, and for every site when this module starts: a browsing node of a cluster
+ * shares the repository and seeds nothing then. Each node keeps the fingerprint of the values that the
+ * seeder wrote, so a new version of a module tells a rule that a site changed from a rule that nobody
+ * changed:</p>
  * <ul>
  *   <li>A rule that the site lacks is added. A deleted rule node comes back with its shipped values.</li>
  *   <li>A rule that nobody changed takes the new shipped values.</li>
@@ -58,6 +62,10 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
     private static final Logger logger = LoggerFactory.getLogger(RuleSeeder.class);
 
     private BundleTracker<String> tracker;
+    /** True on the processing server, and on a Jahia that is not a cluster: the node that writes at start. */
+    private boolean processingServer;
+    /** Reads whether this node is the processing server. A test replaces it, because SettingsBean needs Jahia. */
+    BooleanSupplier processingServerCheck = () -> SettingsBean.getInstance().isProcessingServer();
 
     public RuleSeeder() {
         setWorkspace(EDIT_WORKSPACE);
@@ -79,12 +87,21 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
     }
 
     /**
-     * Converts the rules of an older version, then tracks the modules that ship rules. The tracker
-     * seeds every site with the rules of each module, this module included, as it finds them.
+     * Converts the rules and the glossary terms of an older version, then tracks the modules that ship
+     * rules. The tracker seeds every site with the rules of each module, this module included, as it finds
+     * them. The nodes of a cluster share one repository and start the module at the same time, so only the
+     * processing server converts and seeds: a browsing node never reads a node that the processing server
+     * writes in the same second.
      */
     @Activate
     public void activate(BundleContext context) {
-        LegacyRules.migrate();
+        processingServer = processingServerCheck.getAsBoolean();
+        if (processingServer) {
+            LegacyRules.migrate();
+            LegacyTerms.migrate();
+        } else {
+            logger.debug("A browsing node leaves the conversions and the seeding to the processing server");
+        }
         tracker = new BundleTracker<>(context, Bundle.ACTIVE, this);
         tracker.open();
     }
@@ -104,7 +121,9 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
         }
         ShippedRules.put(shipment);
         logger.info("Read {} content rules from the module {}", shipment.rules().size(), shipment.module());
-        seedSites(shipment.module());
+        if (processingServer) {
+            seedSites(shipment.module());
+        }
         return shipment.module();
     }
 

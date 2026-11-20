@@ -151,6 +151,9 @@ public class FrameCheckTool implements JahiaMcpTool {
         ArrayNode list = result.putArray("violations");
         for (RuleViolation violation : violations) {
             ObjectNode item = list.addObject();
+            // The rule and its folder, as the Compliance section of the drawer names them.
+            item.put("ruleId", violation.ruleId());
+            item.put("folder", violation.folder());
             item.put("kind", violation.kind().name().toLowerCase());
             item.put("severity", violation.severity().name().toLowerCase());
             item.put("pattern", violation.pattern());

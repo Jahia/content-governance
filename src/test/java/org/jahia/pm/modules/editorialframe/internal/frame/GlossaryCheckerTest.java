@@ -3,9 +3,6 @@
  */
 package org.jahia.pm.modules.editorialframe.internal.frame;
 
-import org.jahia.pm.modules.editorialframe.api.Frame;
-import org.jahia.pm.modules.editorialframe.api.FrameContext;
-import org.jahia.pm.modules.editorialframe.api.FrameRequest;
 import org.jahia.pm.modules.editorialframe.api.GlossaryTerm;
 import org.jahia.pm.modules.editorialframe.api.RuleViolation;
 import org.jahia.pm.modules.editorialframe.api.WritingRule;
@@ -14,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GlossaryCheckerTest {
@@ -103,26 +99,5 @@ class GlossaryCheckerTest {
                 "Créez un jeton d'authentification.");
         assertEquals(1, found.size());
         assertEquals(null, found.get(0).replacement(), "No approved rendering to name");
-    }
-
-    @Test
-    void theFrameDescribesTheFormsTheDefinitionAndAForbiddenTranslation() {
-        assertEquals("\"access token\" (en): write \"jeton d'accès\" (or \"jetons d'accès\") in fr. "
-                + "Meaning: A secret that lets a program call an API.", ContextBuilder.describe(TOKENS));
-        assertEquals("\"access token\" (en): never write \"jeton d'authentification\" (or \"jetons d'authentification\") "
-                + "in fr. Note: another concept", ContextBuilder.describe(AUTH_TOKEN));
-    }
-
-    @Test
-    void theFrameListsOnlyTheGlossaryTermsOfTheText() {
-        Frame frame = new Frame("digitall", "fr", List.of(), List.of(), List.of(), List.of(JAHIA, TOKEN), "f1");
-
-        FrameContext context = ContextBuilder.build(frame,
-                new FrameRequest("digitall", "fr", null, 1500, "Create an access token."));
-
-        String text = context.text();
-        assertTrue(text.contains("## Glossary"), text);
-        assertTrue(text.contains("\"access token\" (en): write \"jeton d'accès\" in fr. Note: never jeton d'authentification"), text);
-        assertFalse(text.contains("\"Jahia\" (en): keep it as it is in fr."), text);
     }
 }

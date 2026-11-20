@@ -1697,7 +1697,7 @@
     },
     "compliance": {
       "fixFirst": {
-        "term": "Término no autorizado «{{term}}» ({{count}})"
+        "term": "Término que cambiar «{{term}}» ({{count}})"
       },
       "action": {
         "open": "Análisis de cumplimiento"
@@ -1718,15 +1718,15 @@
         "noGlossary": "Sin comprobar"
       },
       "summary": {
-        "safe": "Ningún término no autorizado en el {{count}} contenido leído ({{language}}).",
-        "safe_plural": "Ningún término no autorizado en los {{count}} contenidos leídos ({{language}}).",
-        "safe_one": "Ningún término no autorizado en el {{count}} contenido leído ({{language}}).",
-        "safe_other": "Ningún término no autorizado en los {{count}} contenidos leídos ({{language}}).",
-        "issues": "{{count}} uso de un término no autorizado, en {{contents}} contenido(s) ({{language}}).",
-        "issues_plural": "{{count}} usos de términos no autorizados, en {{contents}} contenido(s) ({{language}}).",
-        "issues_one": "{{count}} uso de un término no autorizado, en {{contents}} contenido(s) ({{language}}).",
-        "issues_other": "{{count}} usos de términos no autorizados, en {{contents}} contenido(s) ({{language}}).",
-        "noGlossary": "Ningún glosario se aplica a {{language}}: no se comprobó nada."
+        "safe": "Ningún término que cambiar en el {{count}} contenido leído ({{language}}).",
+        "safe_plural": "Ningún término que cambiar en los {{count}} contenidos leídos ({{language}}).",
+        "safe_one": "Ningún término que cambiar en el {{count}} contenido leído ({{language}}).",
+        "safe_other": "Ningún término que cambiar en los {{count}} contenidos leídos ({{language}}).",
+        "issues": "{{count}} término que cambiar, en {{contents}} contenido(s) ({{language}}).",
+        "issues_plural": "{{count}} términos que cambiar, en {{contents}} contenido(s) ({{language}}).",
+        "issues_one": "{{count}} término que cambiar, en {{contents}} contenido(s) ({{language}}).",
+        "issues_other": "{{count}} términos que cambiar, en {{contents}} contenido(s) ({{language}}).",
+        "noGlossary": "Ninguna regla de término se aplica a {{language}}: no se comprobó nada."
       },
       "banner": {
         "beforePublishing": {
@@ -1734,8 +1734,8 @@
           "message": "Sustituya o elimine cada término indicado a continuación antes de publicar. Esta versión del análisis solo informa de los términos: no bloquea la publicación."
         },
         "noGlossary": {
-          "title": "No hay glosario para {{language}}",
-          "message": "Cree un glosario de Cumplimiento en los contenidos del sitio (jContent, Carpetas de contenido), defina su idioma como {{language}} y añada sus términos no autorizados."
+          "title": "No hay reglas de término para {{language}}",
+          "message": "Cree una carpeta de reglas en los contenidos del sitio (jContent, Carpetas de contenido) y añada las reglas de término de {{language}}, como los términos prohibidos."
         },
         "notFramed": {
           "title": "Listados no incluidos",
@@ -1747,11 +1747,11 @@
         }
       },
       "glossaries": {
-        "applied": "Glosarios aplicados:",
-        "item": "{{title}} ({{count}} término)",
-        "item_plural": "{{title}} ({{count}} términos)",
-        "item_one": "{{title}} ({{count}} término)",
-        "item_other": "{{title}} ({{count}} términos)"
+        "applied": "Carpetas de reglas aplicadas:",
+        "item": "{{title}} ({{count}} regla)",
+        "item_plural": "{{title}} ({{count}} reglas)",
+        "item_one": "{{title}} ({{count}} regla)",
+        "item_other": "{{title}} ({{count}} reglas)"
       },
       "origin": {
         "reference": "Contenido reutilizado",
@@ -1766,8 +1766,9 @@
         "term": "Término",
         "reason": "Motivo",
         "alternative": "Escriba en su lugar",
-        "listLabel": "Términos no autorizados encontrados, por contenido",
-        "glossary": "Glosario"
+        "listLabel": "Términos que cambiar, por contenido",
+        "glossary": "Carpeta",
+        "rule": "Regla"
       },
       "dashboard": {
         "navLabel": "Cumplimiento",

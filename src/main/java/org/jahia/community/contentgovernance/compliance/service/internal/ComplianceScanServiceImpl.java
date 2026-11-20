@@ -9,6 +9,9 @@ import org.jahia.community.contentgovernance.compliance.model.ScanStatus;
 import org.jahia.community.contentgovernance.compliance.model.SiteComplianceReport;
 import org.jahia.community.contentgovernance.compliance.model.TermUsage;
 import org.jahia.community.contentgovernance.compliance.service.spi.ComplianceScanService;
+import org.jahia.community.contentgovernance.rules.ContentRule;
+import org.jahia.community.contentgovernance.rules.ContentRules;
+import org.jahia.pm.modules.editorialframe.internal.frame.RuleChecker;
 import org.jahia.services.content.JCRNodeIteratorWrapper;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRPropertyWrapper;
@@ -57,10 +60,13 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
     private static final Set<String> SYSTEM_PREFIXES = Set.of("jcr", "j", "jmix", "jnt", "mix", "nt", "rep");
 
     private static final String CONTENT_FOLDER_TYPE = "jnt:contentFolder";
+    /** The nodes of the rules and of the older glossaries: their text is a rule, not content. */
+    private static final List<String> RULE_TYPES = List.of(ContentRules.TYPE, "ccs:glossary", "ccs:glossaryTerm");
 
     /** State of one scan. Not shared between calls. */
     private static final class Scan {
-        final TermMatcher matcher;
+        final ComplianceRules rules;
+        final RuleChecker.Finder finder;
         final Locale uiLocale;
         final boolean followReferences;
         final int maxNodes;
@@ -74,8 +80,11 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         int skipped;
         boolean truncated;
 
-        Scan(TermMatcher matcher, Locale uiLocale, boolean followReferences, int maxNodes, int maxIssues) {
-            this.matcher = matcher;
+        Scan(ComplianceRules rules, String language, Locale uiLocale, boolean followReferences, int maxNodes,
+             int maxIssues) {
+            this.rules = rules;
+            // Every place counts, up to the limit of issues of the scan.
+            this.finder = new RuleChecker.Finder(rules.writing(), language, maxIssues);
             this.uiLocale = uiLocale;
             this.followReferences = followReferences;
             this.maxNodes = maxNodes;
@@ -97,14 +106,13 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         JCRSessionWrapper session = page.getSession();
         String language = session.getLocale().toString();
         String sitePath = page.getResolveSite().getPath();
-        GlossaryReader.Glossaries glossaries = GlossaryReader.read(session, sitePath, language);
-        TermMatcher matcher = new TermMatcher(glossaries.terms());
-        if (matcher.isEmpty()) {
+        ComplianceRules rules = ComplianceRules.read(session, page.getResolveSite().getSiteKey(), language);
+        Scan scan = new Scan(rules, language, uiLocale, true, MAX_SCANNED_NODES, MAX_ISSUES);
+        if (scan.finder.isEmpty()) {
             return new ComplianceReport(page.getPath(), language, ScanStatus.NO_GLOSSARY, 0, false,
-                    glossaries.glossaries(), List.of());
+                    rules.folders(), List.of());
         }
 
-        Scan scan = new Scan(matcher, uiLocale, true, MAX_SCANNED_NODES, MAX_ISSUES);
         walk(page, IssueOrigin.PAGE, null, scan, true);
         for (JCRNodeWrapper area : ancestorAreas(page, sitePath)) {
             try {
@@ -129,7 +137,7 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         }
         ScanStatus status = scan.issues.isEmpty() ? ScanStatus.SAFE : ScanStatus.ISSUES;
         return new ComplianceReport(page.getPath(), language, status, scan.scanned, scan.truncated,
-                glossaries.glossaries(), List.copyOf(scan.issues));
+                rules.folders(), List.copyOf(scan.issues));
     }
 
     @Override
@@ -137,14 +145,13 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         JCRSessionWrapper session = site.getSession();
         String language = session.getLocale().toString();
         String sitePath = site.getPath();
-        GlossaryReader.Glossaries glossaries = GlossaryReader.read(session, sitePath, language);
-        TermMatcher matcher = new TermMatcher(glossaries.terms());
-        if (matcher.isEmpty()) {
+        ComplianceRules rules = ComplianceRules.read(session, site.getSiteKey(), language);
+        Scan scan = new Scan(rules, language, uiLocale, false, MAX_SITE_SCANNED_NODES, MAX_SITE_ISSUES);
+        if (scan.finder.isEmpty()) {
             return new SiteComplianceReport(site.getSiteKey(), language, ScanStatus.NO_GLOSSARY, 0, 0, 0, false,
-                    glossaries.glossaries(), List.of(), List.of());
+                    rules.folders(), List.of(), List.of());
         }
 
-        Scan scan = new Scan(matcher, uiLocale, false, MAX_SITE_SCANNED_NODES, MAX_SITE_ISSUES);
         List<LocationReport> locations = new ArrayList<>();
         int pages = 0;
         for (JCRNodeWrapper page : sitePages(session, sitePath)) {
@@ -159,7 +166,7 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         }
         ScanStatus status = locations.isEmpty() ? ScanStatus.SAFE : ScanStatus.ISSUES;
         return new SiteComplianceReport(site.getSiteKey(), language, status, pages, scan.scanned, scan.skipped,
-                scan.truncated, glossaries.glossaries(), List.copyOf(locations), termUsages(locations));
+                scan.truncated, rules.folders(), List.copyOf(locations), termUsages(locations));
     }
 
     private static List<JCRNodeWrapper> sitePages(JCRSessionWrapper session, String sitePath) throws RepositoryException {
@@ -178,7 +185,7 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
     private void scanContentItems(JCRNodeWrapper folder, Scan scan, List<LocationReport> locations) throws RepositoryException {
         for (JCRNodeIteratorWrapper it = folder.getNodes(); it.hasNext() && !scan.full(); ) {
             JCRNodeWrapper child = (JCRNodeWrapper) it.nextNode();
-            if (child.getName().startsWith("j:") || isGlossaryNode(child)) {
+            if (child.getName().startsWith("j:") || isRuleNode(child)) {
                 continue;
             }
             if (child.isNodeType(CONTENT_FOLDER_TYPE)) {
@@ -208,22 +215,19 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
     }
 
     private static List<TermUsage> termUsages(List<LocationReport> locations) {
-        record Key(String glossaryPath, String term) {
-        }
-        Map<Key, ComplianceIssue> first = new LinkedHashMap<>();
-        Map<Key, Integer> uses = new LinkedHashMap<>();
-        Map<Key, Set<String>> where = new LinkedHashMap<>();
+        Map<String, ComplianceIssue> first = new LinkedHashMap<>();
+        Map<String, Integer> uses = new LinkedHashMap<>();
+        Map<String, Set<String>> where = new LinkedHashMap<>();
         for (LocationReport location : locations) {
             for (ComplianceIssue issue : location.issues()) {
-                Key key = new Key(issue.glossaryPath(), issue.term());
-                first.putIfAbsent(key, issue);
-                uses.merge(key, 1, Integer::sum);
-                where.computeIfAbsent(key, k -> new HashSet<>()).add(location.path());
+                first.putIfAbsent(issue.ruleId(), issue);
+                uses.merge(issue.ruleId(), 1, Integer::sum);
+                where.computeIfAbsent(issue.ruleId(), k -> new HashSet<>()).add(location.path());
             }
         }
         List<TermUsage> usages = new ArrayList<>();
-        first.forEach((key, issue) -> usages.add(new TermUsage(issue.term(), issue.glossaryPath(), issue.reason(),
-                issue.alternative(), uses.get(key), where.get(key).size())));
+        first.forEach((ruleId, issue) -> usages.add(new TermUsage(ruleId, issue.term(), issue.folder(), issue.reason(),
+                issue.alternative(), uses.get(ruleId), where.get(ruleId).size())));
         usages.sort(Comparator.comparingInt(TermUsage::uses).reversed().thenComparing(TermUsage::term));
         return List.copyOf(usages);
     }
@@ -293,23 +297,14 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
 
     private void walk(JCRNodeWrapper node, IssueOrigin origin, String originPath, Scan scan, boolean root)
             throws RepositoryException {
-        if (scan.full() || (!root && node.isNodeType(PAGE_TYPE)) || isGlossaryNode(node) || !scan.visited.add(node.getIdentifier())) {
+        if (scan.full() || (!root && node.isNodeType(PAGE_TYPE)) || isRuleNode(node) || !scan.visited.add(node.getIdentifier())) {
             return;
         }
         scan.scanned++;
         scanProperties(node, origin, originPath, scan);
-
         if (scan.followReferences && node.isNodeType(NODE_REFERENCE_TYPE) && node.hasProperty(REFERENCE_PROPERTY)) {
-            try {
-                JCRNodeWrapper target = (JCRNodeWrapper) node.getProperty(REFERENCE_PROPERTY).getNode();
-                if (target != null) {
-                    walk(target, IssueOrigin.REFERENCE, origin == IssueOrigin.REFERENCE ? originPath : node.getPath(), scan, false);
-                }
-            } catch (ItemNotFoundException | PathNotFoundException e) {
-                logger.debug("Reference {} points to a node the session cannot read", node.getPath());
-            }
+            followReference(node, origin, originPath, scan);
         }
-
         for (JCRNodeIteratorWrapper it = node.getNodes(); it.hasNext() && !scan.full(); ) {
             JCRNodeWrapper child = (JCRNodeWrapper) it.nextNode();
             // j:translation_*, j:acl, j:conditionalVisibility, vanityUrlMapping...: system children, no visitor text.
@@ -319,8 +314,26 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         }
     }
 
-    private static boolean isGlossaryNode(JCRNodeWrapper node) throws RepositoryException {
-        return node.isNodeType(GlossaryReader.GLOSSARY_TYPE) || node.isNodeType(GlossaryReader.TERM_TYPE);
+    /** Walks the content that a content reference of the page points to. */
+    private void followReference(JCRNodeWrapper node, IssueOrigin origin, String originPath, Scan scan)
+            throws RepositoryException {
+        try {
+            JCRNodeWrapper target = (JCRNodeWrapper) node.getProperty(REFERENCE_PROPERTY).getNode();
+            if (target != null) {
+                walk(target, IssueOrigin.REFERENCE, origin == IssueOrigin.REFERENCE ? originPath : node.getPath(), scan, false);
+            }
+        } catch (ItemNotFoundException | PathNotFoundException e) {
+            logger.debug("Reference {} points to a node the session cannot read", node.getPath());
+        }
+    }
+
+    private static boolean isRuleNode(JCRNodeWrapper node) throws RepositoryException {
+        for (String type : RULE_TYPES) {
+            if (node.isNodeType(type)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void scanProperties(JCRNodeWrapper node, IssueOrigin origin, String originPath, Scan scan)
@@ -333,21 +346,40 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
             }
             Value[] values = property.isMultiple() ? property.getValues() : new Value[]{property.getValue()};
             for (Value value : values) {
-                String raw = value.getString();
-                if (raw == null || raw.isBlank()) {
-                    continue;
-                }
-                String text = definition.getSelector() == SelectorType.RICHTEXT ? PlainText.fromHtml(raw) : PlainText.collapse(raw);
-                for (TermMatcher.Match match : scan.matcher.find(text)) {
-                    if (scan.issueCount >= scan.maxIssues) {
-                        scan.truncated = true;
-                        return;
-                    }
-                    scan.issues.add(issue(node, property, definition, text, match, origin, originPath, scan.uiLocale));
-                    scan.issueCount++;
+                if (!scanValue(node, property, definition, value.getString(), origin, originPath, scan)) {
+                    return;
                 }
             }
         }
+    }
+
+    /**
+     * Adds an issue for each place where one value breaks a rule, in the order of the text.
+     *
+     * @return false once the scan reached its limit of issues
+     */
+    private static boolean scanValue(JCRNodeWrapper node, JCRPropertyWrapper property, ExtendedPropertyDefinition definition,
+                                     String raw, IssueOrigin origin, String originPath, Scan scan) throws RepositoryException {
+        if (raw == null || raw.isBlank()) {
+            return true;
+        }
+        String text = definition.getSelector() == SelectorType.RICHTEXT ? PlainText.fromHtml(raw) : PlainText.collapse(raw);
+        if (text.length() > RuleChecker.MAX_TEXT) {
+            // The rules read the start of a long value only.
+            scan.truncated = true;
+        }
+        List<RuleChecker.Match> matches = new ArrayList<>(scan.finder.find(text));
+        matches.sort(Comparator.comparingInt(RuleChecker.Match::start).thenComparingInt(RuleChecker.Match::end));
+        for (RuleChecker.Match match : matches) {
+            if (scan.issueCount >= scan.maxIssues) {
+                scan.truncated = true;
+                return false;
+            }
+            scan.issues.add(issue(node, property, definition, text, match, scan.rules.rules().get(match.rule().id()),
+                    origin, originPath, scan.uiLocale));
+            scan.issueCount++;
+        }
+        return true;
     }
 
     /** @return the definition of a property that holds visitor text, {@code null} for any other property */
@@ -367,14 +399,13 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
     }
 
     private static ComplianceIssue issue(JCRNodeWrapper node, JCRPropertyWrapper property, ExtendedPropertyDefinition definition,
-                                         String text, TermMatcher.Match match, IssueOrigin origin, String originPath,
-                                         Locale uiLocale) throws RepositoryException {
+                                         String text, RuleChecker.Match match, ContentRule rule, IssueOrigin origin,
+                                         String originPath, Locale uiLocale) throws RepositoryException {
         Excerpt excerpt = Excerpt.around(text, match.start(), match.end());
         ExtendedNodeType type = node.getPrimaryNodeType();
         return new ComplianceIssue(node.getPath(), node.getIdentifier(), node.getDisplayableName(), type.getLabel(uiLocale),
-                property.getName(), definition.getLabel(uiLocale, type),
-                match.term().term(), excerpt.match(), excerpt.before(), excerpt.after(),
-                match.term().reason(), match.term().alternative(), match.term().glossaryPath(),
-                origin, originPath);
+                property.getName(), definition.getLabel(uiLocale, type), rule.id(), rule.severity(),
+                match.rule().pattern(), excerpt.match(), excerpt.before(), excerpt.after(), rule.advice(),
+                match.rule().replacement(), rule.folder(), origin, originPath);
     }
 }

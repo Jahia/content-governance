@@ -15,13 +15,13 @@ import org.jahia.services.content.JCRNodeWrapper;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
-/** What the four tools of the frame share: their schemas and the check of the site. */
+/** What the tools of the frame share: their schemas and the check of the site. */
 final class FrameTools {
 
     static final ObjectMapper MAPPER = new ObjectMapper();
     /** The permission that the jContent of a site needs, which every editor of the site holds. */
     static final String ACCESS = "jContentAccess";
-    /** The name of the input that every tool of the frame takes. */
+    /** The name of the input that names the site. */
     static final String SITE_KEY_INPUT = "siteKey";
     /** The JSON Schema type of a text input. */
     static final String STRING_TYPE = "string";

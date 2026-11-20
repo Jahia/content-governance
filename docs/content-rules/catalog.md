@@ -20,7 +20,9 @@ properties.
 | `fixer` | The role of the person who fixes a finding: `editor`, `developer` or `administrator`. Example: `geo.reachable`, a crawler that gets a 403, names an administrator. |
 | `advice` | What to do about a finding, one text per language. For the evaluator `model`, the criterion that the model checks. |
 | `unit`, `minimum`, `maximum` | The limits of a rule of the evaluator `threshold`, in its unit. |
-| `kind`, `pattern`, `matchMode`, `replacement`, `ruleLanguage` | The pattern of a rule of the evaluator `pattern`: a forbidden term, a term to replace, a mandatory mention or a style pattern. |
+| `kind`, `pattern`, `matchMode`, `replacement`, `ruleLanguage` | The pattern of a rule of the evaluator `pattern`: a forbidden term, a term to replace, a mandatory mention or a style pattern. A term ignores case and accents, a `*` at its end matches the rest of the word, and a `*` at its start lets it end another word. |
+| `patternForms`, `replacementForms` | The other forms of the term and of the replacement, such as the plurals "access tokens" and "jetons d'accès". |
+| `patternLanguage` | For a glossary term to translate, the language of the term, such as `en` for "access token" in a rule of `fr`. `frame.check` on a translation then reports a missing replacement. |
 | `wrongExamples`, `rightExamples`, `owner`, `decidedOn`, `validFrom`, `validUntil` | The examples, the decision and the dates of a writing rule. |
 | `retired` | Set by the module on a rule that the site changed and that its module no longer ships. |
 
@@ -48,11 +50,11 @@ contents/content-insights/
         ...
     <module>/rules/               the rules of another module
     site/rules/                   the rules that the site adds
-contents/ai-assistant/rules/      the writing rules that the import of the editorial frame writes
 ```
 
 The checks read every `ccs:contentRule` node under the site, wherever it is. The folders above are
-where the module and the import write, and where a site keeps its own rules.
+where the module writes, and where a site keeps its own rules. Another module can write rules
+elsewhere, such as the writing rules that the frame import of ai-assistant writes.
 
 ## How a module ships rules
 
@@ -237,8 +239,8 @@ important. `minor` shows as advisory.
   and `readability.veryHardText` have a switch and a severity, and no limit.
 - The limits of a scan, such as the number of links that the Links tab checks, are not rules.
 - The length hints of the social card of the SEO assist (`og:description`) are not rules.
-- The skill `seo-review` states the default ranges of `seo.title` and `seo.metaDescription`. A change
-  on a site does not reach it.
+- The instructions that ai-assistant gives a model for an SEO review state the default ranges of
+  `seo.title` and `seo.metaDescription`. A change on a site does not reach them.
 
 ## The rules of this module
 

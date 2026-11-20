@@ -3,11 +3,14 @@
  */
 package org.jahia.pm.modules.editorialframe.internal.frame;
 
+import org.jahia.community.contentgovernance.text.FoldedText;
+import org.jahia.community.contentgovernance.text.TermPattern;
 import org.jahia.pm.modules.editorialframe.api.GlossaryTerm;
 import org.jahia.pm.modules.editorialframe.api.RuleViolation;
 import org.jahia.pm.modules.editorialframe.api.WritingRule;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -15,7 +18,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
 
 /**
  * Checks a translation against the glossary, with no model. Where the source holds a term of the
@@ -60,8 +62,10 @@ public final class GlossaryChecker {
                 termForms.computeIfAbsent(key(term), key -> new LinkedHashSet<>()).addAll(term.allTermForms());
             }
         }
-        Set<String> forbiddenFound = reportForbidden(pair, termForms, source, text, found);
-        reportMissing(pair, termForms, forbiddenFound, source, text, found);
+        FoldedText foldedSource = FoldedText.of(source);
+        FoldedText foldedText = FoldedText.of(text);
+        Set<String> forbiddenFound = reportForbidden(pair, termForms, foldedSource, foldedText, text, found);
+        reportMissing(pair, termForms, forbiddenFound, foldedSource, foldedText, source, found);
         return found;
     }
 
@@ -70,17 +74,18 @@ public final class GlossaryChecker {
      * term. Returns the terms so reported.
      */
     private static Set<String> reportForbidden(List<GlossaryTerm> pair, Map<String, Set<String>> termForms,
-                                               String source, String text, List<RuleViolation> found) {
+                                               FoldedText source, FoldedText folded, String text,
+                                               List<RuleViolation> found) {
         Set<String> forbiddenFound = new HashSet<>();
         for (GlossaryTerm term : pair) {
-            if (!term.forbidden() || !RuleChecker.termPattern(List.copyOf(termForms.get(key(term)))).matcher(source).find()) {
+            if (!term.forbidden() || first(termForms.get(key(term)), source) == null) {
                 continue;
             }
-            Matcher inText = RuleChecker.termPattern(term.allTranslationForms()).matcher(text);
-            if (inText.find()) {
+            TermPattern.Span inText = first(term.allTranslationForms(), folded);
+            if (inText != null) {
                 forbiddenFound.add(key(term));
                 found.add(new RuleViolation(term.id(), WritingRule.Kind.GLOSSARY, WritingRule.Severity.WARNING,
-                        term.term(), inText.group(), approved(pair, term), term.note(),
+                        term.term(), text.substring(inText.start(), inText.end()), approved(pair, term), term.note(),
                         RuleChecker.excerpt(text, inText.start(), inText.end())));
             }
         }
@@ -92,18 +97,25 @@ public final class GlossaryChecker {
      * lacks, unless a forbidden translation of the term was reported.
      */
     private static void reportMissing(List<GlossaryTerm> pair, Map<String, Set<String>> termForms,
-                                      Set<String> forbiddenFound, String source, String text, List<RuleViolation> found) {
+                                      Set<String> forbiddenFound, FoldedText folded, FoldedText text, String source,
+                                      List<RuleViolation> found) {
         for (GlossaryTerm term : pair) {
             if (term.forbidden() || forbiddenFound.contains(key(term))) {
                 continue;
             }
-            Matcher inSource = RuleChecker.termPattern(List.copyOf(termForms.get(key(term)))).matcher(source);
-            if (inSource.find() && !RuleChecker.termPattern(term.allTranslationForms()).matcher(text).find()) {
+            TermPattern.Span inSource = first(termForms.get(key(term)), folded);
+            if (inSource != null && first(term.allTranslationForms(), text) == null) {
                 found.add(new RuleViolation(term.id(), WritingRule.Kind.GLOSSARY, WritingRule.Severity.WARNING,
                         term.term(), null, term.translation(), term.note(),
                         RuleChecker.excerpt(source, inSource.start(), inSource.end())));
             }
         }
+    }
+
+    /** The first place of a form in a folded text, or null. */
+    private static TermPattern.Span first(Collection<String> forms, FoldedText text) {
+        TermPattern pattern = TermPattern.of(forms);
+        return pattern == null ? null : pattern.first(text);
     }
 
     /** One term, whatever its case, for one language pair. */

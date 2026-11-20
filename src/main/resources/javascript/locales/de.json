@@ -1697,7 +1697,7 @@
     },
     "compliance": {
       "fixFirst": {
-        "term": "Unzulässiger Begriff „{{term}}“ ({{count}})"
+        "term": "Zu ändernder Begriff „{{term}}“ ({{count}})"
       },
       "action": {
         "open": "Compliance-Scan"
@@ -1718,15 +1718,15 @@
         "noGlossary": "Nicht geprüft"
       },
       "summary": {
-        "safe": "Kein unzulässiger Begriff in {{count}} gelesenem Inhalt ({{language}}).",
-        "safe_plural": "Kein unzulässiger Begriff in {{count}} gelesenen Inhalten ({{language}}).",
-        "safe_one": "Kein unzulässiger Begriff in {{count}} gelesenem Inhalt ({{language}}).",
-        "safe_other": "Kein unzulässiger Begriff in {{count}} gelesenen Inhalten ({{language}}).",
-        "issues": "{{count}} Verwendung eines unzulässigen Begriffs in {{contents}} Inhalt(en) ({{language}}).",
-        "issues_plural": "{{count}} Verwendungen unzulässiger Begriffe in {{contents}} Inhalt(en) ({{language}}).",
-        "issues_one": "{{count}} Verwendung eines unzulässigen Begriffs in {{contents}} Inhalt(en) ({{language}}).",
-        "issues_other": "{{count}} Verwendungen unzulässiger Begriffe in {{contents}} Inhalt(en) ({{language}}).",
-        "noGlossary": "Für {{language}} gilt kein Glossar: Es wurde nichts geprüft."
+        "safe": "Kein zu ändernder Begriff in {{count}} gelesenem Inhalt ({{language}}).",
+        "safe_plural": "Kein zu ändernder Begriff in {{count}} gelesenen Inhalten ({{language}}).",
+        "safe_one": "Kein zu ändernder Begriff in {{count}} gelesenem Inhalt ({{language}}).",
+        "safe_other": "Kein zu ändernder Begriff in {{count}} gelesenen Inhalten ({{language}}).",
+        "issues": "{{count}} zu ändernder Begriff in {{contents}} Inhalt(en) ({{language}}).",
+        "issues_plural": "{{count}} zu ändernde Begriffe in {{contents}} Inhalt(en) ({{language}}).",
+        "issues_one": "{{count}} zu ändernder Begriff in {{contents}} Inhalt(en) ({{language}}).",
+        "issues_other": "{{count}} zu ändernde Begriffe in {{contents}} Inhalt(en) ({{language}}).",
+        "noGlossary": "Für {{language}} gilt keine Begriffsregel: Es wurde nichts geprüft."
       },
       "banner": {
         "beforePublishing": {
@@ -1734,8 +1734,8 @@
           "message": "Ersetzen oder entfernen Sie vor dem Veröffentlichen jeden der unten aufgeführten Begriffe. Diese Version des Scans meldet die Begriffe nur: Sie blockiert die Veröffentlichung nicht."
         },
         "noGlossary": {
-          "title": "Kein Glossar für {{language}}",
-          "message": "Erstellen Sie in den Inhalten der Website (jContent, Inhalts-Ordner) ein Compliance-Glossar, setzen Sie seine Sprache auf {{language}} und fügen Sie seine unzulässigen Begriffe hinzu."
+          "title": "Keine Begriffsregel für {{language}}",
+          "message": "Erstellen Sie in den Inhalten der Website (jContent, Inhalts-Ordner) einen Regelordner und fügen Sie ihm die Begriffsregeln für {{language}} hinzu, etwa verbotene Begriffe."
         },
         "notFramed": {
           "title": "Listen nicht enthalten",
@@ -1747,11 +1747,11 @@
         }
       },
       "glossaries": {
-        "applied": "Angewendete Glossare:",
-        "item": "{{title}} ({{count}} Begriff)",
-        "item_plural": "{{title}} ({{count}} Begriffe)",
-        "item_one": "{{title}} ({{count}} Begriff)",
-        "item_other": "{{title}} ({{count}} Begriffe)"
+        "applied": "Angewendete Regelordner:",
+        "item": "{{title}} ({{count}} Regel)",
+        "item_plural": "{{title}} ({{count}} Regeln)",
+        "item_one": "{{title}} ({{count}} Regel)",
+        "item_other": "{{title}} ({{count}} Regeln)"
       },
       "origin": {
         "reference": "Wiederverwendeter Inhalt",
@@ -1766,8 +1766,9 @@
         "term": "Begriff",
         "reason": "Grund",
         "alternative": "Stattdessen schreiben",
-        "listLabel": "Gefundene unzulässige Begriffe, nach Inhalt",
-        "glossary": "Glossar"
+        "listLabel": "Zu ändernde Begriffe, nach Inhalt",
+        "glossary": "Ordner",
+        "rule": "Regel"
       },
       "dashboard": {
         "navLabel": "Compliance",

@@ -3,6 +3,6 @@
 content-governance: minor
 ---
 
-Added the editorial frame of a brand: its voice, personas, writing rules, glossary and skills.
+Added the editorial frame of a brand: its writing rules and its translation glossary, checked with no model.
 
-The module editorial-frame held it before: uninstall that module first. The tools for AI agents need the optional module mcp-server.
+The module editorial-frame held it before: uninstall that module first. The tool for AI agents needs the optional module mcp-server.

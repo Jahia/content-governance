@@ -1,12 +1,13 @@
 package org.jahia.community.contentgovernance.compliance.model;
 
 /**
- * A glossary applied by a scan.
+ * A folder of rules that a scan applied, such as the terms of the legal team.
  *
- * @param path      path of the {@code ccs:glossary} node
- * @param uuid      identifier of the node, used by the dialog to open it in jContent
- * @param title     display name of the glossary
- * @param termCount number of terms of the glossary that the scan applied
+ * @param path      path of the folder
+ * @param uuid      identifier of the folder, used to open it in jContent, or {@code null} when the user
+ *                  cannot read it
+ * @param title     display name of the folder
+ * @param termCount number of rules of the folder that the scan applied
  */
 public record Glossary(String path, String uuid, String title, int termCount) {
 }
