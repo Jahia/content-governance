@@ -8,14 +8,20 @@ Jahia health.
 
 These callers use the service, and get the same findings under the same rule ids for one page:
 
-- the GraphQL field `checkPage(path, language)`;
+- the GraphQL field `checkPage(path, language)`, which the drawer of **Page quality** calls;
 - the tool `frame.check`, with a `path` instead of a `text`;
 - the tool `audit.accessibility`;
 - the GraphQL field `checkText` with the scope `PAGE`, on an HTML text that the caller gives.
 
-The drawer of **Page quality** and the scan of a whole site do not call the service yet. The drawer
-still runs its analyzers in the browser of the editor, as [`architecture.md`](architecture.md)
-states, and reports under the same rule ids.
+`checkPage` also returns the facts that the tabs of the drawer show, as
+[`architecture.md`](architecture.md#the-server-check) states. Three checks of the drawer stay in the
+browser of the editor: accessibility with axe-core, the web vitals and eco-design. They measure what
+a browser loads and runs.
+
+The GEO site scan and the GEO readiness tab of the drawer fetch the page as a crawler. They run the
+SEO and HTML checks of the service on the HTML that the crawler receives. A GEO check of the HTML
+passes when the service finds nothing under its rule. [The GEO checks](../geo-readiness/checks.md)
+list them.
 
 ## How a check runs
 

@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Predicate;
 
 /**
  * Every {@link ContentCheck} that a started module registers, by the id that the evaluator of a rule
@@ -123,12 +124,27 @@ public class CheckRegistry {
         return run(ContentRules.forPath(input.path()), input, skipped);
     }
 
+    /**
+     * Runs on the input the checks of the given rules only, as {@link #run(CheckInput, Set)} does.
+     *
+     * @param input   what to check, whose path names the site
+     * @param ruleIds the ids of the rules to apply
+     * @return the findings, in the order of the rules
+     */
+    public List<Checked> runRules(CheckInput input, Set<String> ruleIds) {
+        return run(ContentRules.forPath(input.path()), input, rule -> ruleIds.contains(rule.id()));
+    }
+
     /** {@link #run(CheckInput, Set)} with the rules of the site. */
     List<Checked> run(ContentRules rules, CheckInput input, Set<String> skipped) {
+        return run(rules, input, rule -> !skipped.contains(rule.evaluator()));
+    }
+
+    private List<Checked> run(ContentRules rules, CheckInput input, Predicate<ContentRule> applies) {
         Scope scope = input.scope();
         List<Checked> out = new ArrayList<>();
         for (ContentRule rule : rules.all()) {
-            Registered registered = rule.enabled() && !skipped.contains(rule.evaluator()) ? find(rule.evaluator()) : null;
+            Registered registered = rule.enabled() && applies.test(rule) ? find(rule.evaluator()) : null;
             if (registered == null || registered.browser() || !registered.check().scopes().contains(scope)) {
                 continue;
             }

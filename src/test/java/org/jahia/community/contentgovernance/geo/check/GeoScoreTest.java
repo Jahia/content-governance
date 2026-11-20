@@ -56,6 +56,17 @@ class GeoScoreTest {
         return report;
     }
 
+    /** A control with the given html block, and the rules that the page checks found broken on it. */
+    private static JSONObject checked(JSONObject html, String... broken) {
+        JSONObject report = withControl(html);
+        JSONArray found = new JSONArray();
+        for (String ruleId : broken) {
+            found.put(ruleId);
+        }
+        report.put(PageFindings.KEY, found);
+        return report;
+    }
+
     private static JSONObject check(JSONObject score, String id) {
         JSONArray checks = score.getJSONArray("checks");
         for (int i = 0; i < checks.length(); i++) {
@@ -327,38 +338,50 @@ class GeoScoreTest {
             assertThat(passed(GeoScore.compute(report, RULES), "contentInInitialHtml")).isEqualTo(expected);
         }
 
-        @ParameterizedTest(name = "title of {0} chars -> passed={1}")
-        @CsvSource({"29, false", "30, true", "60, true", "61, false"})
-        @DisplayName("title is inclusive at both ends, thirty to sixty, the range of seo.title")
-        void title_boundsAreInclusive(int length, boolean expected) {
-            StringBuilder t = new StringBuilder();
-            for (int i = 0; i < length; i++) {
-                t.append('x');
-            }
-            JSONObject score = GeoScore.compute(withControl(
-                    new JSONObject().put("title", t.toString())), RULES);
+        @Test
+        @DisplayName("title passes unless the page checks found seo.title broken, and reports the length")
+        void title_followsThePageChecks() {
+            JSONObject html = new JSONObject().put("title", "x".repeat(35));
 
-            assertThat(passed(score, "title")).isEqualTo(expected);
-            assertThat(check(score, "title").getInt("value")).isEqualTo(length);
+            assertThat(passed(GeoScore.compute(checked(html), RULES), "title")).isTrue();
+            assertThat(passed(GeoScore.compute(checked(html, "seo.title"), RULES), "title")).isFalse();
+            assertThat(check(GeoScore.compute(checked(html), RULES), "title").getInt("value")).isEqualTo(35);
         }
 
         @Test
         @DisplayName("an absent title fails and reports length zero")
         void absentTitle_failsWithZero() {
-            JSONObject score = GeoScore.compute(withControl(new JSONObject()), RULES);
+            JSONObject score = GeoScore.compute(checked(new JSONObject(), "seo.title"), RULES);
 
             assertThat(passed(score, "title")).isFalse();
             assertThat(check(score, "title").getInt("value")).isZero();
         }
 
-        @ParameterizedTest(name = "{0} h1 -> passed={1}")
-        @CsvSource({"0, false", "1, true", "2, false"})
-        @DisplayName("singleH1 wants exactly one, so none and two both fail")
-        void singleH1_wantsExactlyOne(int count, boolean expected) {
-            JSONObject score = GeoScore.compute(withControl(
-                    new JSONObject().put("h1Count", count)), RULES);
+        @Test
+        @DisplayName("without the findings of the page checks, every check of the HTML fails")
+        void noPageFindings_failsTheChecksOfTheHtml() {
+            JSONObject score = GeoScore.compute(withControl(new JSONObject()
+                    .put("title", "x".repeat(35)).put("h1Count", 1).put("lang", "en").put("canonical", true)), RULES);
+
+            for (String id : new String[]{"title", "singleH1", "metaDescription", "canonical", "langDeclared",
+                    "structuredData", "imageAlt"}) {
+                assertThat(passed(score, id)).as(id).isFalse();
+            }
+        }
+
+        @ParameterizedTest(name = "{0} h1, {1} broken -> passed={2}, rule {3}")
+        @CsvSource({
+            "1, '',                     true,  html.headingH1Missing",
+            "0, html.headingH1Missing,  false, html.headingH1Missing",
+            "2, html.headingH1Multiple, false, html.headingH1Multiple"
+        })
+        @DisplayName("singleH1 fails on either h1 rule, and names the rule of the count it reports")
+        void singleH1_followsBothRules(int count, String broken, boolean expected, String rule) {
+            JSONObject html = new JSONObject().put("h1Count", count);
+            JSONObject score = GeoScore.compute(broken.isEmpty() ? checked(html) : checked(html, broken), RULES);
 
             assertThat(passed(score, "singleH1")).isEqualTo(expected);
+            assertThat(check(score, "singleH1").getString("rule")).isEqualTo(rule);
         }
 
         @Test
@@ -400,39 +423,13 @@ class GeoScoreTest {
             assertThat(passed(GeoScore.compute(report, RULES), "sameContentForCrawlers")).isTrue();
         }
 
-        @ParameterizedTest(name = "{0} images, {1} with a described alt, {2} with no alt -> passed={3}")
-        @CsvSource({
-            "0,  0, 0, true",
-            "10, 10, 0, true",
-            "10, 9, 1, false",
-            "10, 9, 0, true",
-            "1,  0, 1, false",
-            "1,  0, 0, true",
-            "1,  1, 0, true"
-        })
-        @DisplayName("imageAlt wants an alt attribute on every image, an empty alt marks a decorative image, and no images is not a failure")
-        void imageAlt_coversEveryImage(int images, int withAlt, int withoutAlt, boolean expected) {
-            JSONObject score = GeoScore.compute(withControl(new JSONObject()
-                    .put("images", images)
-                    .put("imagesWithAlt", withAlt)
-                    .put("imagesWithoutAlt", withoutAlt)), RULES);
+        @Test
+        @DisplayName("imageAlt passes unless the page checks found an image without alt")
+        void imageAlt_followsThePageChecks() {
+            JSONObject html = new JSONObject().put("images", 10).put("imagesWithAlt", 9);
 
-            assertThat(passed(score, "imageAlt")).isEqualTo(expected);
-        }
-
-        @ParameterizedTest(name = "{0} images, {1} with a described alt -> passed={2}")
-        @CsvSource({
-            "0,  0,  true",
-            "10, 10, true",
-            "10, 9,  false"
-        })
-        @DisplayName("imageAlt on a report stored before imagesWithoutAlt counts every image with no described alt")
-        void imageAlt_olderReport(int images, int withAlt, boolean expected) {
-            JSONObject score = GeoScore.compute(withControl(new JSONObject()
-                    .put("images", images)
-                    .put("imagesWithAlt", withAlt)), RULES);
-
-            assertThat(passed(score, "imageAlt")).isEqualTo(expected);
+            assertThat(passed(GeoScore.compute(checked(html), RULES), "imageAlt")).isTrue();
+            assertThat(passed(GeoScore.compute(checked(html, "html.imageAltMissing"), RULES), "imageAlt")).isFalse();
         }
 
         @Test
@@ -449,7 +446,7 @@ class GeoScoreTest {
         @Test
         @DisplayName("structuredData joins the JSON-LD types with a comma")
         void structuredData_joinsTypes() {
-            JSONObject score = GeoScore.compute(withControl(new JSONObject()
+            JSONObject score = GeoScore.compute(checked(new JSONObject()
                     .put("jsonLdTypes", new JSONArray().put("WebPage").put("Article"))), RULES);
 
             assertThat(passed(score, "structuredData")).isTrue();
@@ -457,10 +454,10 @@ class GeoScoreTest {
         }
 
         @Test
-        @DisplayName("an empty JSON-LD array is not structured data")
+        @DisplayName("structuredData fails when the page checks found no structured data")
         void structuredData_emptyArrayFails() {
-            JSONObject score = GeoScore.compute(withControl(new JSONObject()
-                    .put("jsonLdTypes", new JSONArray())), RULES);
+            JSONObject score = GeoScore.compute(checked(new JSONObject()
+                    .put("jsonLdTypes", new JSONArray()), "seo.structuredData"), RULES);
 
             assertThat(passed(score, "structuredData")).isFalse();
         }
@@ -468,7 +465,7 @@ class GeoScoreTest {
         @Test
         @DisplayName("langDeclared reports the language it found")
         void langDeclared_reportsTheValue() {
-            JSONObject score = GeoScore.compute(withControl(new JSONObject().put("lang", "fr")), RULES);
+            JSONObject score = GeoScore.compute(checked(new JSONObject().put("lang", "fr")), RULES);
 
             assertThat(passed(score, "langDeclared")).isTrue();
             assertThat(check(score, "langDeclared").getString("value")).isEqualTo("fr");
@@ -512,8 +509,8 @@ class GeoScoreTest {
     class Tally {
 
         @Test
-        @DisplayName("an empty report scores five of seventeen with ONE critical failure")
-        void emptyReport_scoresFiveOfSeventeen() {
+        @DisplayName("an empty report scores four of seventeen with TWO critical failures")
+        void emptyReport_scoresFourOfSeventeen() {
             // The exact baseline. If a refactor moves any of these four numbers it
             // has changed what every unscored page reports.
             //
@@ -528,14 +525,15 @@ class GeoScoreTest {
             //   sameContentForCrawlers controlWords is 0, so the thin-content loop
             //                          never runs and thin stays 0
             //
-            // Only contentInInitialHtml fails. A page that could not be fetched at
-            // all therefore scores better than a page that was fetched and found
-            // wanting. Pinned as today's behaviour, not endorsed.
+            // contentInInitialHtml fails, and imageAlt too: with no HTML the page
+            // checks did not run, so none of the checks of the HTML passes. A page
+            // that could not be fetched at all still scores better than a page that
+            // was fetched and found wanting. Pinned as today's behaviour, not endorsed.
             JSONObject score = GeoScore.compute(emptyReport(), RULES);
 
             assertThat(score.getInt("total")).isEqualTo(17);
-            assertThat(score.getInt("passed")).isEqualTo(5);
-            assertThat(score.getInt("criticalFailed")).isEqualTo(1);
+            assertThat(score.getInt("passed")).isEqualTo(4);
+            assertThat(score.getInt("criticalFailed")).isEqualTo(2);
             assertThat(score.getInt("importantFailed")).isEqualTo(7);
         }
 
@@ -589,7 +587,7 @@ class GeoScoreTest {
                     .put("imagesWithAlt", 2)
                     .put("jsonLdTypes", new JSONArray().put("WebPage"));
 
-            JSONObject report = withControl(html);
+            JSONObject report = checked(html);
             report.put("controlWords", 500);
             report.put("blockedCount", 0);
             report.put("siteFiles", new JSONObject()
@@ -611,7 +609,7 @@ class GeoScoreTest {
     class SiteRules {
 
         private JSONObject titled(int length, ContentRules rules) {
-            return GeoScore.compute(withControl(new JSONObject().put("title", "x".repeat(length))), rules);
+            return GeoScore.compute(checked(new JSONObject().put("title", "x".repeat(length)), "seo.title"), rules);
         }
 
         @Test
@@ -628,12 +626,10 @@ class GeoScoreTest {
         }
 
         @Test
-        @DisplayName("a site that changes the range of seo.title changes the verdict, and the check states the range")
-        void changedTitleRange_changesTheVerdict() {
+        @DisplayName("a check states the range of the rule of the site")
+        void changedTitleRange_isStated() {
             ContentRules site = RULES.changed("seo.title", null, null, 40.0, null);
 
-            assertThat(passed(titled(35, RULES), "title")).isTrue();
-            assertThat(passed(titled(35, site), "title")).isFalse();
             assertThat(check(titled(35, site), "title").getInt("min")).isEqualTo(40);
             assertThat(check(titled(35, site), "title").getInt("max")).isEqualTo(60);
         }
@@ -658,16 +654,6 @@ class GeoScoreTest {
 
             assertThat(check(titled(5, RULES), "title").getString("severity")).isEqualTo("important");
             assertThat(check(titled(5, site), "title").getString("severity")).isEqualTo("critical");
-        }
-
-        @ParameterizedTest(name = "description of {0} chars -> passed={1}")
-        @CsvSource({"49, false", "50, true", "160, true", "161, false"})
-        @DisplayName("the meta description follows the range of seo.metaDescription when its length is known")
-        void metaDescription_followsTheRange(int length, boolean expected) {
-            JSONObject score = GeoScore.compute(withControl(new JSONObject()
-                    .put("metaDescription", true).put("metaDescriptionLength", length)), RULES);
-
-            assertThat(passed(score, "metaDescription")).isEqualTo(expected);
         }
     }
 }

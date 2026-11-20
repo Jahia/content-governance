@@ -458,10 +458,18 @@ public final class SiteScorer {
             // the repository work for every page on the site.
             String url = resolveUrl(path, language, opts, out);
 
-            JSONObject agent = fetch(url, visibility, siteBase, opts, links);
+            String[] body = {null};
+            JSONObject agent = fetch(url, visibility, siteBase, opts, html -> {
+                body[0] = html;
+                LinkGraph.addPage(links, PublishedMap.pathOf(url), html);
+            });
             recordCanonical(url, agent, canonicals);
 
-            JSONObject score = GeoScore.compute(drawerReport(url, agent, visibility, siteFiles, rules), contentRules);
+            JSONObject report = drawerReport(url, agent, visibility, siteFiles, rules);
+            if (body[0] != null && agent.optInt(STATUS, 0) == 200) {
+                report.put(PageFindings.KEY, PageFindings.of(path, language, body[0]));
+            }
+            JSONObject score = GeoScore.compute(report, contentRules);
             return summarise(out, score);
         }
 
@@ -494,18 +502,16 @@ public final class SiteScorer {
          * it, and the critical guestReadable check does the talking.
          */
         private static JSONObject fetch(String url, JSONObject visibility, String siteBase, Options opts,
-                LinkGraph.Accumulator links) {
+                java.util.function.Consumer<String> body) {
             if (!visibility.optBoolean(GUEST_READABLE, true) || url == null) {
                 JSONObject agent = new JSONObject();
                 agent.put("name", SCAN_AGENT);
                 agent.put(STATUS, JSONObject.NULL);
                 return agent;
             }
-            // GEO-22. The link graph is built from the page we are already fetching,
-            // so it costs nothing beyond this request.
-            String from = PublishedMap.pathOf(url);
-            return PageFetch.probe(url, siteBase, SCAN_AGENT, agentUa(), opts.fetchTimeoutMs, opts.maxBodyBytes,
-                    html -> LinkGraph.addPage(links, from, html));
+            // GEO-22. The link graph and the page checks read the page we are already
+            // fetching, so they cost nothing beyond this request.
+            return PageFetch.probe(url, siteBase, SCAN_AGENT, agentUa(), opts.fetchTimeoutMs, opts.maxBodyBytes, body);
         }
 
         /**

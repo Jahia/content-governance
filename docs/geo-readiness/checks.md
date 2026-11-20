@@ -8,6 +8,10 @@ Each check applies one rule of the [catalog of content rules](../content-rules/c
 shows its id. The rule gives the limits, the severity and the switch of the check. A site that turns
 a rule off has one check less. The limits and severities below are the defaults of the catalog.
 
+Seven checks read the HTML of the page: `title`, `singleH1`, `metaDescription`, `canonical`,
+`langDeclared`, `structuredData` and `imageAlt`. The check service of Page quality runs their rules
+on the HTML that the crawler received. A check passes when the service finds nothing under its rule. A page that the crawler could not fetch fails these seven checks.
+
 **Severity** is about consequence, not effort.
 
 | Severity | Meaning |
@@ -122,7 +126,7 @@ Read from the initial HTML, before any JavaScript runs.
 
 **Important.** Without one, the summary shown beside an answer is generated from whatever text happens to come first.
 
-*Fails when:* Missing, under 50 characters, or over 160. Rule `seo.metaDescription`, the same rule as the SEO tab of Page quality. A report stored before the length was read judges the presence only.
+*Fails when:* Missing, under 50 characters, or over 160. Rule `seo.metaDescription`, the same rule as the SEO tab of Page quality. 
 
 *Shown in the interface as:* “Without one, the summary shown alongside an answer is generated from whatever text comes first. Keep it between 50 and 160 characters.”
 

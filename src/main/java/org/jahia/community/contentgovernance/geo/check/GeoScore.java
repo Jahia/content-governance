@@ -5,6 +5,9 @@ import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 /**
  * Turns the raw report into a small set of pass/fail checks.
  *
@@ -20,6 +23,9 @@ import org.json.JSONObject;
  *
  * Each check applies one rule of the site's catalog, and carries its id. The rule gives the
  * limits, the switch and the severity: serious and moderate show as important, minor as advisory.
+ * The checks of the HTML of the page, such as its title or the alt text of its images, are the page
+ * checks of the drawer: they pass when {@link PageFindings} found nothing under their rule. A report
+ * without those findings, such as one of a page that could not be fetched, fails them.
  *
  * One rule is deliberately absent: being disallowed in robots.txt is NOT a
  * failure. Refusing a crawler is a legitimate decision. What IS reported is a
@@ -131,6 +137,8 @@ public final class GeoScore {
         private final int unreachable;
         private final String unreachableError;
         private final int mismatches;
+        /** The ids of the rules that the page checks found broken, or null when they did not run. */
+        private final Set<String> broken;
 
         private Facts(JSONObject report) {
             this.agents = report.optJSONArray("agents");
@@ -145,6 +153,13 @@ public final class GeoScore {
             this.unreachableError = report.isNull("unreachableError") ? null : report.optString("unreachableError", null);
             this.mismatches = report.optInt("blockedButAllowedCount", 0)
                     + report.optInt("reachableButDisallowedCount", 0);
+            JSONArray found = report.optJSONArray(PageFindings.KEY);
+            this.broken = found == null ? null : found.toList().stream().map(String::valueOf).collect(Collectors.toSet());
+        }
+
+        /** True when the page checks ran and found nothing under the rule. */
+        private boolean passes(String ruleId) {
+            return broken != null && !broken.contains(ruleId);
         }
 
         static Facts of(JSONObject report) {
@@ -226,46 +241,35 @@ public final class GeoScore {
         checks.add("sameContentForCrawlers", CONTENT, "geo.sameContentForCrawlers", thin == 0, thin);
 
         String title = f.text(TITLE);
-        int titleLen = title == null ? 0 : title.length();
-        checks.add(TITLE, CONTENT, "seo.title", title != null && checks.rule("seo.title").accepts(titleLen), titleLen);
+        checks.add(TITLE, CONTENT, "seo.title", f.passes("seo.title"), title == null ? 0 : title.length());
 
         int h1 = f.number("h1Count");
-        checks.add("singleH1", CONTENT, h1 > 1 ? "html.headingH1Multiple" : "html.headingH1Missing", h1 == 1, h1);
+        checks.add("singleH1", CONTENT, h1 > 1 ? "html.headingH1Multiple" : "html.headingH1Missing",
+                f.passes("html.headingH1Missing") && f.passes("html.headingH1Multiple"), h1);
 
         int h2 = f.number("h2Count");
         checks.add("headingOutline", CONTENT, "geo.headingOutline", h2 > 0, h2);
 
-        // A report stored before the length was read has none: the presence alone then decides.
         boolean description = f.flag("metaDescription");
-        boolean measured = f.has("metaDescriptionLength");
-        int descriptionLen = f.number("metaDescriptionLength");
-        checks.add("metaDescription", CONTENT, "seo.metaDescription",
-                description && (!measured || checks.rule("seo.metaDescription").accepts(descriptionLen)),
-                description && measured ? descriptionLen : null);
-        checks.add("canonical", CONTENT, "seo.canonical", f.flag("canonical"), null);
-
-        String lang = f.text("lang");
-        checks.add("langDeclared", CONTENT, "html.pageLanguageMissing", lang != null, lang);
+        checks.add("metaDescription", CONTENT, "seo.metaDescription", f.passes("seo.metaDescription"),
+                description ? f.number("metaDescriptionLength") : null);
+        checks.add("canonical", CONTENT, "seo.canonical", f.passes("seo.canonical"), null);
+        checks.add("langDeclared", CONTENT, "html.pageLanguageMissing", f.passes("html.pageLanguageMissing"),
+                f.text("lang"));
 
         JSONArray types = f.control == null ? null : f.control.optJSONArray("jsonLdTypes");
         boolean hasSchema = types != null && types.length() > 0;
-        checks.add("structuredData", CONTENT, "seo.structuredData", hasSchema, hasSchema ? join(types) : null);
+        checks.add("structuredData", CONTENT, "seo.structuredData", f.passes("seo.structuredData"),
+                hasSchema ? join(types) : null);
 
         boolean fresh = f.has("dateModified");
         checks.add("freshness", CONTENT, "geo.dateModified", fresh, fresh ? f.text("dateModified") : null);
 
-        imageAlt(checks, f);
-    }
-
-    /**
-     * Every image has an alt attribute, and an empty one marks a decorative image. No image is not a
-     * failure: there is nothing to describe. A report stored before imagesWithoutAlt was read counts an
-     * empty alt as missing, until the next scan.
-     */
-    private static void imageAlt(Checks checks, Facts f) {
+        // An empty alt marks a decorative image: it counts as described
         int images = f.number("images");
         int missing = f.has("imagesWithoutAlt") ? f.number("imagesWithoutAlt") : images - f.number("imagesWithAlt");
-        checks.add("imageAlt", CONTENT, "html.imageAltMissing", missing <= 0, images == 0 ? null : (images - missing) + "/" + images);
+        checks.add("imageAlt", CONTENT, "html.imageAltMissing", f.passes("html.imageAltMissing"),
+                images == 0 ? null : (images - missing) + "/" + images);
     }
 
     /** How many agents received less than {@code ratio} of the text of the control. */

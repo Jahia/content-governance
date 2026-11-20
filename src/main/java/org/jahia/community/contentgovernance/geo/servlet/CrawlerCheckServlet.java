@@ -4,6 +4,7 @@ import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.community.contentgovernance.geo.check.AiCrawlers;
 import org.jahia.community.contentgovernance.geo.check.GeoScore;
 import org.jahia.community.contentgovernance.geo.check.PageFetch;
+import org.jahia.community.contentgovernance.geo.check.PageFindings;
 import org.jahia.community.contentgovernance.geo.check.Languages;
 import org.jahia.community.contentgovernance.geo.check.LinkGraph;
 import org.jahia.community.contentgovernance.geo.check.LlmsFreshness;
@@ -46,6 +47,7 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -296,7 +298,13 @@ public class CrawlerCheckServlet extends GeoServlet {
         RobotsRules rules = rulesOf(siteFiles);
         out.put("siteFiles", siteFiles);
 
-        tally(out, probeAgents(publicUrl, target.base), rules, target.pagePath);
+        Map<String, String> bodies = new ConcurrentHashMap<>();
+        List<JSONObject> probed = probeAgents(publicUrl, target.base, bodies);
+        tally(out, probed, rules, target.pagePath);
+        String control = controlBody(probed, bodies);
+        if (control != null) {
+            out.put(PageFindings.KEY, PageFindings.of(path, language, control));
+        }
 
         // GEO-19 for this one page. A crawler served a login form gets a cheerful
         // 200, so the fetch above cannot tell the difference. The repository can.
@@ -375,7 +383,7 @@ public class CrawlerCheckServlet extends GeoServlet {
      * Fetched a few at a time, but returned strictly in submission order: the
      * control agent must stay first, because it is where controlWords comes from.
      */
-    private List<JSONObject> probeAgents(String publicUrl, String origin) {
+    private List<JSONObject> probeAgents(String publicUrl, String origin, Map<String, String> bodies) {
         Map<String, String> toFetch = agents();
         List<String> names = new ArrayList<>(toFetch.keySet());
         List<JSONObject> probed = new ArrayList<>(names.size());
@@ -387,7 +395,7 @@ public class CrawlerCheckServlet extends GeoServlet {
                 String ua = toFetch.get(name);
                 futures.add(pool.submit((Callable<JSONObject>) () -> PageFetch.probe(
                         publicUrl, origin, name, ua,
-                        config.getFetchTimeoutMs(), config.getMaxBodyBytes())));
+                        config.getFetchTimeoutMs(), config.getMaxBodyBytes(), html -> bodies.put(name, html))));
             }
             for (int i = 0; i < futures.size(); i++) {
                 probed.add(resultOf(futures.get(i), names.get(i)));
@@ -396,6 +404,16 @@ public class CrawlerCheckServlet extends GeoServlet {
             pool.shutdownNow();
         }
         return probed;
+    }
+
+    /** The HTML that the control received, the first agent that answered 200, or null when none did. */
+    private static String controlBody(List<JSONObject> probed, Map<String, String> bodies) {
+        for (JSONObject r : probed) {
+            if (r.optInt("status", 0) == 200 && r.optJSONObject("html") != null) {
+                return bodies.get(r.optString("name", ""));
+            }
+        }
+        return null;
     }
 
     /** One agent's result, or a synthetic failure: one agent must not lose the rest. */
