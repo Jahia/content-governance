@@ -1,4 +1,5 @@
-import {addNodeTree, asRoot, createTestSite, deleteTestSite, gql, gqlOk} from '../support/cg';
+import {enableModule} from '@jahia/cypress';
+import {MODULE_NAME, addNodeTree, asRoot, createTestSite, deleteTestSite, gql, gqlOk, nodeExists} from '../support/cg';
 
 const NODE = `query N($path: String!) { jcr { nodeByPath(path: $path) {
     uuid primaryNodeType { name }
@@ -94,6 +95,9 @@ describe('Content Governance - conversion of the glossaries of an older version'
         cy.waitUntil(() => gql(asRoot(), NODE, {path: `${legal}/garanti`})
             .then(body => (body.data?.jcr as {nodeByPath?: {primaryNodeType: {name: string}}})?.nodeByPath?.primaryNodeType.name === 'ccs:contentRule'),
         {timeout: 60000, interval: 2000, errorMsg: 'the module did not convert the glossary terms'});
+        // The GraphQL fields of the module come back once the module registered them again.
+        cy.waitUntil(() => gql(asRoot(), SCAN_PAGE, {path: pagePath}).then(body => !body.errors),
+            {timeout: 60000, interval: 2000, errorMsg: 'the compliance scan did not answer after the restart'});
     });
 
     after(() => deleteTestSite(siteKey));
@@ -151,5 +155,39 @@ describe('Content Governance - conversion of the glossaries of an older version'
             expect(found['glossary.access-token']).to.include({folder: frame, matchedText: 'access tokens'});
             expect(found['glossary.auth-token']).to.include({matchedText: 'jeton d\'authentification', alternative: 'jeton d\'accès'});
         });
+    });
+});
+
+/**
+ * The example rule of a new site: a site that keeps compliance terms when it enables the module gets none,
+ * wherever its terms are.
+ */
+describe('Content Governance - example rule of a site that keeps terms', () => {
+    const siteKey = 'cg-legacy-seed';
+    const sitePath = `/sites/${siteKey}`;
+    const SEEDED = `query S($path: String!) { jcr { nodeByPath(path: $path) { seeded: property(name: "glossarySeeded") { value } } } }`;
+
+    before(() => {
+        createTestSite(siteKey, false);
+        addNodeTree(`${sitePath}/contents`, {
+            name: 'legal', type: 'jnt:contentFolder', children: [{
+                name: 'free', primaryNodeType: 'ccs:contentRule', properties: [
+                    {name: 'ruleId', value: 'compliance.free'},
+                    {name: 'domain', value: 'compliance'},
+                    {name: 'pattern', value: 'free'}
+                ]
+            }]
+        });
+        enableModule(MODULE_NAME, siteKey);
+    });
+
+    after(() => deleteTestSite(siteKey));
+
+    it('marks the site as seeded and creates no example', () => {
+        // The seeder runs on the event of the enabled module, so the run waits for its flag.
+        cy.waitUntil(() => gql(asRoot(), SEEDED, {path: `${sitePath}/content-governance`})
+            .then(body => (body.data?.jcr as {nodeByPath?: {seeded?: {value: string}}})?.nodeByPath?.seeded?.value === 'true'),
+        {timeout: 30000, interval: 1000, errorMsg: 'the seeder did not flag the site'});
+        nodeExists(`${sitePath}/contents/compliance-glossaries`).should('eq', false);
     });
 });
