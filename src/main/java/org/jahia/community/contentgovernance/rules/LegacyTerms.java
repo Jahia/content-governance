@@ -130,43 +130,79 @@ final class LegacyTerms {
     }
 
     /**
-     * Converts the terms of one workspace. {@code ids} maps the identifier of a node to its rule id: the edit
+     * Converts the terms of one workspace: each Compliance glossary with its terms, then the terms of the
+     * frame, each in a save of its own. {@code ids} maps the identifier of a node to its rule id: the edit
      * workspace fills it, so that a node keeps the same id in the live workspace.
      */
     private static void convert(JCRSessionWrapper session, Map<String, String> ids, Map<String, String> advice)
             throws RepositoryException {
         Map<String, Set<String>> taken = new HashMap<>();
-        List<Conversion> conversions = new ArrayList<>();
-        List<Node> glossaries = new ArrayList<>();
+        int terms = 0;
+        int glossaries = 0;
         for (Node glossary : realNodes(session, COMPLIANCE_GLOSSARY)) {
-            glossaries.add(glossary);
-            String language = text(glossary, "language");
-            NodeIterator children = glossary.getNodes();
-            while (children.hasNext()) {
-                Node child = children.nextNode();
-                if (child.isNodeType(COMPLIANCE_TERM) && text(child, TERM) != null) {
-                    String id = id(session, child, COMPLIANCE_DOMAIN, ids, taken);
-                    conversions.add(new Conversion(child, id, complianceRule(id, text(child, TERM),
-                            text(child, "matchMode"), text(child, "alternative"), language), COMPLIANCE_PROPERTIES,
-                            text(child, "reason")));
-                }
+            List<Conversion> conversions = complianceConversions(session, glossary, ids, taken);
+            if (saved(session, conversions, glossary, advice)) {
+                terms += conversions.size();
+                glossaries++;
             }
         }
-        conversions.addAll(frameConversions(session, ids, taken));
+        List<Conversion> frame = frameConversions(session, ids, taken);
+        if (!frame.isEmpty() && saved(session, frame, null, advice)) {
+            terms += frame.size();
+        }
+        if (terms + glossaries > 0) {
+            logger.info("Converted {} glossary terms and {} glossaries into content rules in the workspace {}", terms,
+                    glossaries, session.getWorkspace().getName());
+        }
+    }
+
+    /** The conversions of the terms of one Compliance glossary, with the language of the glossary. */
+    private static List<Conversion> complianceConversions(JCRSessionWrapper session, Node glossary, Map<String, String> ids,
+                                                          Map<String, Set<String>> taken) throws RepositoryException {
+        String language = text(glossary, "language");
+        List<Conversion> conversions = new ArrayList<>();
+        NodeIterator children = glossary.getNodes();
+        while (children.hasNext()) {
+            Node child = children.nextNode();
+            if (child.isNodeType(COMPLIANCE_TERM) && text(child, TERM) != null) {
+                String id = id(session, child, COMPLIANCE_DOMAIN, ids, taken);
+                conversions.add(new Conversion(child, id, complianceRule(id, text(child, TERM),
+                        text(child, "matchMode"), text(child, "alternative"), language), COMPLIANCE_PROPERTIES,
+                        text(child, "reason")));
+            }
+        }
+        return conversions;
+    }
+
+    /**
+     * Converts the nodes, then the glossary that holds them when there is one, and saves. A refusal, such as
+     * a glossary type that another module still declares, drops the changes and keeps the old nodes: the
+     * other glossaries still convert, and the next start tries again.
+     *
+     * @return true when the nodes were converted and saved
+     */
+    private static boolean saved(JCRSessionWrapper session, List<Conversion> conversions, Node glossary,
+                                 Map<String, String> advice) throws RepositoryException {
+        String where = glossary == null ? "the editorial frame" : glossary.getPath();
+        try {
+            for (Conversion conversion : conversions) {
+                convert(conversion);
+            }
+            if (glossary != null) {
+                toFolder(glossary);
+            }
+            session.save();
+        } catch (RepositoryException | RuntimeException e) {
+            session.refresh(false);
+            logger.warn("The glossary terms of {} could not be converted, so they stay as they are", where, e);
+            return false;
+        }
         for (Conversion conversion : conversions) {
-            convert(conversion);
             if (conversion.advice() != null && !conversion.advice().isBlank()) {
                 advice.put(conversion.node().getIdentifier(), conversion.advice());
             }
         }
-        for (Node glossary : glossaries) {
-            toFolder(glossary);
-        }
-        if (session.hasPendingChanges()) {
-            session.save();
-            logger.info("Converted {} glossary terms and {} glossaries into content rules in the workspace {}",
-                    conversions.size(), glossaries.size(), session.getWorkspace().getName());
-        }
+        return true;
     }
 
     /** The conversions of the terms of the frame, each forbidden translation with the approved one of its term. */
