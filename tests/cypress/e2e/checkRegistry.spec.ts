@@ -1,5 +1,5 @@
 import {enableModule} from '@jahia/cypress';
-import {addNodeTree, asRoot, createTestSite, deleteTestSite, gqlOk, nodeExists} from '../support/cg';
+import {addNodeTree, asRoot, assertRefused, createTestSite, deleteTestSite, gql, gqlOk, nodeExists} from '../support/cg';
 
 type RuleStatus = {id: string; evaluator: string; active: boolean; missingCheck: string | null; needs: string | null};
 type CheckFinding = {ruleId: string; severity: string; text: string};
@@ -140,6 +140,14 @@ describe('Content Governance - check registry', () => {
                 });
             });
         });
+    });
+
+    it('refuses a path that climbs out of the site it names', () => {
+        const climbing = `${sitePath}/../${siteKey}/home`;
+        gql(asRoot(), PAGE_CHECK, {path: climbing})
+            .then(body => assertRefused(body, ['contentGovernance', 'checkPage'], 'Invalid path'));
+        gql(asRoot(), CHECK, {path: climbing, text: 'A text', scope: 'VALUE'})
+            .then(body => assertRefused(body, ['contentGovernance', 'checkText'], 'Invalid path'));
     });
 
     it('never blocks on a rule of the browser, even when its node sets blocking', () => {

@@ -38,6 +38,7 @@ public class GqlContentGovernance {
 
     /** The longest text that checkText takes. */
     static final int MAX_TEXT = 200_000;
+    static final String INVALID_PATH = "Invalid path";
     private static final Pattern LANGUAGE = Pattern.compile("^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8}){0,3}$");
 
     @Inject
@@ -159,7 +160,7 @@ public class GqlContentGovernance {
             @GraphQLName("text") @GraphQLNonNull @GraphQLDescription("The text, or the HTML of a page for the scope PAGE") String text,
             @GraphQLName("scope") @GraphQLDescription("VALUE (the default) or PAGE") String scope) {
         CheckInput input = checkInput(path, language, text, scope);
-        SiteAccess.site(input.siteKey());
+        SiteAccess.site(siteOf(path));
         try {
             if (!JCRSessionFactory.getInstance().getCurrentUserSession("default").nodeExists(path)) {
                 throw new DataFetchingException(SiteAccess.DENIED);
@@ -189,7 +190,7 @@ public class GqlContentGovernance {
         if (!LANGUAGE.matcher(language).matches()) {
             throw new DataFetchingException("Invalid language");
         }
-        SiteAccess.site(CheckInput.page(path, language, "").siteKey());
+        SiteAccess.site(siteOf(path));
         Locale locale = Locales.of(language);
         HtmlCheck.Outcome outcome;
         try {
@@ -204,6 +205,23 @@ public class GqlContentGovernance {
             throw new DataFetchingException("Jahia could not render " + path);
         }
         return pages.findings(rendered, locale).stream().map(GqlCheckFinding::new).toList();
+    }
+
+    /**
+     * The key of the site of a path that a field reads a node at. The site gate reads the key from the
+     * start of the path, so a path that climbs with {@code ..}, such as {@code /sites/a/../b/home}, would
+     * pass the gate of one site and read a node of another: it is refused, as {@code frame.check} does.
+     *
+     * @param path the path that the caller gives
+     * @return the key of the site, the segment after {@code /sites/}
+     * @throws DataFetchingException when the path is not under {@code /sites/<siteKey>} or holds {@code ..}
+     */
+    static String siteOf(String path) {
+        String siteKey = CheckInput.value(path, null, "").siteKey();
+        if (siteKey == null || siteKey.isEmpty() || path.contains("..")) {
+            throw new DataFetchingException(INVALID_PATH);
+        }
+        return siteKey;
     }
 
     private static CheckInput checkInput(String path, String language, String text, String scope) {
