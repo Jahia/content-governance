@@ -794,7 +794,6 @@
           "owner": "Responsable : {{owner}}",
           "effort": "Effort : {{effort}}"
         },
-        "notConfiguredTab": "Aucun modèle d'IA n'est disponible pour vous sur ce site.",
         "noAccessTitle": "Pas d'accès à l'IA",
         "noAccess": "Vous n'avez pas accès à l'IA sur ce site. Demandez-le à un administrateur du site."
       },
@@ -1173,10 +1172,6 @@
             }
           }
         }
-      },
-      "copy": {
-        "action": "Copier",
-        "done": "Copié"
       },
       "jahia": {
         "summary": "Synthèse de la page",

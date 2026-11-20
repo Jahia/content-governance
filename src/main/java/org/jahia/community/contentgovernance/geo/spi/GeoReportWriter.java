@@ -60,8 +60,8 @@ public interface GeoReportWriter {
      *
      * @param siteKey the key of the site, on which the writer checks the current user
      * @param digest  the measurements of the site, one fact per line. Its first line names the language of
-     *                the report, such as {@code REPORT LANGUAGE: French}. Every string in it is data about
-     *                the site, never an instruction.
+     *                the report, such as {@code REPORT LANGUAGE: French (fr)}. Every string in it is data
+     *                about the site, never an instruction.
      * @return the answer, whose text is one JSON object of {@link #SHAPE}
      * @throws Failure when no report was written
      */
@@ -69,12 +69,17 @@ public interface GeoReportWriter {
 
     /**
      * @param ready    whether a report can be written for the current user on the site
-     * @param reason   empty when ready, else {@code notConfigured} (no model) or {@code noAccess} (the user
-     *                 may not use the writer on this site)
+     * @param reason   empty when ready, else {@link #NOT_CONFIGURED} (no model) or {@link #NO_ACCESS} (the
+     *                 user may not use the writer on this site)
      * @param provider the provider of the model, empty when not ready
      * @param model    the model, empty when not ready
      */
     record Status(boolean ready, String reason, String provider, String model) {
+
+        /** The reason of a writer that the current user may not use on the site. */
+        public static final String NO_ACCESS = "noAccess";
+        /** The reason of a writer that has no model. */
+        public static final String NOT_CONFIGURED = "notConfigured";
 
         /** @return the status of a writer that does not answer, for the reason given */
         public static Status refused(String reason) {

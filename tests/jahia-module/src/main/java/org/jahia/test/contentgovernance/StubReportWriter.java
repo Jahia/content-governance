@@ -16,7 +16,7 @@ public class StubReportWriter implements GeoReportWriter {
 
     @Override
     public Status status(String siteKey) {
-        return siteKey.startsWith(SITE_PREFIX) ? new Status(true, "", "stub", MODEL) : Status.refused("notConfigured");
+        return siteKey.startsWith(SITE_PREFIX) ? new Status(true, "", "stub", MODEL) : Status.refused(Status.NOT_CONFIGURED);
     }
 
     @Override

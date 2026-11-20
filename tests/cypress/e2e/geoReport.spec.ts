@@ -49,13 +49,19 @@ describe('Content Governance - GEO report through a writer of another module', (
                 {[token.name]: token.value}).then(response => {
                 expect(response.status).to.eq(200);
                 const report = response.body.report as Record<string, unknown>;
-                expect(report.summary).to.eq(`Stub report of ${siteKey} in French.`);
+                expect(report.summary).to.eq(`Stub report of ${siteKey} in French (fr).`);
                 expect(report.model).to.eq('stub-model');
                 expect(report.reportLanguage).to.eq('fr');
             });
             servlet('/geo/report', {action: 'read', path: sitePath, language: 'en'}, {[token.name]: token.value})
-                .its('body.report.summary').should('eq', `Stub report of ${siteKey} in French.`);
+                .its('body.report.summary').should('eq', `Stub report of ${siteKey} in French (fr).`);
         });
+    });
+
+    it('offers the Report tab on the GEO dashboard where the writer answers', () => {
+        cy.login(admin.username, admin.password);
+        cy.visit(`/jahia/jcontent/${siteKey}/en/apps/siteSettingsSeo/geoReadiness`);
+        cy.get('#geo-dash-tab-report', {timeout: 30000}).should('exist');
     });
 
     it('offers no report where the writer does not answer, and writes none', () => {

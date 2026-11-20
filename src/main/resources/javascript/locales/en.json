@@ -794,7 +794,6 @@
           "owner": "Owner: {{owner}}",
           "effort": "Effort: {{effort}}"
         },
-        "notConfiguredTab": "No AI model is available for you on this site.",
         "noAccessTitle": "No AI access",
         "noAccess": "You do not have AI access on this site. Ask a site administrator for it."
       },
@@ -1173,10 +1172,6 @@
             }
           }
         }
-      },
-      "copy": {
-        "action": "Copy",
-        "done": "Copied"
       },
       "jahia": {
         "summary": "Page summary",

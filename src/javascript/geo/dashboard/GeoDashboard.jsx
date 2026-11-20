@@ -32,7 +32,7 @@ import styles from './GeoDashboard.module.css';
  * The site score sits outside them because it is the summary of all three.
  */
 const GROUPS = [
-    // The written report is always listed, greyed out while no model answers this user on the site.
+    // The written report shows only while a module writes it and answers this user on the site.
     {id: 'overview', tabs: ['score', 'report']},
     {id: 'reach', tabs: ['visibility', 'links', 'vanity']},
     {id: 'usable', tabs: ['schema', 'languages', 'freshness']},
@@ -117,7 +117,9 @@ export const GeoDashboard = ({isOn}) => {
         }
     }, [siteKey, language, t]);
 
-    const groups = useMemo(() => GROUPS.filter(g => g.id !== 'citations' || isOn('citations')), [isOn]);
+    const groups = useMemo(() => GROUPS
+        .filter(g => g.id !== 'citations' || isOn('citations'))
+        .map(g => ({...g, tabs: g.tabs.filter(id => id !== 'report' || reportEnabled)})), [isOn, reportEnabled]);
 
     const {siteInfo} = useSiteInfo({
         siteKey,
@@ -188,21 +190,16 @@ export const GeoDashboard = ({isOn}) => {
                 {activeGroup.tabs.length > 1 && (
                     <div className={styles.subTabs}>
                         <Tab>
-                            {activeGroup.tabs.map(id => {
-                                const disabled = id === 'report' && !reportEnabled;
-                                const item = (
-                                    <TabItem
-                                        key={id}
-                                        id={`geo-dash-tab-${id}`}
-                                        aria-controls={`geo-dash-panel-${id}`}
-                                        label={t(`dashboard.tab.${id}`)}
-                                        isSelected={tab === id}
-                                        isDisabled={disabled}
-                                        onClick={() => setTab(id)}
-                                    />
-                                );
-                                return disabled ? <span key={id} title={t('report.notConfiguredTab')}>{item}</span> : item;
-                            })}
+                            {activeGroup.tabs.map(id => (
+                                <TabItem
+                                    key={id}
+                                    id={`geo-dash-tab-${id}`}
+                                    aria-controls={`geo-dash-panel-${id}`}
+                                    label={t(`dashboard.tab.${id}`)}
+                                    isSelected={tab === id}
+                                    onClick={() => setTab(id)}
+                                />
+                            ))}
                         </Tab>
                     </div>
                 )}

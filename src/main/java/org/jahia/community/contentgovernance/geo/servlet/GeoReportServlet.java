@@ -62,26 +62,27 @@ public class GeoReportServlet extends GeoServlet {
     private static final String OPERATION_FAILED = "operation failed";
     /** The reason of the status while no module registers a writer. */
     static final String ABSENT = "absent";
-
     /**
-     * Injected through the constructor rather than into the field, so a servlet
-     * the container shares between threads holds nothing mutable.
+     * The reports one user may ask for in ten minutes, before the digest of the site is built. Each one
+     * reads the whole scan, and the writer meters its own calls on top of this.
      */
+    static final int REPORT_RATE_MAX_CALLS = 5;
+    private static final long RATE_WINDOW_MS = 600_000L;
+
+    /** Injected through the constructor; it does not change while the servlet runs. */
     private final transient GeoReadinessConfigService config;
 
-    /** The writer that another module registers, or null: it may come and go while this servlet runs. */
+    /**
+     * The writer that another module registers, or null. It is the one field that changes while the
+     * servlet runs: the container swaps it when that module starts or stops.
+     */
     @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC,
             policyOption = ReferencePolicyOption.GREEDY)
-    private volatile GeoReportWriter writer;
+    private transient volatile GeoReportWriter writer;
 
     @Activate
     public GeoReportServlet(@Reference GeoReadinessConfigService config) {
         this.config = config;
-    }
-
-    /** For the tests, which build the servlet with no OSGi. */
-    void setWriter(GeoReportWriter writer) {
-        this.writer = writer;
     }
 
     /**
@@ -134,7 +135,7 @@ public class GeoReportServlet extends GeoServlet {
         if (sitePath == null) {
             return;
         }
-        run(ask, sitePath, req, resp);
+        run(ask, sitePath, user, req, resp);
     }
 
     /** What the caller asked for, or null once the refusal has been written. */
@@ -159,7 +160,7 @@ public class GeoReportServlet extends GeoServlet {
     }
 
     /** Reads the stored report, or asks for a new one. */
-    private void run(Ask ask, String sitePath, HttpServletRequest req, HttpServletResponse resp)
+    private void run(Ask ask, String sitePath, JahiaUser user, HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
         try {
             if ("read".equals(ask.action)) {
@@ -168,7 +169,7 @@ public class GeoReportServlet extends GeoServlet {
                 out.put("report", stored == null ? JSONObject.NULL : stored);
                 writeJson(resp, HttpServletResponse.SC_OK, out);
             } else if ("generate".equals(ask.action)) {
-                generate(sitePath, ask.language, ask.reportLanguage, req, resp);
+                generate(sitePath, ask.language, ask.reportLanguage, user, req, resp);
             } else {
                 deny(resp, HttpServletResponse.SC_BAD_REQUEST, "unknown action");
             }
@@ -230,15 +231,31 @@ public class GeoReportServlet extends GeoServlet {
         return out;
     }
 
-    /** The paid path: the writer must answer for the caller on the site; it meters its own calls. */
-    private void generate(String sitePath, String language, String reportLanguage,
+    /**
+     * The refusal of generate for the status of the writer, or null when the writer is ready. A writer
+     * that is absent or not configured gives NOT_CONFIGURED.
+     */
+    static GeoReportWriter.Failure.Reason refusalOf(GeoReportWriter.Status status) {
+        if (status.ready()) {
+            return null;
+        }
+        return GeoReportWriter.Status.NO_ACCESS.equals(status.reason())
+                ? GeoReportWriter.Failure.Reason.NO_ACCESS : GeoReportWriter.Failure.Reason.NOT_CONFIGURED;
+    }
+
+    /** The paid path: the writer must answer for the caller on the site, within the limit of the caller. */
+    private void generate(String sitePath, String language, String reportLanguage, JahiaUser user,
             HttpServletRequest req, HttpServletResponse resp)
             throws IOException, RepositoryException, GeoReportWriter.Failure {
         GeoReportWriter current = writer;
-        GeoReportWriter.Status status = statusOf(current, SiteScope.keyOf(sitePath));
-        if (!status.ready()) {
-            denyWriter(resp, "noAccess".equals(status.reason())
-                    ? GeoReportWriter.Failure.Reason.NO_ACCESS : GeoReportWriter.Failure.Reason.NOT_CONFIGURED);
+        GeoReportWriter.Failure.Reason refusal = refusalOf(statusOf(current, SiteScope.keyOf(sitePath)));
+        if (refusal != null) {
+            denyWriter(resp, refusal);
+            return;
+        }
+        // Counted before the digest, which reads the whole scan of the site.
+        if (!rateLimitOk(user.getUserKey(), RATE_WINDOW_MS, REPORT_RATE_MAX_CALLS)) {
+            deny(resp, TOO_MANY_REQUESTS, "rate limit");
             return;
         }
         String base = baseUrlFor(sitePath, language, req);
@@ -248,24 +265,40 @@ public class GeoReportServlet extends GeoServlet {
         writeJson(resp, HttpServletResponse.SC_OK, out);
     }
 
-    /** The refusal of a report that the writer did not write. */
-    private static void denyWriter(HttpServletResponse resp, GeoReportWriter.Failure.Reason reason) throws IOException {
+    /** The HTTP status of a report that the writer did not write. */
+    static int httpStatusOf(GeoReportWriter.Failure.Reason reason) {
         switch (reason) {
             case NO_ACCESS:
-                deny(resp, HttpServletResponse.SC_FORBIDDEN, "access required");
+                return HttpServletResponse.SC_FORBIDDEN;
+            case QUOTA:
+                return TOO_MANY_REQUESTS;
+            case NOT_CONFIGURED:
+                return HttpServletResponse.SC_CONFLICT;
+            default:
+                return HttpServletResponse.SC_BAD_GATEWAY;
+        }
+    }
+
+    /** The refusal of a report that the writer did not write: its status, and a fixed message. */
+    private static void denyWriter(HttpServletResponse resp, GeoReportWriter.Failure.Reason reason) throws IOException {
+        String message;
+        switch (reason) {
+            case NO_ACCESS:
+                message = "access required";
                 break;
             case QUOTA:
-                deny(resp, TOO_MANY_REQUESTS, "rate limit");
+                message = "rate limit";
                 break;
             case NOT_CONFIGURED:
-                deny(resp, HttpServletResponse.SC_CONFLICT, "no report writer");
+                message = "no report writer";
                 break;
             case OUTPUT_LIMIT:
-                deny(resp, HttpServletResponse.SC_BAD_GATEWAY, "provider failed: the answer reached its output budget");
+                message = "provider failed: the answer reached its output budget";
                 break;
             default:
-                deny(resp, HttpServletResponse.SC_BAD_GATEWAY, "provider failed");
+                message = "provider failed";
         }
+        deny(resp, httpStatusOf(reason), message);
     }
 
     private String baseUrlFor(String sitePath, String language, HttpServletRequest req) throws RepositoryException {

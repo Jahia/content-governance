@@ -48,7 +48,7 @@ describe('Content Governance - no model call', () => {
         gql(admin, `query { contentGovernance { siteSettings(siteKey: "${siteKey}") { disabled ai { configured } } } }`)
             .then(body => {
                 expect(body.errors, 'the field ai is gone').to.have.length.greaterThan(0);
-                expect(JSON.stringify(body.errors)).to.contain('ai');
+                expect(JSON.stringify(body.errors)).to.contain("Field 'ai'").and.to.contain('undefined');
             });
     });
 
@@ -74,5 +74,12 @@ describe('Content Governance - no model call', () => {
         cy.contains('Features', {timeout: 30000}).should('be.visible');
         cy.contains('BotRank').should('be.visible');
         cy.contains('AI model').should('not.exist');
+    });
+
+    it('offers no Report tab on the GEO dashboard while no module writes the report', () => {
+        cy.login(admin.username, admin.password);
+        cy.visit(`/jahia/jcontent/${siteKey}/en/apps/siteSettingsSeo/geoReadiness`);
+        cy.get('#geo-dash-group-overview', {timeout: 30000}).should('exist');
+        cy.get('#geo-dash-tab-report').should('not.exist');
     });
 });

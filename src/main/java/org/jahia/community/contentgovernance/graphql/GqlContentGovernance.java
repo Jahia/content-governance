@@ -69,7 +69,7 @@ public class GqlContentGovernance {
     @GraphQLField
     @GraphQLName("siteSettings")
     @GraphQLNonNull
-    @GraphQLDescription("The tabs of the drawer a site switched off, and whether AI is configured")
+    @GraphQLDescription("The tabs of the drawer a site switched off")
     public GqlSiteSettings siteSettings(
             @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey) {
         return GqlSiteSettings.of(SiteAccess.site(siteKey));

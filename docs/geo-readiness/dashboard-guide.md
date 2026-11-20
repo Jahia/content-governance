@@ -92,9 +92,8 @@ report the same failures.
 
 Everything else on this dashboard is measured. This tab asks a model to read those measurements and
 say what they add up to. Content Governance calls no model itself: another module, such as the AI
-Assistant, writes the report. The **Report** tab is always listed, but stays greyed out until that
-module answers you on this site. While the tab is greyed out, its tooltip shows *No AI model
-is available for you on this site.* The module answers you when two things are true:
+Assistant, writes the report. The **Report** tab shows only while that module answers you on this
+site. The module answers you when two things are true:
 
 - A server administrator installs a module that writes the report, and gives it a model (see
   [`architecture.md`](architecture.md#the-geo-report-writer)).

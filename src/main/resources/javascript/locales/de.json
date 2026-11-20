@@ -794,7 +794,6 @@
           "owner": "Zuständig: {{owner}}",
           "effort": "Aufwand: {{effort}}"
         },
-        "notConfiguredTab": "Auf dieser Website ist für Sie kein KI-Modell verfügbar.",
         "noAccessTitle": "Kein KI-Zugriff",
         "noAccess": "Sie haben auf dieser Website keinen KI-Zugriff. Bitten Sie einen Website-Administrator darum."
       },
@@ -1173,10 +1172,6 @@
             }
           }
         }
-      },
-      "copy": {
-        "action": "Kopieren",
-        "done": "Kopiert"
       },
       "jahia": {
         "summary": "Seitenübersicht",
