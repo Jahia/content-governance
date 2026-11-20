@@ -129,7 +129,11 @@ Han as written but composed (removing combining marks would turn ガ into カ; �
 into ガ, U+F900 into U+8C48) and turns fullwidth ASCII into plain ASCII.
 
 White space inside a term matches any run of white space. Each rule reports its own matches, so two
-rules with the same term each give a finding, with the advice of each rule. A match inside a form of
+rules with the same term each give a finding, with the advice of each rule. A term match that lies
+inside a longer term match of another rule reports nothing there: with the rules "Baggins" and
+"Sackville-Baggins", the text "Sackville-Baggins" gives one finding. `RuleChecker` then reads each
+rule to the end of the text, and a sort by start finds the matches inside a longer one. A regular
+expression neither hides a term nor is hidden by one. A match inside a form of
 the replacement of the rule is the right term: the replacement is searched in any case, with its
 accents.
 

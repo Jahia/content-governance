@@ -12,9 +12,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -35,8 +38,6 @@ public final class RuleChecker {
     private static final int MAX_MATCHES_PER_RULE = 3;
     /** A rule pattern that runs longer than this on one text is stopped: a regex can backtrack for hours. */
     static final long MAX_RULE_NANOS = 200_000_000L;
-    /** The most matches of one rule that a check reads before it drops the matches inside a longer term. */
-    private static final int MAX_CANDIDATES_PER_RULE = 100;
     private static final String TOO_COSTLY = "The writing rule {} is too costly on a text, so it is skipped";
 
     private RuleChecker() {
@@ -103,22 +104,33 @@ public final class RuleChecker {
             text = text.substring(0, MAX_TEXT);
         }
         Searched searched = new Searched(text);
+        List<Compiled> applying = new ArrayList<>();
         List<Compiled> forbidding = new ArrayList<>();
         for (WritingRule rule : rules) {
             Compiled compiled = rule.appliesTo(language) ? Compiled.of(rule) : null;
-            if (compiled == null) {
-                continue;
+            if (compiled != null) {
+                applying.add(compiled);
+                if (rule.kind() != Kind.MANDATORY) {
+                    forbidding.add(compiled);
+                }
             }
+        }
+        Map<WritingRule, List<Match>> byRule = new IdentityHashMap<>();
+        for (Match match : matches(forbidding, searched, MAX_MATCHES_PER_RULE)) {
+            byRule.computeIfAbsent(match.rule(), rule -> new ArrayList<>()).add(match);
+        }
+        // The violations come in the order of the rules, as the drawer and frame.check list them.
+        for (Compiled compiled : applying) {
+            WritingRule rule = compiled.rule();
             if (rule.kind() != Kind.MANDATORY) {
-                forbidding.add(compiled);
+                for (Match match : byRule.getOrDefault(rule, List.of())) {
+                    found.add(violation(rule, text.substring(match.start(), match.end()),
+                            excerpt(text, match.start(), match.end())));
+                }
             } else if (document && !cut && !compiled.found(searched)) {
                 // The part of a cut text that is left out may hold the term, so only a whole text lacks it.
                 found.add(violation(rule, null, null));
             }
-        }
-        for (Match match : matches(forbidding, searched, MAX_MATCHES_PER_RULE)) {
-            found.add(violation(match.rule(), text.substring(match.start(), match.end()),
-                    excerpt(text, match.start(), match.end())));
         }
         return found;
     }
@@ -130,36 +142,56 @@ public final class RuleChecker {
      * same term each report it.
      */
     private static List<Match> matches(List<Compiled> rules, Searched searched, int maxPerRule) {
+        long termRules = rules.stream().filter(one -> one.term() != null).count();
+        // A match of a rule can drop out inside a longer term, so each rule is read to the end of the text.
+        int limit = termRules > 1 ? Integer.MAX_VALUE : maxPerRule;
         List<Match> candidates = new ArrayList<>();
         for (Compiled one : rules) {
-            candidates.addAll(one.matches(searched, Math.max(maxPerRule, MAX_CANDIDATES_PER_RULE)));
+            candidates.addAll(one.matches(searched, limit));
         }
-        List<Match> terms = candidates.stream().filter(match -> match.rule().matchMode() == WritingRule.MatchMode.TERM).toList();
+        Set<Match> inside = insideLongerTerms(candidates);
         Map<WritingRule, Integer> counts = new IdentityHashMap<>();
         List<Match> kept = new ArrayList<>();
         for (Match match : candidates) {
-            if (insideLongerTerm(match, terms)) {
-                continue;
-            }
-            if (counts.merge(match.rule(), 1, Integer::sum) <= maxPerRule) {
+            if (!inside.contains(match) && counts.merge(match.rule(), 1, Integer::sum) <= maxPerRule) {
                 kept.add(match);
             }
         }
         return kept;
     }
 
-    /** True for a term that matches inside a strictly longer match of another term. */
-    private static boolean insideLongerTerm(Match match, List<Match> terms) {
-        if (match.rule().matchMode() != WritingRule.MatchMode.TERM) {
-            return false;
-        }
-        for (Match other : terms) {
-            boolean longer = other.end() - other.start() > match.end() - match.start();
-            if (other.rule() != match.rule() && longer && other.start() <= match.start() && match.end() <= other.end()) {
-                return true;
+    /**
+     * The term matches that lie inside a longer term match. The matches of one rule never overlap, so the
+     * longer match belongs to another rule. Two matches of the same place each stay.
+     */
+    private static Set<Match> insideLongerTerms(List<Match> candidates) {
+        List<Match> terms = new ArrayList<>();
+        for (Match match : candidates) {
+            if (match.rule().matchMode() == WritingRule.MatchMode.TERM) {
+                terms.add(match);
             }
         }
-        return false;
+        Set<Match> inside = Collections.newSetFromMap(new IdentityHashMap<>());
+        if (terms.size() < 2) {
+            return inside;
+        }
+        // By start, the longest first: a match is inside another one when a match that starts before it
+        // ends at or after its end, or when a match that starts at the same place ends after it.
+        terms.sort(Comparator.comparingInt(Match::start).thenComparing(Match::end, Comparator.reverseOrder()));
+        int reachBefore = -1;
+        int i = 0;
+        while (i < terms.size()) {
+            int start = terms.get(i).start();
+            int longestEnd = terms.get(i).end();
+            for (; i < terms.size() && terms.get(i).start() == start; i++) {
+                Match match = terms.get(i);
+                if (reachBefore >= match.end() || longestEnd > match.end()) {
+                    inside.add(match);
+                }
+            }
+            reachBefore = Math.max(reachBefore, longestEnd);
+        }
+        return inside;
     }
 
     private static RuleViolation violation(WritingRule rule, String match, String excerpt) {

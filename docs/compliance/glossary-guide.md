@@ -101,7 +101,7 @@ on its own, so it does not report a mandatory mention.
 - **The longer term wins.** A term that matches inside a longer match of another term rule reports
   nothing there. Example: with the rules "Baggins" to "Sacquet" and "Sackville-Baggins" to
   "Sacquet-de-Besace", the text "Sackville-Baggins" gets one finding, for the longer rule. Two rules
-  with the same term each report it.
+  with the same term each report it. A regular expression neither hides a term nor is hidden by one.
 - **A match inside the replacement is the right term.** Example: with the rule "mail" to "e-mail", the
   text "e-mail" passes. This search keeps the accents. With the rule "role" to "rôle", the text "rôle"
   passes and the text "role" gets a finding.
