@@ -12,6 +12,8 @@ import org.jahia.community.contentgovernance.html.rules.Scope;
 import org.jahia.community.contentgovernance.rules.ContentRule;
 import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -207,7 +209,8 @@ class PageChecksTest {
                     + "<p>Visit https://example.com/a.b</p><script>var x = 'cg:key.one';</script></body></html>")
                     .withFact(HealthChecks.CONTENT, new HealthChecks.Content(
                             List.of(new HealthChecks.Unpublished("/sites/digitall/home/main/intro", "jnt:text", "modified")),
-                            List.of(new HealthChecks.Untranslated("/sites/digitall/home/main/intro", "jnt:text", List.of("de", "fr")))));
+                            List.of(new HealthChecks.Untranslated("/sites/digitall/home/main/intro", "jnt:text", List.of("de", "fr"))),
+                            0, List.of(), null));
 
             List<Finding> found = run(input).stream().filter(finding -> finding.ruleId().startsWith("health.")).toList();
 
@@ -296,25 +299,23 @@ class PageChecksTest {
         @Test
         @DisplayName("the outline lists the headings of the main text and a selector of each, and the counts cover the page")
         void outline() {
-            Map<String, Object> facts = ReadabilityChecks.report(Jsoup.parse("<body><header><h2>Menu</h2><h4>Shop</h4></header>"
+            Document html = Jsoup.parse("<body><header><h2>Menu</h2><h4>Shop</h4></header>"
                     + "<h1>Site</h1><main>"
                     + "<h2>Intro</h2><section><h4>Detail</h4></section><section id='faq'><h2><img alt='Help'></h2>"
-                    + "<h3></h3></section></main></body>"), "en", 25);
+                    + "<h3></h3></section></main></body>");
+            Map<String, Object> facts = ReadabilityChecks.report(html, "en", 25);
 
             assertThat(facts).containsEntry("h1Count", 1).containsEntry("headingSkips", 2).containsEntry("headingCount", 4);
-            assertThat(list(facts.get("outline"))).containsExactly(
-                    Map.of("level", 2, "text", "Intro", "selector", "main > h2"),
-                    Map.of("level", 4, "text", "Detail", "selector", "main > section:nth-of-type(1) > h4", "skippedFrom", 2),
-                    Map.of("level", 2, "text", "Help", "selector", "#faq > h2"),
-                    Map.of("level", 3, "text", "", "selector", "#faq > h3", "empty", true));
-        }
-
-        @Test
-        @DisplayName("a selector escapes an id as CSS does")
-        void selector_escapesTheId() {
-            assertThat(HeadingOutline.escape("intro")).isEqualTo("intro");
-            assertThat(HeadingOutline.escape("1st")).isEqualTo("\\31 st");
-            assertThat(HeadingOutline.escape("a.b")).isEqualTo("a\\.b");
+            List<Object> outline = list(facts.get("outline"));
+            assertThat(outline).extracting(row -> map(row).get("level"), row -> map(row).get("text"),
+                    row -> map(row).get("skippedFrom"), row -> map(row).get("empty")).containsExactly(
+                    tuple(2, "Intro", null, null), tuple(4, "Detail", 2, null), tuple(2, "Help", null, null),
+                    tuple(3, "", null, true));
+            List<Element> headings = html.select("main h1, main h2, main h3, main h4, main h5, main h6");
+            for (int i = 0; i < outline.size(); i++) {
+                assertThat(html.select((String) map(outline.get(i)).get("selector")))
+                        .as("the selector of heading %d finds it alone", i).containsExactly(headings.get(i));
+            }
         }
 
         @Test

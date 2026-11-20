@@ -128,7 +128,7 @@ AltAssist.propTypes = {
     phase: PropTypes.string.isRequired,
     error: PropTypes.string,
     language: PropTypes.string.isRequired,
-    // Number of images without alt on the page (from the SEO analyzer); 0 hides the section
+    // Number of images without alt on the page (the page facts of the check of the server); 0 hides the section
     count: PropTypes.number,
     onGenerate: PropTypes.func.isRequired,
     onHighlight: PropTypes.func.isRequired

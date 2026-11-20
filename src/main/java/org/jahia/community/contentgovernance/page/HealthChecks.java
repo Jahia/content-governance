@@ -60,13 +60,10 @@ public class HealthChecks {
     private static final Pattern PLACEHOLDER = Pattern.compile(
             "lorem ipsum|\\bTODO\\b|\\bFIXME\\b|\\bXXX\\b|à compléter|to be completed",
             Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.CANON_EQ);
-    private static final Map<Integer, String> BAD_STATUSES = Map.of(
-            PublicationInfo.MODIFIED, "modified",
-            PublicationInfo.NOT_PUBLISHED, "not_published",
-            PublicationInfo.UNPUBLISHED, "unpublished",
-            PublicationInfo.MARKED_FOR_DELETION, "marked_for_deletion",
-            PublicationInfo.CONFLICT, "conflict");
-    /** Every status, for the status of the page that the drawer shows. */
+    /** The statuses of a node whose live version differs from its edit version. */
+    private static final Set<Integer> BAD_STATUSES = Set.of(PublicationInfo.MODIFIED, PublicationInfo.NOT_PUBLISHED,
+            PublicationInfo.UNPUBLISHED, PublicationInfo.MARKED_FOR_DELETION, PublicationInfo.CONFLICT);
+    /** The name of each status, as a finding and the drawer give it. */
     private static final Map<Integer, String> STATUSES = Map.ofEntries(
             Map.entry(PublicationInfo.PUBLISHED, "published"),
             Map.entry(PublicationInfo.MODIFIED, "modified"),
@@ -97,11 +94,6 @@ public class HealthChecks {
      */
     public record Content(List<Unpublished> unpublished, List<Untranslated> untranslated, int scanned,
                           List<String> activeLanguages, String pageStatus) {
-
-        /** The state of a node with no count and no language, as a test gives it. */
-        public Content(List<Unpublished> unpublished, List<Untranslated> untranslated) {
-            this(unpublished, untranslated, 0, List.of(), null);
-        }
     }
 
     private final CheckServices services = new CheckServices();
@@ -170,9 +162,8 @@ public class HealthChecks {
                         if (i == 0) {
                             pageStatus[0] = STATUSES.get(code);
                         }
-                        String status = BAD_STATUSES.get(code);
-                        if (status != null) {
-                            out.add(new Unpublished(item.getPath(), item.getPrimaryNodeTypeName(), status));
+                        if (BAD_STATUSES.contains(code)) {
+                            out.add(new Unpublished(item.getPath(), item.getPrimaryNodeTypeName(), STATUSES.get(code)));
                         }
                     }
                     return out;

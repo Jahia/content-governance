@@ -74,7 +74,8 @@ final class HeadingOutline {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put(LEVEL, level);
         row.put("text", text.length() > MAX_HEADING_CHARS ? text.substring(0, MAX_HEADING_CHARS) : text);
-        row.put("selector", selector(heading));
+        // A unique selector in the render, which the preview of the drawer resolves to the same heading
+        row.put("selector", heading.cssSelector());
         if (skippedFrom > 0) {
             row.put("skippedFrom", skippedFrom);
         }
@@ -96,49 +97,5 @@ final class HeadingOutline {
         }
         Element image = heading.selectFirst("img[alt]");
         return image == null ? "" : image.attr("alt").trim();
-    }
-
-    /**
-     * A selector of the element from the body of the page: the nearest id, then each tag, with its rank
-     * among the siblings of the same tag when it has some. Example: {@code main > section:nth-of-type(2) > h2}.
-     */
-    static String selector(Element element) {
-        List<String> parts = new ArrayList<>();
-        Element body = element.ownerDocument() == null ? null : element.ownerDocument().body();
-        Element node = element;
-        while (node != null && node != body && !"html".equals(node.normalName())) {
-            if (!node.id().isEmpty()) {
-                parts.add(0, "#" + escape(node.id()));
-                break;
-            }
-            String tag = node.normalName();
-            Element parent = node.parent();
-            String part = tag;
-            if (parent != null) {
-                List<Element> same = parent.children().stream().filter(child -> child.normalName().equals(tag)).toList();
-                if (same.size() > 1) {
-                    part += ":nth-of-type(" + (same.indexOf(node) + 1) + ")";
-                }
-            }
-            parts.add(0, part);
-            node = parent;
-        }
-        return String.join(" > ", parts);
-    }
-
-    /** An id as a CSS identifier, as {@code CSS.escape} writes it for the usual ids. */
-    static String escape(String id) {
-        StringBuilder out = new StringBuilder();
-        for (int i = 0; i < id.length(); i++) {
-            char c = id.charAt(i);
-            if (Character.isDigit(c) && (i == 0 || (i == 1 && id.charAt(0) == '-'))) {
-                out.append('\\').append(Integer.toHexString(c)).append(' ');
-            } else if (Character.isLetterOrDigit(c) || c == '-' || c == '_' || c >= 0x80) {
-                out.append(c);
-            } else {
-                out.append('\\').append(c);
-            }
-        }
-        return out.toString();
     }
 }

@@ -119,7 +119,7 @@ SimplifyAssist.propTypes = {
     phase: PropTypes.string.isRequired,
     error: PropTypes.string,
     language: PropTypes.string.isRequired,
-    // Number of long sentences on the page (readability analyzer); 0 hides the section
+    // Number of long sentences on the page (the readability facts of the check of the server); 0 hides the section
     count: PropTypes.number,
     onGenerate: PropTypes.func.isRequired,
     onHighlightText: PropTypes.func.isRequired
