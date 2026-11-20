@@ -29,6 +29,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The written report, generated on request and read back afterwards.
@@ -73,16 +74,25 @@ public class GeoReportServlet extends GeoServlet {
     private final transient GeoReadinessConfigService config;
 
     /**
-     * The writer that another module registers, or null. It is the one field that changes while the
-     * servlet runs: the container swaps it when that module starts or stops.
+     * The writer that another module registers, or null. The container sets it when that module starts
+     * and clears it when it stops, through {@link #bindWriter} and {@link #unbindWriter}.
      */
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC,
-            policyOption = ReferencePolicyOption.GREEDY)
-    private transient volatile GeoReportWriter writer;
+    private final transient AtomicReference<GeoReportWriter> writer = new AtomicReference<>();
 
     @Activate
     public GeoReportServlet(@Reference GeoReadinessConfigService config) {
         this.config = config;
+    }
+
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC,
+            policyOption = ReferencePolicyOption.GREEDY, unbind = "unbindWriter")
+    void bindWriter(GeoReportWriter registered) {
+        writer.set(registered);
+    }
+
+    /** Clears the writer only when it is the one that leaves: a greedy rebind sets the new one first. */
+    void unbindWriter(GeoReportWriter leaving) {
+        writer.compareAndSet(leaving, null);
     }
 
     /**
@@ -103,7 +113,7 @@ public class GeoReportServlet extends GeoServlet {
             if (sitePath == null) {
                 return;
             }
-            writeJson(resp, HttpServletResponse.SC_OK, statusJson(statusOf(writer, SiteScope.keyOf(sitePath))));
+            writeJson(resp, HttpServletResponse.SC_OK, statusJson(statusOf(writer.get(), SiteScope.keyOf(sitePath))));
         } catch (IOException | RuntimeException e) {
             // Nothing may leave a servlet method: the container would answer with
             // a stack trace instead of a response. A broken socket, or a JSON
@@ -247,7 +257,7 @@ public class GeoReportServlet extends GeoServlet {
     private void generate(String sitePath, String language, String reportLanguage, JahiaUser user,
             HttpServletRequest req, HttpServletResponse resp)
             throws IOException, RepositoryException, GeoReportWriter.Failure {
-        GeoReportWriter current = writer;
+        GeoReportWriter current = writer.get();
         GeoReportWriter.Failure.Reason refusal = refusalOf(statusOf(current, SiteScope.keyOf(sitePath)));
         if (refusal != null) {
             denyWriter(resp, refusal);

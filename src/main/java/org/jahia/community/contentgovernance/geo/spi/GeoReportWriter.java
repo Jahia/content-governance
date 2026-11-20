@@ -25,27 +25,28 @@ public interface GeoReportWriter {
      * The JSON object that {@link #write} answers. Content Governance reads only these fields, cuts long
      * texts, and keeps a page path only when the digest names it.
      */
-    String SHAPE = "{\n"
-            + "  \"summary\": \"3-5 sentences: where the site stands for AI crawlers and what matters most\",\n"
-            + "  \"verdict\": \"compliant\" | \"partial\" | \"not_compliant\",\n"
-            + "  \"compliance\": [ {\"area\": <area>, \"status\": \"met\" | \"partial\" | \"missing\", "
-            + "\"note\": \"one sentence\"} ],\n"
-            + "  \"priorities\": [ {\n"
-            + "      \"title\": \"short, actionable\",\n"
-            + "      \"severity\": \"critical\" | \"important\" | \"advisory\",\n"
-            + "      \"area\": <area>,\n"
-            + "      \"owner\": \"editor\" | \"developer\" | \"administrator\",\n"
-            + "      \"effort\": \"low\" | \"medium\" | \"high\",\n"
-            + "      \"why\": \"1-3 sentences: what it costs the site with AI crawlers\",\n"
-            + "      \"how\": \"2-5 sentences: concrete steps in this CMS\",\n"
-            + "      \"pages\": [\"page paths quoted exactly from the digest, when specific pages are concerned\"]\n"
-            + "  } ],\n"
-            + "  \"quickWins\": [\"things doable today, one sentence each\"],\n"
-            + "  \"roadmap\": {\"now\": [\"...\"], \"next\": [\"...\"], \"later\": [\"...\"]}\n"
-            + "}\n"
-            + "<area> is one of: reachability, content, structured_data, freshness, languages, site_files, links, "
-            + "addresses. One compliance entry per area, all eight. At most 15 priorities, most important first. "
-            + "Every sentence is in the REPORT LANGUAGE that the digest names.";
+    String SHAPE = """
+            {
+              "summary": "3-5 sentences: where the site stands for AI crawlers and what matters most",
+              "verdict": "compliant" | "partial" | "not_compliant",
+              "compliance": [ {"area": <area>, "status": "met" | "partial" | "missing", \
+            "note": "one sentence"} ],
+              "priorities": [ {
+                  "title": "short, actionable",
+                  "severity": "critical" | "important" | "advisory",
+                  "area": <area>,
+                  "owner": "editor" | "developer" | "administrator",
+                  "effort": "low" | "medium" | "high",
+                  "why": "1-3 sentences: what it costs the site with AI crawlers",
+                  "how": "2-5 sentences: concrete steps in this CMS",
+                  "pages": ["page paths quoted exactly from the digest, when specific pages are concerned"]
+              } ],
+              "quickWins": ["things doable today, one sentence each"],
+              "roadmap": {"now": ["..."], "next": ["..."], "later": ["..."]}
+            }
+            <area> is one of: reachability, content, structured_data, freshness, languages, site_files, links, \
+            addresses. One compliance entry per area, all eight. At most 15 priorities, most important first. \
+            Every sentence is in the REPORT LANGUAGE that the digest names.""";
 
     /**
      * Whether the writer answers the current user on a site.

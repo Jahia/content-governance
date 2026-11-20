@@ -1,9 +1,13 @@
 package org.jahia.community.contentgovernance.geo.servlet;
 
+import org.jahia.community.contentgovernance.geo.config.GeoReadinessConfigService;
 import org.jahia.community.contentgovernance.geo.spi.GeoReportWriter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+
+import java.lang.reflect.Field;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -65,5 +69,28 @@ class GeoReportServletStatusTest {
     @CsvSource({"NO_ACCESS, 403", "QUOTA, 429", "NOT_CONFIGURED, 409", "OUTPUT_LIMIT, 502", "PROVIDER, 502"})
     void eachFailureOfTheWriterHasItsStatus(GeoReportWriter.Failure.Reason reason, int status) {
         assertThat(GeoReportServlet.httpStatusOf(reason)).isEqualTo(status);
+    }
+
+    @Test
+    void aGreedyRebindKeepsTheNewWriterWhenTheOldOneLeaves() throws Exception {
+        GeoReportServlet servlet = new GeoReportServlet(mock(GeoReadinessConfigService.class));
+        GeoReportWriter first = mock(GeoReportWriter.class);
+        GeoReportWriter second = mock(GeoReportWriter.class);
+
+        servlet.bindWriter(first);
+        servlet.bindWriter(second);
+        servlet.unbindWriter(first);
+        assertThat(writerOf(servlet)).isSameAs(second);
+
+        servlet.unbindWriter(second);
+        assertThat(writerOf(servlet)).isNull();
+    }
+
+    private static GeoReportWriter writerOf(GeoReportServlet servlet) throws ReflectiveOperationException {
+        Field field = GeoReportServlet.class.getDeclaredField("writer");
+        field.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        AtomicReference<GeoReportWriter> writer = (AtomicReference<GeoReportWriter>) field.get(servlet);
+        return writer.get();
     }
 }
