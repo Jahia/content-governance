@@ -395,17 +395,22 @@ class PageFetchTest {
             JSONObject o = PageFetch.analyse("<img src=\"a.jpg\">");
             assertThat(o.getInt("images")).isEqualTo(1);
             assertThat(o.getInt("imagesWithAlt")).isZero();
+            assertThat(o.getInt("imagesWithoutAlt")).isEqualTo(1);
         }
 
         // Pinning the accessibility-relevant case explicitly: an explicitly
         // empty alt (alt="") is treated as NOT "with alt" by this code, i.e.
         // decorative-image style empty alt does not count as descriptive text.
-        @Test
-        @DisplayName("img with empty alt=\"\" does NOT count as imagesWithAlt")
-        void emptyAltDoesNotCount() {
-            JSONObject o = PageFetch.analyse("<img src=\"a.jpg\" alt=\"\">");
+        // It is not a missing alt either.
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(strings = {"<img src=\"a.jpg\" alt=\"\">", "<img src=\"a.jpg\" alt>", "<img alt src=\"a.jpg\">",
+                "<img src=\"a.jpg\" ALT=''>"})
+        @DisplayName("img with an empty alt is decorative: neither imagesWithAlt nor imagesWithoutAlt")
+        void emptyAltIsDecorative(String html) {
+            JSONObject o = PageFetch.analyse(html);
             assertThat(o.getInt("images")).isEqualTo(1);
             assertThat(o.getInt("imagesWithAlt")).isZero();
+            assertThat(o.getInt("imagesWithoutAlt")).isZero();
         }
 
         @Test
@@ -413,6 +418,22 @@ class PageFetchTest {
         void whitespaceOnlyAltDoesNotCount() {
             JSONObject o = PageFetch.analyse("<img src=\"a.jpg\" alt=\"   \">");
             assertThat(o.getInt("imagesWithAlt")).isZero();
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(strings = {"<img src=\"a.png\" title=\"the alt text\">", "<img title='no alt' src=\"a.png\">",
+                "<img data-x=\"foo alt\" src=\"a.png\">"})
+        @DisplayName("the word alt inside the value of another attribute is not an alt")
+        void altInsideAValueIsNotAlt(String html) {
+            JSONObject o = PageFetch.analyse(html);
+            assertThat(o.getInt("imagesWithoutAlt")).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("an attribute whose name ends with alt is not an alt")
+        void otherAttributeIsNotAlt() {
+            JSONObject o = PageFetch.analyse("<img src=\"a.jpg\" data-alt alt-text=\"dog\">");
+            assertThat(o.getInt("imagesWithoutAlt")).isEqualTo(1);
         }
 
         @Test
@@ -423,6 +444,7 @@ class PageFetchTest {
                             + "<img src=\"d.jpg\" alt=\"dog\">");
             assertThat(o.getInt("images")).isEqualTo(4);
             assertThat(o.getInt("imagesWithAlt")).isEqualTo(2);
+            assertThat(o.getInt("imagesWithoutAlt")).isEqualTo(1);
         }
 
         @Test

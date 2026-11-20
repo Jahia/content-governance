@@ -291,11 +291,11 @@ export function buildReadabilityRecommendations(r, rules) {
     }
 
     if (r.h1Count !== 1) {
-        push('seo.singleH1', 'h1Count', {count: r.h1Count});
+        push(r.h1Count === 0 ? 'html.headingH1Missing' : 'html.headingH1Multiple', 'h1Count', {count: r.h1Count});
     }
 
     if (r.headingSkips > 0) {
-        push('readability.headingSkips', 'headingSkips', {count: r.headingSkips});
+        push('html.headingLevelSkipped', 'headingSkips', {count: r.headingSkips});
     }
 
     if (r.spaced && r.words < rules.get('readability.thinContent').minimum) {

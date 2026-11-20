@@ -15,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,7 +36,7 @@ class HtmlCheckTest {
                 .thenReturn(List.of(new CheckRegistry.Checked(ContentRules.base().get("html.imageAltMissing"), finding)));
         Document html = Jsoup.parse("<p><img src=\"a.png\"></p>");
         HtmlCheck.Rendered rendered = new HtmlCheck.Rendered("/sites/digitall/home/main/intro", "jnt:text", Scope.ITEM,
-                html, Set.of("localhost"));
+                html, Set.of("localhost"), Map.of());
 
         assertThat(new HtmlCheck(registry).findings(rendered, Locale.FRENCH)).containsExactly(finding);
 

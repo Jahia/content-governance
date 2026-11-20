@@ -62,6 +62,10 @@ public final class PageFetch {
     private static final Pattern HREF = value("href", VALUE);
     private static final Pattern CONTENT = value("content", VALUE);
     private static final Pattern ALT = value("alt", VALUE);
+    /** An attribute named alt, with or without a value: {@code alt=""} and {@code alt} both count. */
+    private static final Pattern ALT_ATTRIBUTE = Pattern.compile("(?i)\\salt(?![\\w-])");
+    /** A quoted attribute value, which can hold the word alt, as in {@code title="no alt here"}. */
+    private static final Pattern QUOTED = Pattern.compile("\"[^\"]*\"|'[^']*'");
     private static final Pattern LANG = value("lang", SHORT);
     private static final Pattern HREFLANG = value("hreflang", SHORT);
     private static final Pattern REL_CANONICAL = is("rel", "canonical");
@@ -285,19 +289,24 @@ public final class PageFetch {
 
     /**
      * Alt text is how a text-only crawler learns what an image shows. An
-     * explicitly empty alt is a decorative image, correct but not descriptive.
+     * explicitly empty alt is a decorative image, correct but not descriptive:
+     * it counts in neither imagesWithAlt nor imagesWithoutAlt.
      */
     private static void images(String html, JSONObject o) {
         int[] images = {0};
         int[] withAlt = {0};
+        int[] withoutAlt = {0};
         Markup.forEachTag(html, "img", (tag, at, end) -> {
             images[0]++;
             if (!attribute(ALT, tag, "").trim().isEmpty()) {
                 withAlt[0]++;
+            } else if (!ALT_ATTRIBUTE.matcher(QUOTED.matcher(tag).replaceAll("\"\"")).find()) {
+                withoutAlt[0]++;
             }
         });
         o.put("images", images[0]);
         o.put("imagesWithAlt", withAlt[0]);
+        o.put("imagesWithoutAlt", withoutAlt[0]);
     }
 
     /** The ld+json blocks, and the one date a crawler is most likely to believe. */

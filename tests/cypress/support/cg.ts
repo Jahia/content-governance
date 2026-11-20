@@ -245,17 +245,38 @@ function mcpMessage(body: unknown): Record<string, any> {
     return JSON.parse(data || body);
 }
 
+/** One finding that the tool frame.check returns for a path. */
+export type FramePageFinding = {rule: string; severity: string; text: string; context?: string};
+
 /**
- * Calls the tool frame.check of mcp-server as root, as an agent does, and yields its violations.
+ * Calls the tool frame.check of mcp-server as root, as an agent does, and yields its result.
  *
- * @param {object} args the arguments of the tool: siteKey, locale and text.
+ * @param {object} args the arguments of the tool: siteKey, locale, and text or path.
  */
-export function frameCheck(args: Record<string, unknown>): Cypress.Chainable<FrameViolation[]> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function callFrameCheck(args: Record<string, unknown>): Cypress.Chainable<Record<string, any>> {
     return mcpRequest('initialize', {protocolVersion: '2025-03-26', capabilities: {}, clientInfo: {name: 'cg-cypress', version: '1'}})
         .then(init => mcpRequest('tools/call', {name: 'frame.check', arguments: args}, init.headers['mcp-session-id'] as string | undefined))
         .then(response => {
             const result = mcpMessage(response.body).result;
-            const payload = result.structuredContent || JSON.parse(result.content[0].text);
-            return payload.violations as FrameViolation[];
+            return result.structuredContent || JSON.parse(result.content[0].text);
         });
+}
+
+/**
+ * Calls frame.check on a text, and yields its violations.
+ *
+ * @param {object} args the arguments of the tool: siteKey, locale and text.
+ */
+export function frameCheck(args: Record<string, unknown>): Cypress.Chainable<FrameViolation[]> {
+    return callFrameCheck(args).then(payload => payload.violations as FrameViolation[]);
+}
+
+/**
+ * Calls frame.check on a page or a content item, and yields the findings of the checks of the server.
+ *
+ * @param {object} args the arguments of the tool: siteKey, locale and path.
+ */
+export function framePageCheck(args: Record<string, unknown>): Cypress.Chainable<FramePageFinding[]> {
+    return callFrameCheck(args).then(payload => payload.findings as FramePageFinding[]);
 }

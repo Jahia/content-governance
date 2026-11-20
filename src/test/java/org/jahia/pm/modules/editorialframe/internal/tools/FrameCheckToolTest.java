@@ -5,6 +5,7 @@ package org.jahia.pm.modules.editorialframe.internal.tools;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.modules.mcp.spi.tool.ToolContext;
 import org.jahia.modules.mcp.spi.tool.ToolResult;
 import org.jahia.pm.modules.editorialframe.api.EditorialFrameService;
@@ -98,6 +99,40 @@ class FrameCheckToolTest {
         assertEquals("jeton d'authentification", violation.path("match").asText());
         assertEquals("jeton d'accès", violation.path("replacement").asText());
         assertFalse(violation.has("missing"));
+    }
+
+    @Test
+    void aPathOutsideTheSiteIsRefusedBeforeAnyRender() {
+        var input = MAPPER.createObjectNode().put("siteKey", "digitall").put("locale", "en")
+                .put("path", "/sites/other/home");
+
+        ToolResult result = new FrameCheckTool(new Frames(List.of())).execute(input, new Context());
+
+        assertFalse(result.isOk());
+    }
+
+    @Test
+    void aPathThatClimbsOutOfTheSiteIsRefusedBeforeAnyRender() {
+        var input = MAPPER.createObjectNode().put("siteKey", "digitall").put("locale", "en")
+                .put("path", "/sites/digitall/../other/home");
+
+        ToolResult result = new FrameCheckTool(new Frames(List.of())).execute(input, new Context());
+
+        assertFalse(result.isOk());
+    }
+
+    @Test
+    void thePageModeGivesEachFindingOfTheServiceUnderItsRule() {
+        JsonNode result = FrameCheckTool.findings("/sites/digitall/home", List.of(
+                new Finding("html.imageAltMissing", "critical", "<img src=\"a.png\">", null),
+                new Finding("links.broken", "critical", "/sites/digitall/gone", "missing")));
+
+        assertEquals("/sites/digitall/home", result.path("path").asText());
+        assertFalse(result.path("ok").asBoolean());
+        assertEquals("html.imageAltMissing", result.path("findings").get(0).path("rule").asText());
+        assertEquals("critical", result.path("findings").get(0).path("severity").asText());
+        assertFalse(result.path("findings").get(0).has("context"));
+        assertEquals("missing", result.path("findings").get(1).path("context").asText());
     }
 
     @Test

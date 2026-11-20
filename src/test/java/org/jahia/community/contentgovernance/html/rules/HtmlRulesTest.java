@@ -38,8 +38,7 @@ class HtmlRulesTest {
                 + "<iframe src='m'></iframe><table><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></table>"
                 + "<p id='dup'>x</p><p id='dup'>y</p></body></html>";
         List<String> found = rules(html, Scope.PAGE, "en");
-        for (String rule : List.of("html.pageLanguageMissing", "html.pageTitleMissing", "html.pageDescriptionMissing",
-                "html.headingH1Multiple", "html.headingLevelSkipped", "html.imageAltMissing", "html.linkNameMissing",
+        for (String rule : List.of("html.pageLanguageMissing", "html.headingH1Multiple", "html.headingLevelSkipped", "html.imageAltMissing", "html.linkNameMissing",
                 "html.linkTextVague", "html.formLabelMissing", "html.buttonNameMissing", "html.frameTitleMissing",
                 "html.tableHeaderMissing", "html.duplicateId")) {
             assertTrue(found.contains(rule), rule + " in " + found);
@@ -60,10 +59,29 @@ class HtmlRulesTest {
     }
 
     @Test
-    void findsAnEmptyTitleAndAnEmptyDescription() {
+    void leavesTheTitleAndTheDescriptionToTheirLengthRules() {
+        // seo.title and seo.metaDescription measure them, and an empty one has the length 0.
         String html = "<html lang='en'><head><title> </title><meta name='description' content=''></head>"
                 + "<body><h1>T</h1></body></html>";
-        assertEquals(List.of("html.pageTitleMissing", "html.pageDescriptionMissing"), rules(html, Scope.PAGE, "en"));
+        assertEquals(List.of(), rules(html, Scope.PAGE, "en"));
+    }
+
+    @Test
+    void findsAVagueLinkTextWithItsDecorations() {
+        String html = "<html lang='en'>" + HEAD + "<body><h1>T</h1><a href='/x'>Read more +</a>"
+                + "<a href='/y'>Voir plus »</a><a href='/z'>Read the pricing guide</a></body></html>";
+        assertEquals(List.of("html.linkTextVague", "html.linkTextVague"), rules(html, Scope.PAGE, "en"));
+    }
+
+    @Test
+    void labelKeepsTheTextFromTheFirstLetterOrDigitToTheLast() {
+        assertEquals("Read more", HtmlRules.label(" » Read \n more + "));
+        assertEquals("3 steps", HtmlRules.label("(3 steps)"));
+        assertEquals("", HtmlRules.label("→ ✓ !"));
+        assertEquals("x", HtmlRules.label("!".repeat(100_000) + "x"));
+        assertEquals("a", HtmlRules.label("a" + "-".repeat(100_000)));
+        assertEquals("Read\u2028more", HtmlRules.label("» Read\u2028more +"));
+        assertEquals("Read\u0085more", HtmlRules.label("Read\u0085more"));
     }
 
     @Test

@@ -230,7 +230,7 @@ public final class GeoScore {
         checks.add(TITLE, CONTENT, "seo.title", title != null && checks.rule("seo.title").accepts(titleLen), titleLen);
 
         int h1 = f.number("h1Count");
-        checks.add("singleH1", CONTENT, "seo.singleH1", h1 == 1, h1);
+        checks.add("singleH1", CONTENT, h1 > 1 ? "html.headingH1Multiple" : "html.headingH1Missing", h1 == 1, h1);
 
         int h2 = f.number("h2Count");
         checks.add("headingOutline", CONTENT, "geo.headingOutline", h2 > 0, h2);
@@ -245,7 +245,7 @@ public final class GeoScore {
         checks.add("canonical", CONTENT, "seo.canonical", f.flag("canonical"), null);
 
         String lang = f.text("lang");
-        checks.add("langDeclared", CONTENT, "seo.lang", lang != null, lang);
+        checks.add("langDeclared", CONTENT, "html.pageLanguageMissing", lang != null, lang);
 
         JSONArray types = f.control == null ? null : f.control.optJSONArray("jsonLdTypes");
         boolean hasSchema = types != null && types.length() > 0;
@@ -257,12 +257,15 @@ public final class GeoScore {
         imageAlt(checks, f);
     }
 
-    /** No images is not a failure. It is simply nothing to describe. */
+    /**
+     * Every image has an alt attribute, and an empty one marks a decorative image. No image is not a
+     * failure: there is nothing to describe. A report stored before imagesWithoutAlt was read counts an
+     * empty alt as missing, until the next scan.
+     */
     private static void imageAlt(Checks checks, Facts f) {
         int images = f.number("images");
-        int withAlt = f.number("imagesWithAlt");
-        boolean altOk = images == 0 || withAlt >= images * checks.rule("geo.imageAlt").min();
-        checks.add("imageAlt", CONTENT, "geo.imageAlt", altOk, images == 0 ? null : withAlt + "/" + images);
+        int missing = f.has("imagesWithoutAlt") ? f.number("imagesWithoutAlt") : images - f.number("imagesWithAlt");
+        checks.add("imageAlt", CONTENT, "html.imageAltMissing", missing <= 0, images == 0 ? null : (images - missing) + "/" + images);
     }
 
     /** How many agents received less than {@code ratio} of the text of the control. */

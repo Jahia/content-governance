@@ -130,7 +130,7 @@ class GeoScoreTest {
             "langDeclared,          content, important",
             "structuredData,        content, important",
             "freshness,             content, advisory",
-            "imageAlt,              content, advisory",
+            "imageAlt,              content, critical",
             "robotsPresent,         files,   important",
             "llmsPresent,           files,   advisory"
         })
@@ -400,16 +400,34 @@ class GeoScoreTest {
             assertThat(passed(GeoScore.compute(report, RULES), "sameContentForCrawlers")).isTrue();
         }
 
-        @ParameterizedTest(name = "{0} images, {1} with alt -> passed={2}")
+        @ParameterizedTest(name = "{0} images, {1} with a described alt, {2} with no alt -> passed={3}")
+        @CsvSource({
+            "0,  0, 0, true",
+            "10, 10, 0, true",
+            "10, 9, 1, false",
+            "10, 9, 0, true",
+            "1,  0, 1, false",
+            "1,  0, 0, true",
+            "1,  1, 0, true"
+        })
+        @DisplayName("imageAlt wants an alt attribute on every image, an empty alt marks a decorative image, and no images is not a failure")
+        void imageAlt_coversEveryImage(int images, int withAlt, int withoutAlt, boolean expected) {
+            JSONObject score = GeoScore.compute(withControl(new JSONObject()
+                    .put("images", images)
+                    .put("imagesWithAlt", withAlt)
+                    .put("imagesWithoutAlt", withoutAlt)), RULES);
+
+            assertThat(passed(score, "imageAlt")).isEqualTo(expected);
+        }
+
+        @ParameterizedTest(name = "{0} images, {1} with a described alt -> passed={2}")
         @CsvSource({
             "0,  0,  true",
-            "10, 8,  true",
-            "10, 7,  false",
-            "1,  0,  false",
-            "1,  1,  true"
+            "10, 10, true",
+            "10, 9,  false"
         })
-        @DisplayName("imageAlt wants eighty percent, and no images is not a failure")
-        void imageAlt_coverageIsEightyPercent(int images, int withAlt, boolean expected) {
+        @DisplayName("imageAlt on a report stored before imagesWithoutAlt counts every image with no described alt")
+        void imageAlt_olderReport(int images, int withAlt, boolean expected) {
             JSONObject score = GeoScore.compute(withControl(new JSONObject()
                     .put("images", images)
                     .put("imagesWithAlt", withAlt)), RULES);
@@ -418,10 +436,10 @@ class GeoScoreTest {
         }
 
         @Test
-        @DisplayName("imageAlt reports the ratio, or null when there is nothing to describe")
+        @DisplayName("imageAlt reports the images with an alt attribute out of all, or null when there is nothing to describe")
         void imageAlt_valueIsTheRatio() {
             JSONObject some = GeoScore.compute(withControl(new JSONObject()
-                    .put("images", 4).put("imagesWithAlt", 3)), RULES);
+                    .put("images", 4).put("imagesWithAlt", 2).put("imagesWithoutAlt", 1)), RULES);
             assertThat(check(some, "imageAlt").getString("value")).isEqualTo("3/4");
 
             JSONObject none = GeoScore.compute(withControl(new JSONObject().put("images", 0)), RULES);
