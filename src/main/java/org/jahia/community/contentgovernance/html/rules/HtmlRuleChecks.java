@@ -47,7 +47,7 @@ public class HtmlRuleChecks {
     }
 
     /** The findings of every HTML rule on one input. */
-    private record Found(List<HtmlFinding> findings) {
+    record Found(List<HtmlFinding> findings) {
     }
 
     /** The check of one HTML rule. */
@@ -73,9 +73,9 @@ public class HtmlRuleChecks {
     }
 
     /** Here {@code Scope} is the scope of the HTML. Inside {@link Check}, the same name is the scope of a check. */
-    private static Found found(CheckInput input) {
-        Document html = input.fact(DOCUMENT) instanceof Document document ? document
-                : Jsoup.parse(input.text() == null ? "" : input.text());
+    static Found found(CheckInput input) {
+        String text = input.text() == null ? "" : input.text();
+        Document html = input.fact(DOCUMENT) instanceof Document document ? document : Jsoup.parse(text);
         Scope scope = input.fact(HTML_SCOPE) instanceof Scope rendered ? rendered : Scope.PAGE;
         return new Found(HtmlRules.check(html, scope, input.language()));
     }

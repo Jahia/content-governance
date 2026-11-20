@@ -37,7 +37,7 @@ public class BrowserChecks {
     @Activate
     void activate(BundleContext context) {
         Map<String, ContentCheck> checks = new LinkedHashMap<>();
-        IDS.forEach(id -> checks.put(id, InBrowser.CHECK));
+        IDS.forEach(id -> checks.put(id, new InBrowser()));
         services.open(context, checks, true);
     }
 
@@ -47,8 +47,7 @@ public class BrowserChecks {
     }
 
     /** A check that runs in the browser: on the server it finds nothing. */
-    private enum InBrowser implements ContentCheck {
-        CHECK;
+    private static final class InBrowser implements ContentCheck {
 
         @Override
         public Set<Scope> scopes() {

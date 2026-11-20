@@ -58,10 +58,10 @@ public class GeoChecks {
 
     /** The check of one GEO rule. */
     static final class Check implements ContentCheck {
-        private final String id;
+        private final String checkId;
 
-        Check(String id) {
-            this.id = id;
+        Check(String checkId) {
+            this.checkId = checkId;
         }
 
         @Override
@@ -80,7 +80,7 @@ public class GeoChecks {
             List<Finding> out = new ArrayList<>();
             for (int i = 0; i < scored.length(); i++) {
                 JSONObject check = scored.getJSONObject(i);
-                if (id.equals(check.optString("rule")) && !check.optBoolean("passed", true)) {
+                if (checkId.equals(check.optString("rule")) && !check.optBoolean("passed", true)) {
                     out.add(Finding.of(rule, check.isNull("value") ? "" : String.valueOf(check.get("value"))));
                 }
             }

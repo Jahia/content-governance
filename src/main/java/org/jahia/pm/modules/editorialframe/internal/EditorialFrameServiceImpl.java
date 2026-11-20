@@ -55,6 +55,7 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
 
     private static final Logger logger = LoggerFactory.getLogger(EditorialFrameServiceImpl.class);
     static final String LIVE = "live";
+    private static final String SITES = "/sites/";
     static final int MAX_VOICE_CHARS = 6000;
 
     private final BundleSkills bundleSkills = new BundleSkills();
@@ -100,7 +101,7 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
         if (checks == null || siteKey == null || text == null) {
             return List.of();
         }
-        return checks.run(CheckInput.value("/sites/" + siteKey, language, text), Set.of(ContentRule.PATTERN)).stream()
+        return checks.run(CheckInput.value(SITES + siteKey, language, text), Set.of(ContentRule.PATTERN)).stream()
                 .map(checked -> violation(checked.rule(), checked.finding().text(), checked.finding().context()))
                 .toList();
     }
@@ -240,7 +241,7 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
      */
     Map<String, LoadedSkill> skills(String siteKey) {
         Map<String, LoadedSkill> skills = live(session -> {
-            if (siteKey == null || !FrameReader.SITE_KEY.matcher(siteKey).matches() || !session.nodeExists("/sites/" + siteKey)) {
+            if (siteKey == null || !FrameReader.SITE_KEY.matcher(siteKey).matches() || !session.nodeExists(SITES + siteKey)) {
                 return new LinkedHashMap<String, LoadedSkill>();
             }
             return byName(layers(session, siteKey));
@@ -255,7 +256,7 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
         if (!FrameReader.SYSTEM_SITE.equals(siteKey)) {
             layers.add(JcrSkills.read(session, FrameReader.SYSTEM_SITE, "group"));
         }
-        JCRNodeWrapper site = session.getNode("/sites/" + siteKey);
+        JCRNodeWrapper site = session.getNode(SITES + siteKey);
         List<String> modules = site instanceof JCRSiteNode siteNode ? siteNode.getInstalledModules() : List.of();
         layers.add(bundleSkills.forModules(modules));
         String language = FrameReader.defaultLanguage(session, siteKey);
