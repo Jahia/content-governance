@@ -172,4 +172,23 @@ class RuleCheckerTest {
         RuleChecker.Finder finder = new RuleChecker.Finder(List.of(rule(Kind.FORBIDDEN, "free", MatchMode.TERM, null, null)), "en", 1000);
         assertEquals(150, finder.find("free ".repeat(150)).size());
     }
+
+    @Test
+    void aRegexMatchesInAnyCaseUnlessItAsksForTheCase() {
+        WritingRule archaic = rule(Kind.FORBIDDEN, "\\b(thee|thou|thy|prithee|forsooth|verily|ye olde)\\b", MatchMode.REGEX, null, "en");
+        assertEquals("Verily", RuleChecker.check(List.of(archaic), "en", "Verily, the road goes ever on.", false).get(0).match());
+        assertEquals("Thou", RuleChecker.check(List.of(archaic), "en", "Thou art a fool of a Took.", false).get(0).match());
+        WritingRule exact = rule(Kind.FORBIDDEN, "(?-i)\\bJAHIA\\b", MatchMode.REGEX, null, "en");
+        assertTrue(RuleChecker.check(List.of(exact), "en", "Built on Jahia.", false).isEmpty(), "(?-i) keeps the case");
+        assertEquals(1, RuleChecker.check(List.of(exact), "en", "Built on JAHIA.", false).size());
+    }
+
+    @Test
+    void aRegexIgnoresTheCaseOfAnAccentedCapitalAndOfAMandatoryMention() {
+        WritingRule summer = rule(Kind.FORBIDDEN, "\\bété\\b", MatchMode.REGEX, null, "fr");
+        assertEquals("ÉTÉ", RuleChecker.check(List.of(summer), "fr", "Les soldes d'ÉTÉ.", false).get(0).match());
+        WritingRule risk = rule(Kind.MANDATORY, "capital at risk", MatchMode.REGEX, null, "en");
+        assertTrue(RuleChecker.check(List.of(risk), "en", "Invest now. CAPITAL AT RISK.", true).isEmpty(),
+                "The mandatory mention is found in another case");
+    }
 }

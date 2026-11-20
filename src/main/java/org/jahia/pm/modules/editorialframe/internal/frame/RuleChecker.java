@@ -20,7 +20,8 @@ import java.util.regex.PatternSyntaxException;
 /**
  * Checks the writing rules on a text, with no model. A term matches as {@link TermPattern} states: a
  * whole word or phrase, in any case and with or without accents. "robust" matches "Robust" and not
- * "robustness". A regex matches the text as it is written.
+ * "robustness". A regex matches the text as it is written, in any case, as a term does: a regex that must
+ * respect the case starts with {@code (?-i)}.
  */
 public final class RuleChecker {
 
@@ -179,8 +180,8 @@ public final class RuleChecker {
             }
             if (rule.matchMode() == WritingRule.MatchMode.REGEX) {
                 try {
-                    return new Compiled(rule, null, Pattern.compile(rule.pattern(), Pattern.UNICODE_CASE),
-                            replacementPatterns(rule));
+                    return new Compiled(rule, null, Pattern.compile(rule.pattern(),
+                            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE), replacementPatterns(rule));
                 } catch (PatternSyntaxException e) {
                     logger.warn("The writing rule {} has a pattern that does not compile: {}", rule.id(), e.getDescription());
                     return null;

@@ -106,8 +106,8 @@ come pages first in path order, then content items; rules are ranked by uses.
 
 The scan runs the matcher of the evaluator `pattern`, `RuleChecker`, which `frame.check` runs too. A
 rule of the match mode `term` goes through `TermPattern` (package `text`), and a regular expression
-reads the text as it is written. `TermPattern` folds both the term and the text the same way
-(`FoldedText`): lower case, NFD
+reads the text as it is written, in any case, unless an inline flag such as `(?-i)` turns the case
+on. `TermPattern` folds both the term and the text the same way (`FoldedText`): lower case, NFD
 with combining marks removed, typographic apostrophes to `'`, `œ`/`æ`/`ß` to `oe`/`ae`/`ss`. It keeps
 an offset map, so a match is reported on the original text, combining marks after the last letter
 included. Each form of a term becomes one regular expression (quoted, Unicode classes), the longest
