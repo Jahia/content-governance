@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 /**
  * Converts the glossary terms of an older version into content rules of the evaluator {@code pattern},
- * once, when the module starts. Each term keeps its node: the same identifier, the same place and the
+ * once, when the module starts on the processing server, as {@link RuleSeeder#migrate} states. Each term keeps its node: the same identifier, the same place and the
  * same permissions, in the edit and the live workspace.
  *
  * <ul>

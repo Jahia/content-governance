@@ -7,6 +7,7 @@ import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.content.JCRTemplate;
 import org.jahia.services.content.decorator.JCRSiteNode;
+import org.jahia.settings.SettingsBean;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleEvent;
@@ -79,16 +80,33 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
     }
 
     /**
-     * Converts the rules and the glossary terms of an older version, then tracks the modules that ship
-     * rules. The tracker seeds every site with the rules of each module, this module included, as it
+     * Converts the rules and the glossary terms of an older version, on the processing server, then tracks
+     * the modules that ship rules. The tracker seeds every site with the rules of each module, this module included, as it
      * finds them.
      */
     @Activate
     public void activate(BundleContext context) {
-        LegacyRules.migrate();
-        LegacyTerms.migrate();
+        migrate(SettingsBean.getInstance().isProcessingServer(), LegacyRules::migrate, LegacyTerms::migrate);
         tracker = new BundleTracker<>(context, Bundle.ACTIVE, this);
         tracker.open();
+    }
+
+    /**
+     * Runs the conversions of an older version on the processing server only. The nodes of a cluster share
+     * one repository and start the module at the same time, so a browsing node that converted too would
+     * read nodes that the processing server converts in the same second.
+     *
+     * @param processingServer true on the processing server, and on a Jahia that is not a cluster
+     * @param conversions      the conversions, in their order
+     */
+    static void migrate(boolean processingServer, Runnable... conversions) {
+        if (!processingServer) {
+            logger.debug("A browsing node leaves the conversions of an older version to the processing server");
+            return;
+        }
+        for (Runnable conversion : conversions) {
+            conversion.run();
+        }
     }
 
     @Deactivate

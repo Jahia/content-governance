@@ -129,8 +129,11 @@ rule of `fr` replaces "jeton d'authentification" with "jeton d'accès".
 
 Before content-governance#74, the terms lived in two other content types: the Compliance glossaries
 (`ccs:glossary` and `ccs:glossaryTerm`) and the glossary of the editorial frame (`efnt:glossaryTerm`).
-When the module starts, it converts each node of these types into a content rule in place, in the edit
-and the live workspace. Each node keeps its identifier, its place and its permissions, so each list
+When the module starts, the processing server converts each node of these types into a content rule. It
+converts the node in place, in the edit and the live workspace. A browsing node of a cluster converts nothing, because it
+shares the repository of the processing server.
+
+Each node keeps its identifier, its place and its permissions, so each list
 keeps the permissions of its folder. The conversion is one-way: an older version of the module cannot
 read the converted nodes. A backup restores the old nodes.
 

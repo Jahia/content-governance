@@ -3,7 +3,9 @@ package org.jahia.community.contentgovernance.rules;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,5 +72,17 @@ class RuleSeederTest {
         assertThat(RuleSeeder.sitePathOf("/sites/digitall/j:installedModules")).isEqualTo("/sites/digitall");
         assertThat(RuleSeeder.sitePathOf("/sites/digitall/home/j:installedModules")).isNull();
         assertThat(RuleSeeder.sitePathOf("/sites/digitall/j:title")).isNull();
+    }
+
+    @Test
+    @DisplayName("only the processing server converts the rules and the terms of an older version")
+    void migrate_runsOnTheProcessingServerOnly() {
+        List<String> runs = new ArrayList<>();
+
+        RuleSeeder.migrate(false, () -> runs.add("rules"), () -> runs.add("terms"));
+        assertThat(runs).as("a browsing node of a cluster converts nothing").isEmpty();
+
+        RuleSeeder.migrate(true, () -> runs.add("rules"), () -> runs.add("terms"));
+        assertThat(runs).containsExactly("rules", "terms");
     }
 }
