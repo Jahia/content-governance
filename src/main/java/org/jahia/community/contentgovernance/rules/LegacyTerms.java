@@ -284,12 +284,25 @@ final class LegacyTerms {
     /** The term with the stars of its match mode. A star that the term holds already is not doubled. */
     private static String patternOf(String term, String matchMode) {
         String mode = matchMode == null ? "" : matchMode.trim().toLowerCase(Locale.ROOT);
-        String bare = term.replaceAll("^\\*+|\\*+$", "");
+        String bare = withoutStars(term);
         return switch (mode) {
             case "prefix" -> bare + STEM;
             case "anywhere" -> STEM + bare + STEM;
             default -> term;
         };
+    }
+
+    /** The term with no star at its start or its end. */
+    private static String withoutStars(String term) {
+        int start = 0;
+        int end = term.length();
+        while (start < end && term.charAt(start) == '*') {
+            start++;
+        }
+        while (end > start && term.charAt(end - 1) == '*') {
+            end--;
+        }
+        return term.substring(start, end);
     }
 
     /**
