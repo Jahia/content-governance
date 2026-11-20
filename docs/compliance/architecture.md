@@ -106,8 +106,8 @@ come pages first in path order, then content items; rules are ranked by uses.
 
 The scan runs the matcher of the evaluator `pattern`, `RuleChecker`, which `frame.check` runs too. A
 rule of the match mode `term` goes through `TermPattern` (package `text`), and a regular expression
-reads the text as it is written. `TermPattern` folds both the term and the text the same way
-(`FoldedText`): lower case, NFD
+reads the text as it is written, in any case, unless an inline flag such as `(?-i)` turns the case
+on. `TermPattern` folds both the term and the text the same way (`FoldedText`): lower case, NFD
 with combining marks removed, typographic apostrophes to `'`, `œ`/`æ`/`ß` to `oe`/`ae`/`ss`. It keeps
 an offset map, so a match is reported on the original text, combining marks after the last letter
 included. Each form of a term becomes one regular expression (quoted, Unicode classes), the longest
@@ -129,7 +129,10 @@ Han as written but composed (removing combining marks would turn ガ into カ; �
 into ガ, U+F900 into U+8C48) and turns fullwidth ASCII into plain ASCII.
 
 White space inside a term matches any run of white space. Each rule reports its own matches, so two
-rules with the same term each give a finding, with the advice of each rule. A match inside a form of
+rules with the same term each give a finding, with the advice of each rule. A term match that lies
+inside a longer term match of another rule reports nothing there: with the rules "Baggins" and
+"Sackville-Baggins", the text "Sackville-Baggins" gives one finding. A regular expression neither
+hides a term nor is hidden by one. A match inside a form of
 the replacement of the rule is the right term: the replacement is searched in any case, with its
 accents.
 

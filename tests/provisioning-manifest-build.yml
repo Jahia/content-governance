@@ -19,9 +19,9 @@
   autoStart: true
   uninstallPreviousVersion: true
 
-# The MCP server, so that the suite calls frame.check as an agent does. Its snapshot comes from the public
+# The MCP server, so that the suite calls frame.check as an agent does. Its release comes from the public
 # Jahia Nexus, as the provided dependency of the build does.
 - installBundle:
-      - 'mvn:org.jahia.modules/mcp-server/0.5.0-SNAPSHOT'
+      - 'mvn:org.jahia.modules/mcp-server/0.5.0'
   autoStart: true
   uninstallPreviousVersion: true

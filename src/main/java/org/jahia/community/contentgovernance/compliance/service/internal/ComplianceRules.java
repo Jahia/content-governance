@@ -19,17 +19,19 @@ import java.util.Map;
 
 /**
  * The rules that the Compliance section applies to the texts of one language of a site: each rule of the
- * evaluator {@code pattern} that the site keeps on, that applies on the day and to the language, and that
- * one text can break. A mandatory mention needs a whole page, so it is left out. Example: the rule
+ * evaluator {@code pattern} that the site keeps on, that applies on the day and that one text can break, of
+ * every language. The checker keeps the rules of the language, and a glossary rule of another language
+ * reports a form of its term. A mandatory mention needs a whole page, so it is left out. Example: the rule
  * {@code compliance.click-here} of the folder of the legal team, and the rule {@code glossary.access-token},
  * which replaces "access token" with "jeton d'accès" in French.
  *
  * <p>The rules are those that {@link ContentRules} reads, with a system session: a rule applies to a text
  * even when the editor cannot read its folder.</p>
  *
- * @param rules   the rules, by id
+ * @param rules   the rules of every language, by id: a glossary rule of another language reports a form
+ *                of its term that a text of the language holds
  * @param writing the same rules, as the pattern evaluator checks them
- * @param folders the folders of the rules, in path order
+ * @param folders the folders of the rules of the language, in path order
  */
 record ComplianceRules(Map<String, ContentRule> rules, List<WritingRule> writing, List<Glossary> folders) {
 
@@ -52,7 +54,10 @@ record ComplianceRules(Map<String, ContentRule> rules, List<WritingRule> writing
         Glossary read(String path);
     }
 
-    /** The rules among {@code all} that apply to the language on the day. */
+    /**
+     * The rules among {@code all} that apply on the day, of every language. The folders count the rules of the
+     * language only.
+     */
     static ComplianceRules of(Collection<ContentRule> all, String language, LocalDate day, FolderReader folders) {
         Map<String, ContentRule> rules = new LinkedHashMap<>();
         List<WritingRule> writing = new ArrayList<>();
@@ -60,13 +65,12 @@ record ComplianceRules(Map<String, ContentRule> rules, List<WritingRule> writing
         for (ContentRule rule : all) {
             WritingRule pattern = rule.enabled() && ContentRule.PATTERN.equals(rule.evaluator())
                     ? PatternCheck.writingRule(rule) : null;
-            if (pattern == null || pattern.kind() == WritingRule.Kind.MANDATORY || !pattern.inForceOn(day)
-                    || !pattern.appliesTo(language)) {
+            if (pattern == null || pattern.kind() == WritingRule.Kind.MANDATORY || !pattern.inForceOn(day)) {
                 continue;
             }
             rules.put(rule.id(), rule);
             writing.add(pattern);
-            if (rule.folder() != null) {
+            if (rule.folder() != null && pattern.appliesTo(language)) {
                 counts.merge(rule.folder(), 1, Integer::sum);
             }
         }

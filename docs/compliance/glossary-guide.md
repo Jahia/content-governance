@@ -98,10 +98,16 @@ on its own, so it does not report a mandatory mention.
   letter counts as a plain letter, so ＦＲＥＥ is "free".
 - **Rich text is read as the visitor reads it.** Formatting inside a word does not hide it, so
   `<b>gra</b>tuit` is "gratuit". An HTML tag or attribute never matches.
+- **The longer term wins.** A term that matches inside a longer match of another term rule reports
+  nothing there. Example: with the rules "Baggins" to "Sacquet" and "Sackville-Baggins" to
+  "Sacquet-de-Besace", the text "Sackville-Baggins" gets one finding, for the longer rule. Two rules
+  with the same term each report it. A regular expression neither hides a term nor is hidden by one.
 - **A match inside the replacement is the right term.** Example: with the rule "mail" to "e-mail", the
   text "e-mail" passes. This search keeps the accents. With the rule "role" to "rôle", the text "rôle"
   passes and the text "role" gets a finding.
-- **The Match value Regular expression** reads the text as it is written, with no folding.
+- **The Match value Regular expression** reads the text as it is written, in any case, and keeps the
+  accents. A pattern that must respect the case starts with `(?-i)`, such as `(?-i)\bJAHIA\b`. An
+  inline flag keeps the case of one part only, such as `\b(?-i:JAHIA)\b`.
 
 ## Glossary terms to translate
 
@@ -112,6 +118,11 @@ language, which the field **Language of the term (glossary)** names. Example: th
 A French text that holds "access token" gets a finding with the replacement "jeton d'accès". The tool
 `frame.check` also checks a translation against its source. If the source holds "access token" and
 the translation lacks "jeton d'accès", the tool reports the missing term.
+
+A form of the term that belongs to another language also gets a finding. Example: the term "Frodo"
+(`en`) is "Frodon" in `fr` and "Frodo" in `es`. A Spanish text that holds "Frodon" gets a finding with
+the replacement "Frodo", and the finding names the French rule. A language that has no form of the
+term gets no such finding, because the form to write is unknown.
 
 The brand can also forbid a translation, with a rule of the language of the translation. Example: the
 rule of `fr` replaces "jeton d'authentification" with "jeton d'accès".

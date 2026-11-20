@@ -120,12 +120,13 @@ also come in the four languages.
 - Optional: the `robots` module, for the GEO `robots.txt` editor, and the `llms` module, which writes
   and serves `llms.txt` (Content Governance shows it read only and checks its links). Without them
   the rest of the module works and those tabs say why they cannot.
-- Optional: the `mcp-server` module, which serves the tool `frame.check` of the editorial frame and
-  the two tools of the HTML check to AI agents. Without it the module starts and adds no tool.
+- Optional: the `mcp-server` module, 0.5.0 or a later 0.x version, which serves the tool `frame.check`
+  of the editorial frame and the two tools of the HTML check to AI agents. Without it, or with an older
+  version, the module starts and adds no tool.
 - Optional: the module ai-assistant, which adds the AI features: the AI review tab of the drawer
   and the writer of the GEO report
   ([`docs/geo-readiness/architecture.md`](docs/geo-readiness/architecture.md#the-geo-report-writer)).
-  Without it the drawer has no AI tab, and the **Report** tab of the GEO dashboard stays greyed out.
+  Without it the drawer has no AI tab, and the GEO dashboard has no **Report** tab.
 - Optional: a BotRank organisation API key, for AI citations.
 
 ## Install

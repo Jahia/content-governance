@@ -172,4 +172,129 @@ class RuleCheckerTest {
         RuleChecker.Finder finder = new RuleChecker.Finder(List.of(rule(Kind.FORBIDDEN, "free", MatchMode.TERM, null, null)), "en", 1000);
         assertEquals(150, finder.find("free ".repeat(150)).size());
     }
+
+    @Test
+    void aRegexMatchesInAnyCaseUnlessItAsksForTheCase() {
+        WritingRule archaic = rule(Kind.FORBIDDEN, "\\b(thee|thou|thy|prithee|forsooth|verily|ye olde)\\b", MatchMode.REGEX, null, "en");
+        assertEquals("Verily", RuleChecker.check(List.of(archaic), "en", "Verily, the road goes ever on.", false).get(0).match());
+        assertEquals("Thou", RuleChecker.check(List.of(archaic), "en", "Thou art a fool of a Took.", false).get(0).match());
+        WritingRule exact = rule(Kind.FORBIDDEN, "(?-i)\\bJAHIA\\b", MatchMode.REGEX, null, "en");
+        assertTrue(RuleChecker.check(List.of(exact), "en", "Built on Jahia.", false).isEmpty(), "(?-i) keeps the case");
+        assertEquals(1, RuleChecker.check(List.of(exact), "en", "Built on JAHIA.", false).size());
+    }
+
+    @Test
+    void aRegexIgnoresTheCaseOfAnAccentedCapitalAndOfAMandatoryMention() {
+        WritingRule summer = rule(Kind.FORBIDDEN, "\\bété\\b", MatchMode.REGEX, null, "fr");
+        assertEquals("ÉTÉ", RuleChecker.check(List.of(summer), "fr", "Les soldes d'ÉTÉ.", false).get(0).match());
+        WritingRule risk = rule(Kind.MANDATORY, "capital at risk", MatchMode.REGEX, null, "en");
+        assertTrue(RuleChecker.check(List.of(risk), "en", "Invest now. CAPITAL AT RISK.", true).isEmpty(),
+                "The mandatory mention is found in another case");
+    }
+
+    @Test
+    void aTermInsideALongerMatchOfAnotherTermReportsNothingThere() {
+        WritingRule baggins = rule(Kind.REPLACE, "Baggins", MatchMode.TERM, "Sacquet", "fr");
+        WritingRule sackville = rule(Kind.REPLACE, "Sackville-Baggins", MatchMode.TERM, "Sacquet-de-Besace", "fr");
+        List<RuleViolation> found = RuleChecker.check(List.of(baggins, sackville), "fr",
+                "Lobelia Sackville-Baggins convoitait Cul-de-Sac.", false);
+        assertEquals(1, found.size());
+        assertEquals("Sacquet-de-Besace", found.get(0).replacement());
+
+        List<RuleViolation> both = RuleChecker.check(List.of(baggins, sackville), "fr",
+                "Bilbo Baggins et Lobelia Sackville-Baggins.", false);
+        assertEquals(List.of("Baggins", "Sackville-Baggins"), both.stream().map(RuleViolation::match).toList());
+    }
+
+    @Test
+    void aFinderDropsATermInsideALongerTermToo() {
+        RuleChecker.Finder finder = new RuleChecker.Finder(List.of(
+                rule(Kind.REPLACE, "Baggins", MatchMode.TERM, "Sacquet", "fr"),
+                rule(Kind.REPLACE, "Sackville-Baggins", MatchMode.TERM, "Sacquet-de-Besace", "fr")), "fr", 10);
+        List<RuleChecker.Match> found = finder.find("Lobelia Sackville-Baggins.");
+        assertEquals(1, found.size());
+        assertEquals("id-Sackville-Baggins", found.get(0).rule().id());
+    }
+
+    @Test
+    void twoRulesWithTheSameTermEachReport() {
+        WritingRule legal = new WritingRule("legal.free", Kind.FORBIDDEN, "free", MatchMode.TERM, null, null,
+                Severity.WARNING, null, "site", List.of(), List.of(), null, null, null, null);
+        WritingRule brand = new WritingRule("brand.free", Kind.FORBIDDEN, "free", MatchMode.TERM, null, null,
+                Severity.WARNING, null, "site", List.of(), List.of(), null, null, null, null);
+        assertEquals(2, RuleChecker.check(List.of(legal, brand), "en", "A free offer.", false).size());
+    }
+
+    @Test
+    void aTermStillReportsAfterManyMatchesInsideALongerTerm() {
+        WritingRule baggins = rule(Kind.REPLACE, "Baggins", MatchMode.TERM, "Sacquet", "fr");
+        WritingRule sackville = rule(Kind.REPLACE, "Sackville-Baggins", MatchMode.TERM, "Sacquet-de-Besace", "fr");
+        String text = "Lobelia Sackville-Baggins. ".repeat(120) + "Bilbo Baggins.";
+        List<RuleViolation> found = RuleChecker.check(List.of(baggins, sackville), "fr", text, false);
+        assertEquals(List.of("Sacquet", "Sacquet-de-Besace", "Sacquet-de-Besace", "Sacquet-de-Besace"),
+                found.stream().map(RuleViolation::replacement).toList());
+    }
+
+    @Test
+    void theViolationsComeInTheOrderOfTheRules() {
+        WritingRule free = rule(Kind.FORBIDDEN, "free", MatchMode.TERM, null, "en");
+        WritingRule risk = rule(Kind.MANDATORY, "capital at risk", MatchMode.TERM, null, "en");
+        WritingRule seamless = rule(Kind.REPLACE, "seamless", MatchMode.TERM, "smooth", "en");
+        List<RuleViolation> found = RuleChecker.check(List.of(free, risk, seamless), "en",
+                "A free and seamless offer.", true);
+        assertEquals(List.of("free", "capital at risk", "seamless"), found.stream().map(RuleViolation::pattern).toList());
+    }
+
+    private static WritingRule name(String id, String term, String form, String language) {
+        return new WritingRule(id, Kind.REPLACE, term, MatchMode.TERM, form, language, Severity.WARNING, null, "site",
+                List.of(), List.of(), null, null, null, null, List.of(), List.of(), "en", "/sites/tolkien/contents/names");
+    }
+
+    @Test
+    void aFormOfAnotherLanguageOfAGlossaryTermGetsTheFormOfTheLanguageOfTheText() {
+        List<WritingRule> names = List.of(name("glossary.frodo-fr", "Frodo", "Frodon", "fr"),
+                name("glossary.frodo-es", "Frodo", "Frodo", "es"), name("glossary.baggins-es", "Baggins", "Bolsón", "es"));
+
+        List<RuleViolation> spanish = RuleChecker.check(names, "es", "Frodon Bolsón abandona la Comarca.", false);
+        assertEquals(1, spanish.size());
+        assertEquals("Frodon", spanish.get(0).match());
+        assertEquals("Frodo", spanish.get(0).replacement());
+        assertEquals("glossary.frodo-fr", spanish.get(0).ruleId());
+        assertEquals("/sites/tolkien/contents/names", spanish.get(0).folder());
+
+        List<RuleViolation> english = RuleChecker.check(names, "en", "Frodon leaves the Shire.", false);
+        assertEquals(List.of("Frodo"), english.stream().map(RuleViolation::replacement).toList());
+
+        List<RuleViolation> french = RuleChecker.check(names, "fr", "Frodo quitte la Comté.", false);
+        assertEquals(1, french.size(), "The French rule reports the English form once");
+        assertTrue(RuleChecker.check(names, "de", "Frodon verlässt das Auenland.", false).isEmpty(),
+                "A language with no form of the term gets nothing");
+    }
+
+    @Test
+    void aFinderReportsAFormOfAnotherLanguageToo() {
+        RuleChecker.Finder finder = new RuleChecker.Finder(List.of(name("glossary.frodo-fr", "Frodo", "Frodon", "fr"),
+                name("glossary.frodo-es", "Frodo", "Frodo", "es")), "es", 10);
+        assertEquals(1, finder.find("Frodon abandona la Comarca.").size());
+    }
+
+    @Test
+    void aTextOfARegionalLanguageGetsTheFormOfItsLanguage() {
+        List<WritingRule> names = List.of(name("glossary.frodo-fr", "Frodo", "Frodon", "fr"),
+                name("glossary.frodo-es", "Frodo", "Frodo", "es"));
+
+        List<RuleViolation> found = RuleChecker.check(names, "es_ES", "Frodon abandona la Comarca.", false);
+        assertEquals(1, found.size());
+        assertEquals("Frodo", found.get(0).replacement());
+    }
+
+    @Test
+    void aFormThatTwoOtherLanguagesShareIsReportedOnce() {
+        List<WritingRule> names = List.of(name("glossary.frodo-fr", "Frodo", "Frodon", "fr"),
+                name("glossary.frodo-it", "Frodo", "Frodon", "it"), name("glossary.frodo-es", "Frodo", "Frodo", "es"));
+
+        List<RuleViolation> found = RuleChecker.check(names, "es", "Frodon abandona la Comarca.", false);
+        assertEquals(1, found.size());
+        assertEquals("glossary.frodo-fr", found.get(0).ruleId());
+    }
 }

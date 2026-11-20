@@ -20,7 +20,7 @@ properties.
 | `fixer` | The role of the person who fixes a finding: `editor`, `developer` or `administrator`. Example: `geo.reachable`, a crawler that gets a 403, names an administrator. |
 | `advice` | What to do about a finding, one text per language. For the evaluator `model`, the criterion that the model checks. |
 | `unit`, `minimum`, `maximum` | The limits of a rule of the evaluator `threshold`, in its unit. |
-| `kind`, `pattern`, `matchMode`, `replacement`, `ruleLanguage` | The pattern of a rule of the evaluator `pattern`: a forbidden term, a term to replace, a mandatory mention or a style pattern. A term ignores case and accents, a `*` at its end matches the rest of the word, and a `*` at its start lets it end another word. |
+| `kind`, `pattern`, `matchMode`, `replacement`, `ruleLanguage` | The pattern of a rule of the evaluator `pattern`: a forbidden term, a term to replace, a mandatory mention or a style pattern. A term ignores case and accents, a `*` at its end matches the rest of the word, and a `*` at its start lets it end another word. A regular expression ignores case, unless it starts with `(?-i)`. |
 | `patternForms`, `replacementForms` | The other forms of the term and of the replacement, such as the plurals "access tokens" and "jetons d'accès". |
 | `patternLanguage` | For a glossary term to translate, the language of the term, such as `en` for "access token" in a rule of `fr`. `frame.check` on a translation then reports a missing replacement. |
 | `wrongExamples`, `rightExamples`, `owner`, `decidedOn`, `validFrom`, `validUntil` | The examples, the decision and the dates of a writing rule. |
