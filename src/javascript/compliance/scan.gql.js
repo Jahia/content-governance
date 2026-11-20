@@ -22,6 +22,9 @@ export const SCAN_PAGE = gql`
                     nodeType
                     propertyName
                     propertyLabel
+                    ruleId
+                    severity
+                    folder
                     term
                     matchedText
                     before

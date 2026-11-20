@@ -22,10 +22,13 @@ import java.util.Map;
  * @param minimum   the lowest value that passes, or null when the rule has no such limit
  * @param maximum   the highest value that passes, or null when the rule has no such limit
  * @param values    every value of the rule, keyed as {@link RuleValues} keys them
+ * @param folder    the path of the folder that holds the node of the rule, such as
+ *                  {@code /sites/digitall/contents/compliance-glossaries/legal}, or null for a shipped rule
+ *                  that the site has no node of
  */
 public record ContentRule(String id, String domain, String evaluator, String severity, boolean blocking,
                           boolean enabled, String fixer, String advice, String unit, Double minimum, Double maximum,
-                          Map<String, Object> values) implements Rule {
+                          Map<String, Object> values, String folder) implements Rule {
 
     /** The severities of a rule, from the most serious to the least. */
     public static final List<String> SEVERITIES = List.of("critical", "serious", "moderate", "minor");
@@ -49,6 +52,15 @@ public record ContentRule(String id, String domain, String evaluator, String sev
     @Override
     public Object value(String property) {
         return values.get(property);
+    }
+
+    /**
+     * @param path the path of the folder that holds the node of the rule
+     * @return this rule in that folder
+     */
+    public ContentRule inFolder(String path) {
+        return new ContentRule(id, domain, evaluator, severity, blocking, enabled, fixer, advice, unit, minimum,
+                maximum, values, path);
     }
 
     /**
@@ -97,6 +109,6 @@ public record ContentRule(String id, String domain, String evaluator, String sev
             newValues.put(RuleValues.MAXIMUM, newMaximum);
         }
         return new ContentRule(id, domain, evaluator, newSeverity, blocking, newEnabled, fixer, advice, unit,
-                newMinimum, newMaximum, newValues);
+                newMinimum, newMaximum, newValues, folder);
     }
 }

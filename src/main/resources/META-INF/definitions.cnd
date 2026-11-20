@@ -8,17 +8,18 @@
 // jmix:droppableContent, which is how a glossary gets created under /sites/<site>/contents.
 [ccsmix:complianceContent] > jmix:droppableContent mixin
 
-// A list of terms that may not be used in the content of one language of the site. The language list
-// (SiteLanguagesInitializer) offers every site language, live-active or not. The scan reads
-// every glossary under /sites/<site>/contents whose language is the language being scanned.
-[ccs:glossary] > jnt:content, mix:title, jmix:list, ccsmix:complianceContent orderable
+// Replaced by a content folder of ccs:contentRule nodes. The module converts each node of this type in
+// place when it starts: its terms first, which the second child definition lets in, then the glossary.
+// The type stays until no site holds one, and jmix:hiddenType keeps it out of the create menu of jContent.
+[ccs:glossary] > jnt:content, mix:title, jmix:list, ccsmix:complianceContent, jmix:hiddenType orderable
  - language (string, choicelist[complianceSiteLanguages]) mandatory nofulltext
  - description (string, textarea)
  + * (ccs:glossaryTerm)
+ + * (ccs:contentRule)
 
-// One non-authorised term. Not droppable: terms are created inside a glossary only.
-// term is the primary item, so jContent shows the term as the node's name.
-[ccs:glossaryTerm] > jnt:content
+// Replaced by ccs:contentRule, with the evaluator pattern. The module converts each node of this type in
+// place when it starts. The type stays until no site holds one.
+[ccs:glossaryTerm] > jnt:content, jmix:hiddenType
  - term (string) mandatory primary
  - matchMode (string, choicelist[resourceBundle]) = 'word' autocreated mandatory < 'word', 'prefix', 'anywhere'
  - reason (string, textarea)
@@ -27,6 +28,7 @@
 // A rule that the checks apply on a site. A module ships its rules as Markdown files, and the seeder
 // writes one node per rule under contents/content-insights/<module>/rules. A site changes a rule on its
 // node, and adds a rule of its own anywhere under contents, such as contents/content-insights/site/rules.
+// Each list of a site, such as the terms of the legal team, is a folder of rules with its own permissions.
 // The evaluator names what checks the rule: pattern, threshold, presence, model, or the id of a check.
 [ccs:contentRule] > jnt:content, ccsmix:complianceContent
  - ruleId (string) mandatory primary nofulltext
@@ -45,13 +47,20 @@
  - unit (string)
  - minimum (double)
  - maximum (double)
- // The pattern of a writing rule, which the evaluator pattern checks.
+ // The pattern of a writing rule, which the evaluator pattern checks. A term that ends with * is a stem,
+ // and a term that starts with * may end another word.
  - kind (string, choicelist[resourceBundle]) < 'forbidden', 'replace', 'mandatory', 'style'
  - pattern (string)
  - matchMode (string, choicelist[resourceBundle]) < 'term', 'regex'
  - replacement (string)
  // A language code such as fr. Empty: every language.
  - ruleLanguage (string)
+ // The other forms of a term and of its replacement, such as the plurals "access tokens" and "jetons d'accès".
+ - patternForms (string) multiple
+ - replacementForms (string) multiple
+ // The language of the pattern of a glossary term that the rule translates, such as en for "access token"
+ // in a rule of fr. Empty: the pattern is in the language of the rule.
+ - patternLanguage (string) nofulltext
  // Texts that break the rule, and texts that keep it. The frame gives them to the model.
  - wrongExamples (string, textarea) multiple
  - rightExamples (string, textarea) multiple

@@ -43,8 +43,11 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -115,7 +118,7 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
         }
         Object replacement = rule.value(RuleValues.REPLACEMENT);
         return new RuleViolation(rule.id(), kind, rule.blocking() ? WritingRule.Severity.BLOCKING : WritingRule.Severity.WARNING,
-                null, text, replacement == null ? null : replacement.toString(), rule.advice(), context);
+                null, text, replacement == null ? null : replacement.toString(), rule.advice(), context, rule.folder());
     }
 
     @Override
@@ -134,8 +137,24 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
         Frame frame = getFrame(siteKey, language);
         List<RuleViolation> violations = new ArrayList<>(RuleChecker.check(frame.rules(), language, text, document));
         violations.addAll(registeredChecks(siteKey, language, text));
-        violations.addAll(GlossaryChecker.check(frame.glossary(), sourceLanguage, sourceText, language, text));
+        // A rendering that a rule already proposes for a wrong term of the translation is not missing too.
+        Set<String> proposed = new HashSet<>();
+        violations.forEach(violation -> proposed.add(String.valueOf(violation.replacement()).toLowerCase(Locale.ROOT)));
+        Map<String, String> folders = new HashMap<>();
+        frame.rules().forEach(rule -> folders.put(rule.id(), rule.folder()));
+        GlossaryChecker.check(frame.glossary(), sourceLanguage, sourceText, language, text).stream()
+                .filter(violation -> violation.match() != null
+                        || !proposed.contains(String.valueOf(violation.replacement()).toLowerCase(Locale.ROOT)))
+                .map(violation -> inFolder(violation, folders.get(violation.ruleId())))
+                .forEach(violations::add);
         return violations;
+    }
+
+    /** The violation of a glossary term, in the folder of the rule that holds the term. */
+    private static RuleViolation inFolder(RuleViolation violation, String folder) {
+        return folder == null ? violation : new RuleViolation(violation.ruleId(), violation.kind(), violation.severity(),
+                violation.pattern(), violation.match(), violation.replacement(), violation.justification(),
+                violation.excerpt(), folder);
     }
 
     @Override

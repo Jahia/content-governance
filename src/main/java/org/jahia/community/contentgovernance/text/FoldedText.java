@@ -1,4 +1,4 @@
-package org.jahia.community.contentgovernance.compliance.service.internal;
+package org.jahia.community.contentgovernance.text;
 
 import java.text.Normalizer;
 import java.util.Arrays;
@@ -7,8 +7,10 @@ import java.util.Arrays;
  * A text folded for comparison - lower case, accents removed, typographic apostrophes and common
  * ligatures replaced, fullwidth Latin letters and digits made plain - that keeps, for every folded character, the range it came from in the
  * original text. A match found in the folded text is reported on the original text.
+ *
+ * <p>Thread safety: immutable.</p>
  */
-final class FoldedText {
+public final class FoldedText {
 
     private final String original;
     private final String text;
@@ -28,7 +30,7 @@ final class FoldedText {
      * @param original the text as written, never {@code null}
      * @return the folded text with its offset map
      */
-    static FoldedText of(String original) {
+    public static FoldedText of(String original) {
         StringBuilder out = new StringBuilder(original.length());
         int[] starts = new int[original.length() + 8];
         int[] ends = new int[original.length() + 8];
@@ -63,21 +65,21 @@ final class FoldedText {
     }
 
     /**
-     * Folds a text without keeping the offset map, for glossary terms.
+     * Folds a text without keeping the offset map, for the forms of a term.
      *
      * @param original the text as written
      * @return the folded text
      */
-    static String foldString(String original) {
+    public static String foldString(String original) {
         return of(original).text();
     }
 
-    String text() {
+    public String text() {
         return text;
     }
 
     /** Offset in the original text of the folded character at {@code foldedIndex}. */
-    int originalStart(int foldedIndex) {
+    public int originalStart(int foldedIndex) {
         return starts[foldedIndex];
     }
 
@@ -86,7 +88,7 @@ final class FoldedText {
      * (exclusive). Combining marks that follow in the original belong to the last letter: they fold
      * to nothing, so they are added here ("risque" + U+0301 is reported whole).
      */
-    int originalEnd(int foldedEnd) {
+    public int originalEnd(int foldedEnd) {
         int end = ends[foldedEnd - 1];
         while (end < original.length() && Character.getType(original.codePointAt(end)) == Character.NON_SPACING_MARK) {
             end += Character.charCount(original.codePointAt(end));

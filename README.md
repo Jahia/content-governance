@@ -20,7 +20,7 @@ section, each opening the tab that explains it; it stays out of the way when the
 |---|---|---|
 | **Page quality** | Is the page I am editing accessible, findable, fast, readable, light, well linked and complete in Jahia? | In the editor's browser, on a preview of the page in the editing workspace; AI on demand |
 | **GEO readiness** | Can AI assistants and their crawlers read and cite the published page? | On the server, on demand (one fetch per AI crawler) |
-| **Compliance** | Does the page, or content it shows, use a term the site's glossaries forbid in this language? | On the server, when the section opens |
+| **Compliance** | Does the page, or content it shows, use a term that a term rule of the site forbids or replaces in this language? | On the server, when the section opens |
 
 ### Page quality
 
@@ -50,11 +50,12 @@ language of the page.
 
 ### Compliance
 
-Terms come from **Compliance glossaries**, one per language, kept in the site's contents by the
-people who own the wording (Legal, compliance). The scan reads the page and every piece of content
-it shows, and lists each term found with its reason and the suggested wording. Selecting a term in
-jContent shows it in the **Preview** tab: the term, how it matches, the reason and the suggested
-wording, in the editor's language.
+Terms are content rules of the evaluator `pattern`. Each team keeps its terms in a folder of rules
+under the site's contents, with the permissions of that folder: the legal team keeps terms that the
+brand team cannot change. The scan reads the page and every piece of content it shows, and lists
+each term found with its rule id, its folder, its advice and its replacement. The tool `frame.check`
+reports the same rules to an agent. [`docs/compliance/glossary-guide.md`](docs/compliance/glossary-guide.md)
+states how to write them.
 
 ### Site dashboards
 
@@ -143,8 +144,9 @@ also come in the four languages.
 4. For the AI features, a server administrator installs genai-connector and configures its model
    (below). Each user of these features needs the `genaiAccess` permission on the site.
 5. For compliance, enabling the module on a site creates **Content Folders > Compliance glossaries**
-   with an example glossary in the site's default language and one example term. Add a
-   **Compliance glossary** per language there, or anywhere under the site's `contents`.
+   with a folder for the site's default language and one example rule. Create a folder of rules for
+   each team there, or anywhere under the site's `contents`, and give each folder the roles of its
+   team.
 
 ### Moving from the three modules
 

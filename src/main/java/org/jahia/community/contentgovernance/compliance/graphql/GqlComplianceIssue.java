@@ -10,7 +10,7 @@ import org.jahia.community.contentgovernance.compliance.model.ComplianceIssue;
  * GraphQL view of a {@link ComplianceIssue}. Text fields are plain text: the client escapes them.
  */
 @GraphQLName("ComplianceIssue")
-@GraphQLDescription("One use of a non-authorised term in a content")
+@GraphQLDescription("One place where a content breaks a rule of the evaluator pattern, such as a forbidden term")
 public class GqlComplianceIssue {
 
     private final ComplianceIssue issue;
@@ -59,9 +59,32 @@ public class GqlComplianceIssue {
         return issue.propertyLabel();
     }
 
-    /** @return the glossary term */
+    /** @return the id of the rule */
     @GraphQLField
     @GraphQLNonNull
+    @GraphQLDescription("The id of the rule, such as compliance.click-here")
+    public String getRuleId() {
+        return issue.ruleId();
+    }
+
+    /** @return the severity of the rule */
+    @GraphQLField
+    @GraphQLDescription("critical, serious, moderate or minor")
+    public String getSeverity() {
+        return issue.severity();
+    }
+
+    /** @return the folder of the rule */
+    @GraphQLField
+    @GraphQLDescription("The path of the folder that holds the rule")
+    public String getFolder() {
+        return issue.folder();
+    }
+
+    /** @return the pattern of the rule */
+    @GraphQLField
+    @GraphQLNonNull
+    @GraphQLDescription("The pattern of the rule, as the rule writes it")
     public String getTerm() {
         return issue.term();
     }
@@ -85,23 +108,25 @@ public class GqlComplianceIssue {
         return issue.after();
     }
 
-    /** @return why the term may not be used */
+    /** @return the advice of the rule */
     @GraphQLField
+    @GraphQLDescription("The advice of the rule")
     public String getReason() {
         return issue.reason();
     }
 
-    /** @return suggested wording */
+    /** @return the replacement of the rule */
     @GraphQLField
+    @GraphQLDescription("The replacement that the rule names")
     public String getAlternative() {
         return issue.alternative();
     }
 
-    /** @return path of the glossary */
+    /** @return the folder of the rule */
     @GraphQLField
-    @GraphQLNonNull
+    @GraphQLDescription("The same as folder, kept for the clients of version 1")
     public String getGlossaryPath() {
-        return issue.glossaryPath();
+        return issue.folder();
     }
 
     /** @return where the content comes from */

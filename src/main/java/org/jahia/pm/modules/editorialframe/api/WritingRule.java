@@ -4,6 +4,7 @@
 package org.jahia.pm.modules.editorialframe.api;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -20,11 +21,20 @@ import java.util.Locale;
  * @param decidedOn the day of the decision, or {@code null}
  * @param validFrom the first day on which the rule applies, or {@code null} for no start
  * @param validUntil the last day on which the rule applies, or {@code null} for no end
+ * @param patternForms the other forms of the pattern of a term, such as the plural "access tokens". Never
+ *                     {@code null}
+ * @param replacementForms the other forms of the replacement, such as the plural "jetons d'accès". Never
+ *                         {@code null}
+ * @param patternLanguage the language of the pattern when it is another language than the language of the
+ *                        rule: a glossary term to translate, such as "access token" ({@code en}) for a rule of
+ *                        {@code fr}. {@code null} for a pattern in the language of the rule
+ * @param folder the path of the folder that holds the rule, or {@code null}
  */
 public record WritingRule(String id, Kind kind, String pattern, MatchMode matchMode, String replacement, String language,
                           Severity severity, String justification, String scope, List<String> wrongExamples,
                           List<String> rightExamples, String owner, LocalDate decidedOn, LocalDate validFrom,
-                          LocalDate validUntil) {
+                          LocalDate validUntil, List<String> patternForms, List<String> replacementForms,
+                          String patternLanguage, String folder) {
 
     /** What the rule asks. */
     public enum Kind {
@@ -72,24 +82,54 @@ public record WritingRule(String id, Kind kind, String pattern, MatchMode matchM
     public WritingRule {
         wrongExamples = wrongExamples == null ? List.of() : List.copyOf(wrongExamples);
         rightExamples = rightExamples == null ? List.of() : List.copyOf(rightExamples);
+        patternForms = patternForms == null ? List.of() : List.copyOf(patternForms);
+        replacementForms = replacementForms == null ? List.of() : List.copyOf(replacementForms);
+    }
+
+    /** A rule with no other form, in the language of the rule, in no folder. */
+    public WritingRule(String id, Kind kind, String pattern, MatchMode matchMode, String replacement, String language,
+                       Severity severity, String justification, String scope, List<String> wrongExamples,
+                       List<String> rightExamples, String owner, LocalDate decidedOn, LocalDate validFrom,
+                       LocalDate validUntil) {
+        this(id, kind, pattern, matchMode, replacement, language, severity, justification, scope, wrongExamples,
+                rightExamples, owner, decidedOn, validFrom, validUntil, null, null, null, null);
+    }
+
+    /** The pattern, then its other forms. */
+    public List<String> allPatternForms() {
+        return all(pattern, patternForms);
+    }
+
+    /** The replacement, then its other forms, or none when the rule has no replacement. */
+    public List<String> allReplacementForms() {
+        return replacement == null || replacement.isBlank() ? List.of() : all(replacement, replacementForms);
+    }
+
+    private static List<String> all(String first, List<String> others) {
+        List<String> all = new ArrayList<>(others.size() + 1);
+        all.add(first);
+        all.addAll(others);
+        return all;
     }
 
     /** A copy of the rule with texts that break it and texts that keep it. */
     public WritingRule withExamples(List<String> wrong, List<String> right) {
         return new WritingRule(id, kind, pattern, matchMode, replacement, language, severity, justification, scope, wrong,
-                right, owner, decidedOn, validFrom, validUntil);
+                right, owner, decidedOn, validFrom, validUntil, patternForms, replacementForms, patternLanguage, folder);
     }
 
     /** A copy of the rule with who decided it, such as a name or a team, and on which day. */
     public WritingRule withDecision(String decidedBy, LocalDate day) {
         return new WritingRule(id, kind, pattern, matchMode, replacement, language, severity, justification, scope,
-                wrongExamples, rightExamples, decidedBy, day, validFrom, validUntil);
+                wrongExamples, rightExamples, decidedBy, day, validFrom, validUntil, patternForms, replacementForms,
+                patternLanguage, folder);
     }
 
     /** A copy of the rule that applies from the first day to the last day, both included. A null day sets no limit. */
     public WritingRule withValidity(LocalDate first, LocalDate last) {
         return new WritingRule(id, kind, pattern, matchMode, replacement, language, severity, justification, scope,
-                wrongExamples, rightExamples, owner, decidedOn, first, last);
+                wrongExamples, rightExamples, owner, decidedOn, first, last, patternForms, replacementForms,
+                patternLanguage, folder);
     }
 
     /**
@@ -118,6 +158,7 @@ public record WritingRule(String id, Kind kind, String pattern, MatchMode matchM
     public String toString() {
         return "WritingRule[" + id + "|" + kind + "|" + pattern + "|" + matchMode + "|" + replacement + "|" + language
                 + "|" + severity + "|" + justification + "|" + scope + "|" + wrongExamples + "|" + rightExamples + "|"
-                + owner + "|" + decidedOn + "|" + validFrom + "|" + validUntil + "]";
+                + owner + "|" + decidedOn + "|" + validFrom + "|" + validUntil + "|" + patternForms + "|" + replacementForms
+                + "|" + patternLanguage + "|" + folder + "]";
     }
 }

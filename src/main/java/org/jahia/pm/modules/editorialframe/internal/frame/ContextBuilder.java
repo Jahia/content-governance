@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 /**
  * Writes the frame of a site as a text for the instructions of a model, within a token budget.
@@ -192,16 +191,7 @@ public final class ContextBuilder {
     }
 
     private static boolean appears(WritingRule rule, String plain) {
-        if (plain.isEmpty() || rule.kind() == WritingRule.Kind.MANDATORY) {
-            return false;
-        }
-        Pattern pattern = RuleChecker.compile(rule);
-        try {
-            return pattern != null && pattern.matcher(new RuleChecker.Deadline(plain,
-                    System.nanoTime() + RuleChecker.MAX_RULE_NANOS)).find();
-        } catch (RuleChecker.Deadline.Expired | StackOverflowError e) {
-            return false;
-        }
+        return RuleChecker.appears(rule, plain);
     }
 
     /** The glossary terms that the processed text holds, in any of their forms. None without a text. */
@@ -211,7 +201,7 @@ public final class ContextBuilder {
             return List.of();
         }
         return all.stream()
-                .filter(term -> RuleChecker.termPattern(term.allTermForms()).matcher(plain).find())
+                .filter(term -> RuleChecker.first(term.allTermForms(), plain) != null)
                 .toList();
     }
 

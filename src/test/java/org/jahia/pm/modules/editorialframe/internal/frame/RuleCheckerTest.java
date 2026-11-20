@@ -104,4 +104,56 @@ class RuleCheckerTest {
         assertTrue(RuleChecker.check(List.of(slow), "en", text, false).isEmpty());
         assertTrue(System.nanoTime() - start < 5_000_000_000L, "the deadline stops the regex");
     }
+
+    private static WritingRule glossary(String term, List<String> termForms, String translation,
+                                        List<String> translationForms) {
+        return new WritingRule("glossary.access-token", Kind.REPLACE, term, MatchMode.TERM, translation, "fr",
+                Severity.WARNING, null, "site", List.of(), List.of(), null, null, null, null, termForms,
+                translationForms, "en", "/sites/digitall/contents/brand");
+    }
+
+    @Test
+    void aTermMatchesInAnyOfItsFormsAndNamesItsFolder() {
+        WritingRule rule = glossary("access token", List.of("access tokens"), "jeton d'accès", List.of());
+        List<RuleViolation> found = RuleChecker.check(List.of(rule), "fr", "Créez des access tokens.", false);
+        assertEquals(1, found.size());
+        assertEquals("access tokens", found.get(0).match());
+        assertEquals("jeton d'accès", found.get(0).replacement());
+        assertEquals("glossary.access-token", found.get(0).ruleId());
+        assertEquals("/sites/digitall/contents/brand", found.get(0).folder());
+    }
+
+    @Test
+    void aTermIgnoresAccentsAndCase() {
+        WritingRule gratuit = rule(Kind.FORBIDDEN, "gratuité", MatchMode.TERM, null, "fr");
+        List<RuleViolation> found = RuleChecker.check(List.of(gratuit), "fr", "LIVRAISON GRATUITE.", false);
+        assertEquals(1, found.size());
+        assertEquals("GRATUITE", found.get(0).match());
+    }
+
+    @Test
+    void aMatchInsideAnyFormOfTheReplacementIsTheRightTerm() {
+        WritingRule rule = glossary("jeton d'authentification", List.of(), "jeton d'accès", List.of("jetons d'accès"));
+        WritingRule role = rule(Kind.REPLACE, "role", MatchMode.TERM, "rôle", "fr");
+        assertTrue(RuleChecker.check(List.of(role), "fr", "Un rôle clé.", false).isEmpty(),
+                "The right term, with its accent, is not wrong");
+        assertEquals(1, RuleChecker.check(List.of(role), "fr", "Un role clé.", false).size(),
+                "The term without its accent is wrong");
+        assertTrue(RuleChecker.check(List.of(rule), "fr", "Des jetons d’accès.", false).isEmpty());
+    }
+
+    @Test
+    void aFinderLeavesOutMandatoryRulesAndOtherLanguagesAndGivesEachPlace() {
+        RuleChecker.Finder finder = new RuleChecker.Finder(List.of(
+                rule(Kind.FORBIDDEN, "free trial", MatchMode.TERM, null, null),
+                rule(Kind.MANDATORY, "Capital at risk", MatchMode.TERM, null, null),
+                rule(Kind.REPLACE, "en nuage", MatchMode.TERM, "cloud", "fr")), "en", 10);
+        String text = "Start your Free Trial today, or a free trial later.";
+        List<RuleChecker.Match> found = finder.find(text);
+        assertEquals(2, found.size());
+        assertEquals("Free Trial", text.substring(found.get(0).start(), found.get(0).end()));
+        assertEquals("id-free trial", found.get(0).rule().id());
+        assertEquals(34, found.get(1).start());
+        assertTrue(new RuleChecker.Finder(List.of(rule(Kind.MANDATORY, "x", MatchMode.TERM, null, null)), "en", 1).isEmpty());
+    }
 }

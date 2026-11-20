@@ -3,6 +3,8 @@
  */
 package org.jahia.pm.modules.editorialframe.internal.frame;
 
+import org.jahia.community.contentgovernance.text.FoldedText;
+import org.jahia.community.contentgovernance.text.TermPattern;
 import org.jahia.pm.modules.editorialframe.api.RuleViolation;
 import org.jahia.pm.modules.editorialframe.api.WritingRule;
 import org.jahia.pm.modules.editorialframe.api.WritingRule.Kind;
@@ -10,16 +12,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.StringJoiner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 /**
- * Checks the writing rules on a text, with no model. A term matches as a whole word or phrase,
- * ignoring case: "robust" matches "Robust" and not "robustness".
+ * Checks the writing rules on a text, with no model. A term matches as {@link TermPattern} states: a
+ * whole word or phrase, in any case and with or without accents. "robust" matches "Robust" and not
+ * "robustness". A regex matches the text as it is written.
  */
 public final class RuleChecker {
 
@@ -31,8 +32,66 @@ public final class RuleChecker {
     private static final int MAX_MATCHES_PER_RULE = 3;
     /** A rule pattern that runs longer than this on one text is stopped: a regex can backtrack for hours. */
     static final long MAX_RULE_NANOS = 200_000_000L;
+    private static final String TOO_COSTLY = "The writing rule {} is too costly on a text, so it is skipped";
 
     private RuleChecker() {
+    }
+
+    /**
+     * A place where a plain text breaks a rule.
+     *
+     * @param rule  the rule
+     * @param start where the match starts in the text
+     * @param end   where it ends, excluded
+     */
+    public record Match(WritingRule rule, int start, int end) {
+    }
+
+    /**
+     * The rules that one language can break, compiled once to check many plain texts: the forbidden,
+     * replace and style rules of the language. A mandatory rule needs a whole document, so the finder
+     * leaves it out. Example: a scan of a site checks each text of the site with one finder.
+     *
+     * <p>Thread safety: immutable.</p>
+     */
+    public static final class Finder {
+        private final List<Compiled> compiled = new ArrayList<>();
+        private final int maxPerRule;
+
+        /**
+         * @param rules      the rules to apply
+         * @param language   the language of the texts, such as {@code fr}
+         * @param maxPerRule the most matches of one rule in one text
+         */
+        public Finder(List<WritingRule> rules, String language, int maxPerRule) {
+            this.maxPerRule = maxPerRule;
+            for (WritingRule rule : rules) {
+                Compiled one = rule.kind() == Kind.MANDATORY || !rule.appliesTo(language) ? null : Compiled.of(rule);
+                if (one != null) {
+                    compiled.add(one);
+                }
+            }
+        }
+
+        public boolean isEmpty() {
+            return compiled.isEmpty();
+        }
+
+        /**
+         * @param plain a plain text, which is cut after 100,000 characters
+         * @return the matches, rule after rule
+         */
+        public List<Match> find(String plain) {
+            if (plain == null || plain.isEmpty()) {
+                return List.of();
+            }
+            Searched searched = new Searched(plain.length() > MAX_TEXT ? plain.substring(0, MAX_TEXT) : plain);
+            List<Match> found = new ArrayList<>();
+            for (Compiled one : compiled) {
+                found.addAll(one.matches(searched, maxPerRule));
+            }
+            return found;
+        }
     }
 
     public static List<RuleViolation> check(List<WritingRule> rules, String language, String html, boolean document) {
@@ -42,52 +101,137 @@ public final class RuleChecker {
         if (cut) {
             text = text.substring(0, MAX_TEXT);
         }
+        Searched searched = new Searched(text);
         for (WritingRule rule : rules) {
-            Pattern pattern = rule.appliesTo(language) ? compile(rule) : null;
-            if (pattern != null) {
-                checkRule(rule, pattern, text, cut, document, found);
+            Compiled compiled = rule.appliesTo(language) ? Compiled.of(rule) : null;
+            if (compiled == null) {
+                continue;
+            }
+            if (rule.kind() == Kind.MANDATORY) {
+                // The part of a cut text that is left out may hold the term, so only a whole text lacks it.
+                if (document && !cut && !compiled.found(searched)) {
+                    found.add(violation(rule, null, null));
+                }
+                continue;
+            }
+            for (Match match : compiled.matches(searched, MAX_MATCHES_PER_RULE)) {
+                found.add(violation(rule, text.substring(match.start(), match.end()),
+                        excerpt(text, match.start(), match.end())));
             }
         }
         return found;
     }
 
-    /** Adds the violations of one rule on a text, which is cut when {@code cut} is true. */
-    private static void checkRule(WritingRule rule, Pattern pattern, String text, boolean cut, boolean document,
-                                  List<RuleViolation> found) {
-        Matcher matcher = pattern.matcher(new Deadline(text, System.nanoTime() + MAX_RULE_NANOS));
-        if (rule.kind() == Kind.MANDATORY) {
-            // The part of a cut text that is left out may hold the term, so only a whole text lacks it.
-            if (document && !cut && !findWithin(matcher, rule)) {
-                found.add(new RuleViolation(rule.id(), rule.kind(), rule.severity(), rule.pattern(), null,
-                        rule.replacement(), rule.justification(), null));
-            }
-            return;
+    private static RuleViolation violation(WritingRule rule, String match, String excerpt) {
+        return new RuleViolation(rule.id(), rule.kind(), rule.severity(), rule.pattern(), match, rule.replacement(),
+                rule.justification(), excerpt, rule.folder());
+    }
+
+    /**
+     * @param rule  a rule
+     * @param plain a plain text
+     * @return true when the text breaks the rule, for a rule that is not mandatory
+     */
+    static boolean appears(WritingRule rule, String plain) {
+        Compiled compiled = rule.kind() == Kind.MANDATORY || plain.isEmpty() ? null : Compiled.of(rule);
+        return compiled != null && !compiled.matches(new Searched(plain), 1).isEmpty();
+    }
+
+    /**
+     * @param forms the forms of a term
+     * @param plain a plain text
+     * @return the first place of a form in the text, or null
+     */
+    static TermPattern.Span first(List<String> forms, String plain) {
+        TermPattern term = TermPattern.of(forms);
+        return term == null ? null : term.first(FoldedText.of(plain));
+    }
+
+    /** A plain text, and its folded form, which a term reads. The text is folded when a term first asks. */
+    static final class Searched {
+        private final String text;
+        private FoldedText folded;
+
+        Searched(String text) {
+            this.text = text;
         }
-        List<int[]> allowed = replacementSpans(rule, text);
-        int matches = 0;
-        try {
-            while (matcher.find() && matches < MAX_MATCHES_PER_RULE) {
-                if (inside(allowed, matcher.start(), matcher.end())) {
-                    // "mail" inside "e-mail", when the rule says to write "e-mail" instead of "mail".
-                    continue;
-                }
-                matches++;
-                found.add(new RuleViolation(rule.id(), rule.kind(), rule.severity(), rule.pattern(), matcher.group(),
-                        rule.replacement(), rule.justification(), excerpt(text, matcher.start(), matcher.end())));
+
+        String text() {
+            return text;
+        }
+
+        FoldedText folded() {
+            if (folded == null) {
+                folded = FoldedText.of(text);
             }
-        } catch (Deadline.Expired | StackOverflowError e) {
-            // A pattern that backtracks without end either runs out of time or out of stack.
-            logger.warn("The writing rule {} is too costly on a text, so it is skipped", rule.id());
+            return folded;
         }
     }
 
-    private static boolean findWithin(Matcher matcher, WritingRule rule) {
-        try {
-            return matcher.find();
-        } catch (Deadline.Expired | StackOverflowError e) {
-            logger.warn("The writing rule {} is too costly on a text, so it is skipped", rule.id());
-            // A rule that cannot be checked reports nothing.
-            return true;
+    /** One rule, compiled: a term that reads the folded text, or a regex that reads the text. */
+    private record Compiled(WritingRule rule, TermPattern term, Pattern regex) {
+
+        /** The compiled rule, or null for a rule with no pattern or with a regex that does not compile. */
+        static Compiled of(WritingRule rule) {
+            if (rule.pattern() == null || rule.pattern().isBlank()) {
+                return null;
+            }
+            if (rule.matchMode() == WritingRule.MatchMode.REGEX) {
+                try {
+                    return new Compiled(rule, null, Pattern.compile(rule.pattern(), Pattern.UNICODE_CASE));
+                } catch (PatternSyntaxException e) {
+                    logger.warn("The writing rule {} has a pattern that does not compile: {}", rule.id(), e.getDescription());
+                    return null;
+                }
+            }
+            TermPattern term = TermPattern.of(rule.allPatternForms());
+            return term == null ? null : new Compiled(rule, term, null);
+        }
+
+        /** The places where the text breaks the rule, at most {@code max}. */
+        List<Match> matches(Searched searched, int max) {
+            List<int[]> allowed = replacementSpans(rule, searched.text());
+            List<Match> found = new ArrayList<>();
+            long end = System.nanoTime() + MAX_RULE_NANOS;
+            try {
+                if (term != null) {
+                    FoldedText folded = searched.folded();
+                    Matcher matcher = term.pattern().matcher(new Deadline(folded.text(), end));
+                    while (found.size() < max && matcher.find()) {
+                        TermPattern.Span span = TermPattern.span(folded, matcher.start(), matcher.end());
+                        add(found, allowed, span.start(), span.end());
+                    }
+                } else {
+                    Matcher matcher = regex.matcher(new Deadline(searched.text(), end));
+                    while (found.size() < max && matcher.find()) {
+                        add(found, allowed, matcher.start(), matcher.end());
+                    }
+                }
+            } catch (Deadline.Expired | StackOverflowError e) {
+                // A pattern that backtracks without end either runs out of time or out of stack.
+                logger.warn(TOO_COSTLY, rule.id());
+            }
+            return found;
+        }
+
+        /** Adds a match, unless it is empty or the right term: "mail" inside "e-mail", for a rule that says to write "e-mail". */
+        private void add(List<Match> found, List<int[]> allowed, int start, int end) {
+            if (end > start && !inside(allowed, start, end)) {
+                found.add(new Match(rule, start, end));
+            }
+        }
+
+        /** True when the text holds the pattern. A rule that is too costly to check counts as found. */
+        boolean found(Searched searched) {
+            long end = System.nanoTime() + MAX_RULE_NANOS;
+            try {
+                return term != null
+                        ? term.pattern().matcher(new Deadline(searched.folded().text(), end)).find()
+                        : regex.matcher(new Deadline(searched.text(), end)).find();
+            } catch (Deadline.Expired | StackOverflowError e) {
+                logger.warn(TOO_COSTLY, rule.id());
+                return true;
+            }
         }
     }
 
@@ -133,19 +277,53 @@ public final class RuleChecker {
         }
     }
 
-    /** Where the replacement of a rule appears in the text: a match inside it is the right term. */
+    /**
+     * Where a form of the replacement of a rule appears in the text: a match inside it is the right term.
+     * The search ignores case and keeps accents, so "role" is wrong where the rule says to write "rôle".
+     */
     static List<int[]> replacementSpans(WritingRule rule, String text) {
         List<int[]> spans = new ArrayList<>();
-        String replacement = rule.replacement();
-        if (rule.kind() != Kind.REPLACE || replacement == null || replacement.isBlank()) {
+        if (rule.kind() != Kind.REPLACE) {
             return spans;
         }
-        Matcher found = Pattern.compile(Pattern.quote(replacement.trim()), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE)
-                .matcher(text);
-        while (found.find()) {
-            spans.add(new int[]{found.start(), found.end()});
+        for (String form : rule.allReplacementForms()) {
+            if (form.isBlank()) {
+                continue;
+            }
+            Matcher found = Pattern.compile(literal(form.trim()), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE)
+                    .matcher(text);
+            while (found.find()) {
+                spans.add(new int[]{found.start(), found.end()});
+            }
         }
         return spans;
+    }
+
+    /** The regex of a text as written, where a space matches any white space and an apostrophe a straight or a curly one. */
+    private static String literal(String text) {
+        StringBuilder regex = new StringBuilder();
+        StringBuilder plain = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            String special;
+            if (Character.isWhitespace(c)) {
+                special = "\\s+";
+            } else if (c == '\'' || c == '’') {
+                special = "['’]";
+            } else {
+                plain.append(c);
+                continue;
+            }
+            if (!plain.isEmpty()) {
+                regex.append(Pattern.quote(plain.toString()));
+                plain.setLength(0);
+            }
+            regex.append(special);
+        }
+        if (!plain.isEmpty()) {
+            regex.append(Pattern.quote(plain.toString()));
+        }
+        return regex.toString();
     }
 
     private static boolean inside(List<int[]> spans, int start, int end) {
@@ -155,77 +333,6 @@ public final class RuleChecker {
             }
         }
         return false;
-    }
-
-    /** The pattern of a rule, or {@code null} for a regex that does not compile. */
-    static Pattern compile(WritingRule rule) {
-        if (rule.pattern() == null || rule.pattern().isBlank()) {
-            return null;
-        }
-        if (rule.matchMode() == WritingRule.MatchMode.REGEX) {
-            try {
-                return Pattern.compile(rule.pattern(), Pattern.UNICODE_CASE);
-            } catch (PatternSyntaxException e) {
-                logger.warn("The writing rule {} has a pattern that does not compile: {}", rule.id(), e.getDescription());
-                return null;
-            }
-        }
-        return termPattern(rule.pattern());
-    }
-
-    /**
-     * The pattern of a term: a whole word or phrase, ignoring case. A space in a term also matches a
-     * non-breaking space or a line break, and an apostrophe matches a straight or a curly one. A term
-     * that ends with * is a stem: "seamless*" also matches "seamlessly".
-     */
-    static Pattern termPattern(String term) {
-        return termPattern(List.of(term));
-    }
-
-    /**
-     * The pattern of the forms of a term, such as "jeton d'accès" and "jetons d'accès": any of them,
-     * as {@link #termPattern(String)} matches one. The longest form is tried first, so a match is
-     * the whole form.
-     */
-    static Pattern termPattern(List<String> forms) {
-        StringJoiner alternatives = new StringJoiner("|", "(?:", ")");
-        forms.stream().map(String::trim).filter(form -> !form.isEmpty())
-                .sorted(Comparator.comparingInt(String::length).reversed())
-                .forEach(form -> alternatives.add(termRegex(form)));
-        return Pattern.compile("(?<![\\p{L}\\p{N}])" + alternatives + "(?![\\p{L}\\p{N}])",
-                Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
-    }
-
-    private static String termRegex(String term) {
-        boolean stem = term.endsWith("*") && term.length() > 1;
-        String text = stem ? term.substring(0, term.length() - 1) : term;
-        StringBuilder regex = new StringBuilder();
-        StringBuilder literal = new StringBuilder();
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            String special = special(c);
-            if (special == null) {
-                literal.append(c);
-                continue;
-            }
-            if (!literal.isEmpty()) {
-                regex.append(Pattern.quote(literal.toString()));
-                literal.setLength(0);
-            }
-            regex.append(special);
-        }
-        if (!literal.isEmpty()) {
-            regex.append(Pattern.quote(literal.toString()));
-        }
-        return regex + (stem ? "[\\p{L}\\p{N}]*" : "");
-    }
-
-    /** The regex of a character that a text writes in several ways, or {@code null} for another character. */
-    private static String special(char c) {
-        if (c == ' ') {
-            return "\\s+";
-        }
-        return c == '\'' || c == '’' ? "['’]" : null;
     }
 
     static String excerpt(String text, int start, int end) {

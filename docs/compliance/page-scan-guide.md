@@ -1,8 +1,8 @@
 # The Compliance section of the drawer, for editors
 
 The **Compliance** section of the **Content governance** drawer checks the page you are editing, in
-the language you are editing, against the site's glossaries of non-authorised terms. It is
-informational: it tells you what to fix before publishing, it does not stop you publishing.
+the language you are editing, against the term rules of the site: the rules of the evaluator
+`pattern`, such as the terms of the legal team or the glossary of the brand. It is informational: it tells you what to fix before publishing, it does not stop you publishing.
 
 ## Open it
 
@@ -31,12 +31,12 @@ drawer drops it: the next time you open the section, the scan runs again.
 
 | Result | Meaning |
 |---|---|
-| **Compliant** | Glossaries exist for this language and no text of the page uses their terms |
+| **Compliant** | Term rules apply to this language and no text of the page breaks one |
 | **Not compliant** | At least one term is used. The banner **Do not publish this page yet** asks you to replace or remove each term first |
-| **Not checked** | No glossary exists for this language: nothing was checked. The banner **No glossary for** (language) says how to create one; ask whoever maintains the terms |
+| **Not checked** | No term rule applies to this language, so nothing was checked. The banner **No term rule for** (language) says how to create one. Ask the person who maintains the terms |
 
-The summary line counts the uses and the contents they are in; **Glossaries applied:** lists the
-glossaries used, with their number of terms (click one to open it in Content Editor).
+The summary line counts the uses and the contents that hold them. **Rule folders applied:** lists the
+folders of the rules, with their number of rules. Click a folder to open it in Content Editor.
 
 ## Reading an issue
 
@@ -46,8 +46,9 @@ Issues are grouped by content. For each content:
   you edit; when you close Content Editor, the drawer opens again on the Compliance section and the
   scan runs again;
 - each use: the field ("Text", "Title"), the sentence with the term highlighted, then **Term**,
-  **Reason** and **Write instead** (the suggested wording), and **Glossary** when several apply. A
-  term two glossaries share is listed once for each, with each glossary's reason.
+  **Reason** (the advice of the rule), **Write instead** (the replacement of the rule), **Rule** (its
+  id) and **Folder**. A term that two folders share is listed once for each rule, with the advice of
+  each rule.
 
 A content can carry a second label:
 
