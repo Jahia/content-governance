@@ -1,5 +1,7 @@
 import {enableModule} from '@jahia/cypress';
-import {addNodeTree, asRoot, assertRefused, createTestSite, deleteTestSite, gql, gqlOk, nodeExists} from '../support/cg';
+import {
+    addNodeTree, asRoot, assertRefused, createTestSite, deleteTestSite, FramePageFinding, framePageCheck, gql, gqlOk, nodeExists
+} from '../support/cg';
 
 type RuleStatus = {id: string; evaluator: string; active: boolean; missingCheck: string | null; needs: string | null};
 type CheckFinding = {ruleId: string; severity: string; text: string};
@@ -138,6 +140,18 @@ describe('Content Governance - check registry', () => {
                     expect(byId[finding.ruleId], finding.ruleId).to.include({active: true});
                     expect(finding.ruleId).not.to.match(/^ecodesign\.|^health\.graphqlUnavailable$/);
                 });
+            });
+        });
+    });
+
+    it('gives one page the same findings in checkPage and in frame.check', () => {
+        const path = `${sitePath}/home`;
+        gqlOk(asRoot(), PAGE_CHECK, {path}).then(page => {
+            const fromGraphql = (page.contentGovernance.checkPage as CheckFinding[])
+                .map(finding => `${finding.ruleId} ${finding.severity} ${finding.text}`);
+            expect(fromGraphql, 'the page has findings').not.to.be.empty;
+            framePageCheck({siteKey, locale: 'en', path}).then((findings: FramePageFinding[]) => {
+                expect(findings.map(finding => `${finding.rule} ${finding.severity} ${finding.text}`)).to.deep.eq(fromGraphql);
             });
         });
     });
