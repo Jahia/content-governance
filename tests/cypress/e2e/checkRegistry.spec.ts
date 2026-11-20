@@ -152,7 +152,7 @@ describe('Content Governance - check registry', () => {
     it('gives one page the same findings in checkPage and in frame.check', () => {
         const path = `${sitePath}/home`;
         gqlOk(asRoot(), PAGE_CHECK, {path}).then(page => {
-            const fromGraphql = (page.contentGovernance.checkPage as CheckFinding[])
+            const fromGraphql = (page.contentGovernance.checkPage.findings as CheckFinding[])
                 .map(finding => `${finding.ruleId} ${finding.severity} ${finding.text}`);
             expect(fromGraphql, 'the page has findings').not.to.be.empty;
             framePageCheck({siteKey, locale: 'en', path}).then((findings: FramePageFinding[]) => {

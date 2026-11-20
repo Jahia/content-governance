@@ -319,7 +319,7 @@ class PageChecksTest {
         @DisplayName("a content item gets no SEO facts")
         void item_hasNoSeoFacts() {
             HtmlCheck.Rendered item = new HtmlCheck.Rendered(PATH + "/main/intro", "jnt:text", Scope.ITEM,
-                    Jsoup.parse("<p>Intro</p>"), Set.of("localhost"));
+                    Jsoup.parse("<p>Intro</p>"), Set.of("localhost"), Map.of());
 
             assertThat(HtmlCheck.facts(item, Locale.ENGLISH, ContentRules.base()))
                     .containsOnlyKeys("readability", "links", "jahia");
