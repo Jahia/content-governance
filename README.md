@@ -127,8 +127,9 @@ also come in the four languages.
 - Optional: the `genai-connector` module ([Jahia/genai-connector](https://github.com/Jahia/genai-connector)),
   for the AI features, and the `genaiAccess` permission on the site for each user of these features.
   Without genai-connector, the AI features show greyed out and the rest of the module works.
-- Optional: the `mcp-server` module, which serves the tool `frame.check` of the editorial frame and
-  the two tools of the HTML check to AI agents. Without it the module starts and adds no tool.
+- Optional: the `mcp-server` module, 0.5.0 or a later 0.x version, which serves the tool `frame.check`
+  of the editorial frame and the two tools of the HTML check to AI agents. Without it, or with an older
+  version, the module starts and adds no tool.
 - Optional: a BotRank organisation API key, for AI citations.
 
 ## Install
