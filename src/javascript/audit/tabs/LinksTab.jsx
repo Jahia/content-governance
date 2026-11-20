@@ -5,10 +5,11 @@ import {useGovernanceTranslation} from '../../common/i18n';
 import {Recommendations} from './Recommendations';
 import styles from './Tabs.module.css';
 
-// A broken link names a path of the repository, which its address holds (/cms/render/default/en/sites/...)
+// A broken link names a path of the repository, which its address ends with (/cms/render/default/en/sites/...
+// .html), with no other page whose path starts with it: /sites/x/news, and never /sites/x/news-archive
 const selectorFor = path => {
     const escaped = path.replaceAll('\\', '\\\\').replaceAll('"', String.raw`\"`);
-    return `a[href*="${escaped}"]`;
+    return [`a[href$="${escaped}.html"]`, `a[href*="${escaped}.html?"]`, `a[href*="${escaped}.html#"]`, `a[href$="${escaped}"]`].join(', ');
 };
 
 /** The links of the page, as the check of the server reads them, and the internal links a visitor cannot open. */

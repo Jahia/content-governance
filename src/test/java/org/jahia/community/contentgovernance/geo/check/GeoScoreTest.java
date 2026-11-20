@@ -483,6 +483,16 @@ class GeoScoreTest {
         }
 
         @Test
+        @DisplayName("structuredData fails under seo.structuredDataValid when a block does not parse")
+        void structuredData_invalidBlockFails() {
+            JSONObject score = GeoScore.compute(checked(new JSONObject()
+                    .put("jsonLdTypes", new JSONArray()), "seo.structuredDataValid"), RULES);
+
+            assertThat(passed(score, "structuredData")).isFalse();
+            assertThat(check(score, "structuredData").getString("rule")).isEqualTo("seo.structuredDataValid");
+        }
+
+        @Test
         @DisplayName("langDeclared reports the language it found")
         void langDeclared_reportsTheValue() {
             JSONObject score = GeoScore.compute(checked(new JSONObject().put("lang", "fr"), ""), RULES);

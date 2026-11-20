@@ -43,13 +43,14 @@ public final class GeoScore {
     private static final String DESCRIPTION_RULE = "seo.metaDescription";
     private static final String CANONICAL_RULE = "seo.canonical";
     private static final String SCHEMA_RULE = "seo.structuredData";
+    private static final String SCHEMA_VALID_RULE = "seo.structuredDataValid";
     private static final String H1_MISSING = "html.headingH1Missing";
     private static final String H1_MULTIPLE = "html.headingH1Multiple";
     private static final String LANGUAGE_RULE = "html.pageLanguageMissing";
     private static final String ALT_RULE = "html.imageAltMissing";
     /** The rules of the page check service that GEO readiness reports. */
     public static final Set<String> PAGE_RULES = Set.of(TITLE_RULE, DESCRIPTION_RULE, CANONICAL_RULE, SCHEMA_RULE,
-            H1_MISSING, H1_MULTIPLE, LANGUAGE_RULE, ALT_RULE);
+            SCHEMA_VALID_RULE, H1_MISSING, H1_MULTIPLE, LANGUAGE_RULE, ALT_RULE);
 
     private static final String CRITICAL = "critical";
     private static final String IMPORTANT = "important";
@@ -281,7 +282,9 @@ public final class GeoScore {
 
         JSONArray types = f.control == null ? null : f.control.optJSONArray("jsonLdTypes");
         boolean hasSchema = types != null && types.length() > 0;
-        checks.add("structuredData", CONTENT, SCHEMA_RULE, f.passes(SCHEMA_RULE), hasSchema ? join(types) : null);
+        boolean invalid = f.pageFindings != null && f.pageFindings.contains(SCHEMA_VALID_RULE);
+        checks.add("structuredData", CONTENT, invalid ? SCHEMA_VALID_RULE : SCHEMA_RULE,
+                f.passes(SCHEMA_RULE) && f.passes(SCHEMA_VALID_RULE), hasSchema ? join(types) : null);
 
         boolean fresh = f.has("dateModified");
         checks.add("freshness", CONTENT, "geo.dateModified", fresh, fresh ? f.text("dateModified") : null);

@@ -49,7 +49,7 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -303,7 +303,7 @@ public class CrawlerCheckServlet extends GeoServlet {
         RobotsRules rules = rulesOf(siteFiles);
         out.put("siteFiles", siteFiles);
 
-        Map<String, String> bodies = new ConcurrentHashMap<>();
+        ConcurrentSkipListMap<Integer, String> bodies = new ConcurrentSkipListMap<>();
         tally(out, probeAgents(publicUrl, target.base, bodies), rules, target.pagePath);
 
         // GEO-19 for this one page. A crawler served a login form gets a cheerful
@@ -330,23 +330,20 @@ public class CrawlerCheckServlet extends GeoServlet {
 
     /**
      * The rules of the page check service that the HTML of the control breaks, under
-     * {@link GeoScore#PAGE_FINDINGS}: the control is the first agent that got the page, as GeoScore reads it.
-     * None when no agent got it, so that GeoScore fails these checks.
+     * {@link GeoScore#PAGE_FINDINGS}. The control is the first agent, in the order of the probes, that got
+     * the page with a 200, as GeoScore reads it: the first entry of {@code bodies}. None when no agent got
+     * it, so that GeoScore fails these checks.
      */
-    private void addPageFindings(JSONObject out, String path, String language, Map<String, String> bodies,
+    private void addPageFindings(JSONObject out, String path, String language, ConcurrentSkipListMap<Integer, String> bodies,
                                  ContentRules contentRules) {
-        JSONArray agents = out.optJSONArray(AGENTS);
-        for (int i = 0; agents != null && i < agents.length(); i++) {
-            JSONObject agent = agents.getJSONObject(i);
-            String body = bodies.get(agent.optString("name", ""));
-            if (agent.optInt("status", 0) == 200 && agent.optJSONObject("html") != null && body != null) {
-                JSONArray ids = new JSONArray();
-                pages.findings(contentRules, path, language, Jsoup.parse(body), GeoScore.PAGE_RULES).stream()
-                        .map(Finding::ruleId).distinct().forEach(ids::put);
-                out.put(GeoScore.PAGE_FINDINGS, ids);
-                return;
-            }
+        Map.Entry<Integer, String> control = bodies.firstEntry();
+        if (control == null) {
+            return;
         }
+        JSONArray ids = new JSONArray();
+        pages.findings(contentRules, path, language, Jsoup.parse(control.getValue()), GeoScore.PAGE_RULES).stream()
+                .map(Finding::ruleId).distinct().forEach(ids::put);
+        out.put(GeoScore.PAGE_FINDINGS, ids);
     }
 
     /**
@@ -401,12 +398,14 @@ public class CrawlerCheckServlet extends GeoServlet {
     }
 
     /**
-     * One probe per bot user agent. The body that each agent got lands in {@code bodies}, by its name.
+     * One probe per bot user agent. The body of the first agent that got the page with a 200 lands in
+     * {@code bodies}, by the rank of the agent: a later rank is dropped, so that one body at a time stays in
+     * memory, beside the probes still running.
      *
      * Fetched a few at a time, but returned strictly in submission order: the
      * control agent must stay first, because it is where controlWords comes from.
      */
-    private List<JSONObject> probeAgents(String publicUrl, String origin, Map<String, String> bodies) {
+    private List<JSONObject> probeAgents(String publicUrl, String origin, ConcurrentSkipListMap<Integer, String> bodies) {
         Map<String, String> toFetch = agents();
         List<String> names = new ArrayList<>(toFetch.keySet());
         List<JSONObject> probed = new ArrayList<>(names.size());
@@ -414,11 +413,11 @@ public class CrawlerCheckServlet extends GeoServlet {
                 Math.min(FETCH_CONCURRENCY, Math.max(1, names.size())));
         try {
             List<Future<JSONObject>> futures = new ArrayList<>(names.size());
-            for (String name : names) {
+            for (int i = 0; i < names.size(); i++) {
+                String name = names.get(i);
                 String ua = toFetch.get(name);
-                futures.add(pool.submit((Callable<JSONObject>) () -> PageFetch.probe(
-                        publicUrl, origin, name, ua,
-                        config.getFetchTimeoutMs(), config.getMaxBodyBytes(), body -> bodies.put(name, body))));
+                int rank = i;
+                futures.add(pool.submit((Callable<JSONObject>) () -> probe(publicUrl, origin, name, ua, rank, bodies)));
             }
             for (int i = 0; i < futures.size(); i++) {
                 probed.add(resultOf(futures.get(i), names.get(i)));
@@ -427,6 +426,19 @@ public class CrawlerCheckServlet extends GeoServlet {
             pool.shutdownNow();
         }
         return probed;
+    }
+
+    /** One probe, which keeps its body in {@code bodies} when it answered 200 ahead of every kept body. */
+    private JSONObject probe(String publicUrl, String origin, String name, String ua, int rank,
+                             ConcurrentSkipListMap<Integer, String> bodies) {
+        String[] body = new String[1];
+        JSONObject result = PageFetch.probe(publicUrl, origin, name, ua, config.getFetchTimeoutMs(),
+                config.getMaxBodyBytes(), html -> body[0] = html);
+        if (result.optInt("status", 0) == 200 && body[0] != null) {
+            bodies.put(rank, body[0]);
+            bodies.tailMap(bodies.firstKey(), false).clear();
+        }
+        return result;
     }
 
     /** One agent's result, or a synthetic failure: one agent must not lose the rest. */

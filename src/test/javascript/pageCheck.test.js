@@ -122,6 +122,21 @@ describe('tabResults', () => {
         expect(results.accessibility.map(rec => rec.rule)).toEqual(['html.duplicateId']);
     });
 
+    it('resolves a relative image of the sharing card against the address of the page', () => {
+        const page = facts();
+        const results = tabResults({findings: [], facts: {...page, seo: {...page.seo, og: {...page.seo.og, image: 'images/card.png'}}}},
+            BASE_RULES, '/sites/digitall/home', 'http://jahia.test/cms/render/default/en/sites/digitall/home.html');
+
+        expect(results.seo.ogImageResolved).toBe('http://jahia.test/cms/render/default/en/sites/digitall/images/card.png');
+    });
+
+    it('names the tabs whose state of the content the server could not read', () => {
+        expect(tabResults({findings: [], facts: facts()}, BASE_RULES, '/sites/digitall/home').unread).toEqual([]);
+        const unread = tabResults({findings: [], facts: {...facts(), links: {...facts().links, checked: null}, jahia: {}}},
+            BASE_RULES, '/sites/digitall/home').unread;
+        expect(unread).toEqual(['links', 'jahia']);
+    });
+
     it('lists the content of the page under its path, with the status of the drawer', () => {
         const results = tabResults({findings: [finding('health.rawI18nKeys', 'jnt:text.title', 'jnt:text.title here'),
             finding('health.placeholderText', 'lorem ipsum', 'Lorem ipsum dolor')], facts: facts()}, BASE_RULES,

@@ -47,6 +47,12 @@ const STEP_LIMITS_MS = {vitals: 15_000, a11y: 60_000, page: 60_000};
 // The tabs whose results the check of the server gives, by their key in the results
 const SERVER_KEYS = ['seo', 'readability', 'links', 'jahia'];
 
+// The tabs that read the check of the server: its results, its HTML rules, or the page facts of the AI tasks
+const SERVER_TABS = ['seo', 'readability', 'links', 'jahia', 'accessibility', 'ai'];
+
+// Why a tab misses the facts of the repository: the server rendered the page, and could not read its state
+const UNREAD = {incomplete: 'failed', message: 'the server could not read the repository'};
+
 // Results are cached per page+language in localStorage so reopening the
 // drawer restores the last audit instantly (with its timestamp shown in the
 // header). "Re-run" always performs a fresh audit. LRU-capped.
@@ -185,11 +191,36 @@ function measuredResults(measured, page, incomplete, isOn) {
         }
     }
     const missing = Object.keys(incomplete).filter(key => Object.entries(RESULT_KEYS).some(([tab, k]) => k === key && isOn(tab)));
-    if (missing.length > 0) {
-        kept.incomplete = Object.fromEntries(missing.map(key => [key, incomplete[key]]));
+    // A check of the server that did not finish leaves no tab of its own when they are all off, and its
+    // page facts and HTML rules are still missing: such a run is never cached or stored either
+    const partial = [...missing, ...(incomplete.page ? ['page'] : [])];
+    if (partial.length > 0) {
+        kept.incomplete = Object.fromEntries(partial.map(key => [key, incomplete[key]]));
     }
     return kept;
 }
+
+/**
+ * Marks the tabs of the check of the server that miss their results: each of them when the check did not
+ * finish, else the ones whose state of the content the server could not read.
+ */
+function markServerTabs(incomplete, checked) {
+    if (incomplete.page) {
+        SERVER_KEYS.forEach(key => {
+            incomplete[key] = incomplete.page;
+        });
+    }
+    (checked?.unread || []).forEach(key => {
+        incomplete[key] = UNREAD;
+    });
+}
+
+/** The page facts that the AI tasks read, from the SEO facts of the server: empty without them. */
+const pageFactsOf = seo => ({
+    title: seo ? seo.title.text || '' : '',
+    description: seo ? seo.description.text || '' : '',
+    imagesWithoutAlt: seo ? seo.imagesWithoutAlt : 0
+});
 
 /**
  * Measures the page for the tabs the site keeps on. The check of the server gives the tabs SEO,
@@ -215,12 +246,14 @@ async function auditFrame(frame, {isOn, language, path, apolloClient}) {
     const rules = await fetchRules(apolloClient, path);
 
     // Only the tabs the site keeps on are kept. Eco-design reads the vitals measurement, so vitals
-    // run as its input. The check of the server always runs, for the page facts the AI tasks need
-    // (title, description, images without alt): it starts at once, since its request leaves no trace
-    // in the frame's own resource statistics. Vitals then run first in the frame: axe injection would
-    // otherwise appear in the page's own resource statistics.
+    // run as its input. The check of the server runs when a tab that reads it is on, Accessibility and
+    // AI included, for the page facts the AI tasks need (title, description, images without alt): it
+    // starts at once, since its request leaves no trace in the frame's own resource statistics. Vitals
+    // then run first in the frame: axe injection would otherwise appear in the page's own resource
+    // statistics.
     // A step that fails or runs out of time leaves its own tabs out; the other tabs are still shown,
-    // and such a partial audit is never cached.
+    // and such a partial audit is never cached. So is an audit whose server could not read the state of
+    // the content: Jahia health and Links say so.
     const incomplete = {};
     const step = async (key, start) => {
         const outcome = await runStep(start, STEP_LIMITS_MS[key]);
@@ -231,7 +264,7 @@ async function auditFrame(frame, {isOn, language, path, apolloClient}) {
         }
         return outcome.value;
     };
-    const server = step('page', () => checkPage(apolloClient, path, language, rules));
+    const server = SERVER_TABS.some(tab => isOn(tab)) ? step('page', () => checkPage(apolloClient, path, language, rules)) : null;
     const vitals = isOn('vitals') || isOn('ecodesign') ? await step('vitals', () => runWebVitals(frame, rules)) : null;
     let ecodesign = null;
     if (isOn('ecodesign')) {
@@ -242,18 +275,9 @@ async function auditFrame(frame, {isOn, language, path, apolloClient}) {
         }
     }
     const axe = isOn('accessibility') ? await step('a11y', () => runAccessibility(frame)) : null;
-    const checked = await server;
-    if (incomplete.page) {
-        SERVER_KEYS.forEach(key => {
-            incomplete[key] = incomplete.page;
-        });
-    }
-    const seo = checked ? checked.seo : null;
-    const page = {
-        title: seo ? seo.title.text || '' : '',
-        description: seo ? seo.description.text || '' : '',
-        imagesWithoutAlt: seo ? seo.imagesWithoutAlt : 0
-    };
+    const checked = server && await server;
+    markServerTabs(incomplete, checked);
+    const page = pageFactsOf(checked?.seo);
     // The HTML rules of the server that no other tab words go with the checks of axe-core
     const a11y = axe && {...axe, recommendations: checked ? checked.accessibility : []};
     return measuredResults({a11y, vitals, ecodesign, ...(checked || {})}, page, incomplete, isOn);

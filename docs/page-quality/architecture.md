@@ -83,9 +83,11 @@ jContent / Page Builder header
 
 A tab switched off is not measured. Its analyzer does not run, and its result is not cached,
 exported or sent to the AI review (`keepEnabled` in `AuditSection.jsx`). Web Vitals still runs as the
-input of Ecodesign, and the check of the server always runs for the page facts the AI tasks need:
-`results.page` holds the title, the meta description and the number of images without alt, whatever
-the switches. Neither result is kept when its own tab is off. A cached audit that lacks a tab switched
+input of Ecodesign, and the check of the server runs for the page facts the AI tasks need while a
+tab that reads it is on, Accessibility and AI included: `results.page` holds the title, the meta
+description and the number of images without alt. Neither result is kept when its own tab is off. A
+run whose check of the server did not finish, or whose server could not read the state of the
+content (Jahia health and Links then show why), is never cached or stored. A cached audit that lacks a tab switched
 back on since is measured again. `results.page.schema` holds `CACHE_SCHEMA`, and a stored audit of
 another schema is measured again: 6 dropped the audits from before the check of the server.
 The analyzers call no module endpoint; the server enforces the switches on the AI endpoint (see

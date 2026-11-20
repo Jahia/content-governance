@@ -11,7 +11,9 @@ import java.util.Map;
 /**
  * The headings of a page as the Readability tab of the drawer lists them: one row per heading of the main
  * text, in page order, with the level it skips from and whether it has no text. Each row carries a CSS
- * selector, which the drawer reads in its preview of the page to show the heading.
+ * selector, which the drawer reads in its preview of the page to show the heading. The counts of H1 and of
+ * skipped levels cover the whole page, as the rules {@code html.headingH1Missing},
+ * {@code html.headingH1Multiple} and {@code html.headingLevelSkipped} read it.
  *
  * <p>Thread safety: stateless.</p>
  */
@@ -22,29 +24,36 @@ final class HeadingOutline {
     /** The characters of a heading kept in the list. */
     static final int MAX_HEADING_CHARS = 160;
     private static final String LEVEL = "level";
+    private static final String HEADINGS = "h1, h2, h3, h4, h5, h6";
 
     private HeadingOutline() {
     }
 
     /**
-     * @param html the whole HTML, whose H1 headings are counted
+     * @param html the whole HTML, whose H1 headings and skipped levels are counted
      * @param main the main text, whose headings are listed
-     * @return {@code h1Count}, {@code headingSkips} and {@code headingCount}, which count every heading, and
-     *     {@code outline}, the first {@link #MAX_HEADINGS} as {@code {level, text, selector, skippedFrom?, empty?}}
+     * @return {@code h1Count} and {@code headingSkips} for the whole page, {@code headingCount}, the headings of
+     *     the main text, and {@code outline}, the first {@link #MAX_HEADINGS} of them as
+     *     {@code {level, text, selector, skippedFrom?, empty?}}
      */
     static Map<String, Object> of(Document html, Element main) {
         List<Map<String, Object>> outline = new ArrayList<>();
-        int skips = 0;
         int previous = 0;
-        List<Element> headings = main.select("h1, h2, h3, h4, h5, h6");
+        List<Element> headings = main.select(HEADINGS);
         for (Element heading : headings) {
-            int level = heading.normalName().charAt(1) - '0';
+            int level = level(heading);
             boolean skipped = previous > 0 && level > previous + 1;
-            if (skipped) {
-                skips++;
-            }
             if (outline.size() < MAX_HEADINGS) {
                 outline.add(row(heading, level, skipped ? previous : 0));
+            }
+            previous = level;
+        }
+        int skips = 0;
+        previous = 0;
+        for (Element heading : html.select(HEADINGS)) {
+            int level = level(heading);
+            if (previous > 0 && level > previous + 1) {
+                skips++;
             }
             previous = level;
         }
@@ -54,6 +63,10 @@ final class HeadingOutline {
         out.put("headingCount", headings.size());
         out.put("outline", outline);
         return out;
+    }
+
+    private static int level(Element heading) {
+        return heading.normalName().charAt(1) - '0';
     }
 
     private static Map<String, Object> row(Element heading, int level, int skippedFrom) {

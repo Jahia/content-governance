@@ -174,7 +174,8 @@ public class HtmlCheck {
 
     /**
      * Runs the checks of some rules on HTML that the caller fetched, such as a page as a crawler gets it.
-     * The checks read the HTML only: no fact of the repository.
+     * The checks read the HTML and its SEO facts only: no fact of the repository and no readability, so a
+     * rule of readability gives no finding here.
      *
      * @param rules    the rules of the site of the page
      * @param path     the path of the page
@@ -184,8 +185,14 @@ public class HtmlCheck {
      * @return the findings of these rules that the site keeps on, in the order of the rules
      */
     public List<Finding> findings(ContentRules rules, String path, String language, Document html, Set<String> ruleIds) {
-        return checks.runRules(rules, input(path, language, html, Scope.PAGE), ruleIds).stream()
-                .map(CheckRegistry.Checked::finding).toList();
+        // The thresholds of a whole page measure the SEO facts only: no readability is measured for these rules
+        CheckInput input = CheckInput.page(path, language, html.outerHtml())
+                .withFact(HtmlRuleChecks.DOCUMENT, html)
+                .withFact(HtmlRuleChecks.HTML_SCOPE, Scope.PAGE);
+        for (Map.Entry<String, Object> fact : SeoChecks.facts(html).entrySet()) {
+            input = input.withFact(fact.getKey(), fact.getValue());
+        }
+        return checks.runRules(rules, input, ruleIds).stream().map(CheckRegistry.Checked::finding).toList();
     }
 
     /**

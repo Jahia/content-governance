@@ -128,14 +128,26 @@ export function recommendationsByTab(findings, facts, rules) {
     return out;
 }
 
-/** An address of the page as the preview resolves it, such as the image of the sharing card. */
-const resolved = address => {
+/**
+ * An address of the page as the preview resolves it, such as the image of the sharing card: relative
+ * to the address of the render, `images/card.png` beside the page.
+ */
+const resolved = (address, pageUrl) => {
     try {
-        return new URL(address, globalThis.location.href).href;
+        return new URL(address, pageUrl).href;
     } catch {
         return address;
     }
 };
+
+/**
+ * The tabs whose facts the server could not read in the repository, though it rendered the page: Jahia
+ * health with no state of the content, Links with no resolution of the internal links.
+ */
+const unreadTabs = ({links, jahia}) => [
+    ...(links.checked === null || links.checked === undefined ? ['links'] : []),
+    ...(jahia.scanned === undefined ? ['jahia'] : [])
+];
 
 /** A path under the page, as the Jahia health tab lists it: `/main/intro`, or `/` for the page itself. */
 const under = (path, pagePath) => (path.startsWith(pagePath) ? path.slice(pagePath.length) || '/' : path);
@@ -147,16 +159,18 @@ const under = (path, pagePath) => (path.startsWith(pagePath) ? path.slice(pagePa
  * @param {{findings: Array<object>, facts: object}} check the answer of `checkPage`
  * @param {{get: function(string): object, find: function(string): ?object}} rules the rules of the site
  * @param {string} pagePath the path of the page
- * @returns {{seo: object, readability: object, links: object, jahia: object, accessibility: Array<object>}}
+ * @param {string} pageUrl the address of the render of the page, which a relative address of the page is under
+ * @returns {{seo: object, readability: object, links: object, jahia: object, accessibility: Array<object>,
+ *     unread: Array<string>}} `unread` names the result key of each tab whose repository facts are missing
  */
-export function tabResults({findings, facts}, rules, pagePath) {
+export function tabResults({findings, facts}, rules, pagePath, pageUrl) {
     const recs = recommendationsByTab(findings, facts, rules);
     const itemsOf = ruleId => recs.jahia.find(rec => rec.rule === ruleId)?.items || [];
     const {seo, readability, links, jahia} = facts;
     return {
         seo: {
             ...seo,
-            ogImageResolved: seo.og.image ? resolved(seo.og.image) : null,
+            ogImageResolved: seo.og.image ? resolved(seo.og.image, pageUrl) : null,
             ranges: {title: limits(rules.get('seo.title')), description: limits(rules.get('seo.metaDescription'))},
             recommendations: recs.seo
         },
@@ -172,7 +186,8 @@ export function tabResults({findings, facts}, rules, pagePath) {
             placeholders: {count: itemsOf('health.placeholderText').length, samples: itemsOf('health.placeholderText').map(item => ({match: item.text, text: item.context || ''}))},
             recommendations: recs.jahia
         },
-        accessibility: recs.accessibility
+        accessibility: recs.accessibility,
+        unread: unreadTabs(facts)
     };
 }
 
@@ -188,5 +203,7 @@ export function tabResults({findings, facts}, rules, pagePath) {
 export async function checkPage(client, path, language, rules) {
     const {data} = await client.query({query: PAGE_CHECK, variables: {path, language}, fetchPolicy: 'no-cache'});
     const check = data.contentGovernance.checkPage;
-    return tabResults({findings: check.findings, facts: JSON.parse(check.facts)}, rules, check.path);
+    const render = `${globalThis.contextJsParameters?.contextPath || ''}/cms/render/default/${language}${check.path}.html`;
+    return tabResults({findings: check.findings, facts: JSON.parse(check.facts)}, rules, check.path,
+        new URL(render, globalThis.location.href).href);
 }

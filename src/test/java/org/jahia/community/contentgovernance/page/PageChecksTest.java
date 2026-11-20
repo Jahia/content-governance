@@ -294,13 +294,14 @@ class PageChecksTest {
         }
 
         @Test
-        @DisplayName("the outline lists the headings of the main text, its skips and a selector of each")
+        @DisplayName("the outline lists the headings of the main text and a selector of each, and the counts cover the page")
         void outline() {
-            Map<String, Object> facts = ReadabilityChecks.report(Jsoup.parse("<body><h1>Site</h1><main>"
+            Map<String, Object> facts = ReadabilityChecks.report(Jsoup.parse("<body><header><h2>Menu</h2><h4>Shop</h4></header>"
+                    + "<h1>Site</h1><main>"
                     + "<h2>Intro</h2><section><h4>Detail</h4></section><section id='faq'><h2><img alt='Help'></h2>"
                     + "<h3></h3></section></main></body>"), "en", 25);
 
-            assertThat(facts).containsEntry("h1Count", 1).containsEntry("headingSkips", 1).containsEntry("headingCount", 4);
+            assertThat(facts).containsEntry("h1Count", 1).containsEntry("headingSkips", 2).containsEntry("headingCount", 4);
             assertThat(list(facts.get("outline"))).containsExactly(
                     Map.of("level", 2, "text", "Intro", "selector", "main > h2"),
                     Map.of("level", 4, "text", "Detail", "selector", "main > section:nth-of-type(1) > h4", "skippedFrom", 2),
