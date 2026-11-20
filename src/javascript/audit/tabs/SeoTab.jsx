@@ -2,10 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../../common/i18n';
 import {Recommendations} from './Recommendations';
-import {SeoAssist} from './SeoAssist';
 import styles from './Tabs.module.css';
 
-export function SeoTab({result, assist}) {
+export function SeoTab({result}) {
     const {t} = useGovernanceTranslation('audit');
 
     const rows = [
@@ -26,8 +25,6 @@ export function SeoTab({result, assist}) {
     return (
         <div>
             <Recommendations items={result.recommendations} ns="seo" tab="seo"/>
-
-            <SeoAssist {...assist} ranges={result.ranges}/>
 
             <h4 className={styles.sectionTitle}>{t('seo.preview')}</h4>
             {(result.og.title || result.title.text) ? (
@@ -63,7 +60,5 @@ export function SeoTab({result, assist}) {
 }
 
 SeoTab.propTypes = {
-    result: PropTypes.object.isRequired,
-    // Props forwarded to <SeoAssist/> (AI status, suggestions, phase, callbacks)
-    assist: PropTypes.object.isRequired
+    result: PropTypes.object.isRequired
 };

@@ -64,8 +64,8 @@ export const GeoDashboard = ({isOn}) => {
     const [hasScan, setHasScan] = useState(false);
     const [exporting, setExporting] = useState(false);
 
-    // The written report needs a model that genai-connector serves to this user
-    // on the site.
+    // The written report needs a module that writes it, such as ai-assistant,
+    // and that answers this user on the site.
     //
     // Asked per site rather than once, because the server now resolves the site
     // to decide whether this caller may be told at all (JAHIA-SEC-432). A

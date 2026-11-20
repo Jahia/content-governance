@@ -106,7 +106,7 @@ The component receives `path`, `language` and `findings`, and these props:
 | `isOn(part)` | `true` when the site keeps that part of the tab on. |
 | `saveFindings(findings)` | Stores the findings as the latest run of the tab on the page. It returns a promise of the stored run, or of `null` when the server refused it. |
 | `fetchHistory()` | Returns a promise of the stored runs of the tab on the page, newest first. |
-| `settings` | The site settings, such as `settings.ai.configured`. |
+| `settings` | The site settings, such as `settings.disabled`, the ids of the tabs and parts that the site switched off. |
 | `requestedTab` | `{tab, at}` when "Fix first" opens a finding of the tab, so the tab shows the part `tab`. Otherwise `null`. |
 | `onClose()` | Closes the drawer. |
 | `onReopen()` | Opens the drawer again on this tab. |

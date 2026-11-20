@@ -67,6 +67,7 @@
                         <Import-Package>
                             ${jahia.plugin.projectPackageImport},
                             org.jahia.community.contentgovernance.check.spi;version="[1.0,2)",
+                            org.jahia.community.contentgovernance.geo.spi;version="[1.0,2)",
                             *
                         </Import-Package>
                         <!-- The rule acme.erpPrice, which the seeder of Content Governance copies into each site. -->

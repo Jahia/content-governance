@@ -5,13 +5,6 @@ const SETTINGS_FIELDS = `
     moduleEnabled
     canEdit
     disabled
-    ai {
-        configured
-        reason
-        provider
-        model
-        images
-    }
 `;
 
 export const SITE_SETTINGS = gql`

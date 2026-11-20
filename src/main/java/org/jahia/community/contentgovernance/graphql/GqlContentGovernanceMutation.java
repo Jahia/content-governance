@@ -5,7 +5,6 @@ import graphql.annotations.annotationTypes.GraphQLField;
 import graphql.annotations.annotationTypes.GraphQLName;
 import graphql.annotations.annotationTypes.GraphQLNonNull;
 import graphql.schema.DataFetchingEnvironment;
-import org.jahia.community.contentgovernance.ai.AiService;
 import org.jahia.community.contentgovernance.audit.graphql.AuditFields;
 import org.jahia.community.contentgovernance.audit.graphql.GqlAuditRun;
 import org.jahia.community.contentgovernance.audit.service.spi.AuditHistoryService;
@@ -29,10 +28,6 @@ import java.util.List;
 public class GqlContentGovernanceMutation {
 
     private static final Logger logger = LoggerFactory.getLogger(GqlContentGovernanceMutation.class);
-
-    @Inject
-    @GraphQLOsgiService
-    private AiService ai;
 
     // graphql-java-annotations injects OSGi services into fields only (@GraphQLOsgiService)
     @SuppressWarnings("java:S6813")
@@ -61,7 +56,7 @@ public class GqlContentGovernanceMutation {
         }
         try {
             SiteFeatures.save(site.getPath(), disabled);
-            return GqlSiteSettings.of(site, ai);
+            return GqlSiteSettings.of(site);
         } catch (RepositoryException e) {
             logger.warn("could not save the content governance settings of {}: {}", siteKey, e.toString());
             throw new DataFetchingException("The settings could not be saved");

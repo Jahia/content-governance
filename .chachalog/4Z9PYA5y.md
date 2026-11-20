@@ -3,6 +3,6 @@
 content-governance: major
 ---
 
-Moved the AI features to genai-connector, which holds the provider, key and model; Jahia 8.2.2 is now required.
+Removed every AI feature: the module calls no model, and works the same with no AI module installed.
 
-Install genai-connector and grant genaiAccess to the editors who use AI; without them the AI features stay greyed out. Remove AI_PROVIDER, AI_MODEL, AI_API_KEY and AI_BASE_URL from the module's llm.cfg on the server.
+The AI review of a page, its SEO texts, alternative texts and plain-language rewrites come from the AI Assistant module, in its own drawer tab. The written GEO report comes back once a module that writes it is installed. Delete org.jahia.community.contentgovernance.llm.cfg from the server, after you copy AI_PROMPT_APPENDIX into review.instructions of org.jahia.modules.aiassistant.cfg. Jahia 8.2.2 is required.

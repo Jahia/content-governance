@@ -18,7 +18,7 @@ section, each opening the tab that explains it; it stays out of the way when the
 
 | Section | What it answers | Where it runs |
 |---|---|---|
-| **Page quality** | Is the page I am editing accessible, findable, fast, readable, light, well linked and complete in Jahia? | In the editor's browser, on a preview of the page in the editing workspace; AI on demand |
+| **Page quality** | Is the page I am editing accessible, findable, fast, readable, light, well linked and complete in Jahia? | In the editor's browser, on a preview of the page in the editing workspace |
 | **GEO readiness** | Can AI assistants and their crawlers read and cite the published page? | On the server, on demand (one fetch per AI crawler) |
 | **Compliance** | Does the page, or content it shows, use a term that a term rule of the site forbids or replaces in this language? | On the server, when the section opens |
 
@@ -26,17 +26,16 @@ section, each opening the tab that explains it; it stays out of the way when the
 
 | Tab | What it checks |
 |---|---|
-| **Accessibility** | Automated WCAG A, AA and AAA rules with axe-core, issues by severity with highlighting, what axe cannot decide, and a manual checklist; alt text suggested by AI for images without one |
-| **SEO** | Title, meta description, indexing, canonical address, social sharing card, structured data, image alt coverage and link texts; titles, descriptions, keywords, headings and call-to-action labels suggested by AI |
+| **Accessibility** | Automated WCAG A, AA and AAA rules with axe-core, issues by severity with highlighting, what axe cannot decide, and a manual checklist |
+| **SEO** | Title, meta description, indexing, canonical address, social sharing card, structured data, image alt coverage and link texts |
 | **Web Vitals** | Load timings, layout shift, an estimated LCP, page weight, requests, DOM size and the heaviest resources, measured in the browser |
-| **Readability** | A score with the formula of the page language (English, French, German, Spanish, Italian, Dutch, Portuguese; LIX for Swedish, Danish, Norwegian), long sentences and heading structure; plainer rewrites suggested by AI |
+| **Readability** | A score with the formula of the page language (English, French, German, Spanish, Italian, Dutch, Portuguese; LIX for Swedish, Danish, Norwegian), long sentences and heading structure |
 | **Ecodesign** | Page-level checks from the French RGESN 2024 referential, plus a checklist for what a page tool cannot judge (not a conformity score) |
 | **Links** | Broken internal links, absolute addresses to the site's own host, mixed content, unsafe `target="_blank"`; external links are counted, not verified |
 | **Jahia** | Unpublished content on the page, missing translations in active languages, raw resource keys and placeholder text |
-| **AI review** | A review of the page text by the configured model: each finding with its severity and the exact wording to change |
 
-AI suggestions are shown and copied, never written to the repository. They are written in the
-language of the page.
+The module calls no model. The AI review of a page, its SEO texts, alt texts and plain-language
+rewrites come from the module ai-assistant, which adds its own tab to the drawer when it is installed.
 
 ### GEO readiness
 
@@ -64,8 +63,8 @@ They stay in jContent's **Additional** accordion:
 - **SEO > GEO readiness**: site score, reach, invisible content, sitemap against reality, internal
   links, addresses, freshness, languages, structured data, the `robots.txt` editor, the published
   `llms.txt` (read only, written in the `llms` module's own **Llms.txt** screen), AI citations, and
-  a written report by AI. Scans can be scheduled; **Export CSV** and **Export JSON** download what
-  the last scan found.
+  a written report that another module, such as ai-assistant, writes with a model. Scans can be
+  scheduled; **Export CSV** and **Export JSON** download what the last scan found.
 - **Page quality**: the latest audit of every audited page, as editors ran it from the drawer, most
   issues first, with its trend, **Export CSV** and **Export JSON**. Expand a page to read its
   findings, the most serious first, with what to do about each. Audits are shared: every editor
@@ -83,15 +82,12 @@ review, opening the drawer. It never blocks publishing; jContent's own publish a
 
 ## What site administrators get
 
-**Administration > Sites > (site) > Content governance** (`site-admin`), in three tabs:
+**Administration > Sites > (site) > Content governance** (`site-admin`), in two tabs:
 
 - **Features**: one switch per section and one per tab, everything on by default. A section off hides
   its drawer section and switches its dashboard off (the entry stays and says so); a tab off
   disappears from the drawer. The server refuses the calls of what is switched off. Each tab's switch
   says what the tab is for.
-- **AI model**: whether genai-connector serves a model to the AI features on this site, which
-  provider and model, and whether it reads images. Read only: a server administrator configures the
-  model in genai-connector.
 - **BotRank**: connect the site to a BotRank project, map cited addresses to pages, and set the time
   of the daily sync.
 
@@ -124,11 +120,12 @@ also come in the four languages.
 - Optional: the `robots` module, for the GEO `robots.txt` editor, and the `llms` module, which writes
   and serves `llms.txt` (Content Governance shows it read only and checks its links). Without them
   the rest of the module works and those tabs say why they cannot.
-- Optional: the `genai-connector` module ([Jahia/genai-connector](https://github.com/Jahia/genai-connector)),
-  for the AI features, and the `genaiAccess` permission on the site for each user of these features.
-  Without genai-connector, the AI features show greyed out and the rest of the module works.
 - Optional: the `mcp-server` module, which serves the tool `frame.check` of the editorial frame and
   the two tools of the HTML check to AI agents. Without it the module starts and adds no tool.
+- Optional: the module ai-assistant, which adds the AI features: the AI review tab of the drawer
+  and the writer of the GEO report
+  ([`docs/geo-readiness/architecture.md`](docs/geo-readiness/architecture.md#the-geo-report-writer)).
+  Without it the drawer has no AI tab, and the **Report** tab of the GEO dashboard stays greyed out.
 - Optional: a BotRank organisation API key, for AI citations.
 
 ## Install
@@ -144,9 +141,7 @@ also come in the four languages.
    `content-governance-<version>.jar`. Then open **Content Governance** in the list and, under
    **Usage in sites**, enable it on each site.
 3. Open **Administration > Sites > (site) > Content governance** to choose the sections and tabs.
-4. For the AI features, a server administrator installs genai-connector and configures its model
-   (below). Each user of these features needs the `genaiAccess` permission on the site.
-5. For compliance, enabling the module on a site creates **Content Folders > Compliance glossaries**
+4. For compliance, enabling the module on a site creates **Content Folders > Compliance glossaries**
    with a folder for the site's default language and one example rule. Create a folder of rules for
    each team there, or anywhere under the site's `contents`, and give each folder the roles of its
    team.
@@ -163,8 +158,8 @@ off, with a note on the dashboard and in **Site Settings > Content governance > 
 from there turns them back on.
 
 What does not carry over: the AI settings. Page Quality Audit and GEO Readiness each had their own.
-Set the provider, model and key in genai-connector's configuration instead, then delete the old
-files (`org.jahia.se.modules.pageaudit.cfg` and the `AI_*` keys of
+This module calls no model: the AI features come from ai-assistant, which has its own model
+settings. Delete the old files (`org.jahia.se.modules.pageaudit.cfg` and the `AI_*` keys of
 `org.jahia.se.modules.georeadiness.cfg`).
 
 **Glossary types on an instance that had Content Compliance Scan.** Jahia keeps the glossary types
@@ -193,45 +188,12 @@ untranslated, until an administrator removes the definitions that editorial-fram
 Files in `digital-factory-data/karaf/etc/`. Edits apply at once with no redeploy, and a redeploy
 never overwrites them (`# default configuration` first line).
 
-### `org.jahia.community.contentgovernance.llm.cfg`: the AI features
+### Upgrade from 1.x: the AI features moved to ai-assistant
 
-The module has no AI client of its own. genai-connector serves the model of the **AI review** tab,
-the SEO, alt text and plain-language assists, and the written report of the GEO dashboard. A server
-administrator chooses the provider, the key and the model of each tier in genai-connector's
-configuration (PID `org.jahia.modules.genai`), not in this module.
-
-- Every feature asks for the `balanced` tier.
-- The alt text assist asks for the `vision` tier when the browser could read at least one picture.
-  Otherwise it asks for `balanced`, or for `vision` when only that tier has a model, and the alt
-  texts come from the context alone.
-- A tier with no model of its own uses genai-connector's shared model. The model of the `vision`
-  tier must read images.
-- DeepSeek, a proxy or another compatible gateway: genai-connector's `openai-compatible` provider and
-  its `base.url` key.
-
-The AI features show greyed out while genai-connector is absent, not started, or serves no model on
-the `balanced` tier. Nothing leaves the server then. The AI features also show greyed out, with a
-message, for a user who does not have the `genaiAccess` permission on the site.
-
-Each call asks for one JSON object, with an output budget of 6000 tokens. A full review needs 3000 to
-4000, and a reasoning model spends part of the budget thinking first. genai-connector caps that
-budget with its `max.output.tokens.limit` key (16384 by default). genai-connector retries an answer
-that is not JSON. An answer cut by its budget gives the error `budget`. Editors see the cost of a call
-only when the provider reports one through genai-connector, for example the Jahia AI gateway.
-
-This file keeps what the module still sets itself:
-
-| Key | Default | What |
-|---|---|---|
-| `AI_RATE_MAX_CALLS` | `30` | Page calls allowed per user per ten minutes |
-| `AI_REPORT_RATE_MAX_CALLS` | `5` | GEO reports allowed per user per ten minutes |
-| `AI_PROMPT_APPENDIX` | empty | Instructions added to every prompt: brand, tone, editorial rules |
-
-Up to 1.11.0, this file also had the keys of the module's own AI client: `AI_PROVIDER`, `AI_MODEL`,
-`AI_API_KEY`, `AI_BASE_URL`, `AI_MAX_TOKENS`, `AI_REPORT_MAX_TOKENS`, `AI_COST_INPUT_PER_MTOKENS` and
-`AI_COST_OUTPUT_PER_MTOKENS`. The module ignores these keys now. At start, it logs a WARN while the
-file on the server still sets one of them. Move their values to genai-connector, then remove them
-from the file, `AI_API_KEY` first.
+The module no longer reads `org.jahia.community.contentgovernance.llm.cfg`. On an existing install
+the file stays in `digital-factory-data/karaf/etc/`, since its first line `# default configuration`
+keeps it. Copy its `AI_PROMPT_APPENDIX` value into `review.instructions` of
+`org.jahia.modules.aiassistant.cfg`, then delete the file. Install ai-assistant for the AI features.
 
 ### `org.jahia.community.contentgovernance.geo.cfg`: the GEO crawler check
 
@@ -273,7 +235,6 @@ call to BotRank: a daily sync, on the processing server, stores the citations of
 | Page quality dashboard and the shared audits | `jContentAccess` on the site, read on the page | always listed; says it is switched off when the Page quality section is off |
 | Compliance dashboard | `jContentAccess` on the site | always listed; says it is switched off when the Compliance section is off |
 | Site Settings > Content governance | `site-admin` on the site | always; the server checks every save |
-| AI review, AI assists, GEO written report | `genaiAccess` on the site (declared by genai-connector), plus the permission of the surface | genai-connector serves a model; greyed out otherwise |
 
 Switches in the browser only hide. Every servlet and GraphQL field checks the permission, the module
 on the site and the site's switches on the server. The page checks and the compliance scans read with
@@ -287,12 +248,9 @@ store their results there.
 
 - **Nothing by default.** Page quality runs in the editor's browser against the editing workspace.
 - **GEO readiness** fetches the site's own public pages and files, as each AI crawler would.
-- **AI features** send data only once genai-connector serves a model, and only to the provider of
-  that model. Page tasks send the page text, its metadata and a digest of the automated findings.
-  The GEO report sends a digest of site measurements. Only the alt text assist sends pictures, and
-  only when genai-connector serves the `vision` tier. Each call is started by an editor who has
-  `genaiAccess` on the site. The prompts are fixed on the server, and the answers are validated
-  before they reach the browser.
+- **AI features**: the module sends nothing to a model. For the GEO report, it gives a digest of
+  site measurements to the writer that another module registers. That writer may send the digest to
+  the provider of its model. The module validates the answer before it reaches the browser.
 - **BotRank** is called by the daily sync only, with the organisation's key.
 - **The link check for AI agents** (`audit.links`) sends a `HEAD` request to each external link of
   the page that an agent checks, and never to a private or local address. It runs only when an agent
@@ -305,7 +263,6 @@ query {
   contentGovernance {
     siteSettings(siteKey: "mysite") {
       moduleEnabled canEdit disabled
-      ai { configured reason provider model images }
     }
   }
 }
@@ -319,11 +276,11 @@ mutation {
 
 Feature ids are the key of a tab of the drawer, or `<tab>.<part>` for a part of a tab. The tabs of
 the module are `audit` (`accessibility`, `seo`, `vitals`, `readability`, `ecodesign`, `links`,
-`jahia`, `ai`), `geo` (`score`, `crawler`, `files`, `schema`, `citations`) and `compliance`. A tab
+`jahia`), `geo` (`score`, `crawler`, `files`, `schema`, `citations`) and `compliance`. A tab
 that another module adds has the key it registers. Every tab is on until the site switches it off. The
 compliance scans stay under `complianceScan { scanPage, scanSite }`. Servlets live under
 `/modules/content-governance/` (`geo/crawler-check`, `geo/report`, `geo/site-scan`, `geo/site-files`,
-`geo/citations`, `audit/ai-review`). The Java API of the editorial frame is the OSGi service
+`geo/citations`). The Java API of the editorial frame is the OSGi service
 `org.jahia.pm.modules.editorialframe.api.EditorialFrameService`. The HTML check on the server is the
 OSGi service `org.jahia.community.contentgovernance.html.HtmlCheck`, and
 [`docs/page-quality/html-rules.md`](docs/page-quality/html-rules.md) lists its rules.
@@ -331,11 +288,9 @@ OSGi service `org.jahia.community.contentgovernance.html.HtmlCheck`, and
 Another module adds a tab to the drawer, or an action on a finding, through jContent's registry:
 [`docs/drawer-entries.md`](docs/drawer-entries.md) states what an entry declares and receives.
 
-`ai.configured` is true when a model answers the caller on this site. Otherwise `ai.reason` says why:
-`absent` (no genai-connector), `notConfigured` (no model on the `balanced` tier) or `noAccess` (no
-`genaiAccess` on the site). `ai.images` is true when genai-connector serves the `vision` tier, and
-`provider` and `model` are those of the `balanced` tier. `GET geo/report` answers `{enabled, reason,
-provider, model}` with the same values.
+`GET geo/report` answers `{enabled, reason, provider, model}`, and `reason` is `absent` while no
+module registers a writer of the GEO report
+([`docs/geo-readiness/architecture.md`](docs/geo-readiness/architecture.md#the-geo-report-writer)).
 
 ## Known gaps
 
@@ -376,7 +331,7 @@ curl -u root:<password> http://localhost:8080/modules/api/provisioning \
   -F file=@target/content-governance-<version>.jar
 ```
 
-`mvn clean install` runs the unit tests: 642 in Java and the front-end ones (`yarn test`, Vitest, in
+`mvn clean install` runs the unit tests: the Java ones and the front-end ones (`yarn test`, Vitest, in
 `src/test/javascript/`); `-DskipTests` skips both. `test-fixtures/` holds a local site and a BotRank stub
 for the GEO checks.
 

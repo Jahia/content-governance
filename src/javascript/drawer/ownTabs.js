@@ -11,7 +11,7 @@ const named = (load, name) => lazy(() => load().then(module => ({default: module
  * @param {Array<string>} ids the ids of the parts, in the order of the tab
  * @param {string} prefix the key prefix of their texts (`audit`, `geo`)
  * @param {Function} label the key of the label of a part, after the prefix
- * @param {object} needs what a part needs, by part id: `ai` or `botRank`
+ * @param {object} needs what a part needs, by part id: `botRank`
  * @returns {Array<object>} `{id, label, help, needs}`
  */
 const parts = (ids, prefix, label, needs) => ids.map(id => ({
@@ -32,8 +32,8 @@ export function registerOwnTabs() {
         label: `${NS}:drawer.section.audit`,
         help: `${NS}:drawer.sectionHelp.audit`,
         settingsHelp: `${NS}:settings.sectionHelp.audit`,
-        tabs: parts(['accessibility', 'seo', 'vitals', 'readability', 'ecodesign', 'links', 'jahia', 'ai'], 'audit',
-            id => `tabs.${id}`, {ai: 'ai'}),
+        tabs: parts(['accessibility', 'seo', 'vitals', 'readability', 'ecodesign', 'links', 'jahia'], 'audit',
+            id => `tabs.${id}`, {}),
         component: named(() => import('../audit/AuditSection'), 'AuditSection')
     });
     registry.add(TAB_TYPE, 'geo', {
