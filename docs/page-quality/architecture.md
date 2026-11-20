@@ -119,8 +119,8 @@ The analyzers call no module endpoint; the server enforces the switches on the A
      audit is never cached. The late answer of a stopped step is ignored, not cancelled.
 - When results come from the cache, the frame still loads (preview and highlight target) but the
   analyzers do not run (`cacheHitRef`).
-- Highlight (`audit/editFrame.js`): the browser analyzers run in the preview, a plain render of the page;
-  the outline goes to Page Builder's active frame (`iframe[data-sel-role="page-builder-frame-active"]`)
+- Highlight (`audit/editFrame.js`): the browser analyzers run in the preview, a plain render of the
+  page; the outline goes to Page Builder's active frame (`iframe[data-sel-role="page-builder-frame-active"]`)
   when it shows the audited page and language (`/<lang><path>.html` ends its path). `highlight(selector)`
   resolves the selector in the preview, then `locateInFrame` finds the same element in the edit frame:
   the same id, else the same tag with the same `src`/`href`/`alt` and text at the same rank, outside
@@ -273,7 +273,8 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
   - It shows for the page in view only (`state.jcontent.path`), on a `jnt:page` or
     `jmix:mainResource` of a site that enables the module.
   - It reads `pageAudits` (summary only: `total`, `seriousAccessibility`, the critical and serious
-    accessibility findings counted by `AuditSummary`) and, with `jcr:write`, `complianceScan.scanPage` (with the
+    accessibility findings counted by `AuditSummary`) and, with `jcr:write`,
+    `complianceScan.scanPage` (with the
     Page Builder frame's rendered paths, as the drawer does).
   - The label (`publishCheck.*`) depends on the sections the site keeps on; nothing shows when
     nothing was found.

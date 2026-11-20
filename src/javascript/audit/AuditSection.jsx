@@ -250,7 +250,7 @@ async function auditFrame(frame, {isOn, language, path, apolloClient}) {
     if (incomplete.server) {
         // The accessibility tab misses the HTML rules of the server, beside the results of axe-core
         [...SERVER_KEYS, 'a11y'].forEach(key => {
-            incomplete[key] = incomplete.server;
+            incomplete[key] ??= incomplete.server;
         });
     }
     const seo = server.seo;
