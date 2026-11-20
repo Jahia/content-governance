@@ -84,7 +84,7 @@ cached, exported or sent to the AI review (`keepEnabled` in `AuditSection.jsx`).
 runs as the input of Ecodesign. The server check always runs, for the page facts the AI tasks need:
 `results.page` holds the title, the meta description and the number of images without alt, whatever
 the switches. The server checks every tab that it fills, and the drawer drops the results of a tab
-that is off. No result is kept when its own tab is off. A cached audit that lacks a tab switched
+that is off. A cached audit that lacks a tab switched
 back on since is measured again; `CACHE_SCHEMA` 4 dropped caches from before `results.page`, 5 those from before per-language readability.
 The analyzers call no module endpoint; the server enforces the switches on the AI endpoint (see
 [Feature gates](#feature-gates)).

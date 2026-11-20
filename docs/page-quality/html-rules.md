@@ -21,8 +21,7 @@ browser of the editor: accessibility with axe-core, the web vitals and eco-desig
 a browser loads and runs.
 
 The GEO site scan and the GEO readiness tab of the drawer fetch the page as a crawler. They run the
-SEO and HTML checks of the service on the HTML that the crawler receives. A GEO check of the HTML
-passes when the service finds nothing under its rule. [The GEO checks](../geo-readiness/checks.md)
+SEO and HTML checks of the service on the HTML that the crawler receives. [The GEO checks](../geo-readiness/checks.md)
 list them.
 
 ## How a check runs

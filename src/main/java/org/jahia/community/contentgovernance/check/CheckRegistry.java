@@ -127,15 +127,11 @@ public class CheckRegistry {
     /**
      * Runs on the input the checks of the given rules only, as {@link #run(CheckInput, Set)} does.
      *
-     * @param input   what to check, whose path names the site
+     * @param rules   the rules of the site of the input
+     * @param input   what to check
      * @param ruleIds the ids of the rules to apply
      * @return the findings, in the order of the rules
      */
-    public List<Checked> runRules(CheckInput input, Set<String> ruleIds) {
-        return runRules(ContentRules.forPath(input.path()), input, ruleIds);
-    }
-
-    /** {@link #runRules(CheckInput, Set)} with the rules of the site. */
     public List<Checked> runRules(ContentRules rules, CheckInput input, Set<String> ruleIds) {
         return run(rules, input, rule -> ruleIds.contains(rule.id()));
     }
