@@ -25,7 +25,6 @@ import java.util.regex.Pattern;
  * </ul>
  * Another language gets no score. A language written without spaces between words gets no measure.
  *
- * <p>{@code src/javascript/audit/analyzers/readability.js} computes the same values in the drawer.</p>
  */
 public final class Readability {
 
@@ -75,10 +74,22 @@ public final class Readability {
      * @param score          the score from 0 to 100, or null when the language has no formula
      * @param band           the band of the score, or null
      * @param words          the number of words
-     * @param longestSentence the number of words of the longest sentence
+     * @param sentenceWords   the number of words of each sentence, in the order of the text
+     * @param syllables       the average syllables of a word, or null when the score counts none
      */
-    public record Measure(boolean measured, String formula, Integer score, Band band, int words, int longestSentence) {
-        static final Measure NONE = new Measure(false, null, null, null, 0, 0);
+    public record Measure(boolean measured, String formula, Integer score, Band band, int words,
+                          List<Integer> sentenceWords, Double syllables) {
+        static final Measure NONE = new Measure(false, null, null, null, 0, List.of(), null);
+
+        /** The number of words of the longest sentence, 0 for none. */
+        public int longestSentence() {
+            return sentenceWords.stream().mapToInt(Integer::intValue).max().orElse(0);
+        }
+
+        /** True for the LIX score, where a higher score reads harder. */
+        public boolean lix() {
+            return LIX.equals(formula);
+        }
     }
 
     private Readability() {
@@ -102,24 +113,29 @@ public final class Readability {
                 .filter(word -> !word.isEmpty())
                 .toList();
         if (words.size() < MIN_WORDS) {
-            return new Measure(false, null, null, null, words.size(), 0);
+            return new Measure(false, null, null, null, words.size(), List.of(), null);
         }
         double asl = (double) words.size() / Math.max(1, sentences.size());
-        int longest = sentences.stream().mapToInt(sentence -> SPACES.split(sentence).length).max().orElse(0);
+        List<Integer> lengths = sentences.stream().map(sentence -> SPACES.split(sentence).length).toList();
         if (LIX_LANGUAGES.contains(language)) {
             long longWords = words.stream()
                     .filter(word -> NOT_LETTER.matcher(word).replaceAll("").length() > LONG_WORD_LETTERS)
                     .count();
             int score = clamp(asl + 100.0 * longWords / words.size());
-            return new Measure(true, LIX, score, lixBand(score), words.size(), longest);
+            return new Measure(true, LIX, score, lixBand(score), words.size(), lengths, null);
         }
         Formula formula = FORMULAS.get(language);
         if (formula == null) {
-            return new Measure(true, null, null, null, words.size(), longest);
+            return new Measure(true, null, null, null, words.size(), lengths, null);
         }
         double asw = words.stream().mapToInt(word -> syllables(word, language)).sum() / (double) words.size();
         int score = clamp(formula.score().applyAsDouble(asl, asw));
-        return new Measure(true, formula.name(), score, band(score), words.size(), longest);
+        return new Measure(true, formula.name(), score, band(score), words.size(), lengths, asw);
+    }
+
+    /** False for a language written without spaces between words, where a word count means nothing. */
+    public static boolean spaced(String language) {
+        return !UNSPACED.contains(language);
     }
 
     /**

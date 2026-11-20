@@ -9,7 +9,7 @@ type RuleRuntime = {id: string; evaluator: string; active: boolean; blocking: bo
 
 const RULES = 'query R($siteKey: String!) { contentGovernance { contentRules(siteKey: $siteKey) { id evaluator active missingCheck needs } } }';
 const PAGE_CHECK = `query P($path: String!) {
-    contentGovernance { checkPage(path: $path, language: "en") { ruleId severity text } }
+    contentGovernance { checkPage(path: $path, language: "en") { findings { ruleId severity text } facts } }
 }`;
 const RUNTIME = 'query R($siteKey: String!) { contentGovernance { contentRules(siteKey: $siteKey) { id evaluator active blocking } } }';
 const CHECK = `query C($path: String!, $text: String!, $scope: String) {
@@ -111,7 +111,8 @@ describe('Content Governance - check registry', () => {
             const ids = list.map(rule => rule.id);
             expect(ids).to.include('html.imageAltMissing');
             for (const removed of ['seo.imageAlt', 'geo.imageAlt', 'seo.lang', 'seo.langMatches', 'seo.singleH1',
-                'seo.genericAnchors', 'readability.headingSkips', 'html.pageTitleMissing', 'html.pageDescriptionMissing']) {
+                'seo.genericAnchors', 'readability.headingSkips', 'html.pageTitleMissing', 'html.pageDescriptionMissing',
+                'health.graphqlUnavailable']) {
                 expect(ids, removed).not.to.include(removed);
             }
         });
@@ -125,21 +126,25 @@ describe('Content Governance - check registry', () => {
         gqlOk(asRoot(), RUNTIME, {siteKey}).then(data => {
             const byId = Object.fromEntries((data.contentGovernance.contentRules as RuleRuntime[]).map(rule => [rule.id, rule]));
             gqlOk(asRoot(), PAGE_CHECK, {path: `${sitePath}/home/cg-links`}).then(page => {
-                const findings = page.contentGovernance.checkPage as CheckFinding[];
+                const findings = page.contentGovernance.checkPage.findings as CheckFinding[];
                 expect(findings.map(finding => finding.ruleId)).to.include.members(['html.imageAltMissing',
                     'html.linkTextVague', 'links.mixedContent', 'links.blankNoopener', 'health.unpublishedChanges']);
                 expect(findings).to.deep.include({ruleId: 'links.mixedContent', severity: 'serious',
                     text: 'http://example.com/report'});
                 findings.forEach(finding => {
                     expect(byId[finding.ruleId], finding.ruleId).to.include({active: true});
-                    expect(finding.ruleId).not.to.match(/^ecodesign\.|^health\.graphqlUnavailable$|^seo\./);
+                    expect(finding.ruleId).not.to.match(/^ecodesign\.|^seo\./);
                 });
+                const facts = JSON.parse(page.contentGovernance.checkPage.facts);
+                expect(facts, 'an item has no SEO facts').to.have.all.keys('readability', 'links', 'jahia');
+                expect(facts.links).to.include({total: 1, external: 1, mixedContent: 1, blankNoopener: 1});
             });
             gqlOk(asRoot(), PAGE_CHECK, {path: `${sitePath}/home`}).then(page => {
-                (page.contentGovernance.checkPage as CheckFinding[]).forEach(finding => {
+                (page.contentGovernance.checkPage.findings as CheckFinding[]).forEach(finding => {
                     expect(byId[finding.ruleId], finding.ruleId).to.include({active: true});
-                    expect(finding.ruleId).not.to.match(/^ecodesign\.|^health\.graphqlUnavailable$/);
+                    expect(finding.ruleId).not.to.match(/^ecodesign\./);
                 });
+                expect(JSON.parse(page.contentGovernance.checkPage.facts)).to.have.all.keys('seo', 'readability', 'links', 'jahia');
             });
         });
     });

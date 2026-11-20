@@ -11,8 +11,10 @@ import org.osgi.service.component.annotations.Deactivate;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -67,6 +69,42 @@ public class LinkChecks {
             }
         }
         return found;
+    }
+
+    /**
+     * What the links tab of the drawer shows: the number of links, internal and external, and what each
+     * check found.
+     *
+     * @param input the input of the checks, with the facts {@link #BROKEN} and {@link #LOCAL_HOSTS}
+     * @return the facts, by the names that the tab reads
+     */
+    public static Map<String, Object> describe(CheckInput input) {
+        Set<String> localHosts = localHosts(input);
+        int total = 0;
+        int external = 0;
+        for (Element link : Family.document(input).select("a[href]")) {
+            String href = link.attr("href").trim();
+            if (!href.isEmpty() && !NOT_A_PAGE.matcher(href).find()) {
+                total++;
+                String lower = href.toLowerCase(Locale.ROOT);
+                boolean absolute = lower.startsWith("http://") || lower.startsWith("https://") || lower.startsWith("//");
+                if (absolute && !localHosts.contains(host(href.startsWith("//") ? "http:" + href : href))) {
+                    external++;
+                }
+            }
+        }
+        Family.Found found = read(input);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("total", total);
+        out.put("internal", total - external);
+        out.put("external", external);
+        out.put("broken", found.of(BROKEN_LINKS).stream()
+                .map(hit -> Map.of("path", hit.text(), "reason", hit.context()))
+                .toList());
+        out.put("hardcodedHost", found.of(HARDCODED).size());
+        out.put("mixedContent", found.of(MIXED).size());
+        out.put("blankNoopener", found.of(BLANK_NOOPENER).size());
+        return out;
     }
 
     private static void read(Element link, String href, Set<String> localHosts, Family.Found found) {

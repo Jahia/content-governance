@@ -72,6 +72,51 @@ public class SeoChecks {
         return out;
     }
 
+    /**
+     * What the SEO tab of the drawer shows of a whole page: its meta tags, robots directives, canonical
+     * link, social cards, structured data, language and images.
+     *
+     * @param html     the HTML of a whole page
+     * @param language the language of the content, such as {@code en}, or null
+     * @return the facts, by the names that the tab reads
+     */
+    public static Map<String, Object> describe(Document html, String language) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        String title = title(html);
+        String description = meta(html, "name", "description");
+        out.put("title", Map.of("text", title, "length", title.length()));
+        out.put("description", Map.of("text", description, "length", description.length()));
+        String robots = meta(html, "name", "robots").toLowerCase(Locale.ROOT);
+        Map<String, Object> directives = new LinkedHashMap<>();
+        directives.put("content", robots.isEmpty() ? null : robots);
+        directives.put("noindex", robots.contains("noindex"));
+        directives.put("nofollow", robots.contains("nofollow"));
+        out.put("robots", directives);
+        Element canonical = html.selectFirst("link[rel=canonical]");
+        out.put("canonical", canonical == null ? null : canonical.attr("href"));
+        Map<String, Object> og = new LinkedHashMap<>();
+        for (String property : List.of("title", "description", "image", "type")) {
+            String value = meta(html, "property", "og:" + property);
+            og.put(property, value.isEmpty() ? null : value);
+        }
+        out.put("og", og);
+        String twitterCard = meta(html, "name", "twitter:card");
+        out.put("twitterCard", twitterCard.isEmpty() ? null : twitterCard);
+        List<Element> blocks = html.select("script[type=application/ld+json]");
+        out.put("jsonLd", Map.of("count", blocks.size(), "errors", blocks.stream().filter(SeoChecks::invalid).count()));
+        Element root = html.selectFirst("html");
+        String htmlLang = root == null ? "" : root.attr("lang").toLowerCase(Locale.ROOT);
+        Map<String, Object> lang = new LinkedHashMap<>();
+        lang.put("htmlLang", htmlLang.isEmpty() ? null : htmlLang);
+        lang.put("expected", language == null ? "" : language.substring(0, Math.min(2, language.length())).toLowerCase(Locale.ROOT));
+        out.put("lang", lang);
+        out.put("hreflang", html.select("link[rel=alternate][hreflang]").size());
+        List<Element> images = html.select("img");
+        out.put("totalImages", images.size());
+        out.put("imagesWithoutAlt", images.stream().filter(image -> !image.hasAttr("alt")).count());
+        return out;
+    }
+
     /** The title of the page, without the label of the preview. */
     static String title(Document html) {
         return PREVIEW_LABEL.matcher(html.title().trim()).replaceFirst("");
@@ -109,12 +154,7 @@ public class SeoChecks {
         List<Element> blocks = html.select("script[type=application/ld+json]");
         List<String> invalid = new ArrayList<>();
         for (Element block : blocks) {
-            try {
-                // readTree gives a missing node for a blank text, where a JSON parser fails.
-                if (JSON.readTree(block.data()).isMissingNode()) {
-                    invalid.add("");
-                }
-            } catch (JsonProcessingException e) {
+            if (invalid(block)) {
                 invalid.add(Family.cut(block.data().trim(), 160));
             }
         }
@@ -122,6 +162,16 @@ public class SeoChecks {
             invalid.forEach(text -> found.add(STRUCTURED_DATA_VALID, text, null));
         } else if (blocks.isEmpty()) {
             found.add(STRUCTURED_DATA, HEAD, null);
+        }
+    }
+
+    /** True when a block of structured data holds no JSON. */
+    private static boolean invalid(Element block) {
+        try {
+            // readTree gives a missing node for a blank text, where a JSON parser fails.
+            return JSON.readTree(block.data()).isMissingNode();
+        } catch (JsonProcessingException e) {
+            return true;
         }
     }
 

@@ -14,6 +14,7 @@ import org.jahia.community.contentgovernance.page.HealthChecks;
 import org.jahia.community.contentgovernance.page.LinkChecks;
 import org.jahia.community.contentgovernance.page.ReadabilityChecks;
 import org.jahia.community.contentgovernance.page.SeoChecks;
+import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.content.decorator.JCRSiteNode;
@@ -141,12 +142,38 @@ public class HtmlCheck {
      * @return the findings, in the order of the rules, at most 50 for each check
      */
     public List<Finding> findings(Rendered rendered, Locale language) {
+        return checks.run(input(rendered, language), Set.of()).stream().map(CheckRegistry.Checked::finding).toList();
+    }
+
+    /**
+     * What the tabs of the drawer show beside the findings: the facts that the checks of SEO, readability,
+     * links and Jahia health read. A content item has no SEO facts.
+     *
+     * @param language the language of the content, such as {@code en}
+     * @param rules    the rules of the site, for the length of a long sentence
+     * @return the facts by tab: {@code seo}, {@code readability}, {@code links} and {@code jahia}
+     */
+    public static Map<String, Object> facts(Rendered rendered, Locale language, ContentRules rules) {
+        CheckInput input = input(rendered, language);
+        Double longSentence = rules.get(ReadabilityChecks.LONG_SENTENCES).maximum();
+        Map<String, Object> out = new LinkedHashMap<>();
+        if (rendered.scope() == Scope.PAGE) {
+            out.put("seo", SeoChecks.describe(rendered.html(), input.language()));
+        }
+        out.put("readability", ReadabilityChecks.describe(rendered.html(), input.language(),
+                longSentence == null ? null : longSentence.intValue()));
+        out.put("links", LinkChecks.describe(input));
+        out.put("jahia", HealthChecks.describe(input));
+        return out;
+    }
+
+    private static CheckInput input(Rendered rendered, Locale language) {
         CheckInput input = input(rendered.path(), language == null ? null : language.getLanguage(), rendered.html(),
                 rendered.scope());
         for (Map.Entry<String, Object> fact : rendered.facts().entrySet()) {
             input = input.withFact(fact.getKey(), fact.getValue());
         }
-        return checks.run(input, Set.of()).stream().map(CheckRegistry.Checked::finding).toList();
+        return input;
     }
 
     /**

@@ -21,6 +21,7 @@ import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,7 @@ public class HealthChecks {
     /** The ids of the checks, which are the ids of their rules. */
     public static final List<String> IDS = List.of(RAW_I18N, UNPUBLISHED, UNTRANSLATED, PLACEHOLDERS);
 
+    private static final int MAX_SAMPLES = 10;
     /** The most content items that one read looks at, as the drawer did. */
     static final int MAX_ITEMS = 400;
     private static final String SHARED = "content-governance:health";
@@ -74,8 +76,14 @@ public class HealthChecks {
     public record Untranslated(String path, List<String> missing) {
     }
 
-    /** The state of a page and of its content items, in one language. */
-    public record Content(List<Unpublished> unpublished, List<Untranslated> untranslated) {
+    /**
+     * The state of a page and of its content items, in one language.
+     *
+     * @param scanned   the number of nodes read: the page or the item, and its content items
+     * @param languages the languages of the site that are active in the edit workspace
+     */
+    public record Content(List<Unpublished> unpublished, List<Untranslated> untranslated, int scanned,
+                          List<String> languages) {
     }
 
     private final CheckServices services = new CheckServices();
@@ -106,6 +114,42 @@ public class HealthChecks {
             content.untranslated().forEach(node -> found.add(UNTRANSLATED, node.path(), String.join(", ", node.missing())));
         }
         return found;
+    }
+
+    /**
+     * What the Jahia health tab of the drawer shows: the state of the content, when the input has the fact
+     * {@link #CONTENT}, and the raw keys and placeholder texts of the HTML, the first ten of each.
+     *
+     * @param input the input of the checks
+     * @return the facts, by the names that the tab reads
+     */
+    public static Map<String, Object> describe(CheckInput input) {
+        Family.Found found = read(input);
+        Map<String, Object> out = new LinkedHashMap<>();
+        if (input.fact(CONTENT) instanceof Content content) {
+            out.put("scanned", content.scanned());
+            out.put("activeLanguages", content.languages());
+            out.put("unpublished", content.unpublished().stream()
+                    .map(node -> Map.of("path", node.path(), "status", node.status()))
+                    .toList());
+            out.put("untranslated", content.untranslated().stream()
+                    .map(node -> Map.of("path", node.path(), "missing", node.missing()))
+                    .toList());
+        } else {
+            out.put("scanned", 0);
+            out.put("activeLanguages", List.of());
+            out.put("unpublished", List.of());
+            out.put("untranslated", List.of());
+        }
+        out.put("rawKeys", samples(found.of(RAW_I18N), "key"));
+        out.put("placeholders", samples(found.of(PLACEHOLDERS), "match"));
+        return out;
+    }
+
+    private static Map<String, Object> samples(List<Family.Hit> hits, String name) {
+        return Map.of("count", hits.size(), "samples", hits.stream().limit(MAX_SAMPLES)
+                .map(hit -> Map.of(name, hit.text(), "text", hit.context()))
+                .toList());
     }
 
     private static void scan(String text, Family.Found found) {
@@ -158,7 +202,7 @@ public class HealthChecks {
                 }
             }
         }
-        return new Content(List.copyOf(unpublished), List.copyOf(untranslated));
+        return new Content(List.copyOf(unpublished), List.copyOf(untranslated), items.size(), List.copyOf(active));
     }
 
     /** The content items under a node, in document order, down to the next page, at most {@link #MAX_ITEMS}. */
