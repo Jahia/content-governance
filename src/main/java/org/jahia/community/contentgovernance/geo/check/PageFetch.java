@@ -64,6 +64,8 @@ public final class PageFetch {
     private static final Pattern ALT = value("alt", VALUE);
     /** An attribute named alt, with or without a value: {@code alt=""} and {@code alt} both count. */
     private static final Pattern ALT_ATTRIBUTE = Pattern.compile("(?i)\\salt(?![\\w-])");
+    /** A quoted attribute value, which can hold the word alt, as in {@code title="no alt here"}. */
+    private static final Pattern QUOTED = Pattern.compile("\"[^\"]*\"|'[^']*'");
     private static final Pattern LANG = value("lang", SHORT);
     private static final Pattern HREFLANG = value("hreflang", SHORT);
     private static final Pattern REL_CANONICAL = is("rel", "canonical");
@@ -298,7 +300,7 @@ public final class PageFetch {
             images[0]++;
             if (!attribute(ALT, tag, "").trim().isEmpty()) {
                 withAlt[0]++;
-            } else if (!ALT_ATTRIBUTE.matcher(tag).find()) {
+            } else if (!ALT_ATTRIBUTE.matcher(QUOTED.matcher(tag).replaceAll("\"\"")).find()) {
                 withoutAlt[0]++;
             }
         });

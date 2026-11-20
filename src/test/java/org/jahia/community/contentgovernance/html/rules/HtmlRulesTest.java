@@ -79,6 +79,9 @@ class HtmlRulesTest {
         assertEquals("3 steps", HtmlRules.label("(3 steps)"));
         assertEquals("", HtmlRules.label("→ ✓ !"));
         assertEquals("x", HtmlRules.label("!".repeat(100_000) + "x"));
+        assertEquals("a", HtmlRules.label("a" + "-".repeat(100_000)));
+        assertEquals("Read\u2028more", HtmlRules.label("» Read\u2028more +"));
+        assertEquals("Read\u0085more", HtmlRules.label("Read\u0085more"));
     }
 
     @Test

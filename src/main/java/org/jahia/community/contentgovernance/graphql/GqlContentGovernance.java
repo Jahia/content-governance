@@ -24,6 +24,7 @@ import org.jsoup.Jsoup;
 
 import javax.inject.Inject;
 import javax.jcr.RepositoryException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -214,11 +215,11 @@ public class GqlContentGovernance {
      *
      * @param path the path that the caller gives
      * @return the key of the site, the segment after {@code /sites/}
-     * @throws DataFetchingException when the path is not under {@code /sites/<siteKey>} or holds {@code ..}
+     * @throws DataFetchingException when the path is not under {@code /sites/<siteKey>} or has a segment {@code ..}
      */
     static String siteOf(String path) {
         String siteKey = CheckInput.value(path, null, "").siteKey();
-        if (siteKey == null || siteKey.isEmpty() || path.contains("..")) {
+        if (siteKey == null || siteKey.isEmpty() || Arrays.asList(path.split("/")).contains("..")) {
             throw new DataFetchingException(INVALID_PATH);
         }
         return siteKey;

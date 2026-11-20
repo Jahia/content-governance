@@ -112,6 +112,16 @@ class FrameCheckToolTest {
     }
 
     @Test
+    void aPathThatClimbsOutOfTheSiteIsRefusedBeforeAnyRender() {
+        var input = MAPPER.createObjectNode().put("siteKey", "digitall").put("locale", "en")
+                .put("path", "/sites/digitall/../other/home");
+
+        ToolResult result = new FrameCheckTool(new Frames(List.of())).execute(input, new Context());
+
+        assertFalse(result.isOk());
+    }
+
+    @Test
     void thePageModeGivesEachFindingOfTheServiceUnderItsRule() {
         JsonNode result = FrameCheckTool.findings("/sites/digitall/home", List.of(
                 new Finding("html.imageAltMissing", "critical", "<img src=\"a.png\">", null),

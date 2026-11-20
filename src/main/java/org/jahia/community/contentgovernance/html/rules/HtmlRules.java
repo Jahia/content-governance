@@ -38,7 +38,7 @@ public final class HtmlRules {
      * From the first letter or digit to the last one. An expression anchored at the end, such as
      * {@code [^\p{L}\p{N}]+$}, backtracks on a long run of signs (Sonar S5852); this one reads the text once.
      */
-    private static final Pattern LABEL = Pattern.compile("[\\p{L}\\p{N}](?:.*[\\p{L}\\p{N}])?");
+    private static final Pattern LABEL = Pattern.compile("[\\p{L}\\p{N}](?:.*[\\p{L}\\p{N}])?", Pattern.DOTALL);
 
     private HtmlRules() {
     }

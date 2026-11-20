@@ -420,6 +420,15 @@ class PageFetchTest {
             assertThat(o.getInt("imagesWithAlt")).isZero();
         }
 
+        @ParameterizedTest(name = "{0}")
+        @ValueSource(strings = {"<img src=\"a.png\" title=\"the alt text\">", "<img title='no alt' src=\"a.png\">",
+                "<img data-x=\"foo alt\" src=\"a.png\">"})
+        @DisplayName("the word alt inside the value of another attribute is not an alt")
+        void altInsideAValueIsNotAlt(String html) {
+            JSONObject o = PageFetch.analyse(html);
+            assertThat(o.getInt("imagesWithoutAlt")).isEqualTo(1);
+        }
+
         @Test
         @DisplayName("an attribute whose name ends with alt is not an alt")
         void otherAttributeIsNotAlt() {

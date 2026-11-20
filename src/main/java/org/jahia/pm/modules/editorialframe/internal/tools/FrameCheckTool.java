@@ -22,6 +22,7 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
 import javax.jcr.RepositoryException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -174,7 +175,7 @@ public class FrameCheckTool implements JahiaMcpTool {
 
     private ToolResult checkPage(String siteKey, String path, String locale, ToolContext ctx) {
         String sitePath = "/sites/" + siteKey;
-        if (path.contains("..") || !(path.equals(sitePath) || path.startsWith(sitePath + "/"))) {
+        if (Arrays.asList(path.split("/")).contains("..") || !(path.equals(sitePath) || path.startsWith(sitePath + "/"))) {
             return ToolResult.error(ToolError.CODE_VALIDATION, "path is not under " + sitePath,
                     "Give the path of a page or of a content item of the site, such as " + sitePath + "/home.");
         }

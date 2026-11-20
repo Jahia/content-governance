@@ -15,7 +15,9 @@ class GqlContentGovernanceTest {
     @CsvSource({
         "/sites/digitall, digitall",
         "/sites/digitall/home, digitall",
-        "/sites/digitall/home/main/intro, digitall"
+        "/sites/digitall/home/main/intro, digitall",
+        "/sites/digitall/home/release..notes, digitall",
+        "/sites/digitall/home/v1../intro, digitall"
     })
     @DisplayName("a path under a site names that site")
     void siteOf_readsTheSiteOfThePath(String path, String siteKey) {
