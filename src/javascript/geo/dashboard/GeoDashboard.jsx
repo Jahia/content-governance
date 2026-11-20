@@ -145,6 +145,8 @@ export const GeoDashboard = ({isOn}) => {
     // site node itself is the most honest thing to send from a site-level page.
     const sitePath = `/sites/${siteKey}`;
     const activeGroup = groups.find(g => g.id === group) || groups[0];
+    // A tab that left its group, such as Report once no writer answers, gives way to the first one.
+    const shownTab = activeGroup.tabs.includes(tab) ? tab : activeGroup.tabs[0];
 
     return (
         <LayoutContent
@@ -196,7 +198,7 @@ export const GeoDashboard = ({isOn}) => {
                                     id={`geo-dash-tab-${id}`}
                                     aria-controls={`geo-dash-panel-${id}`}
                                     label={t(`dashboard.tab.${id}`)}
-                                    isSelected={tab === id}
+                                    isSelected={shownTab === id}
                                     onClick={() => setTab(id)}
                                 />
                             ))}
@@ -215,12 +217,12 @@ export const GeoDashboard = ({isOn}) => {
                   */}
                 <div
                     role="tabpanel"
-                    id={`geo-dash-panel-${tab}`}
-                    aria-labelledby={activeGroup.tabs.length > 1 ? `geo-dash-tab-${tab}` : `geo-dash-group-${group}`}
+                    id={`geo-dash-panel-${shownTab}`}
+                    aria-labelledby={activeGroup.tabs.length > 1 ? `geo-dash-tab-${shownTab}` : `geo-dash-group-${group}`}
                     tabIndex={0}
                 >
-                    {tab === 'score' && <SiteScorePanel path={sitePath} language={language}/>}
-                    {tab === 'report' && (
+                    {shownTab === 'score' && <SiteScorePanel path={sitePath} language={language}/>}
+                    {shownTab === 'report' && (
                         <ReportPanel
                             path={sitePath}
                             language={language}
@@ -229,15 +231,15 @@ export const GeoDashboard = ({isOn}) => {
                             siteName={siteInfo.displayName}
                         />
                     )}
-                    {tab === 'languages' && <LanguagesPanel path={sitePath} language={language}/>}
-                    {tab === 'sitemap' && <SitemapPanel path={sitePath} language={language}/>}
-                    {tab === 'links' && <LinksPanel path={sitePath} language={language}/>}
-                    {tab === 'vanity' && <VanityPanel path={sitePath} language={language}/>}
-                    {tab === 'freshness' && <FreshnessPanel path={sitePath} language={language}/>}
-                    {tab === 'schema' && <SchemaPanel path={sitePath} language={language}/>}
-                    {tab === 'robots' && <RobotsControlPanel path={sitePath} language={language}/>}
-                    {tab === 'llms' && <LlmsPanel path={sitePath} siteKey={siteKey} language={language}/>}
-                    {tab === 'visibility' && <VisibilityPanel path={sitePath} language={language}/>}
+                    {shownTab === 'languages' && <LanguagesPanel path={sitePath} language={language}/>}
+                    {shownTab === 'sitemap' && <SitemapPanel path={sitePath} language={language}/>}
+                    {shownTab === 'links' && <LinksPanel path={sitePath} language={language}/>}
+                    {shownTab === 'vanity' && <VanityPanel path={sitePath} language={language}/>}
+                    {shownTab === 'freshness' && <FreshnessPanel path={sitePath} language={language}/>}
+                    {shownTab === 'schema' && <SchemaPanel path={sitePath} language={language}/>}
+                    {shownTab === 'robots' && <RobotsControlPanel path={sitePath} language={language}/>}
+                    {shownTab === 'llms' && <LlmsPanel path={sitePath} siteKey={siteKey} language={language}/>}
+                    {shownTab === 'visibility' && <VisibilityPanel path={sitePath} language={language}/>}
                     {tab.startsWith('citations-') && (
                         <SiteCitationsPanel path={sitePath} language={language} view={tab.slice('citations-'.length)}/>
                     )}

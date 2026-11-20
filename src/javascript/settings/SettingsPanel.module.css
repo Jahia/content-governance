@@ -70,9 +70,6 @@
     color: var(--color-gray, #5c6b7a);
 }
 
-
-
-
 .headerTabs {
     overflow-x: auto;
     max-width: 100%;
