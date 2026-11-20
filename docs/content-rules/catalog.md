@@ -32,11 +32,18 @@ properties.
 | `model` | A model, against the advice of the rule. Only a module that calls a model registers it, so content-governance alone checks no such rule. |
 | Any other value | The id of a check that a module registers. A built-in rule with no limit names a check of its own id, such as `seo.indexable`. |
 
+Each evaluator is the id of a check that a module registers, as the section
+[How a module adds a check](#how-a-module-adds-a-check) shows. Content-governance registers
+`pattern`, `threshold`, `presence` and the check of each of its own rules. A rule whose check no
+started module registers is inactive and never runs. Example: a rule with the evaluator `model`
+shows `active: false`, `missingCheck: "model"` and `needs: "ai-assistant"` in the GraphQL field
+`contentRules`.
+
 ## Where the rules live
 
 ```text
 contents/content-insights/
-    content-governance/rules/     the 52 rules of this module
+    content-governance/rules/     the 68 rules of this module
         seo.title                 ruleId, evaluator, severity, minimum, maximum, advice...
         ...
     <module>/rules/               the rules of another module
@@ -111,7 +118,7 @@ Each node that the module writes keeps a fingerprint of the values it wrote, in 
 | Gone | The module removes the node. | The node stays, with `retired` set. |
 
 A module that stops keeps its rule nodes on the sites. A check that the module registered goes with
-it.
+it, so its rules show as inactive until the module starts again.
 
 ## The upgrade from an earlier version
 
@@ -125,6 +132,54 @@ Content-governance converts the rules of an earlier version once, when it starts
   `blocking` becomes `serious` with `blocking` set. A rule of the kind `style` is `minor`, so that it
   stays a soft rule. The justification of each language becomes the advice of that language. Every
   other value stays.
+
+## How a module adds a check
+
+A module registers a check as an OSGi service of the interface `ContentCheck`, from the package
+`org.jahia.community.contentgovernance.check.spi` that content-governance exports. The property
+`check.id` holds the id that the evaluator of a rule names:
+
+```java
+@Component(service = ContentCheck.class, property = "check.id=acme.erpPrice")
+public class ErpPriceCheck implements ContentCheck {
+    public Set<Scope> scopes() { return Set.of(Scope.VALUE); }
+    public List<Finding> check(CheckInput input, Rule rule) { ... }
+}
+```
+
+The module ships the rule of the check with the header `Jahia-Content-Rules`, as the section
+[How a module ships rules](#how-a-module-ships-rules) shows, with `evaluator: acme.erpPrice`. The test
+module of this repository, `tests/jahia-module`, does both, with no change to content-governance.
+
+A check states the scopes in which it runs:
+
+| Scope | What the check reads | Who runs it today |
+|---|---|---|
+| `VALUE` | One value that an editor writes. | The GraphQL field `checkText`, and `frame.check` of the editorial frame. |
+| `PAGE` | The HTML of a rendered page or content item. | The HTML check of the tool `audit.accessibility`, and `checkText` with the scope `PAGE`. |
+| `SITE` | A whole site. | No caller yet. |
+
+A run applies each rule that the site keeps on and whose check is registered for the scope. Each
+finding carries the id of the rule, the severity that the site gives the rule, and the text that
+breaks the rule. A check that throws an exception gives no finding, and the other checks still run.
+One check gives 50 findings or fewer on one input.
+
+```graphql
+query {
+  contentGovernance {
+    checkText(path: "/sites/digitall/home", language: "en", text: "The kit costs 12.50 EUR.") {
+      ruleId severity text context
+    }
+  }
+}
+```
+
+`threshold` and `presence` judge a value that the caller measured. The caller gives it as the fact
+of the input whose key is the id of the rule: `input.withFact("seo.title", 72)`. With no such fact,
+they find nothing.
+
+The analyzers of Page quality run in the browser. Content-governance registers their ids with the
+property `check.runtime=browser`, so that their rules are active, and a run on the server skips them.
 
 ## How a check reads the rules
 
@@ -198,6 +253,10 @@ important. `minor` shows as advisory.
 | `ecodesign.lazyLoading` | `ecodesign.lazyLoading` | moderate | none | developer |
 | `ecodesign.imageFormats` | `ecodesign.imageFormats` | moderate | none | editor |
 | `ecodesign.oversizedImages` | `ecodesign.oversizedImages` | moderate | none | editor |
+| `html.*` | the id of the rule | see below | none | see below |
+
+The 16 rules `html.*` are the rules of the HTML check, and
+[`html-rules.md`](../page-quality/html-rules.md) lists them. Each rule names a check of its own id.
 | `ecodesign.imageDimensions` | `ecodesign.imageDimensions` | moderate | none | developer |
 | `ecodesign.webFonts` | `threshold` | minor | maximum 2 files | developer |
 | `ecodesign.autoplay` | `ecodesign.autoplay` | moderate | none | editor |

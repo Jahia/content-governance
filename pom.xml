@@ -332,6 +332,7 @@
                         <Export-Package>
                             org.jahia.community.contentgovernance.compliance.model,
                             org.jahia.community.contentgovernance.compliance.service.spi,
+                            org.jahia.community.contentgovernance.check.spi;version="1.0.0",
                             org.jahia.pm.modules.editorialframe.api;version="0.1.0"
                         </Export-Package>
                         <!-- The skills of this module, served by the skill registry of the editorial frame. -->

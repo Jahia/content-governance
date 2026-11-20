@@ -4,6 +4,7 @@ import graphql.annotations.annotationTypes.GraphQLDescription;
 import graphql.annotations.annotationTypes.GraphQLField;
 import graphql.annotations.annotationTypes.GraphQLName;
 import graphql.annotations.annotationTypes.GraphQLNonNull;
+import org.jahia.community.contentgovernance.check.CheckRegistry;
 import org.jahia.community.contentgovernance.rules.ContentRule;
 
 /**
@@ -14,9 +15,11 @@ import org.jahia.community.contentgovernance.rules.ContentRule;
 public class GqlContentRule {
 
     private final ContentRule rule;
+    private final CheckRegistry.Status status;
 
-    GqlContentRule(ContentRule rule) {
+    GqlContentRule(ContentRule rule, CheckRegistry.Status status) {
         this.rule = rule;
+        this.status = status;
     }
 
     @GraphQLField
@@ -38,6 +41,25 @@ public class GqlContentRule {
     @GraphQLDescription("What checks the rule: pattern, threshold, presence, model, or the id of a check that a module registers")
     public String getEvaluator() {
         return rule.evaluator();
+    }
+
+    @GraphQLField
+    @GraphQLNonNull
+    @GraphQLDescription("False when no started module registers the check that the evaluator names: the rule then never runs")
+    public boolean isActive() {
+        return status.active();
+    }
+
+    @GraphQLField
+    @GraphQLDescription("The id of the check that no started module registers, or null for an active rule")
+    public String getMissingCheck() {
+        return status.missingCheck();
+    }
+
+    @GraphQLField
+    @GraphQLDescription("The module that registers the missing check, such as ai-assistant for the evaluator model, or null when it is not known")
+    public String getNeeds() {
+        return status.needs();
     }
 
     @GraphQLField

@@ -14,12 +14,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ShippedRulesTest {
 
     @Test
-    @DisplayName("the module ships 52 rules, and each names its evaluator")
+    @DisplayName("the module ships 68 rules, and each names its evaluator")
     void ownRules_load() {
         ShippedRules.Shipment own = ShippedRules.own();
 
         assertThat(own.complete()).isTrue();
-        assertThat(own.rules()).hasSize(52);
+        assertThat(own.rules()).hasSize(68);
         assertThat(own.rules().values()).allSatisfy(rule -> assertThat(rule.values()).containsKey(RuleValues.EVALUATOR));
         ContentRule title = RuleValues.toRule(own.rules().get("seo.title").values());
         assertThat(title.evaluator()).isEqualTo(ContentRule.THRESHOLD);

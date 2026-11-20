@@ -40,7 +40,7 @@ public final class HtmlRules {
      * @param expectedLanguage the language of the content, such as {@code en}, or {@code null}
      * @return the findings, at most {@link #MAX_FINDINGS}
      */
-    public static List<Finding> check(Document html, Scope scope, String expectedLanguage) {
+    public static List<HtmlFinding> check(Document html, Scope scope, String expectedLanguage) {
         Findings findings = new Findings(scope);
         if (scope == Scope.PAGE) {
             checkPage(html, expectedLanguage, findings);
@@ -187,7 +187,7 @@ public final class HtmlRules {
     /** The findings of one check: the rules of the scope only, up to the maximum. */
     private static final class Findings {
         private final Scope scope;
-        private final List<Finding> list = new ArrayList<>();
+        private final List<HtmlFinding> list = new ArrayList<>();
 
         Findings(Scope scope) {
             this.scope = scope;
@@ -201,7 +201,7 @@ public final class HtmlRules {
             if (snippet.length() > SNIPPET_CHARS) {
                 snippet = snippet.substring(0, SNIPPET_CHARS) + "…";
             }
-            list.add(new Finding(rule, snippet));
+            list.add(new HtmlFinding(rule, snippet));
         }
     }
 }
