@@ -4,15 +4,12 @@ import {useGovernanceTranslation} from '../common/i18n';
 import {useApolloClient} from '@apollo/client';
 import {runAccessibility} from './analyzers/accessibility';
 import {runWebVitals} from './analyzers/webVitals';
-import {runReadability} from './analyzers/readability';
 import {runEcodesign} from './analyzers/ecodesign';
-import {runSeo} from './analyzers/seo';
 import {fetchRules} from './rules';
-import {runLinks} from './analyzers/links';
-import {runJahiaHealth, fetchPageLastModified} from './analyzers/jahiaHealth';
+import {runServerChecks} from './serverChecks';
 import {removeToolingElements} from './analyzers/tooling';
 import {runStep} from './analyzers/timeLimit';
-import {fetchPageAudits, saveAudit, storedResults} from './auditHistory';
+import {fetchPageAudits, fetchPageLastModified, saveAudit, storedResults} from './auditHistory';
 import {auditFindings} from '../drawer/findings';
 import {requestAiReview, requestSeoAssist, requestAltAssist, requestSimplifyAssist} from './analyzers/aiReview';
 import {AccessibilityTab} from './tabs/AccessibilityTab';
@@ -45,7 +42,10 @@ const FRAME_LOAD_LIMIT_MS = 20_000;
 const AUDITS_KEPT = 10;
 
 // The time each network-bound step may take before its tab is left out of the audit (runStep).
-const STEP_LIMITS_MS = {vitals: 15_000, a11y: 60_000, links: 45_000, jahia: 30_000};
+const STEP_LIMITS_MS = {vitals: 15_000, a11y: 60_000, server: 60_000};
+
+// The tabs whose findings and facts come from the check of the page on the server
+const SERVER_KEYS = ['seo', 'readability', 'links', 'jahia'];
 
 // Results are cached per page+language in localStorage so reopening the
 // drawer restores the last audit instantly (with its timestamp shown in the
@@ -55,7 +55,11 @@ const CACHE_MAX_ENTRIES = 10;
 // Bump whenever the cached `results` shape changes (e.g. a new analyzer key),
 // so entries written by an older module version are ignored instead of
 // restored into UI that expects the new shape.
-const CACHE_SCHEMA = 5;
+const CACHE_SCHEMA = 6;
+
+// The shape of the results, stored with them: an audit stored for the site in an older shape is
+// measured again rather than shown. 2: SEO, readability, links and Jahia health come from the server.
+const RESULTS_VERSION = 2;
 
 const cacheKey = (path, language) => `${CACHE_PREFIX}${language}:${path}`;
 
@@ -177,7 +181,7 @@ AuditTrend.propTypes = {
  * steps that did not finish (`incomplete`, by result key).
  */
 function measuredResults(measured, page, incomplete, isOn) {
-    const kept = {page};
+    const kept = {version: RESULTS_VERSION, page};
     for (const [tab, key] of Object.entries(RESULT_KEYS)) {
         if (isOn(tab) && measured[key]) {
             kept[key] = measured[key];
@@ -191,8 +195,10 @@ function measuredResults(measured, page, incomplete, isOn) {
 }
 
 /**
- * Measures the preview frame's page for the tabs the site keeps on: refuses an error page, strips
- * editing tooling, then runs the analyzers in order.
+ * Measures the page for the tabs the site keeps on: the server checks the page for SEO, readability,
+ * links, Jahia health and the HTML rules of accessibility, while the preview frame, once its error page is
+ * refused and its editing tooling stripped, is measured for what needs a browser: axe-core, the web vitals
+ * and eco-design.
  *
  * @returns {Promise<object>} the results (`measuredResults`), with `incomplete` when a step did not finish
  */
@@ -212,12 +218,12 @@ async function auditFrame(frame, {isOn, language, path, apolloClient}) {
     const rules = await fetchRules(apolloClient, path);
 
     // Only the tabs the site keeps on are measured. Eco-design reads the vitals
-    // measurement, so vitals run as its input; the SEO read is a cheap DOM pass that
-    // always runs, for the page facts the AI tasks need (title, description, images
-    // without alt). What is kept is those facts and the switched-on tabs only.
-    // Vitals first: axe injection and link checks would otherwise
-    // appear in the page's own resource statistics.
-    // A network-bound step that fails or runs out of time leaves its own tab out; the
+    // measurement, so vitals run as its input. The server check always runs, for the page
+    // facts the AI tasks need (title, description, images without alt); it is a request of
+    // this window, so it starts now, while the frame is measured. What is kept is those facts
+    // and the switched-on tabs only.
+    // Vitals first: axe injection would otherwise appear in the page's own resource statistics.
+    // A network-bound step that fails or runs out of time leaves its own tabs out; the
     // other tabs are still shown, and such a partial audit is never cached.
     const incomplete = {};
     const step = async (key, start) => {
@@ -229,6 +235,7 @@ async function auditFrame(frame, {isOn, language, path, apolloClient}) {
         }
         return outcome.value;
     };
+    const checked = step('server', () => runServerChecks(apolloClient, {path, language, rules, pageUrl: frame.contentWindow.location.href}));
     const vitals = isOn('vitals') || isOn('ecodesign') ? await step('vitals', () => runWebVitals(frame, rules)) : null;
     let ecodesign = null;
     if (isOn('ecodesign')) {
@@ -238,17 +245,22 @@ async function auditFrame(frame, {isOn, language, path, apolloClient}) {
             incomplete.ecodesign = incomplete.vitals;
         }
     }
-    const readability = isOn('readability') ? runReadability(frame, language, rules) : null;
-    const seo = runSeo(frame, language, rules);
+    const axe = isOn('accessibility') ? await step('a11y', () => runAccessibility(frame)) : null;
+    const {a11y: htmlRules, ...server} = (await checked) || {};
+    if (incomplete.server) {
+        SERVER_KEYS.forEach(key => {
+            incomplete[key] = incomplete.server;
+        });
+    }
+    const seo = server.seo;
     const page = {
-        title: seo.title ? seo.title.text : '',
-        description: seo.description ? (seo.description.text || '') : '',
-        imagesWithoutAlt: seo.imagesWithoutAlt || 0
+        title: seo ? seo.title.text : '',
+        description: seo ? seo.description.text : '',
+        imagesWithoutAlt: seo ? seo.imagesWithoutAlt : 0
     };
-    const a11y = isOn('accessibility') ? await step('a11y', () => runAccessibility(frame)) : null;
-    const links = isOn('links') ? await step('links', () => runLinks(frame, rules)) : null;
-    const jahia = isOn('jahia') ? await step('jahia', () => runJahiaHealth(frame, {client: apolloClient, path, language, rules})) : null;
-    return measuredResults({a11y, vitals, ecodesign, readability, seo, links, jahia}, page, incomplete, isOn);
+    // The HTML rules of accessibility that the server applies show beside the axe-core results
+    const a11y = axe && {...axe, recommendations: htmlRules || []};
+    return measuredResults({...server, a11y, vitals, ecodesign}, page, incomplete, isOn);
 }
 
 /**
@@ -257,7 +269,10 @@ async function auditFrame(frame, {isOn, language, path, apolloClient}) {
  * AI review.
  */
 function keepEnabled(results, isOn) {
-    const kept = {};
+    if (results.version !== RESULTS_VERSION) {
+        return null;
+    }
+    const kept = {version: RESULTS_VERSION};
     for (const [tab, key] of Object.entries(RESULT_KEYS)) {
         if (isOn(tab)) {
             if (!results[key]) {
@@ -281,9 +296,9 @@ function imagesWithoutAlt(results) {
 }
 
 /**
- * The Page quality section of the drawer: the page rendered in a preview frame, measured by the
- * analyzers (accessibility, SEO, vitals, readability, eco-design, links, Jahia health), with the AI
- * review and assists on demand. Results are cached per page and language; the section measures
+ * The Page quality section of the drawer: the page checked on the server (SEO, readability, links,
+ * Jahia health, HTML rules) and rendered in a preview frame for the browser measures (accessibility,
+ * vitals, eco-design), with the AI review and assists on demand. Results are cached per page and language; the section measures
  * the page when it first shows and on every re-run.
  */
 export function AuditSection({path, language, isOn, settings, onCount, onFindings, requestedTab}) {

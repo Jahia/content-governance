@@ -34,6 +34,22 @@ export function rankFindings(findings, max = 5) {
 }
 
 /**
+ * The title and the detail of a recommendation of a Page quality tab. A rule that the tab does not word
+ * itself shows its advice, and where the page breaks it.
+ *
+ * @param {{key: string, params: object, advice: (string|undefined)}} rec the recommendation
+ * @param {string} ns the namespace of the texts of the tab (`seo`, `eco`...)
+ * @param {Function} t the section's translation function (`audit.` prefix)
+ * @returns {{title: string, detail: string}} the texts
+ */
+export function recText(rec, ns, t) {
+    if (rec.advice !== undefined) {
+        return {title: rec.advice, detail: t('recs.found', rec.params)};
+    }
+    return {title: t(`${ns}.recs.${rec.key}.title`, rec.params), detail: t(`${ns}.recs.${rec.key}.detail`, rec.params)};
+}
+
+/**
  * The key of a Page quality finding.
  *
  * @param {string} resultKey the key of its tab in the results (`a11y`, `seo`, `ecodesign`...)
@@ -55,8 +71,8 @@ export function entryFindings(bySection, sectionIds) {
 }
 
 /**
- * The findings of a Page quality audit: every accessibility violation, then the recommendations of
- * the other tabs.
+ * The findings of a Page quality audit: every accessibility violation and HTML rule of accessibility,
+ * then the recommendations of the other tabs.
  *
  * @param {object} results the audit results (`{a11y, seo, vitals, ...}`); missing tabs are skipped
  * @param {Function} t the section's translation function (`audit.` prefix)
@@ -78,19 +94,19 @@ export function auditFindings(results, t) {
             count: rule.totalNodes
         });
     });
+    const recommendation = (tab, rec, ns) => ({
+        key: auditFindingKey(tab === 'accessibility' ? 'a11y' : tab, rec.key),
+        section: 'audit',
+        tab,
+        severity: rec.severity || 'minor',
+        rule: rec.rule || null,
+        ...recText(rec, ns, t)
+    });
+    (results.a11y?.recommendations || []).forEach(rec => out.push(recommendation('accessibility', rec, 'a11y')));
     AUDIT_TABS.forEach(([tab, ns]) => {
         const recommendations = results[tab]?.recommendations || [];
-        (tab === 'vitals' ? withoutTimingFindings(recommendations) : recommendations).forEach(rec => {
-            out.push({
-                key: auditFindingKey(tab, rec.key),
-                section: 'audit',
-                tab,
-                severity: rec.severity || 'minor',
-                rule: rec.rule || null,
-                title: t(`${ns}.recs.${rec.key}.title`, rec.params),
-                detail: t(`${ns}.recs.${rec.key}.detail`, rec.params)
-            });
-        });
+        (tab === 'vitals' ? withoutTimingFindings(recommendations) : recommendations)
+            .forEach(rec => out.push(recommendation(tab, rec, ns)));
     });
     return out;
 }

@@ -1223,7 +1223,6 @@
       },
       "jahia": {
         "summary": "Page summary",
-        "pageStatus": "Page publication status",
         "scanned": "{{count}} content nodes analyzed",
         "languages": "Site languages checked",
         "unpublished": "Content not visible to visitors",
@@ -1259,10 +1258,6 @@
           "placeholderText": {
             "title": "{{count}} placeholder texts on the page",
             "detail": "Lorem ipsum / TODO text is still visible. Replace it with final content before publishing."
-          },
-          "graphqlUnavailable": {
-            "title": "Repository checks could not run",
-            "detail": "The GraphQL query failed, so publication and translation checks were skipped. The on-page checks above remain valid."
           }
         }
       },
@@ -1375,12 +1370,8 @@
         "total": "Total links",
         "internal": "Internal",
         "external": "External",
-        "checked": "{{count}} verified",
-        "skipped": "{{count}} skipped (login/logout/actions)",
-        "truncated": "{{count}} not verified (limit reached)",
-        "externalNote": "external links are not verified (browser cross-origin restriction)",
+        "externalNote": "external links are not verified",
         "broken": "Broken links",
-        "statusError": "error",
         "recs": {
           "brokenLinks": {
             "title": "{{count}} broken internal links",
@@ -1398,11 +1389,16 @@
             "title": "{{count}} target=\"_blank\" links without rel=\"noopener\"",
             "detail": "Pages opened in a new tab get access to this page's window object. Add rel=\"noopener\" in the template or rich-text content."
           }
+        },
+        "reasons": {
+          "missing": "Missing",
+          "not_published": "Not published"
         }
       },
       "recs": {
         "title": "Recommendations",
-        "none": "Nothing to improve in this category."
+        "none": "Nothing to improve in this category.",
+        "found": "Found {{count}} times: {{samples}}"
       },
       "a11y": {
         "alt": {

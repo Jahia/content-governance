@@ -35,6 +35,10 @@ section, each opening the tab that explains it; it stays out of the way when the
 | **Jahia** | Unpublished content on the page, missing translations in active languages, raw resource keys and placeholder text |
 | **AI review** | A review of the page text by the configured model: each finding with its severity and the exact wording to change |
 
+The server checks the page for the tabs SEO, Readability, Links and Jahia, and for the HTML rules that
+the Accessibility tab lists beside axe-core. An agent gets the same findings from the tool
+`frame.check`. Accessibility with axe-core, Web Vitals and Ecodesign run in the browser of the editor.
+
 AI suggestions are shown and copied, never written to the repository. They are written in the
 language of the page.
 

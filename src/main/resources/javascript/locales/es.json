@@ -1223,7 +1223,6 @@
       },
       "jahia": {
         "summary": "Resumen de la página",
-        "pageStatus": "Estado de publicación de la página",
         "scanned": "{{count}} nodos de contenido analizados",
         "languages": "Idiomas del sitio comprobados",
         "unpublished": "Contenido no visible para los visitantes",
@@ -1259,10 +1258,6 @@
           "placeholderText": {
             "title": "{{count}} textos de relleno en la página",
             "detail": "Todavía se ve texto Lorem ipsum / TODO. Sustitúyalo por el contenido definitivo antes de publicar."
-          },
-          "graphqlUnavailable": {
-            "title": "No se pudieron ejecutar las comprobaciones del repositorio",
-            "detail": "La consulta GraphQL falló, por lo que se omitieron las comprobaciones de publicación y traducción. Las comprobaciones de la página anteriores siguen siendo válidas."
           }
         }
       },
@@ -1375,12 +1370,8 @@
         "total": "Total de enlaces",
         "internal": "Internos",
         "external": "Externos",
-        "checked": "{{count}} verificados",
-        "skipped": "{{count}} omitidos (inicio/cierre de sesión/acciones)",
-        "truncated": "{{count}} sin verificar (límite alcanzado)",
-        "externalNote": "los enlaces externos no se verifican (restricción de origen cruzado del navegador)",
+        "externalNote": "los enlaces externos no se verifican",
         "broken": "Enlaces rotos",
-        "statusError": "error",
         "recs": {
           "brokenLinks": {
             "title": "{{count}} enlaces internos rotos",
@@ -1398,11 +1389,16 @@
             "title": "{{count}} enlaces target=\"_blank\" sin rel=\"noopener\"",
             "detail": "Las páginas abiertas en una pestaña nueva acceden al objeto window de esta página. Añada rel=\"noopener\" en la plantilla o en el contenido de texto enriquecido."
           }
+        },
+        "reasons": {
+          "missing": "No existe",
+          "not_published": "No publicado"
         }
       },
       "recs": {
         "title": "Recomendaciones",
-        "none": "Nada que mejorar en esta categoría."
+        "none": "Nada que mejorar en esta categoría.",
+        "found": "Encontrado {{count}} veces: {{samples}}"
       },
       "a11y": {
         "alt": {

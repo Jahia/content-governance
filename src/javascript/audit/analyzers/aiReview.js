@@ -8,6 +8,7 @@
 import {moduleUrl} from '../../common/url';
 import {guardedFetch} from '../../common/guardedFetch';
 import {cssPath} from './cssPath';
+import {collectWeakCtas} from './weakCtas';
 
 const ENDPOINT = moduleUrl('/audit/ai-review');
 
@@ -56,12 +57,12 @@ export function buildDigest(results) {
     if (results.links) {
         lines.push(`Links: ${results.links.total} total, ${results.links.broken.length} broken, ${results.links.external} external unchecked`);
         results.links.broken.slice(0, 5).forEach(l =>
-            lines.push(`[link broken ${l.status}] ${l.url}`));
+            lines.push(`[link broken ${l.reason}] ${l.path}`));
     }
 
     if (results.jahia) {
         results.jahia.unpublished.slice(0, 5).forEach(n =>
-            lines.push(`[jahia unpublished ${n.status}] ${n.path} (${n.type})`));
+            lines.push(`[jahia unpublished ${n.status}] ${n.path}`));
         results.jahia.untranslated.slice(0, 5).forEach(n =>
             lines.push(`[jahia missing translations: ${n.missing.join(',')}] ${n.path}`));
         if (results.jahia.rawKeys.count > 0) {
@@ -147,7 +148,7 @@ export function requestSeoAssist({language, path, results, frame}) {
         title: seo.title ? seo.title.text : '',
         description: seo.description ? (seo.description.text || '') : '',
         headings: extractHeadings(frame),
-        ctas: seo.weakCtas || [],
+        ctas: frame?.contentDocument ? collectWeakCtas(frame.contentDocument) : [],
         findings: (seo.recommendations || []).map(r => `[seo ${r.severity}] ${r.key} ${JSON.stringify(r.params)}`),
         text: extractPageText(frame)
     });

@@ -32,6 +32,20 @@ describe('tabCounts', () => {
         expect(counts.ai).toEqual({count: 1, serious: false});
     });
 
+    it('counts the HTML rules of the server with the accessibility violations', () => {
+        const results = {
+            a11y: {
+                violations: [{id: 'region', impact: 'moderate'}],
+                recommendations: [{key: 'html.formLabelMissing', rule: 'html.formLabelMissing', severity: 'critical', advice: 'Label the field', params: {count: 2, samples: '<input>'}}]
+            }
+        };
+        expect(tabCounts(results).accessibility).toEqual({count: 2, serious: true});
+        expect(auditFindings(results, t)[1]).toMatchObject({
+            key: 'audit.a11y.html.formLabelMissing', tab: 'accessibility', rule: 'html.formLabelMissing',
+            title: 'Label the field', detail: 'recs.found'
+        });
+    });
+
     it('gives nothing before an audit', () => {
         expect(tabCounts(null, null)).toEqual({});
     });

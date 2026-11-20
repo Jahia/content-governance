@@ -182,7 +182,7 @@ they find nothing.
 
 The checks of SEO, readability, links and Jahia health run on the server, as checks of the scope
 `PAGE`. A few rules need a browser, because they measure what a browser loads: the eco-design rules
-of the web vitals, and `health.graphqlUnavailable`, which reports a failed GraphQL call of the drawer.
+of the web vitals.
 Content-governance registers their ids with the property `check.runtime=browser`, so that their rules
 are active. A run on the server skips them, so the tools for agents never report them. A browser rule
 never blocks, even when its node sets `blocking`.
@@ -202,6 +202,7 @@ report one practice under the same id.
 | `seo.genericAnchors` | `html.linkTextVague` |
 | `html.pageTitleMissing` | `seo.title`: a missing title has the length 0 |
 | `html.pageDescriptionMissing` | `seo.metaDescription`: a missing description has the length 0 |
+| `health.graphqlUnavailable` | none: the drawer reads the checks of the server through one GraphQL call, and a failed call shows on its tabs |
 
 A site keeps the nodes of the removed ids until content-governance starts again, and then the table
 of [How a new version of a module updates the rules](#how-a-new-version-of-a-module-updates-the-rules)
@@ -216,8 +217,9 @@ severity, set it again on the node of the kept id.
 - The Java checks of GEO readiness read the rules of the site through `ContentRules.forSite`. A site
   scan reads them once, at its start.
 - The checks of Page quality on the server read them through `ContentRules.forPath`, at the start of
-  each check. The analyzers of the drawer read them through the GraphQL field
-  `contentGovernance.contentRules(siteKey)`, at the start of each audit. Each rule gives its
+  each check. The drawer reads them through the GraphQL field
+  `contentGovernance.contentRules(siteKey)`, at the start of each audit, for the browser analyzers
+  and for the texts of the findings of the server. Each rule gives its
   `evaluator` and `blocking` there too.
 - The SEO assist reads the ranges of `seo.title` and `seo.metaDescription`, and states them in its
   prompt.
@@ -294,4 +296,3 @@ The rules `html.*` are the rules of the HTML check, and
 | `health.unpublishedChanges` | `health.unpublishedChanges` | serious | none | editor |
 | `health.missingTranslations` | `health.missingTranslations` | serious | none | editor |
 | `health.placeholderText` | `health.placeholderText` | serious | none | editor |
-| `health.graphqlUnavailable` | `health.graphqlUnavailable` | minor | none | administrator |

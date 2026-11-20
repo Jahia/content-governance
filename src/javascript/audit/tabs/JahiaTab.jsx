@@ -14,9 +14,6 @@ export function JahiaTab({result, onHighlightText}) {
 
             <h4 className={styles.sectionTitle}>{t('jahia.summary')}</h4>
             <ul className={styles.statList}>
-                {result.pageStatus && (
-                    <li>{t('jahia.pageStatus')}: <strong>{t(`jahia.statuses.${result.pageStatus}`, result.pageStatus)}</strong></li>
-                )}
                 <li>{t('jahia.scanned', {count: result.scanned})}</li>
                 {result.activeLanguages.length > 0 && (
                     <li>{t('jahia.languages')}: <strong>{result.activeLanguages.join(', ')}</strong></li>
@@ -33,7 +30,6 @@ export function JahiaTab({result, onHighlightText}) {
                             </span>
                             <div className={styles.recBody}>
                                 <div className={styles.recTitle}>{node.path}</div>
-                                <div className={styles.recDetail}>{node.type}</div>
                             </div>
                         </div>
                     ))}
@@ -50,7 +46,6 @@ export function JahiaTab({result, onHighlightText}) {
                             </span>
                             <div className={styles.recBody}>
                                 <div className={styles.recTitle}>{node.path}</div>
-                                <div className={styles.recDetail}>{node.type}</div>
                             </div>
                         </div>
                     ))}

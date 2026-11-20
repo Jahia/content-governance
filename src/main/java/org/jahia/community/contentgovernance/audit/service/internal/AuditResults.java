@@ -10,7 +10,7 @@ import org.json.JSONObject;
 
 /**
  * Checks the results an editor's browser sends before they are stored: a JSON object of bounded
- * size, keeping only the result of each tab and the page facts. What other editors later read is
+ * size, keeping only the result of each tab, the page facts and the version of their shape. What other editors later read is
  * rendered as text by the drawer, never as markup.
  *
  * <p>Thread-safety: stateless.</p>
@@ -26,6 +26,7 @@ public final class AuditResults {
     /** The key of the findings in what a run of a tab stores. */
     public static final String FINDINGS = "findings";
     private static final String PAGE_KEY = "page";
+    private static final String VERSION = "version";
     private static final String KEY = "key";
     private static final String SEVERITY = "severity";
     private static final String COUNT = "count";
@@ -37,7 +38,7 @@ public final class AuditResults {
 
     /**
      * @param json the results as sent by the drawer
-     * @return the results reduced to the tab results and the page facts
+     * @return the results reduced to the tab results, the page facts and the version of their shape
      * @throws IllegalArgumentException when {@code json} is missing, too large, not a JSON object, or
      *                                  holds no tab result
      */
@@ -62,6 +63,9 @@ public final class AuditResults {
         JSONObject page = sent.optJSONObject(PAGE_KEY);
         if (page != null) {
             kept.put(PAGE_KEY, page);
+        }
+        if (sent.opt(VERSION) instanceof Number version) {
+            kept.put(VERSION, version.intValue());
         }
         return kept;
     }

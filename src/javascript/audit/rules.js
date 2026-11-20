@@ -5,6 +5,8 @@ export const CONTENT_RULES = gql`
         contentGovernance {
             contentRules(siteKey: $siteKey) {
                 id
+                domain
+                advice
                 severity
                 enabled
                 minimum
@@ -17,7 +19,7 @@ export const CONTENT_RULES = gql`
 /**
  * The rules of a site by id, from the list that the GraphQL API or the catalog file gives.
  *
- * @param {Array<{id: string, severity: string, enabled: boolean, minimum: ?number, maximum: ?number}>} list the rules
+ * @param {Array<{id: string, domain: string, advice: ?string, severity: string, enabled: boolean, minimum: ?number, maximum: ?number}>} list the rules
  * @returns {{get: function(string): object}} `get` throws on an id the catalog does not know
  */
 export function ruleBook(list) {

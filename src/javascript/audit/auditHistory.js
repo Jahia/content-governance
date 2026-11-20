@@ -139,3 +139,38 @@ export function storedResults(run) {
         return null;
     }
 }
+
+const PAGE_LAST_MODIFIED = gql`
+    query pageAuditLastModified($path: String!, $language: String!) {
+        jcr {
+            nodeByPath(path: $path) {
+                workspace
+                uuid
+                aggregatedLastModifiedDate(
+                    language: $language
+                    recursionTypesFilter: {multi: NONE, types: ["jnt:page"]}
+                )
+            }
+        }
+    }
+`;
+
+/**
+ * Cheap staleness probe: last modification date of the page and its own
+ * content (stops at sub-page boundaries). Returns epoch millis, or null
+ * when it cannot be determined.
+ */
+export async function fetchPageLastModified(client, path, language) {
+    try {
+        const {data} = await client.query({
+            query: PAGE_LAST_MODIFIED,
+            variables: {path, language},
+            fetchPolicy: 'no-cache'
+        });
+        const date = data?.jcr?.nodeByPath?.aggregatedLastModifiedDate;
+        return date ? new Date(date).getTime() : null;
+    } catch (e) {
+        console.warn('[content-governance] last-modified probe failed', e);
+        return null;
+    }
+}

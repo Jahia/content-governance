@@ -16,17 +16,17 @@ import java.util.Set;
 
 /**
  * The rules that need a browser, because they measure what a browser loads and runs: the eco-design of
- * the web vitals, and the drawer's own access to GraphQL. The server registers their ids so that their
+ * the web vitals. The server registers their ids so that their
  * rules are active, and never runs them. A browser rule never blocks, and the tools for agents never
  * report it.
  */
 @Component(immediate = true)
 public class BrowserChecks {
 
-    /** The ids of the checks that {@code webVitals.js}, {@code ecodesign.js} and {@code jahiaHealth.js} run. */
+    /** The ids of the checks that {@code webVitals.js} and {@code ecodesign.js} run. */
     static final List<String> IDS = List.of(
             "ecodesign.autoplay", "ecodesign.imageDimensions", "ecodesign.imageFormats", "ecodesign.lazyLoading",
-            "ecodesign.oversizedImages", "health.graphqlUnavailable");
+            "ecodesign.oversizedImages");
 
     private final CheckServices services = new CheckServices();
 

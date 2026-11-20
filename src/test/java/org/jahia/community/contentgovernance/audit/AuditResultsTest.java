@@ -13,8 +13,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class AuditResultsTest {
 
     private static final String RESULTS = "{"
+            + "\"version\": 2,"
             + "\"page\": {\"title\": \"Home\"},"
-            + "\"a11y\": {\"violations\": [{\"id\": \"image-alt\", \"impact\": \"critical\"}, {\"id\": \"link-name\", \"impact\": \"minor\"}], \"passes\": 41},"
+            + "\"a11y\": {\"violations\": [{\"id\": \"image-alt\", \"impact\": \"critical\"}, {\"id\": \"link-name\", \"impact\": \"minor\"}], \"passes\": 41,"
+            + " \"recommendations\": [{\"key\": \"html.formLabelMissing\", \"severity\": \"serious\"}]},"
             + "\"seo\": {\"recommendations\": [{\"key\": \"shortTitle\"}]},"
             + "\"readability\": {\"recommendations\": []},"
             + "\"incomplete\": {\"links\": {\"incomplete\": \"timedOut\"}},"
@@ -22,9 +24,10 @@ class AuditResultsTest {
             + "}";
 
     @Test
-    void keepsTheTabResultsAndThePageFactsOnly() {
+    void keepsTheTabResultsThePageFactsAndTheVersionOnly() {
         JSONObject kept = AuditResults.parse(RESULTS);
-        assertThat(kept.keySet()).containsExactlyInAnyOrder("page", "a11y", "seo", "readability");
+        assertThat(kept.keySet()).containsExactlyInAnyOrder("version", "page", "a11y", "seo", "readability");
+        assertThat(kept.getInt("version")).isEqualTo(2);
         assertThat(kept.getJSONObject("a11y").getInt("passes")).isEqualTo(41);
     }
 
@@ -38,12 +41,12 @@ class AuditResultsTest {
     }
 
     @Test
-    void countsViolationsForAccessibilityAndRecommendationsElsewhere() {
+    void countsViolationsAndHtmlRulesForAccessibilityAndRecommendationsElsewhere() {
         AuditSummary summary = AuditSummary.of(AuditResults.parse(RESULTS));
         assertThat(summary.counts()).containsExactly(
-                Map.entry("accessibility", 2), Map.entry("seo", 1), Map.entry("readability", 0));
-        assertThat(summary.total()).isEqualTo(3);
-        assertThat(summary.seriousAccessibility()).isEqualTo(1);
+                Map.entry("accessibility", 3), Map.entry("seo", 1), Map.entry("readability", 0));
+        assertThat(summary.total()).isEqualTo(4);
+        assertThat(summary.seriousAccessibility()).isEqualTo(2);
     }
 
     @Test

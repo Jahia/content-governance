@@ -11,18 +11,19 @@ import org.json.JSONObject;
 
 /**
  * The number of issues per tab id of one stored run, computed on the server from what the run
- * stores, never taken from the client. A Page quality audit counts the accessibility violations and
- * the recommendations of each of its tabs ({@code accessibility}, {@code seo}...). A run of another
+ * stores, never taken from the client. A Page quality audit counts the accessibility violations, the
+ * findings of the HTML rules of accessibility, and the recommendations of each of its tabs ({@code accessibility}, {@code seo}...). A run of another
  * tab of the drawer counts its findings under the id of that tab.
  *
  * @param counts               issues per tab id, for the tabs the run measured
  * @param total                the sum of the counts
- * @param seriousAccessibility accessibility violations of impact {@code critical} or {@code serious}, or -1
+ * @param seriousAccessibility accessibility violations and findings of the HTML rules of severity {@code critical} or {@code serious}, or -1
  *                             when unknown (a run of another tab, or a summary stored before it was counted)
  */
 public record AuditSummary(Map<String, Integer> counts, int total, int seriousAccessibility) {
 
     private static final Set<String> SERIOUS = Set.of("critical", "serious");
+    private static final String RECOMMENDATIONS = "recommendations";
     private static final String SERIOUS_KEY = "seriousAccessibility";
     private static final String COUNTS_KEY = "counts";
     private static final String TOTAL_KEY = "total";
@@ -51,23 +52,37 @@ public record AuditSummary(Map<String, Integer> counts, int total, int seriousAc
         int total = 0;
         int serious = 0;
         JSONObject a11y = results.optJSONObject("a11y");
-        JSONArray violations = a11y == null ? null : a11y.optJSONArray("violations");
-        for (int i = 0; violations != null && i < violations.length(); i++) {
-            JSONObject violation = violations.optJSONObject(i);
-            if (violation != null && SERIOUS.contains(violation.optString("impact"))) {
-                serious++;
-            }
-        }
+        serious += serious(a11y == null ? null : a11y.optJSONArray("violations"), "impact");
+        serious += serious(a11y == null ? null : a11y.optJSONArray(RECOMMENDATIONS), "severity");
         for (Map.Entry<String, String> tab : TAB_RESULTS.entrySet()) {
             JSONObject result = results.optJSONObject(tab.getValue());
             if (result != null) {
-                JSONArray issues = result.optJSONArray("accessibility".equals(tab.getKey()) ? "violations" : "recommendations");
-                int count = issues == null ? 0 : issues.length();
+                // The accessibility tab holds the axe-core violations and the HTML rules of the server.
+                int count = length(result.optJSONArray(RECOMMENDATIONS));
+                if ("accessibility".equals(tab.getKey())) {
+                    count += length(result.optJSONArray("violations"));
+                }
                 counts.put(tab.getKey(), count);
                 total += count;
             }
         }
         return new AuditSummary(Collections.unmodifiableMap(counts), total, serious);
+    }
+
+    private static int length(JSONArray array) {
+        return array == null ? 0 : array.length();
+    }
+
+    /** The items whose severity, under the key, is critical or serious. */
+    private static int serious(JSONArray items, String key) {
+        int out = 0;
+        for (int i = 0; items != null && i < items.length(); i++) {
+            JSONObject item = items.optJSONObject(i);
+            if (item != null && SERIOUS.contains(item.optString(key))) {
+                out++;
+            }
+        }
+        return out;
     }
 
     /**

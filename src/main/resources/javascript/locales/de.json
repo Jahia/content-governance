@@ -1223,7 +1223,6 @@
       },
       "jahia": {
         "summary": "Seitenübersicht",
-        "pageStatus": "Veröffentlichungsstatus der Seite",
         "scanned": "{{count}} Inhaltsknoten analysiert",
         "languages": "Geprüfte Website-Sprachen",
         "unpublished": "Für Besucher nicht sichtbare Inhalte",
@@ -1259,10 +1258,6 @@
           "placeholderText": {
             "title": "{{count}} Platzhaltertexte auf der Seite",
             "detail": "Lorem-ipsum- bzw. TODO-Text ist noch sichtbar. Ersetzen Sie ihn vor dem Veröffentlichen durch den endgültigen Inhalt."
-          },
-          "graphqlUnavailable": {
-            "title": "Repository-Prüfungen konnten nicht ausgeführt werden",
-            "detail": "Die GraphQL-Abfrage ist fehlgeschlagen, daher wurden die Prüfungen von Veröffentlichung und Übersetzungen übersprungen. Die obigen Prüfungen auf der Seite bleiben gültig."
           }
         }
       },
@@ -1375,12 +1370,8 @@
         "total": "Links insgesamt",
         "internal": "Intern",
         "external": "Extern",
-        "checked": "{{count}} geprüft",
-        "skipped": "{{count}} übersprungen (Anmelden/Abmelden/Aktionen)",
-        "truncated": "{{count}} nicht geprüft (Limit erreicht)",
-        "externalNote": "externe Links werden nicht geprüft (Cross-Origin-Beschränkung des Browsers)",
+        "externalNote": "externe Links werden nicht geprüft",
         "broken": "Defekte Links",
-        "statusError": "Fehler",
         "recs": {
           "brokenLinks": {
             "title": "{{count}} defekte interne Links",
@@ -1398,11 +1389,16 @@
             "title": "{{count}} target=\"_blank\"-Links ohne rel=\"noopener\"",
             "detail": "In einem neuen Tab geöffnete Seiten erhalten Zugriff auf das window-Objekt dieser Seite. Fügen Sie rel=\"noopener\" im Template oder im Rich-Text-Inhalt hinzu."
           }
+        },
+        "reasons": {
+          "missing": "Fehlt",
+          "not_published": "Nicht veröffentlicht"
         }
       },
       "recs": {
         "title": "Empfehlungen",
-        "none": "In dieser Kategorie gibt es nichts zu verbessern."
+        "none": "In dieser Kategorie gibt es nichts zu verbessern.",
+        "found": "{{count}}-mal gefunden: {{samples}}"
       },
       "a11y": {
         "alt": {
