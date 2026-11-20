@@ -171,6 +171,16 @@ public final class ContentRules {
     }
 
     /**
+     * @param rule a rule, which replaces the rule of the same id
+     * @return these rules with the rule, after the others when its id is new
+     */
+    public ContentRules with(ContentRule rule) {
+        Map<String, ContentRule> out = new LinkedHashMap<>(rules);
+        out.put(rule.id(), rule);
+        return new ContentRules(out);
+    }
+
+    /**
      * @param id the id of a rule
      * @return the rule as the site applies it
      * @throws IllegalArgumentException when neither the site nor its modules have the rule

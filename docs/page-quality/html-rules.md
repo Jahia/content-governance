@@ -5,47 +5,49 @@ the rules that the HTML breaks. It runs on the Jahia server and needs no browser
 job and an AI agent can run it. The checks of the **Page quality** drawer still run in the browser
 of the editor, as [`architecture.md`](architecture.md) states.
 
-Today, the two tools for AI agents call the HTML check. The drawer and a scan of the whole site do
-not call it yet.
+Today, the two tools for AI agents and the GraphQL field `checkText` with the scope `PAGE` call the
+HTML check. The drawer and a scan of the whole site do not call it yet.
 
 ## How a check runs
 
 1. Jahia renders the page or the content item inside the server, with no HTTP request.
 2. The render uses the user, the workspace and the language of the call. In the `default`
    workspace, the HTML holds the changes that are not published yet.
-3. The rules read the HTML. A page gets every rule. A content item gets only the rules with the
-   scope `item`.
+3. Each check of the scope `PAGE` reads the HTML with the rules of the site. These checks are the
+   16 HTML rules and the checks that other modules register. A page gets every HTML rule, and a
+   content item gets only the HTML rules with the scope `item`.
 
 A content item renders with its own view, as a page includes it. The item has no language, title or
 main heading of its own, so the rules with the scope `page` do not run on it.
 
 ## The rules
 
-The rule ids are provisional. The catalog of rules of
-[content-governance#70](https://github.com/Jahia/content-governance/issues/70) gives them their final
-names. A check reports 50 findings or fewer.
+Each rule is a rule of the [catalog](../content-rules/catalog.md), with a node under
+`contents/content-insights/content-governance/rules`. A site switches a rule off, or changes its
+severity, on that node. A finding gives the severity that the site gives the rule. The HTML rules
+report 50 findings or fewer on one page.
 
 | Rule | Scope | WCAG 2.2 | What the rule reports |
 | -- | -- | -- | -- |
-| `page-language-missing` | page | 3.1.1 | The `html` element has no `lang` attribute. |
-| `page-language-mismatch` | page | 3.1.1 | The `lang` attribute names another language than the content. |
-| `page-title-missing` | page | 2.4.2 | The page has no `title` element, or an empty one. |
-| `page-description-missing` | page | none | The page has no `description` meta tag, or an empty one. |
-| `image-alt-missing` | item | 1.1.1 | An image has no `alt` attribute. |
-| `heading-level-skipped` | item | 1.3.1 | A heading is more than one level below the heading before it. |
-| `heading-empty` | item | 2.4.6 | A heading has no text and no image with a text alternative. |
-| `heading-h1-missing` | page | 1.3.1 | The page has headings, and none of them is an `h1`. |
-| `heading-h1-multiple` | page | 1.3.1 | The page has more than one `h1`. |
-| `link-name-missing` | item | 2.4.4 | A link has no text, no label and no image with a text alternative. |
-| `link-text-vague` | item | 2.4.4 | The text of a link says nothing about its target, such as "click here". |
-| `button-name-missing` | item | 4.1.2 | A button has no text, no label and no title. |
-| `form-label-missing` | item | 1.3.1 | A form field has no label. |
-| `frame-title-missing` | item | 4.1.2 | An `iframe` has no `title` attribute, or an empty one. |
-| `table-header-missing` | item | 1.3.1 | A data table has more than one row and no header cell. |
-| `duplicate-id` | page | none | Two elements of the page have the same `id`. |
+| `html.pageLanguageMissing` | page | 3.1.1 | The `html` element has no `lang` attribute. |
+| `html.pageLanguageMismatch` | page | 3.1.1 | The `lang` attribute names another language than the content. |
+| `html.pageTitleMissing` | page | 2.4.2 | The page has no `title` element, or an empty one. |
+| `html.pageDescriptionMissing` | page | none | The page has no `description` meta tag, or an empty one. |
+| `html.imageAltMissing` | item | 1.1.1 | An image has no `alt` attribute. |
+| `html.headingLevelSkipped` | item | 1.3.1 | A heading is more than one level below the heading before it. |
+| `html.headingEmpty` | item | 2.4.6 | A heading has no text and no image with a text alternative. |
+| `html.headingH1Missing` | page | 1.3.1 | The page has headings, and none of them is an `h1`. |
+| `html.headingH1Multiple` | page | 1.3.1 | The page has more than one `h1`. |
+| `html.linkNameMissing` | item | 2.4.4 | A link has no text, no label and no image with a text alternative. |
+| `html.linkTextVague` | item | 2.4.4 | The text of a link says nothing about its target, such as "click here". |
+| `html.buttonNameMissing` | item | 4.1.2 | A button has no text, no label and no title. |
+| `html.formLabelMissing` | item | 1.3.1 | A form field has no label. |
+| `html.frameTitleMissing` | item | 4.1.2 | An `iframe` has no `title` attribute, or an empty one. |
+| `html.tableHeaderMissing` | item | 1.3.1 | A data table has more than one row and no header cell. |
+| `html.duplicateId` | page | none | Two elements of the page have the same `id`. |
 
-The rule `link-text-vague` knows the vague texts in English, French and German. The rule
-`heading-level-skipped` compares the headings inside the HTML only. On a content item, the first
+The rule `html.linkTextVague` knows the vague texts in English, French and German. The rule
+`html.headingLevelSkipped` compares the headings inside the HTML only. On a content item, the first
 heading of the item is not compared with the headings of the page.
 
 The browser keeps the checks that need a rendering engine: colour contrast, keyboard focus, web

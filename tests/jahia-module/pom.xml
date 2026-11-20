@@ -13,7 +13,7 @@
     <name>Test module for Content Governance</name>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
-    <description>Adds a tab to the drawer of Content Governance, as another module does, for the Cypress suite</description>
+    <description>Adds a tab to the drawer and a content check to Content Governance, as another module does, for the Cypress suite</description>
 
     <!-- The Jahia parent POM is not on Maven Central. The integration-tests job runs a bare
          `mvn` with no settings file, so without this the parent cannot resolve. -->
@@ -34,6 +34,22 @@
         </pluginRepository>
     </pluginRepositories>
 
+    <!-- The content-governance jar that `mvn install` of the root left in the local repository. -->
+    <dependencies>
+        <dependency>
+            <groupId>org.jahia.community</groupId>
+            <artifactId>content-governance</artifactId>
+            <version>1.12.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>osgi.cmpn</artifactId>
+            <version>7.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
     <build>
         <plugins>
             <plugin>
@@ -42,8 +58,11 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Jahia-Depends>default</Jahia-Depends>
+                        <Jahia-Depends>default,content-governance</Jahia-Depends>
                         <Jahia-Module-Type>module</Jahia-Module-Type>
+                        <_dsannotations>*</_dsannotations>
+                        <!-- The rule acme.erpPrice, which the seeder of Content Governance copies into each site. -->
+                        <Jahia-Content-Rules>content-rules</Jahia-Content-Rules>
                     </instructions>
                 </configuration>
             </plugin>

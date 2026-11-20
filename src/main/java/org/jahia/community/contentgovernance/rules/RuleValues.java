@@ -131,10 +131,10 @@ public final class RuleValues {
         String fixer = string(all, FIXER);
         String evaluator = string(all, EVALUATOR);
         return new ContentRule(id, string(all, DOMAIN), evaluator == null ? ContentRule.PATTERN : evaluator,
-                ContentRule.SEVERITIES.contains(severity) ? severity : "moderate",
+                severity != null && ContentRule.SEVERITIES.contains(severity) ? severity : "moderate",
                 Boolean.TRUE.equals(all.get(BLOCKING)), Boolean.TRUE.equals(all.get(ENABLED)),
                 ContentRule.FIXERS.contains(fixer) ? fixer : DEFAULT_FIXER, string(all, ADVICE), string(all, UNIT),
-                (Double) all.get(MINIMUM), (Double) all.get(MAXIMUM));
+                (Double) all.get(MINIMUM), (Double) all.get(MAXIMUM), all);
     }
 
     private static String string(Map<String, Object> values, String key) {

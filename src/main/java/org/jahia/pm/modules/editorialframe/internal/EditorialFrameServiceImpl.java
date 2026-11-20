@@ -3,6 +3,10 @@
  */
 package org.jahia.pm.modules.editorialframe.internal;
 
+import org.jahia.community.contentgovernance.check.CheckRegistry;
+import org.jahia.community.contentgovernance.check.spi.CheckInput;
+import org.jahia.community.contentgovernance.rules.ContentRule;
+import org.jahia.community.contentgovernance.rules.RuleValues;
 import org.jahia.pm.modules.editorialframe.api.EditorialFrameService;
 import org.jahia.pm.modules.editorialframe.api.Frame;
 import org.jahia.pm.modules.editorialframe.api.FrameContext;
@@ -12,6 +16,7 @@ import org.jahia.pm.modules.editorialframe.api.GlossaryTerm;
 import org.jahia.pm.modules.editorialframe.api.RuleViolation;
 import org.jahia.pm.modules.editorialframe.api.SkillContent;
 import org.jahia.pm.modules.editorialframe.api.SkillSummary;
+import org.jahia.pm.modules.editorialframe.api.WritingRule;
 import org.jahia.pm.modules.editorialframe.internal.frame.ContextBuilder;
 import org.jahia.pm.modules.editorialframe.internal.frame.FrameReader;
 import org.jahia.pm.modules.editorialframe.internal.frame.GlossaryChecker;
@@ -32,6 +37,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +47,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /** Reads the frame and the skills of a site with a system session of the live workspace. */
 @Component(service = EditorialFrameService.class, immediate = true)
@@ -51,6 +58,10 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
     static final int MAX_VOICE_CHARS = 6000;
 
     private final BundleSkills bundleSkills = new BundleSkills();
+
+    /** The checks of the scope VALUE that modules register. Null in a unit test, which then runs none. */
+    @Reference
+    private CheckRegistry checks;
 
     @Activate
     void activate(BundleContext context) {
@@ -75,7 +86,35 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
 
     @Override
     public List<RuleViolation> check(String siteKey, String language, String text, boolean document) {
-        return RuleChecker.check(getFrame(siteKey, language).rules(), language, text, document);
+        List<RuleViolation> violations = new ArrayList<>(RuleChecker.check(getFrame(siteKey, language).rules(), language,
+                text, document));
+        violations.addAll(registeredChecks(siteKey, language, text));
+        return violations;
+    }
+
+    /**
+     * The findings of the registered checks of the scope VALUE, as violations. The frame checks the rules
+     * of the evaluator pattern itself.
+     */
+    private List<RuleViolation> registeredChecks(String siteKey, String language, String text) {
+        if (checks == null || siteKey == null || text == null) {
+            return List.of();
+        }
+        return checks.run(CheckInput.value("/sites/" + siteKey, language, text), Set.of(ContentRule.PATTERN)).stream()
+                .map(checked -> violation(checked.rule(), checked.finding().text(), checked.finding().context()))
+                .toList();
+    }
+
+    static RuleViolation violation(ContentRule rule, String text, String context) {
+        WritingRule.Kind kind;
+        try {
+            kind = WritingRule.Kind.parse(rule.value(RuleValues.KIND) instanceof String name ? name : null);
+        } catch (IllegalArgumentException e) {
+            kind = WritingRule.Kind.FORBIDDEN;
+        }
+        Object replacement = rule.value(RuleValues.REPLACEMENT);
+        return new RuleViolation(rule.id(), kind, rule.blocking() ? WritingRule.Severity.BLOCKING : WritingRule.Severity.WARNING,
+                null, text, replacement == null ? null : replacement.toString(), rule.advice(), context);
     }
 
     @Override
@@ -93,6 +132,7 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
                                                 String text, boolean document) {
         Frame frame = getFrame(siteKey, language);
         List<RuleViolation> violations = new ArrayList<>(RuleChecker.check(frame.rules(), language, text, document));
+        violations.addAll(registeredChecks(siteKey, language, text));
         violations.addAll(GlossaryChecker.check(frame.glossary(), sourceLanguage, sourceText, language, text));
         return violations;
     }

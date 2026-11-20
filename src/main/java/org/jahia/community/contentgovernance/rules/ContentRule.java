@@ -1,6 +1,11 @@
 package org.jahia.community.contentgovernance.rules;
 
+import org.jahia.community.contentgovernance.check.spi.Rule;
+
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * One rule of the catalog, as it applies to one site.
@@ -16,9 +21,11 @@ import java.util.List;
  * @param unit      the unit of the limits, or null when the rule has none
  * @param minimum   the lowest value that passes, or null when the rule has no such limit
  * @param maximum   the highest value that passes, or null when the rule has no such limit
+ * @param values    every value of the rule, keyed as {@link RuleValues} keys them
  */
 public record ContentRule(String id, String domain, String evaluator, String severity, boolean blocking,
-                          boolean enabled, String fixer, String advice, String unit, Double minimum, Double maximum) {
+                          boolean enabled, String fixer, String advice, String unit, Double minimum, Double maximum,
+                          Map<String, Object> values) implements Rule {
 
     /** The severities of a rule, from the most serious to the least. */
     public static final List<String> SEVERITIES = List.of("critical", "serious", "moderate", "minor");
@@ -32,8 +39,17 @@ public record ContentRule(String id, String domain, String evaluator, String sev
     public static final String PRESENCE = "presence";
     /** A model judges the text against the advice of the rule. Only a module that calls a model registers it. */
     public static final String MODEL = "model";
-    /** The evaluators that need no code of their own. Any other evaluator is the id of a check. */
+    /** The evaluators that a rule names by a word. Any other evaluator is the id of a check of its own. */
     public static final List<String> EVALUATORS = List.of(PATTERN, THRESHOLD, PRESENCE, MODEL);
+
+    public ContentRule {
+        values = Collections.unmodifiableMap(new HashMap<>(values));
+    }
+
+    @Override
+    public Object value(String property) {
+        return values.get(property);
+    }
 
     /**
      * @return the lowest value that passes
@@ -67,12 +83,20 @@ public record ContentRule(String id, String domain, String evaluator, String sev
      * severity that is not one of {@link #SEVERITIES}.
      */
     ContentRule changedBy(Boolean siteEnabled, String siteSeverity, Double siteMinimum, Double siteMaximum) {
-        return new ContentRule(id, domain, evaluator,
-                siteSeverity != null && SEVERITIES.contains(siteSeverity) ? siteSeverity : severity,
-                blocking,
-                siteEnabled == null ? enabled : siteEnabled,
-                fixer, advice, unit,
-                siteMinimum != null ? siteMinimum : minimum,
-                siteMaximum != null ? siteMaximum : maximum);
+        String newSeverity = siteSeverity != null && SEVERITIES.contains(siteSeverity) ? siteSeverity : severity;
+        boolean newEnabled = siteEnabled == null ? enabled : siteEnabled;
+        Double newMinimum = siteMinimum != null ? siteMinimum : minimum;
+        Double newMaximum = siteMaximum != null ? siteMaximum : maximum;
+        Map<String, Object> newValues = new HashMap<>(values);
+        newValues.put(RuleValues.SEVERITY, newSeverity);
+        newValues.put(RuleValues.ENABLED, newEnabled);
+        if (newMinimum != null) {
+            newValues.put(RuleValues.MINIMUM, newMinimum);
+        }
+        if (newMaximum != null) {
+            newValues.put(RuleValues.MAXIMUM, newMaximum);
+        }
+        return new ContentRule(id, domain, evaluator, newSeverity, blocking, newEnabled, fixer, advice, unit,
+                newMinimum, newMaximum, newValues);
     }
 }
