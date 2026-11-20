@@ -3,4 +3,4 @@
 content-governance: minor
 ---
 
-Ran the SEO, readability, link and Jahia health checks on the server, with one rule id for each practice.
+Ran the SEO, readability, link and content health checks on the server, with one rule id for each practice.
