@@ -38,9 +38,11 @@ import java.util.function.BooleanSupplier;
  * {@value ContentRules#TYPE} node per rule, in the folder {@link ContentRules#folderOf} of the module.
  * A site gets the rules of this module, and of each other module that it installs.
  *
- * <p>Runs when a site installs a module, when a module that ships rules starts, and for every site when
- * this module starts. Each node keeps the fingerprint of the values that the seeder wrote, so a new
- * version of a module tells a rule that a site changed from a rule that nobody changed:</p>
+ * <p>Runs on the node where a site installs a module, for that site. Runs on the processing server when a
+ * module that ships rules starts, and for every site when this module starts: a browsing node of a cluster
+ * shares the repository and seeds nothing then. Each node keeps the fingerprint of the values that the
+ * seeder wrote, so a new version of a module tells a rule that a site changed from a rule that nobody
+ * changed:</p>
  * <ul>
  *   <li>A rule that the site lacks is added. A deleted rule node comes back with its shipped values.</li>
  *   <li>A rule that nobody changed takes the new shipped values.</li>
