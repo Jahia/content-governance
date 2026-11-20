@@ -240,8 +240,8 @@ export const GeoDashboard = ({isOn}) => {
                     {shownTab === 'robots' && <RobotsControlPanel path={sitePath} language={language}/>}
                     {shownTab === 'llms' && <LlmsPanel path={sitePath} siteKey={siteKey} language={language}/>}
                     {shownTab === 'visibility' && <VisibilityPanel path={sitePath} language={language}/>}
-                    {tab.startsWith('citations-') && (
-                        <SiteCitationsPanel path={sitePath} language={language} view={tab.slice('citations-'.length)}/>
+                    {shownTab.startsWith('citations-') && (
+                        <SiteCitationsPanel path={sitePath} language={language} view={shownTab.slice('citations-'.length)}/>
                     )}
                 </div>
             </div>
