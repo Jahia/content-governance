@@ -156,7 +156,7 @@ Read from the initial HTML, before any JavaScript runs.
 
 **Critical.** To a crawler that reads only text, an image with no alt text does not exist.
 
-*Fails when:* An image has no alt attribute. A page with no images passes. Rule `html.imageAltMissing`, the same rule as the HTML check.
+*Fails when:* An image has no alt attribute. An empty alt marks a decorative image and passes. A page with no images passes. Rule `html.imageAltMissing`, the same rule as the HTML check.
 
 *Shown in the interface as:* “Some images have no alt text. To a text-only crawler those images simply do not exist.”
 

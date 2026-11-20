@@ -257,11 +257,15 @@ public final class GeoScore {
         imageAlt(checks, f);
     }
 
-    /** Every image has an alt attribute. No image is not a failure: there is nothing to describe. */
+    /**
+     * Every image has an alt attribute, and an empty one marks a decorative image. No image is not a
+     * failure: there is nothing to describe. A report stored before imagesWithoutAlt was read counts an
+     * empty alt as missing, until the next scan.
+     */
     private static void imageAlt(Checks checks, Facts f) {
         int images = f.number("images");
-        int withAlt = f.number("imagesWithAlt");
-        checks.add("imageAlt", CONTENT, "html.imageAltMissing", withAlt >= images, images == 0 ? null : withAlt + "/" + images);
+        int missing = f.has("imagesWithoutAlt") ? f.number("imagesWithoutAlt") : images - f.number("imagesWithAlt");
+        checks.add("imageAlt", CONTENT, "html.imageAltMissing", missing <= 0, images == 0 ? null : (images - missing) + "/" + images);
     }
 
     /** How many agents received less than {@code ratio} of the text of the control. */
