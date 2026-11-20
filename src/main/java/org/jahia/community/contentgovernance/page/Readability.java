@@ -70,6 +70,12 @@ public final class Readability {
     /** A sentence of a language written without spaces ends at its full stop, ! or ?. */
     private static final Pattern UNSPACED_SENTENCE_END = Pattern.compile("[。．！？!?]+");
     private static final int READING_WORDS_PER_MINUTE = 200;
+    private static final String SPACED = "spaced";
+    private static final String EMPTY = "empty";
+    private static final String SCORED = "scored";
+    private static final String SENTENCES = "sentences";
+    private static final String WORDS = "words";
+    private static final String CHARACTERS = "characters";
 
     /**
      * What a text measures.
@@ -135,26 +141,26 @@ public final class Readability {
      */
     public static Map<String, Object> statistics(String text, String language, Integer maxSentenceWords) {
         Map<String, Object> out = new LinkedHashMap<>();
-        for (String key : List.of("lang", "spaced", "empty", "scored", "formula", "scale", "score", "band",
-                "gradeLevel", "words", "characters", "sentences", "avgSentenceLength", "avgSyllablesPerWord",
+        for (String key : List.of("lang", SPACED, EMPTY, SCORED, "formula", "scale", "score", "band",
+                "gradeLevel", WORDS, CHARACTERS, SENTENCES, "avgSentenceLength", "avgSyllablesPerWord",
                 "longSentences", "readingMinutes")) {
             out.put(key, null);
         }
         out.put("lang", language);
-        out.put("scored", false);
+        out.put(SCORED, false);
         if (UNSPACED.contains(language)) {
             long characters = text.codePoints().filter(Character::isLetterOrDigit).count();
-            out.put("spaced", false);
-            out.put("empty", characters == 0);
-            out.put("characters", characters);
-            out.put("sentences", Arrays.stream(UNSPACED_SENTENCE_END.split(text)).filter(s -> !s.isBlank()).count());
+            out.put(SPACED, false);
+            out.put(EMPTY, characters == 0);
+            out.put(CHARACTERS, characters);
+            out.put(SENTENCES, Arrays.stream(UNSPACED_SENTENCE_END.split(text)).filter(s -> !s.isBlank()).count());
             return out;
         }
         List<Integer> sentences = sentenceLengths(text);
         List<String> words = words(text);
-        out.put("spaced", true);
-        out.put("words", words.size());
-        out.put("empty", words.size() < MIN_WORDS);
+        out.put(SPACED, true);
+        out.put(WORDS, words.size());
+        out.put(EMPTY, words.size() < MIN_WORDS);
         if (words.size() < MIN_WORDS) {
             return out;
         }
@@ -162,14 +168,14 @@ public final class Readability {
         double asl = (double) words.size() / Math.max(1, sentences.size());
         boolean lix = LIX_LANGUAGES.contains(language);
         Double asw = lix || !FORMULAS.containsKey(language) ? null : syllablesPerWord(words, language);
-        out.put("scored", measure.formula() != null);
+        out.put(SCORED, measure.formula() != null);
         out.put("formula", measure.formula());
         out.put("scale", lix ? "lix" : "flesch");
         out.put("score", measure.score());
         out.put("band", measure.band() == null ? null : camelCase(measure.band()));
         out.put("gradeLevel", "en".equals(language) && asw != null
                 ? Math.round((0.39 * asl + 11.8 * asw - 15.59) * 10) / 10.0 : null);
-        out.put("sentences", sentences.size());
+        out.put(SENTENCES, sentences.size());
         out.put("avgSentenceLength", Math.round(asl * 10) / 10.0);
         out.put("avgSyllablesPerWord", asw == null ? null : Math.round(asw * 100) / 100.0);
         out.put("longSentences", maxSentenceWords == null ? null

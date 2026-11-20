@@ -280,7 +280,7 @@ async function auditFrame(frame, {isOn, language, path, apolloClient}) {
     const page = pageFactsOf(checked?.seo);
     // The HTML rules of the server that no other tab words go with the checks of axe-core
     const a11y = axe && {...axe, recommendations: checked ? checked.accessibility : []};
-    return measuredResults({a11y, vitals, ecodesign, ...(checked || {})}, page, incomplete, isOn);
+    return measuredResults({a11y, vitals, ecodesign, ...checked}, page, incomplete, isOn);
 }
 
 /**

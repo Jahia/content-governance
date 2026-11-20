@@ -45,6 +45,11 @@ public class SeoChecks {
     private static final String CONTENT = "content";
     private static final String TITLE_KEY = "title";
     private static final String COUNT = "count";
+    private static final String NAME = "name";
+    private static final String DESCRIPTION_KEY = "description";
+    private static final String ROBOTS = "robots";
+    private static final String NOINDEX = "noindex";
+    private static final String NOFOLLOW = "nofollow";
     /** The labels that the AI assist rewrites at most. */
     private static final int MAX_WEAK_CTAS = 10;
     private static final int CONTEXT_CHARS = 300;
@@ -76,7 +81,7 @@ public class SeoChecks {
     public static Map<String, Object> facts(Document html) {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put(TITLE, title(html).length());
-        out.put(DESCRIPTION, meta(html, "name", "description").length());
+        out.put(DESCRIPTION, meta(html, NAME, DESCRIPTION_KEY).length());
         return out;
     }
 
@@ -96,24 +101,24 @@ public class SeoChecks {
         Map<String, Object> out = new LinkedHashMap<>();
         String title = title(html);
         out.put(TITLE_KEY, textAndLength(title));
-        Element description = tag(html, "name", "description");
-        out.put("description", textAndLength(description == null ? null : description.attr(CONTENT).trim()));
-        String robots = orNull(meta(html, "name", "robots").toLowerCase(Locale.ROOT));
+        Element description = tag(html, NAME, DESCRIPTION_KEY);
+        out.put(DESCRIPTION_KEY, textAndLength(description == null ? null : description.attr(CONTENT).trim()));
+        String robots = orNull(meta(html, NAME, ROBOTS).toLowerCase(Locale.ROOT));
         Map<String, Object> directives = new LinkedHashMap<>();
         directives.put(CONTENT, robots);
-        directives.put("noindex", robots != null && robots.contains("noindex"));
-        directives.put("nofollow", robots != null && robots.contains("nofollow"));
-        out.put("robots", directives);
+        directives.put(NOINDEX, robots != null && robots.contains(NOINDEX));
+        directives.put(NOFOLLOW, robots != null && robots.contains(NOFOLLOW));
+        out.put(ROBOTS, directives);
         Element canonical = html.selectFirst("link[rel=canonical]");
         out.put("canonical", canonical == null ? null : canonical.attr("href").trim());
         Map<String, Object> og = new LinkedHashMap<>();
-        for (String property : List.of(TITLE_KEY, "description", "image", "type")) {
+        for (String property : List.of(TITLE_KEY, DESCRIPTION_KEY, "image", "type")) {
             og.put(property, orNull(meta(html, "property", "og:" + property)));
         }
         out.put("og", og);
-        out.put("twitterCard", orNull(meta(html, "name", "twitter:card")));
+        out.put("twitterCard", orNull(meta(html, NAME, "twitter:card")));
         List<Element> blocks = html.select(LD_JSON);
-        out.put("jsonLd", Map.of("count", blocks.size(), "errors", invalidBlocks(blocks).size()));
+        out.put("jsonLd", Map.of(COUNT, blocks.size(), "errors", invalidBlocks(blocks).size()));
         Element root = html.selectFirst("html");
         Map<String, Object> lang = new LinkedHashMap<>();
         lang.put("htmlLang", root == null ? null : orNull(root.attr("lang").trim().toLowerCase(Locale.ROOT)));
@@ -188,10 +193,10 @@ public class SeoChecks {
         }
         Document html = Family.document(input);
         Family.Found found = new Family.Found();
-        String robots = meta(html, "name", "robots").toLowerCase(Locale.ROOT);
-        if (robots.contains("noindex")) {
+        String robots = meta(html, NAME, ROBOTS).toLowerCase(Locale.ROOT);
+        if (robots.contains(NOINDEX)) {
             found.add(INDEXABLE, robots, null);
-        } else if (robots.contains("nofollow")) {
+        } else if (robots.contains(NOFOLLOW)) {
             found.add(FOLLOW_LINKS, robots, null);
         }
         if (html.selectFirst("link[rel=canonical]") == null) {

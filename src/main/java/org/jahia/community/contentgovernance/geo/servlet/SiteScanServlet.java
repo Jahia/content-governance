@@ -322,7 +322,7 @@ public class SiteScanServlet extends GeoServlet {
     private void runScan(String sitePath, String language, String scope, HttpServletRequest req)
             throws Exception {
         SiteScorer.Options opts = new SiteScorer.Options();
-        opts.pages = pages;
+        opts.setPages(pages);
         opts.fetchTimeoutMs = config.getFetchTimeoutMs();
         opts.maxBodyBytes = config.getMaxBodyBytes();
         // A manual run has a request, so the base url is known exactly rather

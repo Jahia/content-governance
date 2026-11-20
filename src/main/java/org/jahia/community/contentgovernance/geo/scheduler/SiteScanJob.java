@@ -102,11 +102,13 @@ public class SiteScanJob extends BackgroundJob {
         // A Quartz job gets no injection: it asks the bundle for the page check service, for this run.
         BundleContext bundle = FrameworkUtil.getBundle(SiteScanJob.class).getBundleContext();
         ServiceReference<HtmlCheck> reference = bundle == null ? null : bundle.getServiceReference(HtmlCheck.class);
-        opts.pages = reference == null ? null : bundle.getService(reference);
-        if (opts.pages == null) {
+        HtmlCheck pages = reference == null ? null : bundle.getService(reference);
+        if (pages == null) {
             logger.warn("GEO scan of {} [{}] skipped: the page check service is not started", sitePath, language);
             return;
         }
+
+        opts.setPages(pages);
 
         long t0 = System.currentTimeMillis();
         try {

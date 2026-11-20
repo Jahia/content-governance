@@ -115,6 +115,7 @@ public class CrawlerCheckServlet extends GeoServlet {
     private static final String RAW_BODY = "rawBody";
     /** The per-agent results array, the report's own key for it. */
     private static final String AGENTS = "agents";
+    private static final String STATUS = "status";
 
     /** Set by the site-files check when the file was actually served. */
     private static final String PRESENT = "present";
@@ -434,7 +435,7 @@ public class CrawlerCheckServlet extends GeoServlet {
         String[] body = new String[1];
         JSONObject result = PageFetch.probe(publicUrl, origin, name, ua, config.getFetchTimeoutMs(),
                 config.getMaxBodyBytes(), html -> body[0] = html);
-        if (result.optInt("status", 0) == 200 && body[0] != null) {
+        if (result.optInt(STATUS, 0) == 200 && body[0] != null) {
             bodies.put(rank, body[0]);
             bodies.tailMap(bodies.firstKey(), false).clear();
         }
@@ -453,7 +454,7 @@ public class CrawlerCheckServlet extends GeoServlet {
             }
             JSONObject r = new JSONObject();
             r.put("name", name);
-            r.put("status", JSONObject.NULL);
+            r.put(STATUS, JSONObject.NULL);
             r.put("ms", 0);
             r.put("bytes", 0);
             r.put(ERROR, "FetchFailed");
@@ -482,7 +483,7 @@ public class CrawlerCheckServlet extends GeoServlet {
         int reachableButDisallowed = 0;
 
         for (JSONObject r : probed) {
-            int status = r.optInt("status", 0);
+            int status = r.optInt(STATUS, 0);
             if (controlWords < 0 && status == 200) {
                 controlWords = wordsOf(r);
             }

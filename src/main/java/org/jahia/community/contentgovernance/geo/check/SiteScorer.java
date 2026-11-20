@@ -87,14 +87,22 @@ public final class SiteScorer {
     }
 
     public static class Options {
-        /** The page check service, which checks the SEO rules of each page on the HTML that the crawler got. */
-        public HtmlCheck pages;
         public int fetchTimeoutMs = 8000;
         public int maxBodyBytes = 1_500_000;
         public int maxPages = 10_000;
         public String publicBaseUrl = "";
         /** Blank scans the whole site; otherwise only this subtree. */
         public String scope = "";
+        /** The page check service, which checks the SEO rules of each page on the HTML that the crawler got. */
+        private HtmlCheck pages;
+
+        public void setPages(HtmlCheck pages) {
+            this.pages = pages;
+        }
+
+        HtmlCheck pages() {
+            return pages;
+        }
     }
 
     /**
@@ -102,7 +110,7 @@ public final class SiteScorer {
      * nature: the caller decides whether that is a job or a request.
      */
     public static JSONObject scan(String sitePath, String language, Options opts) throws RepositoryException {
-        if (opts.pages == null) {
+        if (opts.pages() == null) {
             throw new IllegalStateException("A site scan needs the page check service");
         }
         return new Run(sitePath, language, opts).execute();
@@ -488,7 +496,7 @@ public final class SiteScorer {
                 return;
             }
             JSONArray ids = new JSONArray();
-            opts.pages.findings(contentRules, path, language, Jsoup.parse(html), GeoScore.PAGE_RULES).stream()
+            opts.pages().findings(contentRules, path, language, Jsoup.parse(html), GeoScore.PAGE_RULES).stream()
                     .map(Finding::ruleId).distinct().forEach(ids::put);
             report.put(GeoScore.PAGE_FINDINGS, ids);
         }
