@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.rules;
 
+import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
@@ -53,6 +54,7 @@ final class LegacyTerms {
     private static final List<String> LEGACY_TYPES = List.of(COMPLIANCE_GLOSSARY, COMPLIANCE_TERM, FRAME_TERM);
     private static final String TERM = "term";
     private static final String SITES = "/sites/";
+    private static final String ENGLISH = "en";
     static final String COMPLIANCE_DOMAIN = "compliance";
     static final String GLOSSARY_DOMAIN = "glossary";
     private static final String CONTENT_FOLDER = "jnt:contentFolder";
@@ -96,9 +98,12 @@ final class LegacyTerms {
         }
     }
 
-    /** A node to convert, its rule id, and the advice to write once its type changed. */
+    /**
+     * A node to convert, its rule id, and the advice to write once its type changed, in its language: the
+     * language of a Compliance glossary, whose editors wrote its reasons, or English for a frame term.
+     */
     private record Conversion(Node node, String id, Map<String, Object> values, List<String> oldProperties,
-                              String advice) {
+                              String advice, String adviceLanguage) {
     }
 
     private LegacyTerms() {
@@ -109,19 +114,21 @@ final class LegacyTerms {
         Map<String, String> ids = new HashMap<>();
         for (String workspace : List.of(EDIT_WORKSPACE, LIVE_WORKSPACE)) {
             try {
-                Map<String, String> advice = new LinkedHashMap<>();
+                Map<String, Map<String, String>> advice = new LinkedHashMap<>();
                 JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, workspace, null,
                         (JCRCallback<Void>) session -> {
                             convert(session, ids, advice);
                             retypeFolders(session);
                             return null;
                         });
-                // The advice is internationalized: the rules read its English value, as the seeder writes it.
-                JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, workspace, Locale.ENGLISH,
-                        (JCRCallback<Void>) session -> {
-                            writeAdvice(session, advice);
-                            return null;
-                        });
+                // The advice is internationalized: a session of each language writes the advice of that language.
+                for (Map.Entry<String, Map<String, String>> language : advice.entrySet()) {
+                    JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, workspace,
+                            Locales.of(language.getKey()), (JCRCallback<Void>) session -> {
+                                writeAdvice(session, language.getValue());
+                                return null;
+                            });
+                }
             } catch (RepositoryException | RuntimeException e) {
                 logger.warn("The glossary terms of an older version could not all be converted in the workspace {}",
                         workspace, e);
@@ -134,20 +141,20 @@ final class LegacyTerms {
      * frame, each in a save of its own. {@code ids} maps the identifier of a node to its rule id: the edit
      * workspace fills it, so that a node keeps the same id in the live workspace.
      */
-    private static void convert(JCRSessionWrapper session, Map<String, String> ids, Map<String, String> advice)
-            throws RepositoryException {
+    private static void convert(JCRSessionWrapper session, Map<String, String> ids,
+                                Map<String, Map<String, String>> advice) throws RepositoryException {
         Map<String, Set<String>> taken = new HashMap<>();
         int terms = 0;
         int glossaries = 0;
         for (Node glossary : realNodes(session, COMPLIANCE_GLOSSARY)) {
             List<Conversion> conversions = complianceConversions(session, glossary, ids, taken);
-            if (saved(session, conversions, glossary, advice)) {
+            if (saved(session, conversions, glossary, ids, advice)) {
                 terms += conversions.size();
                 glossaries++;
             }
         }
         List<Conversion> frame = frameConversions(session, ids, taken);
-        if (!frame.isEmpty() && saved(session, frame, null, advice)) {
+        if (!frame.isEmpty() && saved(session, frame, null, ids, advice)) {
             terms += frame.size();
         }
         if (terms + glossaries > 0) {
@@ -168,7 +175,7 @@ final class LegacyTerms {
                 String id = id(session, child, COMPLIANCE_DOMAIN, ids, taken);
                 conversions.add(new Conversion(child, id, complianceRule(id, text(child, TERM),
                         text(child, "matchMode"), text(child, "alternative"), language), COMPLIANCE_PROPERTIES,
-                        text(child, "reason")));
+                        text(child, "reason"), blank(language) ? ENGLISH : language.trim()));
             }
         }
         return conversions;
@@ -182,7 +189,8 @@ final class LegacyTerms {
      * @return true when the nodes were converted and saved
      */
     private static boolean saved(JCRSessionWrapper session, List<Conversion> conversions, Node glossary,
-                                 Map<String, String> advice) throws RepositoryException {
+                                 Map<String, String> ids, Map<String, Map<String, String>> advice)
+            throws RepositoryException {
         String where = glossary == null ? "the editorial frame" : glossary.getPath();
         try {
             for (Conversion conversion : conversions) {
@@ -194,12 +202,15 @@ final class LegacyTerms {
             session.save();
         } catch (RepositoryException | RuntimeException e) {
             session.refresh(false);
+            // The live workspace then gives these nodes the ids that a later start gives them in the edit one.
+            conversions.forEach(conversion -> ids.values().remove(conversion.id()));
             logger.warn("The glossary terms of {} could not be converted, so they stay as they are", where, e);
             return false;
         }
         for (Conversion conversion : conversions) {
             if (conversion.advice() != null && !conversion.advice().isBlank()) {
-                advice.put(conversion.node().getIdentifier(), conversion.advice());
+                advice.computeIfAbsent(conversion.adviceLanguage(), language -> new LinkedHashMap<>())
+                        .put(conversion.node().getIdentifier(), conversion.advice());
             }
         }
         return true;
@@ -229,7 +240,7 @@ final class LegacyTerms {
             String id = id(session, node, GLOSSARY_DOMAIN, ids, taken);
             conversions.add(new Conversion(node, id,
                     glossaryRule(id, term, approved.get(sitePathOf(node.getPath()) + '|' + term.key())),
-                    FRAME_PROPERTIES, joined(text(node, "definition"), text(node, "note"))));
+                    FRAME_PROPERTIES, joined(text(node, "definition"), text(node, "note")), ENGLISH));
         }
         return conversions;
     }
@@ -270,11 +281,13 @@ final class LegacyTerms {
         return values;
     }
 
+    /** The term with the stars of its match mode. A star that the term holds already is not doubled. */
     private static String patternOf(String term, String matchMode) {
         String mode = matchMode == null ? "" : matchMode.trim().toLowerCase(Locale.ROOT);
+        String bare = term.replaceAll("^\\*+|\\*+$", "");
         return switch (mode) {
-            case "prefix" -> term + STEM;
-            case "anywhere" -> STEM + term + STEM;
+            case "prefix" -> bare + STEM;
+            case "anywhere" -> STEM + bare + STEM;
             default -> term;
         };
     }

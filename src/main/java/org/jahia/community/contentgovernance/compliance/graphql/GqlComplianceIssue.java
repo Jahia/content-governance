@@ -122,11 +122,12 @@ public class GqlComplianceIssue {
         return issue.alternative();
     }
 
-    /** @return the folder of the rule */
+    /** @return the folder of the rule, or an empty path for a rule that a module ships and the site has no node of */
     @GraphQLField
-    @GraphQLDescription("The same as folder, kept for the clients of version 1")
+    @GraphQLNonNull
+    @GraphQLDescription("The same as folder, or an empty path when the rule has no folder. Kept for the clients of version 1")
     public String getGlossaryPath() {
-        return issue.folder();
+        return issue.folder() == null ? "" : issue.folder();
     }
 
     /** @return where the content comes from */

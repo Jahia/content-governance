@@ -16,8 +16,8 @@ import java.util.stream.Collectors;
  *
  * <p>A form is a whole word or phrase: "garanti" does not match "garantie". A form that ends with
  * {@code *} is a stem, which matches the rest of the word too: "guarant*" matches "guaranteed". A form
- * that starts with {@code *} may end another word: "*free" matches "superfree". "*free*" matches
- * anywhere.</p>
+ * that starts with {@code *} may end another word: "*free" matches "superfree". "*free*" matches the
+ * term alone anywhere, inside a word too: "free" in "freedom".</p>
  *
  * <p>A word character is a letter or a digit of a script that separates its words with spaces. Chinese,
  * Japanese, Thai, Lao, Khmer and Myanmar write words without spaces, so their letters never make a term
@@ -127,7 +127,7 @@ public final class TermPattern {
         boolean wordEnd = isWordChar(folded.codePointBefore(folded.length()));
         String before = wordStart && !endsAnother ? NOT_AFTER_WORD : "";
         String after;
-        if (!wordEnd) {
+        if (!wordEnd || (stem && endsAnother)) {
             after = "";
         } else {
             after = stem ? WORD_REST : NOT_BEFORE_WORD;

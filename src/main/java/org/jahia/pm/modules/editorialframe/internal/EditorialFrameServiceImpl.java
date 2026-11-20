@@ -49,6 +49,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -139,12 +140,13 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
         violations.addAll(registeredChecks(siteKey, language, text));
         // A rendering that a rule already proposes for a wrong term of the translation is not missing too.
         Set<String> proposed = new HashSet<>();
-        violations.forEach(violation -> proposed.add(String.valueOf(violation.replacement()).toLowerCase(Locale.ROOT)));
+        violations.stream().map(RuleViolation::replacement).filter(Objects::nonNull)
+                .forEach(replacement -> proposed.add(replacement.toLowerCase(Locale.ROOT)));
         Map<String, String> folders = new HashMap<>();
         frame.rules().forEach(rule -> folders.put(rule.id(), rule.folder()));
         GlossaryChecker.check(frame.glossary(), sourceLanguage, sourceText, language, text).stream()
-                .filter(violation -> violation.match() != null
-                        || !proposed.contains(String.valueOf(violation.replacement()).toLowerCase(Locale.ROOT)))
+                .filter(violation -> violation.match() != null || violation.replacement() == null
+                        || !proposed.contains(violation.replacement().toLowerCase(Locale.ROOT)))
                 .map(violation -> inFolder(violation, folders.get(violation.ruleId())))
                 .forEach(violations::add);
         return violations;

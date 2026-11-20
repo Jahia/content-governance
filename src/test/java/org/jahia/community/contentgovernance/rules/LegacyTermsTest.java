@@ -97,4 +97,10 @@ class LegacyTermsTest {
         assertThat(RuleValues.KEYS.subList(RuleValues.KEYS.size() - 3, RuleValues.KEYS.size()))
                 .containsExactly(RuleValues.PATTERN_FORMS, RuleValues.REPLACEMENT_FORMS, RuleValues.PATTERN_LANGUAGE);
     }
+
+    @Test
+    void aTermThatAlreadyHasStarsGetsTheStarsOfItsMatchModeOnce() {
+        assertThat(LegacyTerms.complianceRule("c.a", "guarant*", "prefix", null, "en")).containsEntry(RuleValues.PATTERN, "guarant*");
+        assertThat(LegacyTerms.complianceRule("c.b", "*free*", "anywhere", null, "en")).containsEntry(RuleValues.PATTERN, "*free*");
+    }
 }

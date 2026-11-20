@@ -62,8 +62,6 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
     private static final String CONTENT_FOLDER_TYPE = "jnt:contentFolder";
     /** The nodes of the rules and of the older glossaries: their text is a rule, not content. */
     private static final List<String> RULE_TYPES = List.of(ContentRules.TYPE, "ccs:glossary", "ccs:glossaryTerm");
-    /** The most places where one rule is broken in one value. */
-    private static final int MAX_MATCHES_PER_VALUE = 100;
 
     /** State of one scan. Not shared between calls. */
     private static final class Scan {
@@ -85,7 +83,8 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         Scan(ComplianceRules rules, String language, Locale uiLocale, boolean followReferences, int maxNodes,
              int maxIssues) {
             this.rules = rules;
-            this.finder = new RuleChecker.Finder(rules.writing(), language, MAX_MATCHES_PER_VALUE);
+            // Every place counts, up to the limit of issues of the scan.
+            this.finder = new RuleChecker.Finder(rules.writing(), language, maxIssues);
             this.uiLocale = uiLocale;
             this.followReferences = followReferences;
             this.maxNodes = maxNodes;
@@ -365,6 +364,10 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
             return true;
         }
         String text = definition.getSelector() == SelectorType.RICHTEXT ? PlainText.fromHtml(raw) : PlainText.collapse(raw);
+        if (text.length() > RuleChecker.MAX_TEXT) {
+            // The rules read the start of a long value only.
+            scan.truncated = true;
+        }
         List<RuleChecker.Match> matches = new ArrayList<>(scan.finder.find(text));
         matches.sort(Comparator.comparingInt(RuleChecker.Match::start).thenComparingInt(RuleChecker.Match::end));
         for (RuleChecker.Match match : matches) {

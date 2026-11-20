@@ -1,9 +1,21 @@
-import {deleteUser, grantRoles} from '@jahia/cypress';
-import {GqlBody, TestUser, addNodeTree, asRoot, createTestSite, createTestUser, deleteTestSite, gql, gqlOk} from '../support/cg';
+import {deleteUser, grantRoles, publishAndWaitJobEnding} from '@jahia/cypress';
+import {
+    FrameViolation,
+    GqlBody,
+    TestUser,
+    addNodeTree,
+    asRoot,
+    createTestSite,
+    createTestUser,
+    deleteTestSite,
+    frameCheck,
+    gql,
+    gqlOk
+} from '../support/cg';
 
 const SCAN_PAGE = `query P($path: String!, $language: String!) {
     complianceScan { scanPage(path: $path, language: $language) {
-        status glossaries { path title termCount }
+        status truncated glossaries { path title termCount }
         issues { nodePath ruleId severity folder term matchedText reason alternative }
     } }
 }`;
@@ -16,7 +28,7 @@ const SET_ADVICE = `mutation A($path: String!, $advice: String!) { jcr { mutateN
     mutateProperty(name: "advice") { setValue(value: $advice, language: "en") }
 } } }`;
 
-type Issue = {ruleId: string; severity: string; folder: string; term: string; matchedText: string; reason: string};
+type Issue = {nodePath: string; ruleId: string; severity: string; folder: string; term: string; matchedText: string; reason: string};
 
 /** A forbidden term of the evaluator pattern, in English. */
 const termRule = (name: string, ruleId: string, pattern: string, advice: string) => ({
@@ -32,10 +44,12 @@ const termRule = (name: string, ruleId: string, pattern: string, advice: string)
     ]
 });
 
+const TEXT = 'Guaranteed results, seamlessly integrated.';
+
 /**
  * Two lists of terms in one rule model: the legal team and the brand team each keep their terms in a
- * folder of rules, with the permissions of that folder. The Compliance section and the evaluator
- * pattern, which frame.check runs, report the terms of both folders with their rule ids.
+ * folder of rules, with the permissions of that folder. The Compliance section, the evaluator pattern and
+ * the tool frame.check report the terms of both folders with their rule ids and their folders.
  */
 describe('Content Governance - term rules of two teams', () => {
     const siteKey = 'cg-terms';
@@ -68,10 +82,12 @@ describe('Content Governance - term rules of two teams', () => {
             children: [{
                 name: 'area-main', primaryNodeType: 'jnt:contentList',
                 children: [{name: 'intro', primaryNodeType: 'jnt:text', properties: [
-                    {name: 'text', language: 'en', value: 'Guaranteed results, seamlessly integrated.'}
+                    {name: 'text', language: 'en', value: TEXT}
                 ]}]
             }]
         });
+        // frame.check reads the published rules.
+        publishAndWaitJobEnding(lists, ['en']);
         // The editor of the brand team has a role on the folder of the brand only.
         createTestUser(brandEditor, brand, []);
         grantRoles(brand, ['editor'], brandEditor.username, 'USER');
@@ -96,12 +112,33 @@ describe('Content Governance - term rules of two teams', () => {
         });
     });
 
-    it('reports the same terms through the evaluator pattern that frame.check runs', () => {
-        gqlOk(asRoot(), CHECK, {path: textPath, text: 'Guaranteed results, seamlessly integrated.'})
+    it('reports the same terms in frame.check, with their rule ids and their folders', () => {
+        gqlOk(asRoot(), SCAN_PAGE, {path: pagePath, language: 'en'}).then(data => {
+            const scanned = (data.complianceScan.scanPage.issues as Issue[])
+                .filter(issue => issue.nodePath === textPath)
+                .map(issue => `${issue.ruleId} ${issue.folder}`)
+                .sort();
+            frameCheck({siteKey, locale: 'en', text: TEXT}).should((violations: FrameViolation[]) => {
+                const checked = violations.map(violation => `${violation.ruleId} ${violation.folder}`).sort();
+                expect(checked).to.deep.eq([`brand.seamless ${brand}`, `compliance.guaranteed ${legal}`]);
+                expect(checked, 'frame.check and the Compliance section report the same rules').to.deep.eq(scanned);
+            });
+        });
+    });
+
+    it('reports the same terms through the evaluator pattern of the check registry', () => {
+        gqlOk(asRoot(), CHECK, {path: textPath, text: TEXT})
             .its('contentGovernance.checkText').should((findings: {ruleId: string; text: string}[]) => {
                 const texts = Object.fromEntries(findings.map(finding => [finding.ruleId, finding.text]));
                 expect(texts).to.deep.include({'compliance.guaranteed': 'Guaranteed', 'brand.seamless': 'seamlessly'});
             });
+    });
+
+    it('says that the report is truncated when a value is longer than the rules read', () => {
+        addNodeTree(`${pagePath}/area-main`, {name: 'long', type: 'jnt:text', props: [
+            {name: 'text', language: 'en', value: `${'Lorem ipsum. '.repeat(8000)} Guaranteed.`}
+        ]});
+        gqlOk(asRoot(), SCAN_PAGE, {path: pagePath, language: 'en'}).its('complianceScan.scanPage.truncated').should('eq', true);
     });
 
     it('lets an editor of the brand folder change its rules, and not the rules of the legal folder', () => {

@@ -123,4 +123,9 @@ class TermPatternTest {
         assertThat(TermPattern.of(List.of("  ", "**"))).isNull();
         assertThat(TermPattern.of(List.of())).isNull();
     }
+
+    @Test
+    void aWildcardOnBothSidesMatchesTheTermAloneInsideAWord() {
+        assertThat(found("freedom and carefree", "*free*")).containsExactly("free", "free");
+    }
 }

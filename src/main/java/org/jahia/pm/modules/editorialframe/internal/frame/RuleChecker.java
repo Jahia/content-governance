@@ -26,7 +26,7 @@ public final class RuleChecker {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleChecker.class);
     /** A longer text is cut: a regex of a rule must not run on megabytes. */
-    static final int MAX_TEXT = 100_000;
+    public static final int MAX_TEXT = 100_000;
     private static final int EXCERPT = 40;
     /** At most this many matches of one rule are reported. */
     private static final int MAX_MATCHES_PER_RULE = 3;
@@ -200,8 +200,10 @@ public final class RuleChecker {
                     FoldedText folded = searched.folded();
                     Matcher matcher = term.pattern().matcher(new Deadline(folded.text(), end));
                     while (found.size() < max && matcher.find()) {
-                        TermPattern.Span span = TermPattern.span(folded, matcher.start(), matcher.end());
-                        add(found, allowed, span.start(), span.end());
+                        if (matcher.end() > matcher.start()) {
+                            TermPattern.Span span = TermPattern.span(folded, matcher.start(), matcher.end());
+                            add(found, allowed, span.start(), span.end());
+                        }
                     }
                 } else {
                     Matcher matcher = regex.matcher(new Deadline(searched.text(), end));
@@ -237,10 +239,15 @@ public final class RuleChecker {
         }
     }
 
-    /** A text that stops a regex when its time is over: the matcher reads it one character at a time. */
+    /**
+     * A text that stops a regex when its time is over: the matcher reads it one character at a time, and
+     * every 256 reads look at the clock. A regex that backtracks on a short text reads the same indexes
+     * again and again, so the count of reads, and not the index, decides when to look.
+     */
     static final class Deadline implements CharSequence {
         private final CharSequence text;
         private final long end;
+        private int reads;
 
         Deadline(CharSequence text, long end) {
             this.text = text;
@@ -249,7 +256,7 @@ public final class RuleChecker {
 
         @Override
         public char charAt(int index) {
-            if ((index & 0xFF) == 0 && System.nanoTime() > end) {
+            if ((++reads & 0xFF) == 0 && System.nanoTime() > end) {
                 throw new Expired();
             }
             return text.charAt(index);

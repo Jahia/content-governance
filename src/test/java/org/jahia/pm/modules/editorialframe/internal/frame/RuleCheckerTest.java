@@ -10,10 +10,12 @@ import org.jahia.pm.modules.editorialframe.api.WritingRule.MatchMode;
 import org.jahia.pm.modules.editorialframe.api.WritingRule.Severity;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RuleCheckerTest {
@@ -155,5 +157,19 @@ class RuleCheckerTest {
         assertEquals("id-free trial", found.get(0).rule().id());
         assertEquals(34, found.get(1).start());
         assertTrue(new RuleChecker.Finder(List.of(rule(Kind.MANDATORY, "x", MatchMode.TERM, null, null)), "en", 1).isEmpty());
+    }
+
+    @Test
+    void aRegexThatBacktracksOnAShortTextStopsOnItsDeadline() {
+        WritingRule slow = rule(Kind.STYLE, "((a+)\\2?)+b", MatchMode.REGEX, null, null);
+        String text = "x" + "a".repeat(30) + "!";
+        assertTimeoutPreemptively(Duration.ofSeconds(5),
+                () -> RuleChecker.check(List.of(slow), "en", text, false));
+    }
+
+    @Test
+    void aFinderReportsEveryMatchUpToItsLimit() {
+        RuleChecker.Finder finder = new RuleChecker.Finder(List.of(rule(Kind.FORBIDDEN, "free", MatchMode.TERM, null, null)), "en", 1000);
+        assertEquals(150, finder.find("free ".repeat(150)).size());
     }
 }

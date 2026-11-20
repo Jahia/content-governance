@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.RepositoryException;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
+import javax.jcr.query.Query;
 import java.util.LinkedHashSet;
 import java.util.ResourceBundle;
 import java.util.Set;
@@ -42,6 +43,7 @@ public class GlossarySeeder extends DefaultEventListener {
 
     static final String FOLDER = "compliance-glossaries";
     static final String SEEDED = "glossarySeeded";
+    private static final String COMPLIANCE = "compliance";
     private static final String INSTALLED_MODULES = "j:installedModules";
     private static final String EDIT_WORKSPACE = "default";
     private static final String TITLE = "jcr:title";
@@ -117,7 +119,7 @@ public class GlossarySeeder extends DefaultEventListener {
         }
     }
 
-    /** The site's default language when it should be seeded now, else null (flagging a site that has the folder). */
+    /** The site's default language when it should be seeded now, else null (flagging a site that has terms). */
     private static String toSeed(JCRSessionWrapper session, String sitePath) throws RepositoryException {
         if (!session.nodeExists(sitePath + CONTENTS)
                 || !(session.getNode(sitePath) instanceof JCRSiteNode site) || !SiteFeatures.moduleEnabled(site)) {
@@ -127,12 +129,32 @@ public class GlossarySeeder extends DefaultEventListener {
         if (store != null && store.hasProperty(SEEDED)) {
             return null;
         }
-        if (session.nodeExists(sitePath + CONTENTS + "/" + FOLDER)) {
+        if (hasTerms(session, sitePath)) {
             SiteFeatures.storeNode(site).setProperty(SEEDED, true);
             session.save();
             return null;
         }
         return site.getDefaultLanguage();
+    }
+
+    /**
+     * True when the site keeps compliance terms: the folder of the example, a glossary of an older version,
+     * or a rule of the domain {@code compliance} anywhere under its contents.
+     */
+    private static boolean hasTerms(JCRSessionWrapper session, String sitePath) throws RepositoryException {
+        if (session.nodeExists(sitePath + CONTENTS + "/" + FOLDER)) {
+            return true;
+        }
+        String root = (sitePath + CONTENTS).replace("'", "''");
+        return found(session, "SELECT * FROM [ccs:glossary] AS g WHERE ISDESCENDANTNODE(g, '" + root + "')")
+                || found(session, "SELECT * FROM [" + ContentRules.TYPE + "] AS r WHERE ISDESCENDANTNODE(r, '" + root
+                + "') AND r.[" + RuleValues.DOMAIN + "] = '" + COMPLIANCE + "'");
+    }
+
+    private static boolean found(JCRSessionWrapper session, String sql) throws RepositoryException {
+        Query query = session.getWorkspace().getQueryManager().createQuery(sql, Query.JCR_SQL2);
+        query.setLimit(1);
+        return query.execute().getNodes().hasNext();
     }
 
     /** The example's text in {@code language}, English when the module has no translation for it. */
@@ -157,7 +179,7 @@ public class GlossarySeeder extends DefaultEventListener {
         JCRNodeWrapper rule = list.addNode("example-term", ContentRules.TYPE);
         rule.setProperty(RuleValues.RULE_ID, "compliance.example-term");
         rule.setProperty(RuleValues.EVALUATOR, ContentRule.PATTERN);
-        rule.setProperty(RuleValues.DOMAIN, "compliance");
+        rule.setProperty(RuleValues.DOMAIN, COMPLIANCE);
         rule.setProperty(RuleValues.SEVERITY, "serious");
         rule.setProperty(RuleValues.KIND, "replace");
         rule.setProperty(RuleValues.PATTERN, text.getString("seed.term"));

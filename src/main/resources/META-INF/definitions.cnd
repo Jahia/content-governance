@@ -5,7 +5,7 @@
 <ccsmix = 'http://www.jahia.org/community/content-compliance-scan/mix/1.0'>
 
 // Category of the "New content" menu for the module's types. Content folders accept
-// jmix:droppableContent, which is how a glossary gets created under /sites/<site>/contents.
+// jmix:droppableContent, which is how a content rule gets created in a content folder under /sites/<site>/contents.
 [ccsmix:complianceContent] > jmix:droppableContent mixin
 
 // Replaced by a content folder of ccs:contentRule nodes. The module converts each node of this type in
