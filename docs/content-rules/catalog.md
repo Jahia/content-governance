@@ -45,7 +45,7 @@ shows `active: false`, `missingCheck: "model"` and `needs: "ai-assistant"` in th
 
 ```text
 contents/content-insights/
-    content-governance/rules/     the 59 rules of this module
+    content-governance/rules/     the rules of this module
         seo.title                 ruleId, evaluator, severity, minimum, maximum, advice...
         ...
     <module>/rules/               the rules of another module
@@ -279,7 +279,7 @@ important. `minor` shows as advisory.
 | `ecodesign.oversizedImages` | `ecodesign.oversizedImages` | moderate | none | editor |
 | `html.*` | the id of the rule | see below | none | see below |
 
-The 14 rules `html.*` are the rules of the HTML check, and
+The rules `html.*` are the rules of the HTML check, and
 [`html-rules.md`](../page-quality/html-rules.md) lists them. Each rule names a check of its own id.
 | `ecodesign.imageDimensions` | `ecodesign.imageDimensions` | moderate | none | developer |
 | `ecodesign.webFonts` | `threshold` | minor | maximum 2 files | developer |

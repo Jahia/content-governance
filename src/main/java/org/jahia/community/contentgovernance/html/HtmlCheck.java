@@ -38,8 +38,9 @@ import java.util.Set;
 /**
  * The one service that checks a page or a content item: Jahia renders it on the server, and each check
  * of the scope {@code PAGE} reads the HTML, with the rules of the site. A page gets every check, and an
- * item gets the checks of one item only. The drawer, the site scan and the tools for agents call it, so
- * one page gets the same findings, under the same rule ids, wherever it is checked.
+ * item gets the checks of one item only. The GraphQL fields {@code checkPage} and {@code checkText}, and
+ * the tools {@code frame.check} and {@code audit.accessibility} call it, so they give one page the same
+ * findings under the same rule ids. The drawer and the GEO site scan still run their own checks.
  *
  * <p>A render reads the workspace of the session, as its user: in {@code default}, the content that
  * is not published yet. The caller renders inside its session, then checks the HTML outside it. The
@@ -78,10 +79,6 @@ public class HtmlCheck {
      */
     public record Rendered(String path, String primaryType, Scope scope, Document html, Set<String> localHosts,
                            Map<String, Object> facts) implements Outcome {
-
-        public Rendered(String path, String primaryType, Scope scope, Document html, Set<String> localHosts) {
-            this(path, primaryType, scope, html, localHosts, Map.of());
-        }
     }
 
     /** No node at the path, or none that the user of the session can read. */

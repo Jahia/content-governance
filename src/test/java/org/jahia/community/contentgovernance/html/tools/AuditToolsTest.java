@@ -67,7 +67,7 @@ class AuditToolsTest {
     @Test
     void reportsEachFindingWithItsRuleCriterionAndScope() throws Exception {
         HtmlCheck.Rendered rendered = new HtmlCheck.Rendered("/sites/digitall/home", "jnt:page", Scope.PAGE,
-                Jsoup.parse(""), Set.of("localhost"));
+                Jsoup.parse(""), Set.of("localhost"), Map.of());
         AuditTools.Request request = new AuditTools.Request("/sites/digitall/home", "digitall", "en");
 
         JsonNode report = AccessibilityAuditTool.report(rendered, request, "default", List.of(

@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The checks of each {@link HtmlRule}, on HTML that needs no browser engine. Colour contrast, keyboard
@@ -32,6 +34,11 @@ public final class HtmlRules {
             "cliquez ici", "ici", "en savoir plus", "lire la suite", "plus", "voir plus", "découvrir", "envoyer",
             "soumettre", "valider", "continuer", "suivant",
             "hier klicken", "hier", "mehr", "weiterlesen", "mehr erfahren");
+    /**
+     * From the first letter or digit to the last one. An expression anchored at the end, such as
+     * {@code [^\p{L}\p{N}]+$}, backtracks on a long run of signs (Sonar S5852); this one reads the text once.
+     */
+    private static final Pattern LABEL = Pattern.compile("[\\p{L}\\p{N}](?:.*[\\p{L}\\p{N}])?");
 
     private HtmlRules() {
     }
@@ -151,16 +158,8 @@ public final class HtmlRules {
 
     /** A link text without what decorates it at either end: "Read more +" gives "Read more". */
     static String label(String text) {
-        String label = text.replaceAll("\\s+", " ");
-        int start = 0;
-        int end = label.length();
-        while (start < end && !Character.isLetterOrDigit(label.charAt(start))) {
-            start++;
-        }
-        while (end > start && !Character.isLetterOrDigit(label.charAt(end - 1))) {
-            end--;
-        }
-        return label.substring(start, end);
+        Matcher label = LABEL.matcher(text.replaceAll("\\s+", " "));
+        return label.find() ? label.group() : "";
     }
 
     /** The text that a screen reader reads for an element, from its content and its labels. */

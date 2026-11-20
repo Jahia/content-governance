@@ -23,7 +23,7 @@ states, and reports under the same rule ids.
 2. The render uses the user, the workspace and the language of the call. In the `default`
    workspace, the HTML holds the changes that are not published yet.
 3. Each check of the scope `PAGE` reads the HTML with the rules of the site. These checks are the
-   14 HTML rules, the checks of SEO, readability, links and Jahia health, and the checks that
+   HTML rules, the checks of SEO, readability, links and Jahia health, and the checks that
    other modules register. A page gets every HTML rule, and a
    content item gets only the HTML rules with the scope `item`.
 

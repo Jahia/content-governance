@@ -74,6 +74,14 @@ class HtmlRulesTest {
     }
 
     @Test
+    void labelKeepsTheTextFromTheFirstLetterOrDigitToTheLast() {
+        assertEquals("Read more", HtmlRules.label(" » Read \n more + "));
+        assertEquals("3 steps", HtmlRules.label("(3 steps)"));
+        assertEquals("", HtmlRules.label("→ ✓ !"));
+        assertEquals("x", HtmlRules.label("!".repeat(100_000) + "x"));
+    }
+
+    @Test
     void checksAnItemWithTheRulesOfOneItemOnly() {
         // An item has no language, title, description or main heading of its own, and a skipped
         // level inside it is still a defect.

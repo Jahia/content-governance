@@ -29,8 +29,7 @@ import java.util.Set;
 
 /**
  * {@code frame.check}: the writing rules that a text breaks, checked by code. Given the path of a page or
- * of a content item, the findings of every check of the server on its render, from {@link HtmlCheck}, as
- * the drawer gets them.
+ * of a content item, the findings of every check of the server on its render, from {@link HtmlCheck}.
  */
 // Not immediate: the class loads only when mcp-server asks for the tool (see package-info).
 @Component(service = JahiaMcpTool.class)
