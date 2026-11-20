@@ -15,7 +15,7 @@ import org.jahia.services.content.JCRNodeWrapper;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
-/** What the four tools of the frame share: their schemas and the check of the site. */
+/** What the tools of the frame share: their schemas and the check of the site. */
 final class FrameTools {
 
     static final ObjectMapper MAPPER = new ObjectMapper();

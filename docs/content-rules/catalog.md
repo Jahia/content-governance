@@ -48,11 +48,11 @@ contents/content-insights/
         ...
     <module>/rules/               the rules of another module
     site/rules/                   the rules that the site adds
-contents/ai-assistant/rules/      the writing rules that the import of the editorial frame writes
 ```
 
 The checks read every `ccs:contentRule` node under the site, wherever it is. The folders above are
-where the module and the import write, and where a site keeps its own rules.
+where the module writes, and where a site keeps its own rules. Another module can write rules
+elsewhere, such as the writing rules that the frame import of ai-assistant writes.
 
 ## How a module ships rules
 
@@ -208,8 +208,8 @@ important. `minor` shows as advisory.
   and `readability.veryHardText` have a switch and a severity, and no limit.
 - The limits of a scan, such as the number of links that the Links tab checks, are not rules.
 - The length hints of the social card of the SEO assist (`og:description`) are not rules.
-- The skill `seo-review` states the default ranges of `seo.title` and `seo.metaDescription`. A change
-  on a site does not reach it.
+- The instructions that ai-assistant gives a model for an SEO review state the default ranges of
+  `seo.title` and `seo.metaDescription`. A change on a site does not reach them.
 
 ## The rules of this module
 

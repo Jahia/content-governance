@@ -96,17 +96,17 @@ review, opening the drawer. It never blocks publishing; jContent's own publish a
 
 ## The editorial frame
 
-The module also holds the editorial frame of a brand: its voice, its personas, its writing rules,
-its translation glossary and its skills. They are content of the site, which a brand manager edits
-in jContent and publishes. The AI features of Jahia read them through an OSGi service, and AI agents
-read them through four tools when the `mcp-server` module is installed. The drawer and the
-dashboards do not read the frame yet.
+The module also holds the editorial frame of a brand: its writing rules and its translation
+glossary. They are content of the site, which a brand manager edits in jContent and publishes. The
+AI features of Jahia read them through an OSGi service, and AI agents check a text against them with
+the tool `frame.check` when the `mcp-server` module is installed. The module ai-assistant holds the
+rest of what its assistant writes with.
 
 Until version 1.12, a separate module named editorial-frame held this code. Its content types
-(`efnt:*`, `efmix:*`), its Java packages, its endpoints under `/modules/editorial-frame/` and its
-tool names keep their names. [`docs/editorial-frame/guide.md`](docs/editorial-frame/guide.md)
-describes the frame, and [`docs/editorial-frame/architecture.md`](docs/editorial-frame/architecture.md)
-how it sits in the module.
+(`efnt:*`, `efmix:*`), its Java packages and its tool name keep their names.
+[`docs/editorial-frame/guide.md`](docs/editorial-frame/guide.md) describes the frame, and
+[`docs/editorial-frame/architecture.md`](docs/editorial-frame/architecture.md) how it sits in the
+module.
 
 ## Languages
 
@@ -178,8 +178,7 @@ The module editorial-frame was a prototype with no release, so this module ships
    `uninstallBundle: "org.jahia.pm.modules/editorial-frame/<version>"`.
 2. Install this module.
 
-The content of the frame stays valid: the voices, the personas, the rules, the glossary terms and
-the skills keep their types. Jahia keeps the content types of an uninstalled module registered to
+The content of the frame stays valid: the rules and the glossary terms keep their types. Jahia keeps the content types of an uninstalled module registered to
 that module, and it ignores the same types when another module declares them. On a Jahia that ran
 editorial-frame, **New content** does not offer the types of the frame and shows their names
 untranslated, until an administrator removes the definitions that editorial-frame left.
@@ -319,8 +318,7 @@ the module are `audit` (`accessibility`, `seo`, `vitals`, `readability`, `ecodes
 that another module adds has the key it registers. Every tab is on until the site switches it off. The
 compliance scans stay under `complianceScan { scanPage, scanSite }`. Servlets live under
 `/modules/content-governance/` (`geo/crawler-check`, `geo/report`, `geo/site-scan`, `geo/site-files`,
-`geo/citations`, `audit/ai-review`). The endpoints of the editorial frame stay under
-`/modules/editorial-frame/` (`import`, `setup`, `voice`), and its Java API is the OSGi service
+`geo/citations`, `audit/ai-review`). The Java API of the editorial frame is the OSGi service
 `org.jahia.pm.modules.editorialframe.api.EditorialFrameService`. The HTML check on the server is the
 OSGi service `org.jahia.community.contentgovernance.html.HtmlCheck`, and
 [`docs/page-quality/html-rules.md`](docs/page-quality/html-rules.md) lists its rules.

@@ -214,7 +214,7 @@
             <version>2.15.2</version>
             <scope>provided</scope>
         </dependency>
-        <!-- Embedded: the frontmatter of SKILL.md and the rule files of an import are YAML. -->
+        <!-- Embedded: the frontmatter of the rule files is YAML. -->
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
@@ -327,16 +327,15 @@
                     <instructions>
                         <Bundle-Name>Content Governance</Bundle-Name>
                         <_dsannotations>*</_dsannotations>
-                        <!-- The api of the editorial frame keeps the version 0.1.0 that the module
-                             editorial-frame exported, so the import range of its readers still matches. -->
+                        <!-- The api of the writing rules and the glossary. Version 1.0.0 left out the
+                             methods that moved to ai-assistant, so a reader of 0.1.0, which imports
+                             [0.1,1), no longer wires to it. -->
                         <Export-Package>
                             org.jahia.community.contentgovernance.compliance.model,
                             org.jahia.community.contentgovernance.compliance.service.spi,
                             org.jahia.community.contentgovernance.check.spi;version="1.0.0",
-                            org.jahia.pm.modules.editorialframe.api;version="0.1.0"
+                            org.jahia.pm.modules.editorialframe.api;version="1.0.0"
                         </Export-Package>
-                        <!-- The skills of this module, served by the skill registry of the editorial frame. -->
-                        <Jahia-Skills>skills</Jahia-Skills>
                         <!-- The content rules of this module, one Markdown file per rule, which the seeder
                              copies into each site. Another module ships rules with the same header. -->
                         <Jahia-Content-Rules>content-rules</Jahia-Content-Rules>
