@@ -41,9 +41,15 @@ describe('auditFindings', () => {
 });
 
 describe('complianceFindings', () => {
-    it('gives one serious finding per term, with its number of uses', () => {
-        const findings = complianceFindings({issues: [{term: 'click here'}, {term: 'leverage'}, {term: 'click here'}]}, t);
+    it('gives one finding per rule, keyed by the rule id, with its number of uses and the severity of the rule', () => {
+        const findings = complianceFindings({issues: [
+            {ruleId: 'compliance.click-here', severity: 'serious', term: 'click here'},
+            {ruleId: 'writing.leverage', severity: 'moderate', term: 'leverage'},
+            {ruleId: 'compliance.click-here', severity: 'serious', term: 'click here'}
+        ]}, t);
+        expect(findings.map(x => x.key)).toEqual(['compliance.click-here', 'writing.leverage']);
         expect(findings.map(x => x.title)).toEqual(['fixFirst.term {"term":"click here","count":2}', 'fixFirst.term {"term":"leverage","count":1}']);
-        expect(findings.every(x => x.severity === 'serious' && x.section === 'compliance')).toBe(true);
+        expect(findings.map(x => x.severity)).toEqual(['serious', 'moderate']);
+        expect(findings.every(x => x.section === 'compliance')).toBe(true);
     });
 });

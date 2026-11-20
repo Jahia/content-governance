@@ -1,7 +1,8 @@
 # How the Compliance section works
 
-The Compliance section is one of the three sections of the Content Governance bundle. Its parts: a
-CND (`ccs:glossary`, `ccs:glossaryTerm`), a Java service that scans, GraphQL fields that expose it, a
+The Compliance section is one of the three sections of the Content Governance bundle. Its parts: the
+term rules (`ccs:contentRule` nodes of the evaluator `pattern`), a Java service that scans, GraphQL
+fields that expose it, a
 per-site switch checked on the server, and two React 18 entry points of the module's UI extension
 (the **Compliance** section of the drawer and the jContent dashboard).
 
@@ -9,7 +10,7 @@ per-site switch checked on the server, and two React 18 entry points of the modu
 Drawer, Compliance section ──► complianceScan.scanPage ─┐
                                                         ├─► SiteFeatures gate ─► ComplianceScanService ─► JCR (caller's session, default workspace)
 jContent dashboard         ──► complianceScan.scanSite ─┘                               │
-                                                                                         └─► GlossaryReader: ccs:glossary under /sites/<site>/contents
+                                                                                         └─► ComplianceRules: the pattern rules of ContentRules (system session)
 ```
 
 ## Code
@@ -18,10 +19,10 @@ Java, under `org.jahia.community.contentgovernance.compliance`:
 
 | Package | Holds |
 |---|---|
-| `model` (exported) | Records of the reports: `ComplianceReport`, `SiteComplianceReport`, `ComplianceIssue`, `LocationReport`, `TermUsage`, `Glossary`, `GlossaryTerm`, enums |
+| `model` (exported) | Records of the reports: `ComplianceReport`, `SiteComplianceReport`, `ComplianceIssue`, `LocationReport`, `TermUsage`, `Glossary` (a folder of rules applied), enums |
 | `service.spi` (exported) | `ComplianceScanService`: `scan(page, uiLocale, renderedPaths)` and `scanSite(site, uiLocale)` |
 | `choicelist` | `SiteLanguagesInitializer`: `choicelist[complianceSiteLanguages]`, every language of the site (Jahia's `siteLanguage` offers the live-active ones only) |
-| `service.internal` | `ComplianceScanServiceImpl` (tree walk), `GlossaryReader`, `TermMatcher` and `FoldedText` (matching), `PlainText` (rich text to text), `Excerpt`, `GlossarySeeder` (a JCR listener on `j:installedModules`: when a site enables the module and has no glossary, creates `contents/compliance-glossaries`, restricted to glossaries with `jmix:contributeMode`, with one glossary in the default language and one example term from the resource bundle, once per site: flag `glossarySeeded` on the settings node) |
+| `service.internal` | `ComplianceScanServiceImpl` (tree walk), `ComplianceRules` (the rules that apply), `PlainText` (rich text to text), `Excerpt`, `GlossarySeeder` (a JCR listener on `j:installedModules`: when a site enables the module and has no folder `contents/compliance-glossaries`, creates it with a folder for the default language and one example rule from the resource bundle, once per site: flag `glossarySeeded` on the settings node) |
 | `graphql` | `GqlComplianceScan` (`scanPage`, `scanSite`) and the `Gql*` views; schema names are prefixed (`ComplianceIssue`, `ComplianceScanStatus`...) |
 
 Shared with the other sections:
@@ -36,19 +37,18 @@ Shared with the other sections:
 
 ## Content types
 
-Declared in `src/main/resources/META-INF/definitions.cnd`, with the namespaces of Content Compliance
-Scan (`ccs`, `ccsmix`) so existing glossaries carry over.
+A term is a `ccs:contentRule` of the evaluator `pattern`, which
+[`../content-rules/catalog.md`](../content-rules/catalog.md) describes. A list of terms is a content
+folder of rules, with the permissions of that folder. Since content-governance#74, the scan applies
+each rule of the evaluator `pattern` that the site keeps on, that applies on the day and to the
+language, and that is not a mandatory mention.
 
-| Type | Properties |
-|---|---|
-| `ccs:glossary` (`mix:title`, `jmix:list`, category `ccsmix:complianceContent`) | `language` (`choicelist[complianceSiteLanguages]`, mandatory), `description` (text area); children `ccs:glossaryTerm` |
-| `ccs:glossaryTerm` | `term` (mandatory, primary item, so jContent lists the term), `matchMode` (`word` by default, `prefix`, `anywhere`), `reason` (text area), `alternative` |
-
-`ccsmix:complianceContent` extends `jmix:droppableContent`: that is what lets a glossary be created in
-a content folder, and also why Page Builder offers it on pages. Labels and tooltips in English and
-French in `src/main/resources/resources/content-governance*.properties`. Icons in
-`src/main/resources/icons/`, rendered from the Lucide glyphs listed in `icons.json`: `book-a`
-(glossary), `whole-word` (term), `shield-check` (the Compliance category).
+`ccs:glossary` and `ccs:glossaryTerm` stay declared in `src/main/resources/META-INF/definitions.cnd`,
+hidden from the create menu, until no site holds one. `LegacyTerms` converts each of their nodes when
+the module starts: [`glossary-guide.md`](glossary-guide.md#on-an-instance-that-held-glossaries) gives
+the mapping. A `ccs:glossary` also accepts `ccs:contentRule` children, because Jackrabbit checks the
+new type of a child against the child definitions of its parent: the terms convert first, then the
+glossary becomes a content folder.
 
 ## Where the scans are started
 
@@ -78,7 +78,7 @@ constraint (choice lists and tokens are technical values) and not hidden. `jcr:t
 `jcr:description` are read; every other property of the `jcr`, `j`, `jmix`, `jnt`, `mix`, `nt` and
 `rep` namespaces is not. Rich text goes through `PlainText.fromHtml`: scripts, styles and comments
 dropped, block tags turned into spaces, inline tags removed (so `<b>gra</b>tuit` stays one word),
-entities decoded. System children (`j:translation_*`, `j:acl`, vanity URLs) and the glossaries
+entities decoded. System children (`j:translation_*`, `j:acl`, vanity URLs) and the rule nodes
 themselves are skipped.
 
 **Page scan** (`scanPage`), what the page shows:
@@ -100,20 +100,25 @@ are read on the server.
 **Site scan** (`scanSite`), where content is stored: every `jnt:page` of the site with its own tree,
 then every content item (each non-folder child of the `contents` folders) with its tree. References
 are not followed and ancestor areas are not added, so each node counts once. Locations with issues
-come pages first in path order, then content items; terms are ranked by uses.
+come pages first in path order, then content items; rules are ranked by uses.
 
 ## Matching
 
-`TermMatcher` folds both the glossary term and the text the same way (`FoldedText`): lower case, NFD
+The scan runs the matcher of the evaluator `pattern`, `RuleChecker`, which `frame.check` runs too. A
+rule of the match mode `term` goes through `TermPattern` (package `text`), and a regular expression
+reads the text as it is written. `TermPattern` folds both the term and the text the same way
+(`FoldedText`): lower case, NFD
 with combining marks removed, typographic apostrophes to `'`, `œ`/`æ`/`ß` to `oe`/`ae`/`ss`. It keeps
 an offset map, so a match is reported on the original text, combining marks after the last letter
-included. Each term becomes one regular expression (quoted, Unicode classes):
+included. Each form of a term becomes one regular expression (quoted, Unicode classes), the longest
+form first:
 
-| `matchMode` | Pattern around the term |
+| Term | Pattern around the term |
 |---|---|
-| `word` | no word character before, none after |
-| `prefix` | no word character before, any word characters after |
-| `anywhere` | nothing around |
+| `best` | no word character before, none after |
+| `guarant*` | no word character before, any word characters after |
+| `*free` | nothing before, no word character after |
+| `*free*` | nothing before, any word characters after |
 
 A word character is a letter or digit of a script that separates words with spaces: Han, Hiragana,
 Katakana, Thai, Lao, Khmer and Myanmar letters are not, so a whole-word term matches inside a
@@ -123,9 +128,10 @@ character: 情報 is found in ユーザー情報, where ー is a Common-script l
 Han as written but composed (removing combining marks would turn ガ into カ; カ + U+3099 is composed
 into ガ, U+F900 into U+8C48) and turns fullwidth ASCII into plain ASCII.
 
-White space inside a term matches any run of white space. Two entries of the same glossary with the
-same folded term at the same place are reported once; entries of different glossaries are each
-reported, so each glossary owner sees their own reason.
+White space inside a term matches any run of white space. Each rule reports its own matches, so two
+rules with the same term each give a finding, with the advice of each rule. A match inside a form of
+the replacement of the rule is the right term: the replacement is searched in any case, with its
+accents.
 
 `PlainText.fromHtml` strips tags in one forward pass (every search starts where the previous one
 ended; an unclosed tag, comment or script drops the rest of the value), so a hostile value stays
@@ -143,20 +149,22 @@ query {
     scanPage(path: "/sites/mySite/home/about", language: "en", uiLanguage: "en", renderedPaths: []) {
       pagePath language status scannedContents truncated
       glossaries { path uuid title termCount }
-      issues { nodePath nodeUuid nodeName nodeType propertyName propertyLabel term matchedText
-               before after reason alternative glossaryPath origin originPath }
+      issues { nodePath nodeUuid nodeName nodeType propertyName propertyLabel ruleId severity folder
+               term matchedText before after reason alternative glossaryPath origin originPath }
     }
     scanSite(siteKey: "mySite", language: "en", uiLanguage: "en") {
       siteKey language status scannedPages scannedContents skippedLocations truncated
       glossaries { path uuid title termCount }
-      terms { term glossaryPath reason alternative uses locations }
-      locations { path uuid name kind typeLabel issueCount issues { nodePath propertyLabel term matchedText before after reason } }
+      terms { ruleId term folder reason alternative uses locations }
+      locations { path uuid name kind typeLabel issueCount issues { nodePath propertyLabel ruleId folder term matchedText before after reason } }
     }
   }
 }
 ```
 
-`status` is `SAFE`, `ISSUES` or `NO_GLOSSARY` (no glossary with terms for the language). `uiLanguage`
+`status` is `SAFE`, `ISSUES` or `NO_GLOSSARY` (no term rule for the language). `term` is the pattern of
+the rule, `reason` its advice, `alternative` its replacement, and `glossaryPath` the same value as
+`folder`, kept for the clients of version 1. `uiLanguage`
 sets the language of the type and field labels (English by default). Report text is plain text;
 clients escape it.
 
@@ -189,8 +197,9 @@ scan many times through aliases.
 
 `SiteFeatures` reads the site's switches with a system session, because the same gate serves
 scheduled jobs of the GEO section that have no caller; it reads only that settings node. The scans
-themselves never open a system session: what the caller cannot read, glossaries included, is not
-scanned. Both are read-only queries, so the CSRF guard has nothing to decide.
+read the content with the session of the caller: what the caller cannot read is not scanned. The
+rules are read with a system session (`ContentRules`), so a rule of a folder that the caller cannot
+read still applies. Both are read-only queries, so the CSRF guard has nothing to decide.
 
 ## Limits
 
@@ -244,8 +253,8 @@ valid; checked on a local Jahia 8.2.3.2 through a full restart. What authors see
 - Matching edge cases not handled: halfwidth katakana (ｶﾞｲﾄﾞ is not ガイド), Thai tone marks
   (stripped with other combining marks, so ไม่ also finds ไม), Greek final ς (not folded to σ), and a
   supplementary-plane letter right before a term is not seen by the boundary check.
-- The glossary type shows in Page Builder's add-content menu (content folders accept only
-  `jmix:droppableContent`); a glossary on a page is never read.
+- The rule type shows in Page Builder's add-content menu (content folders accept only
+  `jmix:droppableContent`); a rule on a page applies too.
 - A translator with `jcr:modifyProperties_<lang>` but no `jcr:write` on the page cannot run the page
   scan: the Compliance tab is greyed out for them.
 - The drawer's Compliance section reads pages only: on a main resource (an article on its own URL)
@@ -254,8 +263,4 @@ valid; checked on a local Jahia 8.2.3.2 through a full restart. What authors see
   the section says so.
 - Labels and icons of the glossary types on an instance migrated from Content Compliance Scan (above).
 - Publication is not blocked: [`publication-blocking.md`](publication-blocking.md).
-- Unit tests cover matching, match modes, rich text (hostile values included), excerpts and the
-  rendered-path filter (`TermMatcherTest`, `MatchModeTest`, `PlainTextTest`, `ExcerptTest`,
-  `RenderedRootsTest`) and the feature ids (`FeaturesTest`). The Cypress suite
-  (`tests/cypress/e2e/compliance.spec.ts`, run locally) covers the example glossary, a page scan and a
-  site scan, the refusals and the refusal once the section is switched off.
+- The unit tests and the Cypress suite of the module cover the section.

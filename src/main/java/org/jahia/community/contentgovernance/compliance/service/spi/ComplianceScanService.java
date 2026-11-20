@@ -10,8 +10,10 @@ import java.util.Collection;
 import java.util.Locale;
 
 /**
- * Scans content against the glossaries of non-authorised terms of its site: one page as Page Builder
- * shows it ({@link #scan}), or a whole site where its content is stored ({@link #scanSite}).
+ * Scans content against the rules of the evaluator {@code pattern} of its site, such as the terms that the
+ * legal team forbids and the glossary terms to translate: one page as Page Builder shows it
+ * ({@link #scan}), or a whole site where its content is stored ({@link #scanSite}). Each issue names its
+ * rule and the folder of the rule.
  *
  * <p>The page scan reads, in the language of the page node's session:</p>
  * <ul>
@@ -23,12 +25,13 @@ import java.util.Locale;
  * </ul>
  * <p>A text property is a {@code STRING} property shown in Content Editor as text, text area or rich
  * text, with no value constraint (choicelists and tokens are technical values). Rich text is read as
- * the text a visitor sees. Glossaries are the {@code ccs:glossary} nodes under
- * {@code /sites/<siteKey>/contents} whose language is the language of the session.</p>
+ * the text a visitor sees. The rules are those that the site keeps on, that apply on the day and to the
+ * language of the session, and that one text can break: a mandatory mention needs a whole page.</p>
  *
- * <p>Everything is read through the session of the given node: the scan never sees what that user
- * cannot read, glossaries included. Implementations are thread-safe; a call uses one session and
- * must stay on the thread that owns it.</p>
+ * <p>The content is read through the session of the given node: the scan never sees content that the
+ * user cannot read. The rules are read with a system session, so a rule applies even when the user
+ * cannot read its folder. Implementations are thread-safe; a call uses one session and must stay on the
+ * thread that owns it.</p>
  */
 public interface ComplianceScanService {
 
@@ -56,7 +59,7 @@ public interface ComplianceScanService {
      *                      {@code null}. Paths outside the page's site, pages, the page's ancestors and
      *                      paths the session cannot read are ignored.
      * @return the report, never {@code null}
-     * @throws RepositoryException when the page or a glossary cannot be read
+     * @throws RepositoryException when the page cannot be read
      */
     ComplianceReport scan(JCRNodeWrapper page, Locale uiLocale, Collection<String> renderedPaths)
             throws RepositoryException;
@@ -70,7 +73,7 @@ public interface ComplianceScanService {
      * @param site     the site, from a session of the workspace and language to scan
      * @param uiLocale language of the labels in the report
      * @return the report, never {@code null}
-     * @throws RepositoryException when the site or a glossary cannot be read
+     * @throws RepositoryException when the site cannot be read
      */
     SiteComplianceReport scanSite(JCRSiteNode site, Locale uiLocale) throws RepositoryException;
 }

@@ -86,11 +86,9 @@ const TermsTable = ({terms, glossaryTitles}) => {
             render: ({value, data}) => (
                 <div className={styles.cellText}>
                     <Typography weight="semiBold" className={styles.wrap}>{value}</Typography>
-                    {glossaryTitles.size > 1 && (
-                        <Typography variant="caption" className={`${styles.wrap} ${styles.muted}`}>
-                            {glossaryTitles.get(data.glossaryPath) || data.glossaryPath}
-                        </Typography>
-                    )}
+                    <Typography variant="caption" className={`${styles.wrap} ${styles.muted}`}>
+                        {data.ruleId}{data.folder ? ` · ${glossaryTitles.get(data.folder) || data.folder}` : ''}
+                    </Typography>
                 </div>
             )
         },
@@ -113,7 +111,7 @@ const TermsTable = ({terms, glossaryTitles}) => {
         {key: 'uses', label: t('dashboard.terms.uses'), width: '15%', render: ({value}) => <Typography>{value}</Typography>},
         {key: 'locations', label: t('dashboard.terms.locations'), width: '15%', render: ({value}) => <Typography>{value}</Typography>}
     ];
-    const data = terms.map(term => ({id: `${term.glossaryPath}|${term.term}`, ...term}));
+    const data = terms.map(term => ({id: term.ruleId, ...term}));
     return (
         <div className={styles.tableScroll}>
             <DataTable primaryKey="id" data={data} columns={columns} enablePagination={false}/>
@@ -192,11 +190,9 @@ const LocationsTable = ({locations, glossaryTitles, siteKey, language}) => {
                 : (
                     <div className={styles.cellText}>
                         <Typography variant="caption" className={styles.wrap}>{value.issue.reason || ''}</Typography>
-                        {glossaryTitles.size > 1 && (
-                            <Typography variant="caption" className={`${styles.wrap} ${styles.muted}`}>
-                                {glossaryTitles.get(value.issue.glossaryPath) || value.issue.glossaryPath}
-                            </Typography>
-                        )}
+                        <Typography variant="caption" className={`${styles.wrap} ${styles.muted}`}>
+                            {value.issue.ruleId}{value.issue.folder ? ` · ${glossaryTitles.get(value.issue.folder) || value.issue.folder}` : ''}
+                        </Typography>
                     </div>
                 ))
         },
@@ -351,11 +347,11 @@ export const ComplianceDashboard = ({siteKey, language}) => {
                             <div className={styles.inline}>
                                 <Typography variant="caption" weight="bold">{t('glossaries.applied')}</Typography>
                                 {report.glossaries.map(glossary => (
-                                    <Button key={glossary.uuid}
+                                    <Button key={glossary.path}
                                             variant="ghost"
                                             size="small"
                                             label={t('glossaries.item', {title: glossary.title, count: glossary.termCount})}
-                                            isDisabled={!globalThis.CE_API?.edit}
+                                            isDisabled={!globalThis.CE_API?.edit || !glossary.uuid}
                                             onClick={() => editInContentEditor(glossary.uuid, siteKey, language)}/>
                                 ))}
                             </div>

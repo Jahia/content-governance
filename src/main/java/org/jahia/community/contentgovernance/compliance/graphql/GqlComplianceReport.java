@@ -41,7 +41,7 @@ public class GqlComplianceReport {
     /** @return outcome of the scan */
     @GraphQLField
     @GraphQLNonNull
-    @GraphQLDescription("SAFE, ISSUES, or NO_GLOSSARY when no glossary with terms exists for the language")
+    @GraphQLDescription("SAFE, ISSUES, or NO_GLOSSARY when no term rule applies to the language")
     public GqlScanStatus getStatus() {
         return GqlScanStatus.valueOf(report.status().name());
     }
@@ -63,7 +63,7 @@ public class GqlComplianceReport {
     /** @return glossaries applied */
     @GraphQLField
     @GraphQLNonNull
-    @GraphQLDescription("Glossaries applied")
+    @GraphQLDescription("Folders of the rules applied")
     public List<GqlGlossary> getGlossaries() {
         return report.glossaries().stream().map(GqlGlossary::new).toList();
     }
@@ -71,7 +71,7 @@ public class GqlComplianceReport {
     /** @return the issues found */
     @GraphQLField
     @GraphQLNonNull
-    @GraphQLDescription("Every use of a non-authorised term")
+    @GraphQLDescription("Every place that breaks a term rule")
     public List<GqlComplianceIssue> getIssues() {
         return report.issues().stream().map(GqlComplianceIssue::new).toList();
     }

@@ -122,7 +122,7 @@ public final class ContentRules {
             }
             Map<String, Object> merged = new LinkedHashMap<>(shippedValues(shipments, id.toString()));
             merged.putAll(values);
-            out.put(id.toString(), RuleValues.toRule(merged));
+            out.put(id.toString(), RuleValues.toRule(merged).inFolder(node.getParent().getPath()));
         }
         return new ContentRules(out);
     }

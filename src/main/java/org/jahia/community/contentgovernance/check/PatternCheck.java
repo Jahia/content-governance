@@ -45,7 +45,7 @@ public class PatternCheck implements ContentCheck {
     }
 
     /** The writing rule of the values of a rule, or null when the rule has no pattern or an unknown kind. */
-    static WritingRule writingRule(Rule rule) {
+    public static WritingRule writingRule(Rule rule) {
         String pattern = string(rule, RuleValues.PATTERN);
         if (pattern == null || pattern.isBlank()) {
             return null;
@@ -65,7 +65,13 @@ public class PatternCheck implements ContentCheck {
                 string(rule, RuleValues.RULE_LANGUAGE),
                 rule.blocking() ? WritingRule.Severity.BLOCKING : WritingRule.Severity.WARNING,
                 rule.advice(), null, List.of(), List.of(), string(rule, RuleValues.OWNER), null,
-                day(rule, RuleValues.VALID_FROM), day(rule, RuleValues.VALID_UNTIL));
+                day(rule, RuleValues.VALID_FROM), day(rule, RuleValues.VALID_UNTIL),
+                strings(rule, RuleValues.PATTERN_FORMS), strings(rule, RuleValues.REPLACEMENT_FORMS),
+                string(rule, RuleValues.PATTERN_LANGUAGE), rule instanceof ContentRule content ? content.folder() : null);
+    }
+
+    private static List<String> strings(Rule rule, String property) {
+        return rule.value(property) instanceof List<?> list ? list.stream().map(String::valueOf).toList() : List.of();
     }
 
     private static String string(Rule rule, String property) {

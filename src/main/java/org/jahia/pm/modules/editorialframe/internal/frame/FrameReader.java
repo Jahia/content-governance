@@ -38,7 +38,6 @@ public final class FrameReader {
     /** A writing rule is a content rule of the evaluator pattern. */
     static final String RULE = "ccs:contentRule";
     private static final String PATTERN = "pattern";
-    static final String TERM = "efnt:glossaryTerm";
 
     private FrameReader() {
     }
@@ -58,7 +57,6 @@ public final class FrameReader {
             String scope = SYSTEM_SITE.equals(site) && !SYSTEM_SITE.equals(siteKey) ? "group" : "site";
             if (session.nodeExists("/sites/" + site)) {
                 readRules(session, site, scope, language, fallback, today, parts);
-                readTerms(session, site, scope, language, parts);
             }
         }
         String fingerprint = parts.canonical.isEmpty() ? null : Texts.digest(parts.canonical.toString());
@@ -79,49 +77,36 @@ public final class FrameReader {
             // A rule out of its dates is not part of the frame of the day, for any consumer.
             if (rule != null && rule.inForceOn(today)) {
                 parts.rules.add(rule);
+                GlossaryTerm term = term(rule);
+                if (term != null && (language == null || term.isPair(null, language))) {
+                    // A rule that translates a term is also a term of the glossary of its language pair.
+                    parts.glossary.add(term);
+                }
                 // The content of the rule, not its node: a new import of the same rules keeps the fingerprint.
                 parts.canonical.append("rule|").append(scope).append("|").append(rule.kind()).append("|").append(rule.pattern())
                         .append("|").append(rule.matchMode()).append("|").append(rule.replacement()).append("|")
                         .append(rule.language()).append("|").append(rule.severity()).append("|").append(rule.justification())
                         .append("|").append(rule.wrongExamples()).append("|").append(rule.rightExamples())
-                        .append("\n");
+                        .append("|").append(rule.patternForms()).append("|").append(rule.replacementForms())
+                        .append("|").append(rule.patternLanguage()).append("\n");
             }
         }
     }
 
-    private static void readTerms(JCRSessionWrapper session, String site, String scope, String language, Parts parts)
-            throws RepositoryException {
-        for (JCRNodeWrapper node : query(session, TERM, site)) {
-            GlossaryTerm term = term(node, scope);
-            if (term != null && (language == null || term.isPair(null, language))) {
-                parts.glossary.add(term);
-                parts.canonical.append("term|").append(scope).append('|').append(term.term()).append('|')
-                        .append(term.termLanguage()).append('|').append(term.translation()).append('|')
-                        .append(term.translationLanguage()).append('|').append(term.note()).append('|')
-                        .append(term.termForms()).append('|').append(term.translationForms()).append('|')
-                        .append(term.definition()).append('|').append(term.status()).append('\n');
-            }
-        }
-    }
-
-    private static GlossaryTerm term(JCRNodeWrapper node, String scope) {
-        try {
-            String term = node.getPropertyAsString("term");
-            String termLanguage = node.getPropertyAsString("termLanguage");
-            String translation = node.getPropertyAsString("translation");
-            String translationLanguage = node.getPropertyAsString("translationLanguage");
-            if (blank(term) || blank(translation) || blank(termLanguage) || blank(translationLanguage)
-                    || !LANGUAGE.matcher(termLanguage.trim()).matches() || !LANGUAGE.matcher(translationLanguage.trim()).matches()) {
-                return null;
-            }
-            return new GlossaryTerm(node.getIdentifier(), term.trim(), termLanguage.trim(), forms(node, "termForms"),
-                    translation.trim(), translationLanguage.trim(), forms(node, "translationForms"),
-                    node.getPropertyAsString("definition"), node.getPropertyAsString("note"),
-                    GlossaryTerm.Status.parse(node.getPropertyAsString("status")), scope);
-        } catch (RepositoryException | IllegalArgumentException e) {
-            logger.warn("The glossary term {} cannot be read: {}", node.getPath(), e.getMessage());
+    /**
+     * The glossary term of a rule that translates a term, such as "access token" ({@code en}) to "jeton
+     * d'accès" in {@code fr}, or null for any other rule. Such a rule names the language of its pattern.
+     */
+    static GlossaryTerm term(WritingRule rule) {
+        String termLanguage = rule.patternLanguage();
+        if (rule.kind() != WritingRule.Kind.REPLACE || rule.matchMode() != WritingRule.MatchMode.TERM
+                || blank(termLanguage) || blank(rule.replacement()) || blank(rule.language())
+                || !LANGUAGE.matcher(termLanguage.trim()).matches() || !LANGUAGE.matcher(rule.language().trim()).matches()) {
             return null;
         }
+        return new GlossaryTerm(rule.id(), rule.pattern().trim(), termLanguage.trim(), rule.patternForms(),
+                rule.replacement().trim(), rule.language().trim(), rule.replacementForms(), null, rule.justification(),
+                GlossaryTerm.Status.APPROVED, rule.scope());
     }
 
     /** The forms of a multiple property, trimmed, with no blank one. */
@@ -168,7 +153,11 @@ public final class FrameReader {
                     node.getPropertyAsString("owner"),
                     day(node, "decidedOn"),
                     day(node, "validFrom"),
-                    day(node, "validUntil"));
+                    day(node, "validUntil"),
+                    forms(node, "patternForms"),
+                    forms(node, "replacementForms"),
+                    node.getPropertyAsString("patternLanguage"),
+                    node.getParent().getPath());
         } catch (RepositoryException | IllegalArgumentException e) {
             logger.warn("The writing rule {} cannot be read: {}", node.getPath(), e.getMessage());
             return null;

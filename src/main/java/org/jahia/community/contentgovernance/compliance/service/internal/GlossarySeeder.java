@@ -1,7 +1,10 @@
 package org.jahia.community.contentgovernance.compliance.service.internal;
 
-import org.jahia.community.contentgovernance.util.Locales;
+import org.jahia.community.contentgovernance.rules.ContentRule;
+import org.jahia.community.contentgovernance.rules.ContentRules;
+import org.jahia.community.contentgovernance.rules.RuleValues;
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
+import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.services.content.DefaultEventListener;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRContentUtils;
@@ -22,14 +25,16 @@ import java.util.ResourceBundle;
 import java.util.Set;
 
 /**
- * Creates a site's first compliance glossary when the module is enabled on it, so editors start from
- * a working example: {@code contents/compliance-glossaries}, restricted to glossaries, holding one
- * glossary in the site's default language with one example term. Done once per site (a flag on the module's settings node), and never
- * on a site that already has a glossary, so an editor who deletes the example does not get it back.
+ * Creates a site's first list of compliance terms when the module is enabled on it, so editors start from
+ * a working example: {@code contents/compliance-glossaries}, which takes rules, holding one folder of rules
+ * for the site's default language with one example rule of the evaluator {@code pattern}. Done once per
+ * site (a flag on the module's settings node), and never on a site that already has that folder, so an
+ * editor who deletes the example does not get it back. Each list is a folder, so that the permissions of
+ * the folder of the legal team can differ from those of the brand team.
  *
  * <p>Listens to {@code j:installedModules} on site nodes in the edit workspace; events from another
  * cluster node are left to that node. The example is the module's own starting content, written with
- * a system session like the settings node beside it, and left unpublished: the scan reads glossaries
+ * a system session like the settings node beside it, and left unpublished: the scan reads the rules
  * in the edit workspace. Its text comes from the module's resource bundle in the site's default
  * language, English when the bundle has no translation.</p>
  */
@@ -38,11 +43,14 @@ public class GlossarySeeder extends DefaultEventListener {
 
     static final String FOLDER = "compliance-glossaries";
     static final String SEEDED = "glossarySeeded";
+    private static final String COMPLIANCE = "compliance";
     private static final String INSTALLED_MODULES = "j:installedModules";
     private static final String EDIT_WORKSPACE = "default";
     private static final String TITLE = "jcr:title";
     private static final String CONTENTS = "/contents";
     private static final String CONTRIBUTE_MODE = "jmix:contributeMode";
+    private static final String CONTRIBUTE_TYPES = "j:contributeTypes";
+    private static final String CONTENT_FOLDER = "jnt:contentFolder";
     private static final String BUNDLE = "resources.content-governance";
     private static final Logger logger = LoggerFactory.getLogger(GlossarySeeder.class);
 
@@ -111,7 +119,7 @@ public class GlossarySeeder extends DefaultEventListener {
         }
     }
 
-    /** The site's default language when it should be seeded now, else null (flagging a site that has glossaries). */
+    /** The site's default language when it should be seeded now, else null (flagging a site that has terms). */
     private static String toSeed(JCRSessionWrapper session, String sitePath) throws RepositoryException {
         if (!session.nodeExists(sitePath + CONTENTS)
                 || !(session.getNode(sitePath) instanceof JCRSiteNode site) || !SiteFeatures.moduleEnabled(site)) {
@@ -121,7 +129,7 @@ public class GlossarySeeder extends DefaultEventListener {
         if (store != null && store.hasProperty(SEEDED)) {
             return null;
         }
-        if (hasGlossary(session, sitePath)) {
+        if (hasTerms(session, sitePath)) {
             SiteFeatures.storeNode(site).setProperty(SEEDED, true);
             session.save();
             return null;
@@ -129,10 +137,22 @@ public class GlossarySeeder extends DefaultEventListener {
         return site.getDefaultLanguage();
     }
 
-    private static boolean hasGlossary(JCRSessionWrapper session, String sitePath) throws RepositoryException {
+    /**
+     * True when the site keeps compliance terms: the folder of the example, a glossary of an older version,
+     * or a rule of the domain {@code compliance} anywhere under its contents.
+     */
+    private static boolean hasTerms(JCRSessionWrapper session, String sitePath) throws RepositoryException {
+        if (session.nodeExists(sitePath + CONTENTS + "/" + FOLDER)) {
+            return true;
+        }
         String root = (sitePath + CONTENTS).replace("'", "''");
-        Query query = session.getWorkspace().getQueryManager().createQuery("SELECT * FROM [" + GlossaryReader.GLOSSARY_TYPE
-                + "] AS g WHERE ISDESCENDANTNODE(g, '" + root + "')", Query.JCR_SQL2);
+        return found(session, "SELECT * FROM [ccs:glossary] AS g WHERE ISDESCENDANTNODE(g, '" + root + "')")
+                || found(session, "SELECT * FROM [" + ContentRules.TYPE + "] AS r WHERE ISDESCENDANTNODE(r, '" + root
+                + "') AND r.[" + RuleValues.DOMAIN + "] = '" + COMPLIANCE + "'");
+    }
+
+    private static boolean found(JCRSessionWrapper session, String sql) throws RepositoryException {
+        Query query = session.getWorkspace().getQueryManager().createQuery(sql, Query.JCR_SQL2);
         query.setLimit(1);
         return query.execute().getNodes().hasNext();
     }
@@ -146,25 +166,37 @@ public class GlossarySeeder extends DefaultEventListener {
     private static void create(JCRSessionWrapper session, String sitePath, String language) throws RepositoryException {
         ResourceBundle text = seedText(language);
         JCRNodeWrapper contents = session.getNode(sitePath + CONTENTS);
-        JCRNodeWrapper folder = contents.hasNode(FOLDER) ? contents.getNode(FOLDER) : contents.addNode(FOLDER, "jnt:contentFolder");
+        JCRNodeWrapper folder = contents.hasNode(FOLDER) ? contents.getNode(FOLDER) : contents.addNode(FOLDER, CONTENT_FOLDER);
         if (!folder.hasProperty(TITLE)) {
             folder.setProperty(TITLE, text.getString("seed.folder"));
         }
-        if (!folder.isNodeType(CONTRIBUTE_MODE)) {
-            // jContent then offers only glossaries in this folder; a glossary itself only takes terms.
-            folder.addMixin(CONTRIBUTE_MODE);
-            folder.setProperty("j:contributeTypes", new String[]{GlossaryReader.GLOSSARY_TYPE});
-        }
-        JCRNodeWrapper glossary = folder.addNode(JCRContentUtils.findAvailableNodeName(folder, "glossary-" + language),
-                GlossaryReader.GLOSSARY_TYPE);
-        glossary.setProperty(TITLE, text.getString("seed.glossary"));
-        glossary.setProperty("language", language);
-        glossary.setProperty("description", text.getString("seed.glossary.description"));
-        JCRNodeWrapper term = glossary.addNode("example-term", GlossaryReader.TERM_TYPE);
-        term.setProperty("term", text.getString("seed.term"));
-        term.setProperty("reason", text.getString("seed.term.reason"));
-        term.setProperty("alternative", text.getString("seed.term.alternative"));
+        takesRules(folder);
+        JCRNodeWrapper list = folder.addNode(JCRContentUtils.findAvailableNodeName(folder, "glossary-" + language),
+                CONTENT_FOLDER);
+        list.setProperty(TITLE, text.getString("seed.glossary"));
+        list.setProperty("jcr:description", text.getString("seed.glossary.description"));
+        takesRules(list);
+        JCRNodeWrapper rule = list.addNode("example-term", ContentRules.TYPE);
+        rule.setProperty(RuleValues.RULE_ID, "compliance.example-term");
+        rule.setProperty(RuleValues.EVALUATOR, ContentRule.PATTERN);
+        rule.setProperty(RuleValues.DOMAIN, COMPLIANCE);
+        rule.setProperty(RuleValues.SEVERITY, "serious");
+        rule.setProperty(RuleValues.KIND, "replace");
+        rule.setProperty(RuleValues.PATTERN, text.getString("seed.term"));
+        rule.setProperty(RuleValues.MATCH_MODE, "term");
+        rule.setProperty(RuleValues.REPLACEMENT, text.getString("seed.term.alternative"));
+        rule.setProperty(RuleValues.RULE_LANGUAGE, language);
+        // Internationalized: the session is in the language of the site, so the editors read it there.
+        rule.setProperty(RuleValues.ADVICE, text.getString("seed.term.reason"));
         SiteFeatures.storeNode(session.getNode(sitePath)).setProperty(SEEDED, true);
         session.save();
+    }
+
+    /** jContent then offers only rules in the folder. */
+    private static void takesRules(JCRNodeWrapper folder) throws RepositoryException {
+        if (!folder.isNodeType(CONTRIBUTE_MODE)) {
+            folder.addMixin(CONTRIBUTE_MODE);
+            folder.setProperty(CONTRIBUTE_TYPES, new String[]{ContentRules.TYPE});
+        }
     }
 }

@@ -31,9 +31,10 @@
  - validFrom (date, datepicker)
  - validUntil (date, datepicker)
 
-// A term of the glossary of the brand, and how to write it in another language: one language pair.
-// A term that the brand never translates, such as a product name, has itself as its translation.
-[efnt:glossaryTerm] > jnt:content, efmix:frameContent
+// Replaced by ccs:contentRule, with the evaluator pattern: a replace rule of the language of the
+// translation. The module converts each node of this type in place when it starts. The type stays until
+// no site holds one, and jmix:hiddenType keeps it out of the create menu of jContent.
+[efnt:glossaryTerm] > jnt:content, efmix:frameContent, jmix:hiddenType
  // The file an import read the term from, so that a new import of that file replaces it.
  - source (string)
  - term (string) mandatory

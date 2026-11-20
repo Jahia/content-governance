@@ -48,6 +48,17 @@ class FrameCheckToolTest {
     }
 
     @Test
+    void eachViolationNamesItsRuleAndTheFolderOfTheRule() {
+        Frames frames = new Frames(List.of(new RuleViolation("compliance.guaranteed", Kind.FORBIDDEN, Severity.WARNING,
+                "guaranteed", "Guaranteed", null, null, "Guaranteed results", "/sites/digitall/contents/legal")));
+
+        JsonNode violation = new FrameCheckTool(frames).execute(input(null), new Context()).payload().path("violations").get(0);
+
+        assertEquals("compliance.guaranteed", violation.path("ruleId").asText());
+        assertEquals("/sites/digitall/contents/legal", violation.path("folder").asText());
+    }
+
+    @Test
     void aTextIsOneFieldUnlessTheCallSaysItIsAWholePage() {
         Frames frames = new Frames(List.of());
 

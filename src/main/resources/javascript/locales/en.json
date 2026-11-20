@@ -1697,7 +1697,7 @@
     },
     "compliance": {
       "fixFirst": {
-        "term": "Forbidden term \"{{term}}\" ({{count}})"
+        "term": "Term to change \"{{term}}\" ({{count}})"
       },
       "action": {
         "open": "Compliance scan"
@@ -1718,15 +1718,15 @@
         "noGlossary": "Not checked"
       },
       "summary": {
-        "safe": "No non-authorised term in the {{count}} content read ({{language}}).",
-        "safe_plural": "No non-authorised term in the {{count}} contents read ({{language}}).",
-        "safe_one": "No non-authorised term in the {{count}} content read ({{language}}).",
-        "safe_other": "No non-authorised term in the {{count}} contents read ({{language}}).",
-        "issues": "{{count}} use of a non-authorised term, in {{contents}} content(s) ({{language}}).",
-        "issues_plural": "{{count}} uses of non-authorised terms, in {{contents}} content(s) ({{language}}).",
-        "issues_one": "{{count}} use of a non-authorised term, in {{contents}} content(s) ({{language}}).",
-        "issues_other": "{{count}} uses of non-authorised terms, in {{contents}} content(s) ({{language}}).",
-        "noGlossary": "No glossary applies to {{language}}: nothing was checked."
+        "safe": "No term to change in the {{count}} content read ({{language}}).",
+        "safe_plural": "No term to change in the {{count}} contents read ({{language}}).",
+        "safe_one": "No term to change in the {{count}} content read ({{language}}).",
+        "safe_other": "No term to change in the {{count}} contents read ({{language}}).",
+        "issues": "{{count}} term to change, in {{contents}} content(s) ({{language}}).",
+        "issues_plural": "{{count}} terms to change, in {{contents}} content(s) ({{language}}).",
+        "issues_one": "{{count}} term to change, in {{contents}} content(s) ({{language}}).",
+        "issues_other": "{{count}} terms to change, in {{contents}} content(s) ({{language}}).",
+        "noGlossary": "No term rule applies to {{language}}: nothing was checked."
       },
       "banner": {
         "beforePublishing": {
@@ -1734,8 +1734,8 @@
           "message": "Replace or remove each term below before publishing. This version of the scan reports the terms only: it does not block publication."
         },
         "noGlossary": {
-          "title": "No glossary for {{language}}",
-          "message": "Create a Compliance glossary in the site's contents (jContent, Content folders), set its language to {{language}} and add its non-authorised terms."
+          "title": "No term rule for {{language}}",
+          "message": "Create a folder of rules in the site's contents (jContent, Content folders), and add the term rules of {{language}} to it, such as forbidden terms."
         },
         "notFramed": {
           "title": "Listings not included",
@@ -1747,11 +1747,11 @@
         }
       },
       "glossaries": {
-        "applied": "Glossaries applied:",
-        "item": "{{title}} ({{count}} term)",
-        "item_plural": "{{title}} ({{count}} terms)",
-        "item_one": "{{title}} ({{count}} term)",
-        "item_other": "{{title}} ({{count}} terms)"
+        "applied": "Rule folders applied:",
+        "item": "{{title}} ({{count}} rule)",
+        "item_plural": "{{title}} ({{count}} rules)",
+        "item_one": "{{title}} ({{count}} rule)",
+        "item_other": "{{title}} ({{count}} rules)"
       },
       "origin": {
         "reference": "Reused content",
@@ -1766,8 +1766,9 @@
         "term": "Term",
         "reason": "Reason",
         "alternative": "Write instead",
-        "listLabel": "Non-authorised terms found, by content",
-        "glossary": "Glossary"
+        "listLabel": "Terms to change, by content",
+        "glossary": "Folder",
+        "rule": "Rule"
       },
       "dashboard": {
         "navLabel": "Compliance",

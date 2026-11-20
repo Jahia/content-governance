@@ -9,9 +9,10 @@ Until version 1.12, a separate module named editorial-frame held this code. The 
 content types and the tool name keep their names. [`architecture.md`](architecture.md) states how
 the frame sits in the module.
 
-The glossary of the frame is a translation glossary. The Compliance section has its own glossaries
-of non-authorised terms, which [`../compliance/glossary-guide.md`](../compliance/glossary-guide.md)
-describes.
+The glossary of the frame and the terms of the Compliance section are one model since
+content-governance#74: term rules of the evaluator `pattern`, which
+[`../compliance/glossary-guide.md`](../compliance/glossary-guide.md) describes. The Compliance section
+and `frame.check` report the same term rules.
 
 ## Where the frame lives
 
@@ -20,7 +21,7 @@ The frame is content of the site. These types hold it:
 | Type | What it holds | Edited by |
 |---|---|---|
 | `ccs:contentRule` | A writing rule is a [content rule](../content-rules/catalog.md) of the evaluator `pattern`: `kind` (forbidden, replace, mandatory, style), `pattern`, `matchMode` (term or regex), `replacement`, `ruleLanguage`, `severity` with `blocking`, `advice` (translated), `wrongExamples` and `rightExamples`, `owner`, `decidedOn`, `validFrom` and `validUntil`. It replaces `efnt:writingRule`, which the module converts when it starts. | Legal, brand manager |
-| `efnt:glossaryTerm` | One term for one language pair: `term` in `termLanguage`, written `translation` in `translationLanguage`, a `note` and a `definition`. `termForms` and `translationForms` hold the other forms, such as a plural or a feminine form. `status` is `approved`, or `forbidden` for a translation that the brand never writes. A term that the brand never translates has itself as its translation. | Brand manager, translators |
+| `efnt:glossaryTerm` | Replaced by a `ccs:contentRule` of the language of the translation, which the module converts when it starts. The rule names the language of its term in `patternLanguage`, and its other forms in `patternForms` and `replacementForms`. | Brand manager, translators |
 
 The service finds these nodes by their type anywhere under the site, so no folder is imposed. The
 frame of `systemsite` is the frame of the group: every site reads it first. Its rules and glossary
@@ -29,19 +30,21 @@ terms add up with those of the site.
 ### The glossary
 
 A glossary term says how the brand writes a term in another language. For example, "access token"
-in `en` is "jeton d'accès" in `fr`. The frame of a language holds the terms whose translation is in
-that language:
+in `en` is "jeton d'accès" in `fr`. A glossary term is a replace rule of the language of the
+translation, whose `patternLanguage` names the language of the term. The frame of a language holds
+the terms whose translation is in that language:
 
+- `frame.check` on a text of the language reports the term as a replace rule: "access token" in a
+  French text comes with kind `replace` and the replacement "jeton d'accès".
 - `frame.check` with `sourceText` and `sourceLocale` checks a translation: where the source holds a
   term, the translation must hold its rendering. A miss comes with kind `glossary`, and the rendering
   in `missing`. The check counts no occurrence.
 - A term and its rendering match in any of their forms. With the forms "access tokens" and
   "jetons d'accès", the translation of "Create access tokens" as "Créez des jetons d'accès" passes.
   An apostrophe matches a straight or a curly one.
-- A forbidden term names a translation that the brand never writes, such as "jeton
-  d'authentification" for "access token". Where the source holds the term, a translation that holds
-  the forbidden one comes with kind `glossary`, the text found in `match`, and the approved rendering
-  in `replacement`. The forms of a term add up over its approved and forbidden entries.
+- A translation that the brand never writes, such as "jeton d'authentification" for "access token",
+  is a replace rule of `fr` toward "jeton d'accès". Any French text that holds it comes with kind
+  `replace`. A translation that holds it gets no second finding for the missing rendering.
 
 `fr` and `fr_FR` are the same language for the glossary.
 

@@ -17,7 +17,7 @@ import {
 const SCAN_PAGE = `query P($path: String!, $language: String!) {
     complianceScan { scanPage(path: $path, language: $language) {
         pagePath status scannedContents glossaries { path termCount }
-        issues { nodePath propertyName term matchedText reason alternative glossaryPath }
+        issues { nodePath propertyName ruleId term matchedText reason alternative folder glossaryPath }
     } }
 }`;
 
@@ -30,17 +30,22 @@ const SCAN_SITE = `query S($siteKey: String!, $language: String!) {
 const GLOSSARY = `query G($path: String!) { jcr { nodeByPath(path: $path) {
     primaryNodeType { name }
     contributeTypes: property(name: "j:contributeTypes") { values }
-    children(typesFilter: {types: ["ccs:glossary"]}) { nodes {
-        name language: property(name: "language") { value }
-        terms: children(typesFilter: {types: ["ccs:glossaryTerm"]}) { nodes { term: property(name: "term") { value } } }
+    children(typesFilter: {types: ["jnt:contentFolder"]}) { nodes {
+        name
+        contributeTypes: property(name: "j:contributeTypes") { values }
+        terms: children(typesFilter: {types: ["ccs:contentRule"]}) { nodes {
+            ruleId: property(name: "ruleId") { value }
+            term: property(name: "pattern") { value }
+            language: property(name: "ruleLanguage") { value }
+        } }
     } }
 } } }`;
 
-type Issue = {nodePath: string; term: string; matchedText: string; glossaryPath: string};
+type Issue = {nodePath: string; ruleId: string; term: string; matchedText: string; folder: string; glossaryPath: string};
 
 /**
- * The compliance scan: the example glossary created when a site enables the module, a page scan as
- * someone who may edit the page, a site scan as someone who may open jContent, and the refusals.
+ * The compliance scan: the example rule created when a site enables the module, a page scan as someone
+ * who may edit the page, a site scan as someone who may open jContent, and the refusals.
  */
 describe('Content Governance - compliance scan', () => {
     const siteKey = 'cg-compliance';
@@ -59,10 +64,10 @@ describe('Content Governance - compliance scan', () => {
         // An editor elsewhere passes the GraphQL API filter, so the module's own check is what refuses
         createTestSite(otherSiteKey);
         createTestUser(outsider, `/sites/${otherSiteKey}`, ['editor', 'privileged']);
-        // The example glossary is created by a listener once the module is enabled, so the run waits for it.
+        // The example rule is created by a listener once the module is enabled, so the run waits for it.
         cy.waitUntil(() => gql(asRoot(), GLOSSARY, {path: folderPath})
             .then(body => Boolean((body.data?.jcr as {nodeByPath?: unknown} | undefined)?.nodeByPath)),
-        {timeout: 30000, interval: 1000, errorMsg: 'the example glossary was not created'});
+        {timeout: 30000, interval: 1000, errorMsg: 'the example rule was not created'});
         gqlOk(asRoot(), GLOSSARY, {path: folderPath}).then(data => {
             exampleTerm = data.jcr.nodeByPath.children.nodes[0].terms.nodes[0].term.value;
             addNodeTree(`${sitePath}/home`, {
@@ -89,16 +94,18 @@ describe('Content Governance - compliance scan', () => {
         deleteTestSite(otherSiteKey);
     });
 
-    it('creates an example glossary in the default language when the module is enabled', () => {
+    it('creates an example rule in a folder of the default language when the module is enabled', () => {
         gqlOk(asRoot(), GLOSSARY, {path: folderPath}).its('jcr.nodeByPath').should(folder => {
             expect(folder.primaryNodeType.name).to.eq('jnt:contentFolder');
-            expect(folder.contributeTypes.values, 'the folder offers glossaries only').to.deep.eq(['ccs:glossary']);
+            expect(folder.contributeTypes.values, 'the folder offers rules only').to.deep.eq(['ccs:contentRule']);
             expect(folder.children.nodes).to.have.length(1);
-            const [glossary] = folder.children.nodes;
-            expect(glossary.name).to.eq('glossary-en');
-            expect(glossary.language.value).to.eq('en');
-            expect(glossary.terms.nodes).to.have.length(1);
-            expect(glossary.terms.nodes[0].term.value).to.not.be.empty;
+            const [list] = folder.children.nodes;
+            expect(list.name).to.eq('glossary-en');
+            expect(list.contributeTypes.values).to.deep.eq(['ccs:contentRule']);
+            expect(list.terms.nodes).to.have.length(1);
+            expect(list.terms.nodes[0].ruleId.value).to.eq('compliance.example-term');
+            expect(list.terms.nodes[0].language.value).to.eq('en');
+            expect(list.terms.nodes[0].term.value).to.not.be.empty;
         });
     });
 
@@ -109,13 +116,15 @@ describe('Content Governance - compliance scan', () => {
             expect(report.glossaries.map((g: {path: string}) => g.path)).to.deep.eq([`${folderPath}/glossary-en`]);
             const issue = report.issues.find((i: Issue) => i.nodePath === textPath);
             expect(issue, 'the text holding the term is reported').to.exist;
+            expect(issue.ruleId).to.eq('compliance.example-term');
             expect(issue.term).to.eq(exampleTerm);
             expect(issue.matchedText.toLowerCase()).to.eq(exampleTerm.toLowerCase());
-            expect(issue.glossaryPath).to.eq(`${folderPath}/glossary-en`);
+            expect(issue.folder).to.eq(`${folderPath}/glossary-en`);
+            expect(issue.glossaryPath, 'the field of version 1 names the folder too').to.eq(issue.folder);
         });
     });
 
-    it('applies the glossary of the language scanned only', () => {
+    it('applies the rules of the language scanned only', () => {
         gqlOk(editor, SCAN_PAGE, {path: pagePath, language: 'fr'}).its('complianceScan.scanPage').should(report => {
             expect(report.glossaries).to.be.empty;
             expect(report.issues).to.be.empty;
@@ -138,34 +147,6 @@ describe('Content Governance - compliance scan', () => {
             .then((body: GqlBody) => assertRefused(body, ['complianceScan', 'scanPage']));
         gql(outsider, SCAN_SITE, {siteKey, language: 'en'})
             .then((body: GqlBody) => assertRefused(body, ['complianceScan', 'scanSite']));
-    });
-
-    it('previews a term in jContent with its labels, its values escaped', () => {
-        const termPath = `${folderPath}/glossary-en/cg-preview-term`;
-        addNodeTree(`${folderPath}/glossary-en`, {
-            name: 'cg-preview-term', type: 'ccs:glossaryTerm',
-            props: [
-                {name: 'term', value: 'cg-preview-term'},
-                {name: 'reason', value: '<b>Not allowed</b> & never was'},
-                {name: 'alternative', value: 'allowed'}
-            ]
-        });
-        // What jContent's preview asks for content outside pages: the default view, rendered as a module
-        const preview = `query R($path: String!, $language: String!) { jcr { nodeByPath(path: $path) {
-            renderedContent(templateType: "html", view: null, contextConfiguration: "module", language: $language) { output }
-        } } }`;
-        gqlOk(editor, preview, {path: termPath, language: 'en'}).its('jcr.nodeByPath.renderedContent.output').should((html: string) => {
-            expect(html).to.contain('cg-glossary-term');
-            expect(html).to.contain('Non-authorised term');
-            expect(html).to.contain('Whole word or phrase');
-            expect(html).to.contain('&lt;b&gt;Not allowed&lt;/b&gt; &amp; never was');
-            expect(html, 'the reason is not markup').to.not.contain('<b>Not allowed</b>');
-            expect(html).to.contain('allowed');
-        });
-        gqlOk(editor, preview, {path: termPath, language: 'fr'}).its('jcr.nodeByPath.renderedContent.output').should((html: string) => {
-            expect(html).to.contain('Terme non autoris');
-            expect(html).to.contain('Motif');
-        });
     });
 
     it('refuses to scan once the site switches the compliance section off', () => {

@@ -1697,7 +1697,7 @@
     },
     "compliance": {
       "fixFirst": {
-        "term": "Terme interdit « {{term}} » ({{count}})"
+        "term": "Terme à changer « {{term}} » ({{count}})"
       },
       "action": {
         "open": "Contrôle de conformité"
@@ -1718,15 +1718,15 @@
         "noGlossary": "Non contrôlée"
       },
       "summary": {
-        "safe": "Aucun terme non autorisé dans le {{count}} contenu lu ({{language}}).",
-        "safe_plural": "Aucun terme non autorisé dans les {{count}} contenus lus ({{language}}).",
-        "safe_one": "Aucun terme non autorisé dans le {{count}} contenu lu ({{language}}).",
-        "safe_other": "Aucun terme non autorisé dans les {{count}} contenus lus ({{language}}).",
-        "issues": "{{count}} occurrence d'un terme non autorisé, dans {{contents}} contenu(s) ({{language}}).",
-        "issues_plural": "{{count}} occurrences de termes non autorisés, dans {{contents}} contenu(s) ({{language}}).",
-        "issues_one": "{{count}} occurrence d'un terme non autorisé, dans {{contents}} contenu(s) ({{language}}).",
-        "issues_other": "{{count}} occurrences de termes non autorisés, dans {{contents}} contenu(s) ({{language}}).",
-        "noGlossary": "Aucun glossaire ne s'applique à la langue {{language}} : rien n'a été contrôlé."
+        "safe": "Aucun terme à changer dans le {{count}} contenu lu ({{language}}).",
+        "safe_plural": "Aucun terme à changer dans les {{count}} contenus lus ({{language}}).",
+        "safe_one": "Aucun terme à changer dans le {{count}} contenu lu ({{language}}).",
+        "safe_other": "Aucun terme à changer dans les {{count}} contenus lus ({{language}}).",
+        "issues": "{{count}} terme à changer, dans {{contents}} contenu(s) ({{language}}).",
+        "issues_plural": "{{count}} termes à changer, dans {{contents}} contenu(s) ({{language}}).",
+        "issues_one": "{{count}} terme à changer, dans {{contents}} contenu(s) ({{language}}).",
+        "issues_other": "{{count}} termes à changer, dans {{contents}} contenu(s) ({{language}}).",
+        "noGlossary": "Aucune règle de terme ne s'applique à la langue {{language}} : rien n'a été contrôlé."
       },
       "banner": {
         "beforePublishing": {
@@ -1734,8 +1734,8 @@
           "message": "Remplacez ou supprimez chaque terme ci-dessous avant de publier. Cette version du contrôle signale les termes : elle ne bloque pas la publication."
         },
         "noGlossary": {
-          "title": "Aucun glossaire pour la langue {{language}}",
-          "message": "Créez un glossaire de conformité dans les contenus du site (jContent, Dossiers de contenu), choisissez la langue {{language}} et ajoutez-y les termes non autorisés."
+          "title": "Aucune règle de terme pour la langue {{language}}",
+          "message": "Créez un dossier de règles dans les contenus du site (jContent, Dossiers de contenu), puis ajoutez-y les règles de terme de la langue {{language}}, comme les termes interdits."
         },
         "notFramed": {
           "title": "Listes non incluses",
@@ -1747,11 +1747,11 @@
         }
       },
       "glossaries": {
-        "applied": "Glossaires appliqués :",
-        "item": "{{title}} ({{count}} terme)",
-        "item_plural": "{{title}} ({{count}} termes)",
-        "item_one": "{{title}} ({{count}} terme)",
-        "item_other": "{{title}} ({{count}} termes)"
+        "applied": "Dossiers de règles appliqués :",
+        "item": "{{title}} ({{count}} règle)",
+        "item_plural": "{{title}} ({{count}} règles)",
+        "item_one": "{{title}} ({{count}} règle)",
+        "item_other": "{{title}} ({{count}} règles)"
       },
       "origin": {
         "reference": "Contenu réutilisé",
@@ -1766,8 +1766,9 @@
         "term": "Terme",
         "reason": "Motif",
         "alternative": "Écrire plutôt",
-        "listLabel": "Termes non autorisés trouvés, par contenu",
-        "glossary": "Glossaire"
+        "listLabel": "Termes à changer, par contenu",
+        "glossary": "Dossier",
+        "rule": "Règle"
       },
       "dashboard": {
         "navLabel": "Conformité",

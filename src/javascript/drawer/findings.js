@@ -96,20 +96,24 @@ export function auditFindings(results, t) {
 }
 
 /**
- * The findings of a compliance report: one per term, however often it is used.
+ * The findings of a compliance report: one per rule, however often the page breaks it. The key of a
+ * finding is the id of its rule, such as `compliance.click-here`.
  *
- * @param {object} report the page scan (`{issues: [{term}]}`)
+ * @param {object} report the page scan (`{issues: [{ruleId, severity, term}]}`)
  * @param {Function} t the section's translation function (`compliance.` prefix)
- * @returns {Array<object>} findings, all serious
+ * @returns {Array<object>} findings, with the severity of their rule
  */
 export function complianceFindings(report, t) {
-    const uses = new Map();
-    (report?.issues || []).forEach(issue => uses.set(issue.term, (uses.get(issue.term) || 0) + 1));
-    return [...uses].map(([term, count]) => ({
-        key: `compliance.${term}`,
+    const byRule = new Map();
+    (report?.issues || []).forEach(issue => {
+        const found = byRule.get(issue.ruleId);
+        byRule.set(issue.ruleId, {issue: found?.issue || issue, count: (found?.count || 0) + 1});
+    });
+    return [...byRule].map(([ruleId, {issue, count}]) => ({
+        key: ruleId,
         section: 'compliance',
         tab: null,
-        severity: 'serious',
-        title: t('fixFirst.term', {term, count})
+        severity: issue.severity || 'serious',
+        title: t('fixFirst.term', {term: issue.term, count})
     }));
 }
