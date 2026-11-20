@@ -44,8 +44,9 @@ import java.util.Set;
  * findings under the same rule ids. The drawer and the GEO site scan still run their own checks.
  *
  * <p>A render reads the workspace of the session, as its user: in {@code default}, the content that
- * is not published yet. The caller renders inside its session, then checks the HTML outside it. The
- * render also reads, in the session, the state of the content and of its internal links.</p>
+ * is not published yet. The caller renders inside its session, then checks the HTML outside it.
+ * {@link #renderWithState} also reads, in the session, the state of the content and of its internal
+ * links, which the checks of links and of Jahia health need. {@link #render} reads the HTML only.</p>
  *
  * <p>Thread-safety: stateless.</p>
  */

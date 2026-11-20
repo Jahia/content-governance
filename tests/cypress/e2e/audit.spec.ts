@@ -217,8 +217,8 @@ describe('Content Governance - Page quality audit', () => {
 
         // The heading is content of the page: it is marked in the page under edit
         cy.contains(`${outline} li`, 'Outline detail').find('button').click();
-        cy.get('iframe[data-sel-role="page-builder-frame-active"]').its('0.contentDocument.body').contains('h3', 'Outline detail')
-            .should($heading => expect($heading[0].style.outline, 'marked').to.contain('3px'));
+        cy.get('iframe[data-sel-role="page-builder-frame-active"]').its('0.contentDocument.body').find('h3')
+            .filter(':contains("Outline detail")').should($heading => expect($heading[0].style.outline, 'marked').to.contain('3px'));
     });
 
     READABILITY.forEach(({lang, expect}) => {
@@ -250,9 +250,13 @@ describe('Content Governance - Page quality audit', () => {
             expect(expected, 'the page breaks some rules').to.include('html.headingEmpty');
             const shown: string[] = [];
             ['accessibility', 'seo', 'readability', 'links', 'jahia'].forEach(tab => {
-                cy.get(`#audit-tab-${tab}`).click();
-                cy.get('#audit-tab-panel code').each($code => {
-                    shown.push($code.text());
+                // The selected tab takes no pointer event
+                cy.get(`#audit-tab-${tab}`).click({force: true});
+                // A tab with no recommendation has no rule id
+                cy.get('#audit-tab-panel').then($panel => {
+                    $panel.find('code').each((index, code) => {
+                        shown.push(code.textContent || '');
+                    });
                 });
             });
             cy.wrap(shown).should(ids => expect(ids).to.include.members(expected));
@@ -274,7 +278,7 @@ describe('Content Governance - Page quality audit', () => {
             });
         });
         cy.intercept('POST', '**/modules/graphql', req => {
-            if (req.body?.operationName === 'ContentGovernanceCheckPage') {
+            if (JSON.stringify(req.body).includes('ContentGovernanceCheckPage')) {
                 req.reply({statusCode: 500, body: {errors: [{message: 'cg-test failure'}]}});
             }
         });

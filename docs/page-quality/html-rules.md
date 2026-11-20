@@ -10,8 +10,10 @@ These callers use the service, and get the same findings under the same rule ids
 
 - the GraphQL field `checkPage(path, language)`, which the drawer of **Page quality** calls;
 - the tool `frame.check`, with a `path` instead of a `text`;
-- the tool `audit.accessibility`;
 - the GraphQL field `checkText` with the scope `PAGE`, on an HTML text that the caller gives.
+
+The tool `audit.accessibility` calls the service too, and keeps only the findings of the HTML rules
+and of the rules `seo.title` and `seo.metaDescription`.
 
 `checkPage` also returns the facts that the tabs of the drawer show, as
 [`architecture.md`](architecture.md#the-server-check) states. Three checks of the drawer stay in the

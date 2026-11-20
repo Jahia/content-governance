@@ -300,10 +300,10 @@ checked** and the Jahia log gives the reason.
 
 The checks only Jahia can do.
 
-- **Page summary**: the number of content items analysed and the site languages checked. The page
-  itself is listed as `/` when it has changes that are not published.
+- **Page summary**: the number of content items analysed and the site languages checked.
 - **Content not visible to visitors**: content items of the page that are modified, never
-  published, unpublished, marked for deletion or in conflict. Publish the page to align what
+  published, unpublished, marked for deletion or in conflict. The page itself is listed as `/`
+  when it has changes that are not published. Publish the page to align what
   visitors see with what you edit.
 - **Missing translations**: content items with text in some site languages and not in others. Open
   each one and fill in the missing languages.
