@@ -22,7 +22,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Converts the rules of an older version of the module, once, when the module starts.
+ * Converts the rules of an older version of the module, once, when the module starts on the processing
+ * server, as {@link RuleSeeder#activate} states.
  *
  * <ul>
  *   <li>The folder {@code contents/content-insights/jahia} of the first catalog becomes the folder of
