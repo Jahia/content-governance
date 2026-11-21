@@ -266,8 +266,9 @@ severity, set it again on the node of the kept id.
   rule gives its `evaluator` and `blocking` there too.
 - The SEO assist reads the ranges of `seo.title` and `seo.metaDescription`, and states them in its
   prompt.
-- The editorial frame reads the rules of the evaluator `pattern` from the live workspace.
-  `frame.check` reports their matches, and the prompt of a model carries them.
+- The editorial frame reads the rules of the evaluator `pattern` from the live workspace, and the
+  prompt of a model carries them. `frame.check` runs the rules of the edit workspace through the
+  check registry, as the Compliance scan does.
 - A rule with no node, and a site that cannot be read, use the values that the module ships.
 
 Each finding carries the id of its rule: `rule` on a recommendation of Page quality, and `rule` on a
