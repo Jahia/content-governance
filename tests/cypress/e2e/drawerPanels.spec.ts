@@ -115,6 +115,8 @@ describe('Content Governance - the panels of the drawer', () => {
         visitPage();
         cy.get(GOVERNANCE_BUTTON).click();
         cy.get(DRAWER).within(() => {
+            // A tab mounts, and reports its findings to "Fix first", on its first visit
+            cy.get(`#content-governance-section-${TEST_TAB}`).click();
             cy.get(FIX_FIRST).contains('button', 'Show').click();
             cy.get(FIX_FIRST).contains('li', 'Test tab: a critical finding').contains('button', 'Open in the test panel').click();
             cy.get(TITLE).should('have.text', PANEL);
