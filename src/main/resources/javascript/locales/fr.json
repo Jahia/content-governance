@@ -719,10 +719,13 @@
       "report": {
         "title": "Le rapport rédigé",
         "intro": "Tout le reste de ce tableau de bord est mesuré, et le dit. Cet onglet demande à un modèle de lire ces mesures et d'écrire ce qu'elles signifient : où en est le site pour les robots d'IA, quoi corriger d'abord, qui peut le faire, et dans quel ordre. Il ne répond que sur demande, car chaque réponse est payante et prend du temps.",
+        "unreachableTitle": "L'onglet du rapport n'a pas joint le serveur",
+        "unreachable": "Le serveur a refusé ou n'a pas répondu à la demande d'état du rapport. Cela ne dit rien du modèle d'IA. Réessayez, ou rechargez la page.",
+        "retry": "Réessayer",
         "notConfiguredTitle": "Aucun modèle d'IA disponible",
-        "notConfigured": "Installez genai-connector et donnez un modèle à son niveau balanced pour activer cet onglet. Rien ne quitte le serveur d'ici là.",
+        "notConfigured": "Le rapport rédigé vient du module AI Assistant. Installez-le et donnez-lui un modèle pour activer cet onglet. Rien ne quitte le serveur d'ici là.",
         "provider": "Rédigé par {{provider}} · {{model}}",
-        "privacy": "Le modèle reçoit les mesures de ce site via genai-connector : scores, identifiants des contrôles en échec, chemins et titres des pages, décomptes. Jamais le contenu des pages.",
+        "privacy": "Le modèle reçoit les mesures de ce site via l'AI Assistant : scores, identifiants des contrôles en échec, chemins et titres des pages, décomptes. Jamais le contenu des pages.",
         "generate": "Rédiger le rapport",
         "regenerate": "Rédiger à nouveau",
         "generating": "Rédaction…",
@@ -794,9 +797,8 @@
           "owner": "Responsable : {{owner}}",
           "effort": "Effort : {{effort}}"
         },
-        "notConfiguredTab": "Aucun modèle d'IA n'est disponible pour vous sur ce site.",
         "noAccessTitle": "Pas d'accès à l'IA",
-        "noAccess": "Vous n'avez pas accès à l'IA sur ce site. Un administrateur du site accorde la permission genaiAccess."
+        "noAccess": "Vous n'avez pas accès à l'IA sur ce site. Demandez-le à un administrateur du site."
       },
       "fetchError": {
         "ConnectException": "Le serveur n'a pas pu ouvrir de connexion vers cette adresse ({{error}}). Un serveur Jahia Cloud, par exemple, ne peut pas joindre sa propre adresse publique : demandez à l'autoriser, ou réglez PUBLIC_BASE_URL sur une adresse que le serveur peut joindre.",
@@ -1046,20 +1048,20 @@
         "loading": "Chargement de l'aperçu…",
         "analyzing": "Analyse de la page…",
         "error": "L'analyse a échoué",
-        "staleTitle": "Page modifiée depuis cet audit"
+        "staleTitle": "Page modifiée depuis cet audit",
+        "legacyTitle": "Audit enregistré par une version antérieure",
+        "legacy": "Cet audit date d'avant que chaque constat prenne son texte de sa règle : il montre ses anciens textes. Relancez-le pour lire les textes des règles.",
+        "runAgain": "Relancer"
       },
       "tabs": {
         "accessibility": "Accessibilité",
         "seo": "SEO",
         "links": "Liens",
         "jahia": "Jahia",
-        "ai": "Revue IA",
         "vitals": "Web Vitals",
         "readability": "Lisibilité",
         "ecodesign": "Écoconception",
-        "badgeTooltip": "{{count}} points à corriger",
-        "aiNotConfigured": "Aucun modèle d'IA n'est disponible sur ce serveur.",
-        "aiNoAccess": "Vous n'avez pas accès à l'IA sur ce site (genaiAccess)."
+        "badgeTooltip": "{{count}} points à corriger"
       },
       "eco": {
         "score": "Critères de page respectés",
@@ -1177,50 +1179,6 @@
           }
         }
       },
-      "copy": {
-        "action": "Copier",
-        "done": "Copié"
-      },
-      "ai": {
-        "intro": "Envoie le texte de la page et les constats de l'audit à {{provider}} ({{model}}) via genai-connector, et renvoie des recommandations classées et faciles à appliquer. Ce module ne détient aucune clé d'API.",
-        "generate": "Générer la revue IA",
-        "regenerate": "Régénérer",
-        "generating": "Analyse de la page par l'IA… quelques secondes.",
-        "summary": "Évaluation globale",
-        "error": "La revue IA a échoué",
-        "poweredBy": "Généré par {{provider}} · {{model}}",
-        "usage": "Tokens : {{input}} entrée / {{output}} sortie",
-        "truncated": "La réponse a atteint sa limite de longueur : certaines recommandations peuvent manquer.",
-        "cost": "Coût estimé : {{cost}} $",
-        "disclaimer": "Suggestions générées par IA : à relire avant application.",
-        "fix": "Correction proposée",
-        "categories": {
-          "content": "Contenu",
-          "seo": "SEO",
-          "accessibility": "Accessibilité",
-          "performance": "Performance",
-          "ux": "UX",
-          "proofreading": "Orthographe",
-          "factuality": "Exactitude",
-          "consistency": "Cohérence",
-          "conversion": "Conversion",
-          "localization": "Localisation",
-          "legal": "Juridique",
-          "ecodesign": "Écoconception"
-        },
-        "errors": {
-          "unauthenticated": "Votre session a expiré. Reconnectez-vous, puis réessayez.",
-          "crossOrigin": "La requête a été refusée car elle ne venait pas de ce Jahia. Rechargez la page, puis réessayez.",
-          "noAccess": "Vous ne pouvez plus lire cette page : l'IA ne peut donc pas la relire.",
-          "switchedOff": "Un administrateur du site a désactivé cette fonction pour ce site.",
-          "notConfigured": "Aucun modèle d'IA n'est disponible sur ce serveur.",
-          "rateLimited": "Vous avez atteint le nombre de requêtes d'IA autorisées en dix minutes. Réessayez un peu plus tard.",
-          "invalidRequest": "La requête n'a pas pu être lue. Rechargez la page, puis réessayez.",
-          "upstream": "Le fournisseur d'IA n'a pas répondu. Réessayez dans un instant ; si cela persiste, prévenez un administrateur du serveur.",
-          "budget": "Le modèle d'IA a atteint sa limite de longueur avant de finir sa réponse. Réessayez ; si le problème persiste, prévenez un administrateur du serveur.",
-          "genaiAccess": "Vous n'avez pas accès à l'IA sur ce site. Un administrateur du site accorde la permission genaiAccess."
-        }
-      },
       "jahia": {
         "summary": "Synthèse de la page",
         "pageStatus": "Statut de publication de la page",
@@ -1259,10 +1217,6 @@
           "placeholderText": {
             "title": "{{count}} textes de remplissage sur la page",
             "detail": "Du lorem ipsum / TODO est encore visible. Remplacez-le par le contenu final avant publication."
-          },
-          "graphqlUnavailable": {
-            "title": "Les vérifications du référentiel n'ont pas pu s'exécuter",
-            "detail": "La requête GraphQL a échoué : les contrôles de publication et de traduction ont été ignorés. Les contrôles sur la page restent valides."
           }
         }
       },
@@ -1277,26 +1231,6 @@
         "jsonLdValue": "{{count}} bloc(s), {{errors}} erreur(s)",
         "hreflangValue": "{{count}} lien(s) de langue alternative",
         "imageAltValue": "{{missing}} images sur {{total}} sans alt",
-        "assist": {
-          "title": "Suggestions IA",
-          "intro": "Propositions de titre, meta description, mots-clés et titres de section prêtes à coller, rédigées dans la langue de la page ({{language}}) par {{provider}} à partir de ce que la page dit réellement. Copiez-les dans les propriétés SEO de la page ou dans le contenu des titres - rien n'est modifié automatiquement.",
-          "generate": "Suggérer avec l'IA",
-          "regenerate": "Regénérer les suggestions",
-          "generating": "Rédaction des suggestions… cela prend quelques secondes.",
-          "error": "Échec des suggestions IA",
-          "titles": "Balise title",
-          "descriptions": "Meta description",
-          "social": "Partage social (Open Graph)",
-          "socialHint": "og:title et og:description pour la carte de partage sur les réseaux sociaux et messageries - à renseigner dans les propriétés sociales/SEO de la page.",
-          "keywords": "Mots-clés",
-          "keywordsHint": "Mot-clé principal (foncé) et termes associés à intégrer dans les titres et le texte. Les moteurs ignorent la balise meta keywords : utilisez-les pour guider la rédaction, pas comme balise.",
-          "focus": "Mot-clé principal",
-          "ctas": "Libellés des appels à l'action",
-          "ctasHint": "Les libellés génériques (« En savoir plus », « Cliquez ici », « Envoyer ») n'apprennent rien aux visiteurs ni aux moteurs. Choisissez un libellé précis et appliquez-le au lien ou au bouton dans l'éditeur de contenu.",
-          "headings": "Réécriture des titres",
-          "headingsHint": "Les titres font partie du contenu : modifiez le composant de titre dans l'éditeur de contenu, pas les propriétés SEO.",
-          "missingHeading": "Pas de h1 sur la page - proposition :"
-        },
         "fields": {
           "title": "Titre",
           "description": "Meta description",
@@ -1376,11 +1310,13 @@
         "internal": "Internes",
         "external": "Externes",
         "checked": "{{count}} vérifiés",
-        "skipped": "{{count}} ignorés (login/logout/actions)",
-        "truncated": "{{count}} non vérifiés (limite atteinte)",
-        "externalNote": "les liens externes ne sont pas vérifiés (restriction cross-origin du navigateur)",
+        "skipped": "{{count}} non vérifiés (pas de chemin de page, comme une URL vanity)",
+        "externalNote": "les liens externes ne sont pas vérifiés ici",
         "broken": "Liens cassés",
-        "statusError": "erreur",
+        "reasons": {
+          "missing": "Absent",
+          "not_published": "Non publié"
+        },
         "recs": {
           "brokenLinks": {
             "title": "{{count}} liens internes cassés",
@@ -1391,8 +1327,8 @@
             "detail": "Les liens écrits avec le http(s)://hôte complet cassent au changement d'environnement ou de domaine. Utilisez des liens de page internes."
           },
           "mixedContent": {
-            "title": "{{count}} liens http:// sur une page https",
-            "detail": "Les navigateurs signalent ou bloquent le contenu mixte. Passez ces URL en https."
+            "title": "{{count}} liens en http://",
+            "detail": "Un navigateur signale ou bloque une adresse http:// sur une page servie en https, et la connexion du visiteur n'y est pas chiffrée. Passez ces adresses en https."
           },
           "blankNoopener": {
             "title": "{{count}} liens target=\"_blank\" sans rel=\"noopener\"",
@@ -1402,22 +1338,12 @@
       },
       "recs": {
         "title": "Recommandations",
-        "none": "Rien à améliorer dans cette catégorie."
+        "none": "Rien à améliorer dans cette catégorie.",
+        "rule": "Règle {{rule}} ({{count}})",
+        "items": "Constats ({{count}})",
+        "notFound": "Élément introuvable"
       },
       "a11y": {
-        "alt": {
-          "title": "Texte alternatif IA",
-          "intro": "{{count}} image(s) sans attribut alt. Propose un texte alternatif rédigé dans la langue de la page ({{language}}) à partir de l'image et de son contexte, à coller dans le champ alt de l'image dans l'éditeur de contenu. Les images purement décoratives sont identifiées pour leur donner un alt vide.",
-          "generate": "Suggérer les textes alternatifs",
-          "regenerate": "Regénérer les textes alternatifs",
-          "generating": "Description des images… cela prend quelques secondes.",
-          "error": "Échec des suggestions de texte alternatif",
-          "decorative": "Décorative - utiliser un alt vide",
-          "noPicture": "décrite d'après le contexte seulement",
-          "noVision": "Remarque : aucun modèle ne lit les images sur ce serveur, les suggestions viennent donc seulement des noms de fichiers et du texte voisin. Le niveau vision de genai-connector permet à un modèle de voir l'image.",
-          "noAnswer": "Aucune suggestion renvoyée pour cette image.",
-          "more": "{{count}} autre(s) image(s) sans alt n'ont pas été envoyées (8 par requête) - corrigez celles-ci, relancez l'audit puis suggérez de nouveau."
-        },
         "levels": {
           "A": "WCAG A",
           "AA": "WCAG AA",
@@ -1507,7 +1433,11 @@
               "detail": "Les formulaires complexes offrent une aide ou des instructions là où l'utilisateur en a besoin (WCAG 3.3.5)."
             }
           }
-        }
+        },
+        "serverRules": "Règles du catalogue vérifiées sur le serveur",
+        "siteSeverity": "Site : {{severity}}",
+        "siteSeverityHelp": "La gravité que le site donne à cette règle dans son catalogue",
+        "axeImpactHelp": "L'impact qu'axe-core donne à ce contrôle"
       },
       "vitals": {
         "labNote": "Chiffres indicatifs : la page est mesurée sur son aperçu d'édition, dans votre navigateur et avec votre session ; ils ne correspondent donc pas au site en ligne (ni cache, ni CDN). Utilisez-les pour comparer avant et après une modification. Ce qui alourdit la page, ci-dessous, est identique sur le site en ligne.",
@@ -1554,7 +1484,8 @@
             "title": "{{count}} fichiers très lourds (ex. {{name}})",
             "detail": "Minifiez, compressez ou découpez ces ressources, ou chargez-les uniquement là où elles servent."
           }
-        }
+        },
+        "findingsInEcodesign": "Les constats sur le poids, les requêtes et les images s'affichent dans l'onglet Écoconception."
       },
       "dashboard": {
         "navLabel": "Qualité de la page",
@@ -1596,17 +1527,6 @@
         "failed": "Il s'est arrêté sur une erreur ({{message}}) ; les autres onglets affichent leurs résultats. Relancez l'analyse."
       },
       "readability": {
-        "simplify": {
-          "title": "Réécritures en langage clair (IA)",
-          "intro": "Le score pénalise les phrases longues ({{count}} de plus de 25 mots). Réécrit jusqu'à 6 des phrases de paragraphe les plus difficiles en langage clair ({{language}}) - mêmes faits, phrases plus courtes, mots courants - à coller à la place de l'original dans l'éditeur de contenu.",
-          "generate": "Réécrire les phrases les plus difficiles",
-          "regenerate": "Regénérer les réécritures",
-          "generating": "Réécriture en cours… cela prend quelques secondes.",
-          "error": "Échec des réécritures en langage clair",
-          "words": "{{count}} mots",
-          "noAnswer": "Aucune réécriture renvoyée pour cette phrase.",
-          "more": "{{count}} autre(s) phrase(s) longue(s) n'ont pas été envoyées (6 par requête) - corrigez celles-ci, relancez l'audit puis réécrivez de nouveau."
-        },
         "score": "Score de lisibilité",
         "bands": {
           "veryEasy": "Très facile",
@@ -1685,19 +1605,18 @@
         }
       },
       "tabHelp": {
-        "accessibility": "Contrôles WCAG automatiques avec axe-core : problèmes par gravité, points à vérifier à la main et textes alternatifs proposés par l'IA pour les images qui n'en ont pas.",
-        "seo": "Titre, méta-description, indexation, adresse canonique, carte de partage sur les réseaux, données structurées et textes des liens, avec des formulations proposées par l'IA.",
+        "accessibility": "Contrôles WCAG automatiques avec axe-core : problèmes par gravité et points à vérifier à la main.",
+        "seo": "Titre, méta-description, indexation, adresse canonique, carte de partage sur les réseaux, données structurées et textes des liens.",
         "vitals": "Chiffres de chargement indicatifs de l'aperçu d'édition, et ce qui alourdit la page.",
-        "readability": "La facilité de lecture du texte dans sa langue : score, phrases longues et titres, avec des réécritures plus simples proposées par l'IA.",
+        "readability": "La facilité de lecture du texte dans sa langue : score, phrases longues et titres.",
         "ecodesign": "Contrôles d'écoconception du référentiel RGESN : poids de la page, requêtes, images, polices, médias et services tiers.",
         "links": "Liens internes cassés, adresses écrites en entier, contenu mixte et liens ouvrant une nouvelle fenêtre sans protection.",
-        "jahia": "Les contrôles que seul Jahia peut faire : contenus non publiés sur la page, traductions manquantes, libellés bruts et textes de remplissage.",
-        "ai": "Une revue du texte de la page par le modèle d'IA que fournit genai-connector, avec chaque remarque et la formulation exacte à changer."
+        "jahia": "Les vérifications que seul Jahia peut faire : contenu non publié sur la page, traductions manquantes, libellés bruts et textes provisoires, et les vérifications qu'ajoutent d'autres modules."
       }
     },
     "compliance": {
       "fixFirst": {
-        "term": "Terme interdit « {{term}} » ({{count}})"
+        "term": "Terme à changer « {{term}} » ({{count}})"
       },
       "action": {
         "open": "Contrôle de conformité"
@@ -1718,15 +1637,15 @@
         "noGlossary": "Non contrôlée"
       },
       "summary": {
-        "safe": "Aucun terme non autorisé dans le {{count}} contenu lu ({{language}}).",
-        "safe_plural": "Aucun terme non autorisé dans les {{count}} contenus lus ({{language}}).",
-        "safe_one": "Aucun terme non autorisé dans le {{count}} contenu lu ({{language}}).",
-        "safe_other": "Aucun terme non autorisé dans les {{count}} contenus lus ({{language}}).",
-        "issues": "{{count}} occurrence d'un terme non autorisé, dans {{contents}} contenu(s) ({{language}}).",
-        "issues_plural": "{{count}} occurrences de termes non autorisés, dans {{contents}} contenu(s) ({{language}}).",
-        "issues_one": "{{count}} occurrence d'un terme non autorisé, dans {{contents}} contenu(s) ({{language}}).",
-        "issues_other": "{{count}} occurrences de termes non autorisés, dans {{contents}} contenu(s) ({{language}}).",
-        "noGlossary": "Aucun glossaire ne s'applique à la langue {{language}} : rien n'a été contrôlé."
+        "safe": "Aucun terme à changer dans le {{count}} contenu lu ({{language}}).",
+        "safe_plural": "Aucun terme à changer dans les {{count}} contenus lus ({{language}}).",
+        "safe_one": "Aucun terme à changer dans le {{count}} contenu lu ({{language}}).",
+        "safe_other": "Aucun terme à changer dans les {{count}} contenus lus ({{language}}).",
+        "issues": "{{count}} terme à changer, dans {{contents}} contenu(s) ({{language}}).",
+        "issues_plural": "{{count}} termes à changer, dans {{contents}} contenu(s) ({{language}}).",
+        "issues_one": "{{count}} terme à changer, dans {{contents}} contenu(s) ({{language}}).",
+        "issues_other": "{{count}} termes à changer, dans {{contents}} contenu(s) ({{language}}).",
+        "noGlossary": "Aucune règle de terme ne s'applique à la langue {{language}} : rien n'a été contrôlé."
       },
       "banner": {
         "beforePublishing": {
@@ -1734,8 +1653,8 @@
           "message": "Remplacez ou supprimez chaque terme ci-dessous avant de publier. Cette version du contrôle signale les termes : elle ne bloque pas la publication."
         },
         "noGlossary": {
-          "title": "Aucun glossaire pour la langue {{language}}",
-          "message": "Créez un glossaire de conformité dans les contenus du site (jContent, Dossiers de contenu), choisissez la langue {{language}} et ajoutez-y les termes non autorisés."
+          "title": "Aucune règle de terme pour la langue {{language}}",
+          "message": "Créez un dossier de règles dans les contenus du site (jContent, Dossiers de contenu), puis ajoutez-y les règles de terme de la langue {{language}}, comme les termes interdits."
         },
         "notFramed": {
           "title": "Listes non incluses",
@@ -1747,11 +1666,11 @@
         }
       },
       "glossaries": {
-        "applied": "Glossaires appliqués :",
-        "item": "{{title}} ({{count}} terme)",
-        "item_plural": "{{title}} ({{count}} termes)",
-        "item_one": "{{title}} ({{count}} terme)",
-        "item_other": "{{title}} ({{count}} termes)"
+        "applied": "Dossiers de règles appliqués :",
+        "item": "{{title}} ({{count}} règle)",
+        "item_plural": "{{title}} ({{count}} règles)",
+        "item_one": "{{title}} ({{count}} règle)",
+        "item_other": "{{title}} ({{count}} règles)"
       },
       "origin": {
         "reference": "Contenu réutilisé",
@@ -1766,8 +1685,9 @@
         "term": "Terme",
         "reason": "Motif",
         "alternative": "Écrire plutôt",
-        "listLabel": "Termes non autorisés trouvés, par contenu",
-        "glossary": "Glossaire"
+        "listLabel": "Termes à changer, par contenu",
+        "glossary": "Dossier",
+        "rule": "Règle"
       },
       "dashboard": {
         "navLabel": "Conformité",
@@ -1819,11 +1739,6 @@
       }
     },
     "common": {
-      "ai": {
-        "generate": "Générer avec l'IA",
-        "notConfigured": "L'IA n'est pas disponible sur ce serveur. Un administrateur du serveur installe genai-connector et donne un modèle à son niveau balanced.",
-        "noAccess": "Vous n'avez pas accès à l'IA sur ce site. Un administrateur du site accorde la permission genaiAccess."
-      },
       "sectionOff": {
         "title": "Désactivé pour ce site",
         "message": "Un administrateur du site a désactivé cette section dans les Paramètres du site, Gouvernance des contenus."
@@ -1868,7 +1783,7 @@
       "nothingAvailable": "Aucune section de Gouvernance des contenus ne peut être utilisée sur ce contenu.",
       "entryFailed": "Cet onglet, ajouté par un autre module, n'a pas pu s'afficher.",
       "sectionHelp": {
-        "audit": "Contrôle la page que vous modifiez : accessibilité, SEO, vitesse, lisibilité, écoconception, liens et contenus Jahia, avec des suggestions de l'IA à la demande.",
+        "audit": "Contrôle la page que vous modifiez : accessibilité, SEO, vitesse, lisibilité, écoconception, liens et contenus Jahia.",
         "geo": "Si les assistants IA et leurs robots peuvent lire et citer la page publiée : score, accès des robots, fichiers du site, données structurées et citations par les IA.",
         "compliance": "Les termes des glossaires du site que cette page, et les contenus qu'elle affiche, ne doivent pas employer dans cette langue."
       }
@@ -1879,7 +1794,6 @@
       "notEnabled": "Content Governance n'est pas activé sur ce site, ou vous n'en êtes pas administrateur. Activez le module dans les Paramètres du site, Modules.",
       "panelTab": {
         "features": "Fonctionnalités",
-        "ai": "Modèle d'IA",
         "botrank": "BotRank"
       },
       "save": "Enregistrer",
@@ -1892,30 +1806,14 @@
       "saved": "Les contributeurs voient le changement à la prochaine ouverture du panneau.",
       "intro": "Choisissez ce que les contributeurs de ce site trouvent dans le panneau Gouvernance des contenus. Une section désactivée désactive aussi son tableau de bord (l'entrée reste et l'indique), et le serveur refuse ses appels. Les onglets gardent leur réglage tant que leur section est désactivée.",
       "sectionHelp": {
-        "audit": "Accessibilité, SEO, Web Vitals, lisibilité, écoconception, liens et contrôles Jahia de la page, mesurés dans le navigateur, avec une revue par l'IA à la demande.",
+        "audit": "Accessibilité, SEO, Web Vitals, lisibilité, écoconception, liens et contrôles Jahia de la page, mesurés dans le navigateur.",
         "geo": "Si les robots des IA peuvent lire la page, les fichiers du site (robots.txt, llms.txt), les données structurées et les citations par les IA issues de BotRank. Aussi le tableau de bord Préparation GEO, sous Supplémentaire, SEO.",
         "compliance": "Les termes des glossaires du site que la page et ce qu'elle affiche ne doivent pas employer, par langue. Aussi le tableau de bord Conformité, sous Supplémentaire."
       },
       "sectionSwitch": "Section {{section}}",
       "on": "Activée",
       "off": "Désactivée",
-      "needsAi": "IA indisponible",
-      "needsBotRank": "Nécessite une connexion BotRank",
-      "ai": {
-        "title": "Modèle des fonctions d'IA",
-        "configured": "Configuré",
-        "notConfigured": "Indisponible",
-        "provider": "Fournisseur",
-        "model": "Modèle",
-        "images": "Lit les images (textes alternatifs)",
-        "yes": "Oui",
-        "no": "Non",
-        "howTo": "genai-connector fournit le modèle de chaque fonction d'IA. Tant qu'un administrateur du serveur ne l'a pas installé et n'a pas donné de modèle à son niveau balanced, chaque fonction d'IA reste grisée et rien ne quitte le serveur.",
-        "uses": "Utilisé par l'onglet Revue IA, les assistants SEO, textes alternatifs et langage clair, et le rapport rédigé du tableau de bord Préparation GEO.",
-        "noAccess": "Pas d'accès",
-        "howToAccess": "Vous n'avez pas la permission genaiAccess sur ce site : les fonctions d'IA sont donc grisées pour vous. Un administrateur du site l'accorde par un rôle.",
-        "servedBy": "genai-connector détient le fournisseur, la clé et le modèle de chaque niveau. Un administrateur du serveur les règle dans sa configuration, pas dans ce module."
-      }
+      "needsBotRank": "Nécessite une connexion BotRank"
     }
   }
 }

@@ -23,8 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The Page quality audit fields of the module's query and mutation types: permissions first
- * ({@link AuditAccess}), then the store ({@link AuditHistoryService}).
+ * The fields of the module's query and mutation types that read and store the runs of the tabs of
+ * the drawer: permissions first ({@link AuditAccess}), then the store ({@link AuditHistoryService}).
  *
  * <p>Thread-safety: stateless.</p>
  */
@@ -56,7 +56,7 @@ public final class AuditFields {
                                    DataFetchingEnvironment environment) {
         AuditAccess.count(environment, "saveAudit", MAX_SAVES_PER_REQUEST);
         String user = AuditAccess.user();
-        AuditAccess.Target target = AuditAccess.page(path, language);
+        AuditAccess.Target target = AuditAccess.page(path, language, AuditHistoryService.AUDIT_TAB);
         JSONObject checked;
         try {
             checked = AuditResults.parse(results);
@@ -74,18 +74,53 @@ public final class AuditFields {
     }
 
     /**
+     * Stores the findings that a tab of the drawer found on a page as the latest run of that tab.
+     *
+     * @param service     the audit store
+     * @param path        path of the page
+     * @param language    content language of the findings
+     * @param tab         id of the tab, which the site keeps on; never {@code audit}
+     * @param findings    the findings as a JSON array
+     * @param environment the request, to refuse repeated saves in one request
+     * @return the stored run, without its findings
+     */
+    public static GqlAuditRun saveFindings(AuditHistoryService service, String path, String language, String tab,
+                                           String findings, DataFetchingEnvironment environment) {
+        AuditAccess.count(environment, "saveFindings", MAX_SAVES_PER_REQUEST);
+        String user = AuditAccess.user();
+        if (AuditHistoryService.AUDIT_TAB.equals(tab)) {
+            throw new DataFetchingException("Page quality stores its audits with saveAudit");
+        }
+        AuditAccess.Target target = AuditAccess.page(path, language, tab);
+        JSONObject checked;
+        try {
+            checked = AuditResults.parseFindings(findings);
+        } catch (IllegalArgumentException e) {
+            throw new DataFetchingException(e.getMessage());
+        }
+        try {
+            return new GqlAuditRun(service.saveFindings(target.site().getPath(), target.page().getIdentifier(), language, tab,
+                    user, checked));
+        } catch (RepositoryException e) {
+            logger.warn("could not store the findings of {}: {}", forLog(path), e.toString());
+            throw new DataFetchingException("The findings could not be stored");
+        }
+    }
+
+    /**
      * @param service     the audit store
      * @param path        path of a page
      * @param language    content language
+     * @param tab         id of the tab, {@code audit} for Page quality
      * @param environment the request, to bound the reads of one request
-     * @return the stored audits of the page, newest first, the newest with its results
+     * @return the stored runs of the tab on the page, newest first, the newest with what it stores
      */
-    public static List<GqlAuditRun> history(AuditHistoryService service, String path, String language,
+    public static List<GqlAuditRun> history(AuditHistoryService service, String path, String language, String tab,
                                             DataFetchingEnvironment environment) {
         AuditAccess.count(environment, "pageAudits", MAX_PAGE_READS_PER_REQUEST);
-        AuditAccess.Target target = AuditAccess.page(path, language);
+        AuditAccess.Target target = AuditAccess.page(path, language, tab);
         try {
-            return service.history(target.site().getPath(), target.page().getIdentifier(), language).stream()
+            return service.history(target.site().getPath(), target.page().getIdentifier(), language, tab).stream()
                     .map(GqlAuditRun::new).toList();
         } catch (RepositoryException e) {
             logger.warn("could not read the audits of {}: {}", forLog(path), e.toString());

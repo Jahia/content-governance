@@ -5,9 +5,10 @@ import {useSelector} from 'react-redux';
 import {useNodeChecks} from '@jahia/data-helper';
 import {useSiteSettings} from '../common/useSiteSettings';
 import {MODULE, OPEN_DRAWER_EVENT} from '../common/module';
+import {drawerTabs} from './entries';
 
-// The drawer and its three sections load apart from jContent's start: fetched when the browser is
-// idle once the button shows, and at the latest on the first click.
+// The drawer loads apart from jContent's start: fetched when the browser is idle once the button
+// shows, and at the latest on the first click. Each tab loads the first time the drawer shows it.
 const loadDrawer = () => import('./GovernanceDrawer');
 const GovernanceDrawer = lazy(() => loadDrawer().then(module => ({default: module.GovernanceDrawer})));
 
@@ -20,11 +21,23 @@ function whenIdle(callback) {
     return () => clearTimeout(timer);
 }
 
-const SECTION_ORDER = ['audit', 'geo', 'compliance'];
+/**
+ * Why the page cannot use a tab, or undefined when it can: a tab may need a page (not another main
+ * resource) and write access to it.
+ */
+function unavailable(entry, isPage, canWrite) {
+    if (entry.requirePage && !isPage) {
+        return 'notPage';
+    }
+    if (entry.requireWrite && !canWrite) {
+        return 'noWrite';
+    }
+    return undefined;
+}
 
 /**
  * The header button of Page Builder and jContent, on a page or a main resource of a site that
- * enables the module and keeps at least one section switched on.
+ * enables the module and keeps at least one tab of the drawer switched on.
  */
 export const GovernanceAction = ({path, language, render: Render, ...rest}) => {
     const [open, setOpen] = useState(null);
@@ -38,7 +51,7 @@ export const GovernanceAction = ({path, language, render: Render, ...rest}) => {
         {path: pagePath},
         {showOnNodeTypes: ['jnt:page', 'jmix:mainResource'], requireModuleInstalledOnSite: [MODULE]}
     );
-    // The compliance scan reads a page and everything it shows, as someone who may edit it.
+    // A tab may need a page, and write access to it (drawer/entries.js)
     const {checksResult: isPage} = useNodeChecks({path: pagePath}, {showOnNodeTypes: ['jnt:page']});
     const {checksResult: canWrite} = useNodeChecks({path: pagePath}, {requiredPermission: ['jcr:write']});
     const {settings, isOn} = useSiteSettings(checksResult ? siteKey : null);
@@ -68,16 +81,10 @@ export const GovernanceAction = ({path, language, render: Render, ...rest}) => {
         return null;
     }
 
-    const sections = SECTION_ORDER.filter(id => isOn(id)).map(id => {
-        if (id === 'compliance' && !isPage) {
-            return {id, unavailable: 'notPage'};
-        }
-        if (id === 'compliance' && !canWrite) {
-            return {id, unavailable: 'noWrite'};
-        }
-        return {id};
-    });
-    if (sections.length === 0) {
+    // Every tab of the registry that the site keeps on, in the order of their priority
+    const tabs = drawerTabs().filter(entry => isOn(entry.key))
+        .map(entry => ({id: entry.key, entry, unavailable: unavailable(entry, isPage, canWrite)}));
+    if (tabs.length === 0) {
         return null;
     }
 
@@ -88,7 +95,7 @@ export const GovernanceAction = ({path, language, render: Render, ...rest}) => {
                 <Suspense fallback={null}>
                     <GovernanceDrawer path={pagePath}
                                       language={lang}
-                                      sections={sections}
+                                      tabs={tabs}
                                       initialSection={open.section}
                                       settings={settings}
                                       isOn={isOn}

@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Small text functions of the frame: plain text from HTML, token estimates, digests. */
+/** Small text functions of the frame: plain text from HTML, digests. */
 public final class Texts {
 
     private static final Pattern TAG = Pattern.compile("<[^>]{0,2000}>");
@@ -56,11 +56,6 @@ public final class Texts {
         return NAMED.getOrDefault(name.toLowerCase(java.util.Locale.ROOT), whole);
     }
 
-    /** An estimate of the tokens of a text: four characters a token. */
-    public static int tokens(String text) {
-        return text == null ? 0 : (text.length() + 3) / 4;
-    }
-
     /** The first 12 hexadecimal characters of the SHA-256 of a text. */
     public static String digest(String text) {
         try {
@@ -73,41 +68,5 @@ public final class Texts {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 is missing", e);
         }
-    }
-
-    /** The first line of a Markdown text, without its heading marks, at most 160 characters. */
-    public static String firstLine(String markdown) {
-        if (markdown == null) {
-            return "";
-        }
-        for (String line : markdown.split("\n")) {
-            String trimmed = line.replaceFirst("^[#>*\\-\\s]+", "").trim();
-            if (!trimmed.isEmpty()) {
-                return trimmed.length() > 160 ? trimmed.substring(0, 157) + "..." : trimmed;
-            }
-        }
-        return "";
-    }
-
-    /** A text without the character {@code edge} at its start and at its end, however often it repeats there. */
-    public static String trim(String text, char edge) {
-        int start = 0;
-        int end = text.length();
-        while (start < end && text.charAt(start) == edge) {
-            start++;
-        }
-        while (end > start && text.charAt(end - 1) == edge) {
-            end--;
-        }
-        return text.substring(start, end);
-    }
-
-    /** True when a text holds a character that hides text from a reader: zero width or bidirectional. */
-    public static boolean hasInvisibleCharacters(String text) {
-        if (text == null) {
-            return false;
-        }
-        return text.codePoints().anyMatch(c -> (c >= 0x200B && c <= 0x200F) || (c >= 0x202A && c <= 0x202E)
-                || (c >= 0x2066 && c <= 0x2069) || c == 0xFEFF || (c >= 0xE0000 && c <= 0xE007F));
     }
 }

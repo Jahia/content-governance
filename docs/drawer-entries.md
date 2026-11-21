@@ -2,11 +2,17 @@
 
 Another module can add two kinds of entry to the drawer of content governance:
 
-- a tab in the section bar, after the sections of content governance,
+- a tab in the section bar,
 - an action on a finding.
 
-A module adds an entry to the registry of jContent (`@jahia/ui-extender`) when jContent starts. If no
-module adds an entry, the drawer shows its own sections only.
+A module adds an entry to the registry of jContent (`@jahia/ui-extender`) when jContent starts. The
+sections of content governance are tabs of the same registry, at the priorities 1, 2 and 3. Their
+keys are `audit` for Page quality, `geo` for GEO readiness and `compliance`. A tab that another module
+adds gets what these sections get:
+
+- a switch in the site settings, which a site administrator turns off,
+- its serious findings in "Fix first",
+- a history of its findings per page and language.
 
 Example: the AI assistant adds the action "Fix with the assistant" to each finding. On a Jahia with
 no AI assistant, the action is not there.
@@ -19,7 +25,7 @@ Each entry receives three values from the drawer.
 |---|---|
 | `path` | The path of the page or the main resource in the drawer, such as `/sites/digitall/home`. |
 | `language` | The language of the content in the Jahia form, such as `en` or `zh_CN`. |
-| `findings` | The list of the findings that the checks of the drawer found so far. |
+| `findings` | The list of the findings that the tabs of the drawer found so far. |
 
 ### A finding
 
@@ -29,8 +35,8 @@ A finding is an object with these fields:
 |---|---|
 | `rule` | The id of the rule that the finding reports, such as `audit.seo.shortTitle`. |
 | `key` | The key of the finding. It is unique in the list. |
-| `section` | The section that found it: `audit`, `geo` or `compliance`. |
-| `tab` | The tab of the section that shows the finding, or `null` for a section with no tabs. |
+| `section` | The key of the tab that found it, such as `audit`, `geo`, `compliance` or the key of a tab of another module. |
+| `tab` | The part of that tab that shows the finding, or `null` for a tab with no parts. |
 | `severity` | `critical`, `serious`, `moderate` or `minor`, as axe-core names its impacts. |
 | `title` | What is wrong, translated into the language of the editor's interface. |
 | `detail` | What to do, translated. Only a finding of Page quality has this field. |
@@ -43,6 +49,7 @@ Today the id of a rule has one of these forms:
   `audit.seo.shortTitle`.
 - `geo.<tab>`: a tab of GEO readiness that has something to review, such as `geo.crawler`.
 - `compliance.<term>`: a term of a site glossary that the page uses.
+- The key that a tab of another module gives its finding.
 
 These ids can change. The issue
 [content-governance#70](https://github.com/Jahia/content-governance/issues/70) gives each rule one
@@ -54,8 +61,8 @@ A section runs its checks the first time the drawer shows it, and the drawer ope
 section. The list therefore grows while the editor opens the other sections. Each time the list
 changes, the drawer renders each entry again with the new list.
 
-The list holds the findings of the sections that the page can use. A section that is greyed out in
-the section bar adds no finding.
+The list holds the findings of the tabs that the page can use. A tab that is greyed out in the
+section bar adds no finding.
 
 ## Add a tab
 
@@ -69,6 +76,7 @@ registry.add('contentGovernanceDrawerTab', 'myModuleReview', {
     targets: ['contentGovernanceDrawer:10'],
     label: 'my-module:drawer.review.label',
     help: 'my-module:drawer.review.help',
+    tabs: [{id: 'summary', label: 'my-module:drawer.review.summary', help: 'my-module:drawer.review.summaryHelp'}],
     component: ReviewTab
 });
 ```
@@ -76,22 +84,77 @@ registry.add('contentGovernanceDrawerTab', 'myModuleReview', {
 | Field | Value |
 |---|---|
 | key | The id of the tab, as the second argument. Give a key that names your module. |
-| `targets` | `contentGovernanceDrawer:<priority>`. A lower priority puts the tab further to the left. |
+| `targets` | `contentGovernanceDrawer:<priority>`. A lower priority puts the tab further to the left. Use 10 or more to come after the sections of content governance. |
 | `label` | The name of the tab, as a translation key with its namespace. |
 | `help` | The tooltip of the tab, as a translation key. Without it, the tooltip shows the label. |
+| `settingsHelp` | What the site settings say about the tab, as a translation key. Without it, the settings show the help. |
+| `tabs` | The parts of the tab that the site settings switch on or off, in order. Each part is `{id, label, help}`, with translation keys. A part with no id or no label is left out. |
+| `requirePage` | `true` greys the tab out on a main resource that is not a page. |
+| `requireWrite` | `true` greys the tab out for an editor who cannot write the page. |
 | `component` | The React component that renders the content of the tab. |
 
-The drawer leaves out a tab whose key is `audit`, `geo` or `compliance`, and a tab with no label or no
-component.
+A key and the id of a part start with a letter, then hold letters, digits, `_` or `-`, at most 64
+characters in all. The site settings store these ids. The drawer leaves out a tab with another key,
+and a tab with no label or no component.
 
-The component receives `path`, `language` and `findings`, and one more prop:
+The component receives `path`, `language` and `findings`, and these props:
 
-- `onCount(count)` shows a count badge on the tab. A count of 0 removes the badge.
+| Prop | Value |
+|---|---|
+| `onCount(count)` | Shows a count badge on the tab. A count of 0 removes the badge. |
+| `onFindings(findings)` | Gives the findings of the tab to "Fix first" and to the other entries. Call it again each time they change. |
+| `isOn(part)` | `true` when the site keeps that part of the tab on. |
+| `saveFindings(findings)` | Stores the findings as the latest run of the tab on the page. It returns a promise of the stored run, or of `null` when the server refused it. |
+| `fetchHistory()` | Returns a promise of the stored runs of the tab on the page, newest first. |
+| `settings` | The site settings, such as `settings.disabled`, the ids of the tabs and parts that the site switched off. |
+| `requestedTab` | `{tab, at}` when "Fix first" opens a finding of the tab, so the tab shows the part `tab`. Otherwise `null`. |
+| `onClose()` | Closes the drawer. |
+| `onReopen()` | Opens the drawer again on this tab. |
 
 The tab mounts the first time the editor opens it, and it stays mounted while the drawer is open. The
 component can be a `React.lazy` component, and the drawer shows a loader while the code loads. If the
 component throws an error, the tab shows a message and the console shows the error. The other tabs
 of the drawer continue to work.
+
+### The site switch
+
+The site settings list every tab of the registry, with a switch for the tab and a switch for each of
+its parts. The site stores the ids that a site administrator switched off, so a new tab is on until
+then. A tab that the site switched off is not in the drawer. The server refuses to store or read its
+history.
+
+The drawer button shows when the site keeps at least one tab on, whatever module adds it.
+
+### "Fix first"
+
+"Fix first" lists the 5 most serious findings that are critical or serious, from the tabs that the
+page can use. Findings of the same severity keep the order of the tabs. The drawer sets the field
+`section` of each finding to the key of the tab, so "Open" in "Fix first" opens that tab. The tab
+then receives the `tab` of the finding in `requestedTab`.
+
+### The history
+
+`saveFindings(findings)` stores the findings as one run of the tab, for every editor of the site. A
+run holds these fields of a finding: `key`, `rule`, `tab`, `severity`, `title`, `detail` and `count`.
+The server keeps the last 10 runs of each tab, per page and language. It keeps at most 500 findings
+in a run, and cuts each text to 2000 characters.
+
+The GraphQL API reads the runs of a tab:
+
+```graphql
+query {
+  contentGovernance {
+    pageAudits(path: "/sites/digitall/home", language: "en", tab: "myModuleReview") {
+      tab auditedAt auditedBy
+      summary { counts { tab count } total }
+      results
+    }
+  }
+}
+```
+
+`summary.counts` holds one count, under the key of the tab. The newest run also has `results`, which is
+`{"findings": [...]}`. Without `tab`, `pageAudits` reads the runs of Page quality.
 
 ## Add an action on a finding
 
@@ -131,8 +194,8 @@ The actions of a finding show in three places:
 - after each recommendation of the tabs of Page quality,
 - in each accessibility violation of the Accessibility tab.
 
-A finding of GEO readiness or of Compliance shows its actions in "Fix first" only. "Fix first" lists
-the 5 most serious findings that are critical or serious.
+A finding of GEO readiness, of Compliance or of a tab of another module shows its actions in "Fix
+first" only. "Fix first" lists the 5 most serious findings that are critical or serious.
 
 If an action throws an error, that action disappears from the finding and the console shows the
 error. The other actions of the finding stay.
@@ -141,7 +204,3 @@ error. The other actions of the finding stay.
 
 - The drawer reads the registry when it opens. If a module adds an entry after that time, the entry
   shows the next time the editor opens the drawer.
-- The site settings of content governance do not list an added tab, so a site administrator cannot
-  switch it off there. The module that adds the tab decides what its component shows.
-- The button of the drawer shows only when the site keeps at least one section of content
-  governance switched on. An added tab does not make the button show.

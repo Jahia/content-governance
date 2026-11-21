@@ -5,11 +5,14 @@ import {useGovernanceTranslation} from '../../common/i18n';
 import {Recommendations} from './Recommendations';
 import styles from './Tabs.module.css';
 
-const selectorFor = href => {
-    const escaped = href.replaceAll('\\', '\\\\').replaceAll('"', String.raw`\"`);
-    return `a[href="${escaped}"]`;
+// A broken link names a path of the repository, which its address ends with (/cms/render/default/en/sites/...
+// .html), with no other page whose path starts with it: /sites/x/news, and never /sites/x/news-archive
+const selectorFor = path => {
+    const escaped = path.replaceAll('\\', '\\\\').replaceAll('"', String.raw`\"`);
+    return [`a[href$="${escaped}.html"]`, `a[href*="${escaped}.html?"]`, `a[href*="${escaped}.html#"]`, `a[href$="${escaped}"]`].join(', ');
 };
 
+/** The links of the page, as the rule links.broken reads them, and the internal links a visitor cannot open. */
 export function LinksTab({result, onHighlight}) {
     const {t} = useGovernanceTranslation('audit');
 
@@ -17,30 +20,32 @@ export function LinksTab({result, onHighlight}) {
         <div>
             <Recommendations items={result.recommendations} ns="links" tab="links"/>
 
-            <h4 className={styles.sectionTitle}>{t('links.summary')}</h4>
-            <ul className={styles.statList}>
-                <li>{t('links.total')}: <strong>{result.total}</strong></li>
-                <li>
-                    {t('links.internal')}: <strong>{result.internal}</strong>
-                    {' '}· {t('links.checked', {count: result.checked})}
-                    {result.skippedSideEffect > 0 && <span> · {t('links.skipped', {count: result.skippedSideEffect})}</span>}
-                    {result.truncated > 0 && <span className={styles.warn}> · {t('links.truncated', {count: result.truncated})}</span>}
-                </li>
-                <li>{t('links.external')}: <strong>{result.external}</strong> · <span className={styles.note}>{t('links.externalNote')}</span></li>
-            </ul>
+            {result.total !== undefined && (
+                <>
+                    <h4 className={styles.sectionTitle}>{t('links.summary')}</h4>
+                    <ul className={styles.statList}>
+                        <li>{t('links.total')}: <strong>{result.total}</strong></li>
+                        <li>
+                            {t('links.internal')}: <strong>{result.internal}</strong>
+                            {result.checked !== null && <span> · {t('links.checked', {count: result.checked})}</span>}
+                            {result.skipped > 0 && <span> · {t('links.skipped', {count: result.skipped})}</span>}
+                        </li>
+                        <li>{t('links.external')}: <strong>{result.external}</strong> · <span className={styles.note}>{t('links.externalNote')}</span></li>
+                    </ul>
+                </>
+            )}
 
-            {result.broken.length > 0 && (
+            {result.broken?.length > 0 && (
                 <>
                     <h4 className={styles.sectionTitle}>{t('links.broken')}</h4>
                     {result.broken.map(link => (
-                        <div key={link.url} className={styles.rec}>
+                        <div key={link.path} className={styles.rec}>
                             <span className={`${styles.impact} ${styles.impact_critical}`}>
-                                {link.status === 0 ? t('links.statusError') : link.status}
+                                {t(`links.reasons.${link.reason}`, link.reason)}
                             </span>
                             <div className={styles.recBody}>
-                                <div className={styles.recTitle}>{link.text || link.href}</div>
-                                <div className={styles.recDetail}>{link.url}</div>
-                                <Button size="small" variant="outlined" label={t('a11y.highlight')} onClick={() => onHighlight(selectorFor(link.href))}/>
+                                <div className={styles.recTitle}>{link.path}</div>
+                                <Button size="small" variant="outlined" label={t('a11y.highlight')} onClick={() => onHighlight(selectorFor(link.path))}/>
                             </div>
                         </div>
                     ))}
@@ -52,6 +57,8 @@ export function LinksTab({result, onHighlight}) {
 }
 
 LinksTab.propTypes = {
+    // The values of the rule links.broken, none when the site turned it off: {total, internal, external, checked,
+    // skipped, broken: [{path, reason}]}, and the recommendations
     result: PropTypes.object.isRequired,
     onHighlight: PropTypes.func.isRequired
 };

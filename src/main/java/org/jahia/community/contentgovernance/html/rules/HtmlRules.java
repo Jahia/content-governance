@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The checks of each {@link HtmlRule}, on HTML that needs no browser engine. Colour contrast, keyboard
@@ -28,8 +30,15 @@ public final class HtmlRules {
     private static final String TITLE = "title";
     /** Link texts that say nothing about the target, in the three languages of the jContent screens. */
     private static final Set<String> VAGUE_LINK_TEXTS = Set.of("click here", "here", "read more", "more", "learn more",
-            "cliquez ici", "ici", "en savoir plus", "lire la suite", "plus", "hier klicken", "hier", "mehr",
-            "weiterlesen", "mehr erfahren");
+            "link", "see more", "view more", "submit", "send", "go", "ok", "continue", "next",
+            "cliquez ici", "ici", "en savoir plus", "lire la suite", "plus", "voir plus", "découvrir", "envoyer",
+            "soumettre", "valider", "continuer", "suivant",
+            "hier klicken", "hier", "mehr", "weiterlesen", "mehr erfahren");
+    /**
+     * From the first letter or digit to the last one. An expression anchored at the end, such as
+     * {@code [^\p{L}\p{N}]+$}, backtracks on a long run of signs (Sonar S5852); this one reads the text once.
+     */
+    private static final Pattern LABEL = Pattern.compile("[\\p{L}\\p{N}](?:.*[\\p{L}\\p{N}])?", Pattern.DOTALL);
 
     private HtmlRules() {
     }
@@ -40,7 +49,7 @@ public final class HtmlRules {
      * @param expectedLanguage the language of the content, such as {@code en}, or {@code null}
      * @return the findings, at most {@link #MAX_FINDINGS}
      */
-    public static List<Finding> check(Document html, Scope scope, String expectedLanguage) {
+    public static List<HtmlFinding> check(Document html, Scope scope, String expectedLanguage) {
         Findings findings = new Findings(scope);
         if (scope == Scope.PAGE) {
             checkPage(html, expectedLanguage, findings);
@@ -67,7 +76,7 @@ public final class HtmlRules {
             String name = accessibleName(link);
             if (name.isEmpty()) {
                 findings.add(HtmlRule.LINK_NAME_MISSING, link);
-            } else if (VAGUE_LINK_TEXTS.contains(name.toLowerCase(Locale.ROOT))) {
+            } else if (vague(name)) {
                 findings.add(HtmlRule.LINK_TEXT_VAGUE, link);
             }
         }
@@ -109,14 +118,6 @@ public final class HtmlRules {
                 .startsWith(expectedLanguage.toLowerCase(Locale.ROOT).substring(0, 2))) {
             findings.add(HtmlRule.PAGE_LANGUAGE_MISMATCH, root);
         }
-        Element title = page.selectFirst("head title");
-        if (title == null || title.text().isBlank()) {
-            findings.add(HtmlRule.PAGE_TITLE_MISSING, title == null ? page.head() : title);
-        }
-        Element description = page.selectFirst("meta[name=description]");
-        if (description == null || description.attr("content").isBlank()) {
-            findings.add(HtmlRule.PAGE_DESCRIPTION_MISSING, description == null ? page.head() : description);
-        }
     }
 
     private static void checkHeadings(Document html, Findings findings) {
@@ -155,6 +156,20 @@ public final class HtmlRules {
         });
     }
 
+    /**
+     * @param name the text of a link or of a button
+     * @return true when the text says nothing about the target, such as "Read more +"
+     */
+    private static boolean vague(String name) {
+        return VAGUE_LINK_TEXTS.contains(label(name).toLowerCase(Locale.ROOT));
+    }
+
+    /** A link text without what decorates it at either end: "Read more +" gives "Read more". */
+    static String label(String text) {
+        Matcher label = LABEL.matcher(text.replaceAll("\\s+", " "));
+        return label.find() ? label.group() : "";
+    }
+
     /** The text that a screen reader reads for an element, from its content and its labels. */
     static String accessibleName(Element element) {
         String label = element.attr(ARIA_LABEL).trim();
@@ -184,10 +199,22 @@ public final class HtmlRules {
         return "\"" + id.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 
+    /** A CSS selector of the element, which the drawer marks in its preview; null for no element. */
+    static String locatorOf(Element element) {
+        if (element == null) {
+            return null;
+        }
+        try {
+            return element.cssSelector();
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     /** The findings of one check: the rules of the scope only, up to the maximum. */
     private static final class Findings {
         private final Scope scope;
-        private final List<Finding> list = new ArrayList<>();
+        private final List<HtmlFinding> list = new ArrayList<>();
 
         Findings(Scope scope) {
             this.scope = scope;
@@ -201,7 +228,7 @@ public final class HtmlRules {
             if (snippet.length() > SNIPPET_CHARS) {
                 snippet = snippet.substring(0, SNIPPET_CHARS) + "…";
             }
-            list.add(new Finding(rule, snippet));
+            list.add(new HtmlFinding(rule, snippet, locatorOf(element)));
         }
     }
 }

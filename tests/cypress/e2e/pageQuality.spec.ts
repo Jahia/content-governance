@@ -14,7 +14,7 @@ import {
 
 const SAVE = `mutation S($path: String!, $language: String!, $results: String!) {
     contentGovernance { saveAudit(path: $path, language: $language, results: $results) {
-        auditedAt auditedBy summary { accessibility seo total }
+        tab auditedAt auditedBy summary { counts { tab count } total }
     } }
 }`;
 
@@ -24,9 +24,12 @@ const HISTORY = `query H($path: String!, $language: String!) {
 
 const SITE = `query D($siteKey: String!, $language: String!) {
     contentGovernance { siteAudits(siteKey: $siteKey, language: $language) {
-        pageCount pages { path title previousTotal lastAudit { auditedBy summary { accessibility seo vitals total } } }
+        pageCount pages { path title previousTotal lastAudit { auditedBy summary { counts { tab count } total } } }
     } }
 }`;
+
+/** The issues of a stored run by tab id, as `{accessibility: 2, seo: 3}`. */
+const countsOf = (summary: {counts: {tab: string; count: number}[]}) => Object.fromEntries(summary.counts.map(c => [c.tab, c.count]));
 
 const BUTTON = 'Content governance';
 const DRAWER = 'dialog[aria-labelledby="content-governance-drawer-title"]';
@@ -84,7 +87,9 @@ describe('Content Governance - shared Page quality audits', () => {
     it('stores an audit with counts computed on the server, and shows it to a colleague', () => {
         gqlOk(author, SAVE, {path: pagePath, language: 'en', results: results(2, 3)}).its('contentGovernance.saveAudit').should(run => {
             expect(run.auditedBy).to.eq(author.username);
-            expect(run.summary).to.deep.include({accessibility: 2, seo: 3, total: 5});
+            expect(run.tab).to.eq('audit');
+            expect(countsOf(run.summary)).to.deep.eq({accessibility: 2, seo: 3});
+            expect(run.summary.total).to.eq(5);
         });
         gqlOk(colleague, HISTORY, {path: pagePath, language: 'en'}).its('contentGovernance.pageAudits').should(runs => {
             expect(runs).to.have.length(1);
@@ -110,7 +115,8 @@ describe('Content Governance - shared Page quality audits', () => {
             expect(report.pageCount).to.be.greaterThan(1);
             const page = report.pages.find((p: {path: string}) => p.path === pagePath);
             expect(page.title).to.eq('Shared page');
-            expect(page.lastAudit.summary).to.deep.include({accessibility: 1, seo: 10, vitals: null, total: 11});
+            expect(countsOf(page.lastAudit.summary)).to.deep.eq({accessibility: 1, seo: 10});
+            expect(page.lastAudit.summary.total).to.eq(11);
             expect(page.previousTotal).to.eq(10);
         });
     });

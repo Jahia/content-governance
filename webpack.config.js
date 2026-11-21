@@ -49,10 +49,12 @@ module.exports = (env, argv) => {
             })),
             new CleanWebpackPlugin({verbose: false}),
             // app-shell discovers the remote through the "jahia.remotes" key of this file. axe-core is
-            // loaded into the preview frame of the Page quality section by URL, not bundled.
+            // loaded into the preview frame of the Page quality section by URL, not bundled, with the
+            // locales of the interface languages, so that its help texts read in the editor's language.
             new CopyWebpackPlugin({patterns: [
                 {from: './package.json', to: ''},
-                {from: './node_modules/axe-core/axe.min.js', to: 'axe.min.js'}
+                {from: './node_modules/axe-core/axe.min.js', to: 'axe.min.js'},
+                ...['fr', 'de', 'es'].map(language => ({from: `./node_modules/axe-core/locales/${language}.json`, to: `axe-locales/${language}.json`}))
             ]})
         ],
         mode: isProduction ? 'production' : 'development',

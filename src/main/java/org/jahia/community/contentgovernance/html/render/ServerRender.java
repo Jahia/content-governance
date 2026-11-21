@@ -25,8 +25,9 @@ import java.util.Locale;
  * the workspace of the session gets, as the user of the session, in its locale. Nothing reaches a
  * client, so a scheduled job and an AI agent can call it.
  *
- * <p>A page renders with its template. An item renders with its own view only, as a page includes
- * it, and the page that holds it is the main resource of the render.</p>
+ * <p>A page renders with its template, and so does a content item shown as its own page, such as a news
+ * item ({@code jmix:mainResource}). Another item renders with its own view only, as a page includes it,
+ * and the page that holds it is the main resource of the render.</p>
  *
  * <p>Thread-safety: stateless. The thread gets the user and the locale of the session for the time
  * of the render, because the views of Jahia read them there, and gets its own back after.</p>
@@ -34,6 +35,7 @@ import java.util.Locale;
 public final class ServerRender {
 
     private static final String PAGE_TYPE = "jnt:page";
+    private static final String MAIN_RESOURCE_TYPE = "jmix:mainResource";
     private static final String HTML = "html";
     private static final String DEFAULT_VIEW = "default";
     private static final String LOCAL_SERVER = "localhost";
@@ -41,9 +43,9 @@ public final class ServerRender {
     private ServerRender() {
     }
 
-    /** Whether the node renders as a whole page. */
+    /** Whether the node renders as a whole page: a page, or a content item shown as its own page. */
     public static boolean isPage(JCRNodeWrapper node) throws RepositoryException {
-        return node.isNodeType(PAGE_TYPE);
+        return node.isNodeType(PAGE_TYPE) || node.isNodeType(MAIN_RESOURCE_TYPE);
     }
 
     /**

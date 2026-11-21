@@ -1,40 +1,86 @@
-import React from 'react';
+import React, {useContext, useState} from 'react';
 import PropTypes from 'prop-types';
+import {Button} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../../common/i18n';
-import {auditFindingKey} from '../../drawer/findings';
+import {HighlightContext} from '../HighlightContext';
+import {auditFindingKey, recommendationId, recommendationText} from '../../drawer/findings';
 import {FindingActions} from '../../drawer/FindingActions';
 import styles from './Tabs.module.css';
 import {impactClass} from './impactClass';
 
 /**
- * Shared recommendations block: severity chip + what to fix + how, the id of the rule, and the
- * actions other modules add to the finding.
- * Items come from the analyzers as {key, rule, severity, params}; text lives in
- * the locale bundles under <ns>.recs.<key>.title / .detail, and the id of the rule is shown as is.
- * An audit stored before the catalog has no rule.
+ * "Highlight on the page" for a finding whose check gave a locator, and "Item not found" when the page
+ * has no such element any more, such as after an edit or on a page that a script changes.
  */
-export function Recommendations({items, ns, tab}) {
+function ItemHighlight({locator}) {
+    const {t} = useGovernanceTranslation('audit');
+    const highlight = useContext(HighlightContext);
+    const [missing, setMissing] = useState(false);
+    if (!highlight) {
+        return null;
+    }
+    return (
+        <span className={styles.itemAction}>
+            <Button size="small"
+                    variant="outlined"
+                    label={t('a11y.highlight')}
+                    onClick={() => setMissing(!highlight(locator))}/>
+            {missing && <output className={styles.notFound}>{t('recs.notFound')}</output>}
+        </span>
+    );
+}
+
+ItemHighlight.propTypes = {
+    locator: PropTypes.string.isRequired
+};
+
+/**
+ * Shared recommendations block: severity chip + what to fix + how, the id of the rule, each finding of
+ * the rule, and the actions other modules add to the finding.
+ * Items come from the check of the server or the analyzers as {key, rule, severity, params, items?, title,
+ * detail}: the texts come from the rule, in the editor's interface language, for a built-in rule and for a
+ * rule of another module alike. An audit stored by an older version has no title, and shows its old text.
+ */
+export function Recommendations({items, ns, tab, title}) {
     const {t} = useGovernanceTranslation('audit');
 
     return (
         <div className={styles.recList}>
-            <h4 className={styles.sectionTitle}>{t('recs.title')}</h4>
+            <h4 className={styles.sectionTitle}>{title || t('recs.title')}</h4>
             {items.length === 0 && (
                 <div className={styles.allGood}>{t('recs.none')}</div>
             )}
-            {items.map(rec => (
-                <div key={rec.key} className={styles.rec}>
-                    <span className={impactClass(rec.severity)}>
-                        {t(`a11y.impacts.${rec.severity}`)}
-                    </span>
-                    <div className={styles.recBody}>
-                        <div className={styles.recTitle}>{t(`${ns}.recs.${rec.key}.title`, rec.params)}</div>
-                        <div className={styles.recDetail}>{t(`${ns}.recs.${rec.key}.detail`, rec.params)}</div>
-                        {rec.rule && <code className={styles.recRule}>{rec.rule}</code>}
-                        <FindingActions findingKey={auditFindingKey(tab, rec.key)}/>
+            {items.map(rec => {
+                const text = recommendationText(rec, ns, t);
+                return (
+                    <div key={recommendationId(rec)} className={styles.rec}>
+                        <span className={impactClass(rec.severity)}>
+                            {t(`a11y.impacts.${rec.severity}`)}
+                        </span>
+                        <div className={styles.recBody}>
+                            <div className={styles.recTitle}>{text.title}</div>
+                            <div className={styles.recDetail}>{text.detail}</div>
+                            {rec.rule && <code className={styles.recRule}>{rec.rule}</code>}
+                            {rec.items?.length > 0 && (
+                                <details className={styles.recItems}>
+                                    <summary>{t('recs.items', {count: rec.items.length})}</summary>
+                                    <ul>
+                                        {rec.items.map((item, index) => (
+                                            /* eslint-disable-next-line react/no-array-index-key */
+                                            <li key={index}>
+                                                <code>{item.text}</code>
+                                                {item.context && <span className={styles.recDetail}> {item.context}</span>}
+                                                {item.locator && <ItemHighlight locator={item.locator}/>}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </details>
+                            )}
+                            <FindingActions findingKey={auditFindingKey(tab, recommendationId(rec))}/>
+                        </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 }
@@ -43,5 +89,7 @@ Recommendations.propTypes = {
     items: PropTypes.array.isRequired,
     ns: PropTypes.string.isRequired,
     // The tab's key in the results (`ecodesign` for the namespace `eco`)
-    tab: PropTypes.string.isRequired
+    tab: PropTypes.string.isRequired,
+    // The heading of the block, "Recommendations" when omitted
+    title: PropTypes.string
 };

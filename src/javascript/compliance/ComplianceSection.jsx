@@ -86,7 +86,9 @@ const IssueGroup = ({group, glossaryTitles, onEdit}) => {
                             <dd>{issue.term}</dd>
                             {issue.reason && <><dt>{t('issue.reason')}</dt><dd>{issue.reason}</dd></>}
                             {issue.alternative && <><dt>{t('issue.alternative')}</dt><dd>{issue.alternative}</dd></>}
-                            {glossaryTitles.size > 1 && <><dt>{t('issue.glossary')}</dt><dd>{glossaryTitles.get(issue.glossaryPath) || issue.glossaryPath}</dd></>}
+                            <dt>{t('issue.rule')}</dt>
+                            <dd>{issue.ruleId}</dd>
+                            {issue.folder && <><dt>{t('issue.glossary')}</dt><dd>{glossaryTitles.get(issue.folder) || issue.folder}</dd></>}
                         </dl>
                     </li>
                 ))}
@@ -146,11 +148,11 @@ const Report = ({report, framed, uiLanguage, onEdit}) => {
                 <div className={styles.glossaries}>
                     <Typography variant="caption" weight="bold">{t('glossaries.applied')}</Typography>
                     {report.glossaries.map(glossary => (
-                        <Button key={glossary.uuid}
+                        <Button key={glossary.path}
                                 variant="ghost"
                                 size="small"
                                 label={t('glossaries.item', {title: glossary.title, count: glossary.termCount})}
-                                isDisabled={!globalThis.CE_API?.edit}
+                                isDisabled={!globalThis.CE_API?.edit || !glossary.uuid}
                                 onClick={() => onEdit(glossary.uuid)}/>
                     ))}
                 </div>
@@ -173,7 +175,8 @@ Report.propTypes = {
 
 /**
  * The Compliance section of the drawer: the page and everything it shows, checked against the
- * site's glossaries of non-authorised terms for the language being edited. Runs when the section
+ * site's term rules (the rules of the evaluator pattern) for the language being edited, such as the
+ * terms of the legal team and the glossary of the brand. Runs when the section
  * first shows; editing a content closes the drawer, and it reopens on this section, scanned again,
  * when Content Editor closes.
  */

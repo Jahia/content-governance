@@ -5,7 +5,6 @@ import graphql.annotations.annotationTypes.GraphQLField;
 import graphql.annotations.annotationTypes.GraphQLName;
 import graphql.annotations.annotationTypes.GraphQLNonNull;
 import graphql.schema.DataFetchingEnvironment;
-import org.jahia.community.contentgovernance.ai.AiService;
 import org.jahia.community.contentgovernance.audit.graphql.AuditFields;
 import org.jahia.community.contentgovernance.audit.graphql.GqlAuditRun;
 import org.jahia.community.contentgovernance.audit.service.spi.AuditHistoryService;
@@ -30,10 +29,6 @@ public class GqlContentGovernanceMutation {
 
     private static final Logger logger = LoggerFactory.getLogger(GqlContentGovernanceMutation.class);
 
-    @Inject
-    @GraphQLOsgiService
-    private AiService ai;
-
     // graphql-java-annotations injects OSGi services into fields only (@GraphQLOsgiService)
     @SuppressWarnings("java:S6813")
     @Inject
@@ -41,27 +36,27 @@ public class GqlContentGovernanceMutation {
     private AuditHistoryService audits;
 
     /**
-     * Switches sections and tabs off on a site; every id not listed is switched on.
+     * Switches tabs of the drawer, and parts of tabs, off on a site; every id not listed is switched on.
      *
      * @param siteKey  key of the site
-     * @param disabled section ids ({@code geo}) and tab ids ({@code geo.citations}) to switch off;
-     *                 unknown ids are dropped
+     * @param disabled tab ids ({@code geo}) and part ids ({@code geo.citations}) to switch off, of any
+     *                 tab registered in the drawer; an id of another form is dropped
      * @return the settings as stored
      */
     @GraphQLField
     @GraphQLName("saveSiteSettings")
     @GraphQLNonNull
-    @GraphQLDescription("Stores which sections and tabs of the module a site switches off")
+    @GraphQLDescription("Stores which tabs of the drawer, and parts of tabs, a site switches off")
     public GqlSiteSettings saveSiteSettings(
             @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey,
-            @GraphQLName("disabled") @GraphQLNonNull @GraphQLDescription("Section and tab ids switched off") List<String> disabled) {
+            @GraphQLName("disabled") @GraphQLNonNull @GraphQLDescription("Ids of the tabs (geo) and parts of tabs (geo.citations) switched off") List<String> disabled) {
         JCRSiteNode site = SiteAccess.site(siteKey);
         if (!site.hasPermission(SiteFeatures.SETTINGS_PERMISSION) || !SiteFeatures.moduleEnabled(site)) {
             throw new DataFetchingException(SiteAccess.DENIED);
         }
         try {
             SiteFeatures.save(site.getPath(), disabled);
-            return GqlSiteSettings.of(site, ai);
+            return GqlSiteSettings.of(site);
         } catch (RepositoryException e) {
             logger.warn("could not save the content governance settings of {}: {}", siteKey, e.toString());
             throw new DataFetchingException("The settings could not be saved");
@@ -88,5 +83,29 @@ public class GqlContentGovernanceMutation {
             @GraphQLName("results") @GraphQLNonNull @GraphQLDescription("The audit results as JSON") String results,
             DataFetchingEnvironment environment) {
         return AuditFields.save(audits, path, language, results, environment);
+    }
+
+    /**
+     * Stores the findings of a tab of the drawer on a page, as the latest run of that tab.
+     *
+     * @param path        path of the page or main resource
+     * @param language    content language of the findings
+     * @param tab         id of the tab, which the site keeps on
+     * @param findings    the findings as a JSON array
+     * @param environment the request
+     * @return the stored run, without its findings
+     */
+    @GraphQLField
+    @GraphQLName("saveFindings")
+    @GraphQLNonNull
+    @GraphQLDescription("Stores the findings of a tab of the drawer as its latest run on a page, for every editor of the site")
+    public GqlAuditRun saveFindings(
+            @GraphQLName("path") @GraphQLNonNull @GraphQLDescription("Path of the page") String path,
+            @GraphQLName("language") @GraphQLNonNull @GraphQLDescription("Content language") String language,
+            @GraphQLName("tab") @GraphQLNonNull @GraphQLDescription("Id of the tab that found them") String tab,
+            @GraphQLName("findings") @GraphQLNonNull @GraphQLDescription("The findings as a JSON array of "
+                    + "{key, rule, tab, severity, title, detail, count}") String findings,
+            DataFetchingEnvironment environment) {
+        return AuditFields.saveFindings(audits, path, language, tab, findings, environment);
     }
 }

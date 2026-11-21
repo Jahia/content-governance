@@ -10,7 +10,7 @@ import org.jahia.community.contentgovernance.compliance.model.TermUsage;
  * GraphQL view of a {@link TermUsage}.
  */
 @GraphQLName("ComplianceTermUsage")
-@GraphQLDescription("How often a glossary term is used across a site")
+@GraphQLDescription("How often a rule of the evaluator pattern is broken across a site")
 public class GqlTermUsage {
 
     private final TermUsage usage;
@@ -20,27 +20,41 @@ public class GqlTermUsage {
         this.usage = usage;
     }
 
-    /** @return the glossary term */
+    /** @return the id of the rule */
+    @GraphQLField
+    @GraphQLNonNull
+    public String getRuleId() {
+        return usage.ruleId();
+    }
+
+    /** @return the pattern of the rule */
     @GraphQLField
     @GraphQLNonNull
     public String getTerm() {
         return usage.term();
     }
 
-    /** @return path of the glossary */
+    /** @return the folder of the rule */
     @GraphQLField
-    @GraphQLNonNull
-    public String getGlossaryPath() {
-        return usage.glossaryPath();
+    public String getFolder() {
+        return usage.folder();
     }
 
-    /** @return why the term may not be used */
+    /** @return the folder of the rule, or an empty path for a rule that a module ships and the site has no node of */
+    @GraphQLField
+    @GraphQLNonNull
+    @GraphQLDescription("The same as folder, or an empty path when the rule has no folder. Kept for the clients of version 1")
+    public String getGlossaryPath() {
+        return usage.folder() == null ? "" : usage.folder();
+    }
+
+    /** @return the advice of the rule */
     @GraphQLField
     public String getReason() {
         return usage.reason();
     }
 
-    /** @return suggested wording */
+    /** @return the replacement of the rule */
     @GraphQLField
     public String getAlternative() {
         return usage.alternative();

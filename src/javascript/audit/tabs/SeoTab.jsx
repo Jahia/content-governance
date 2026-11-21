@@ -2,11 +2,16 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../../common/i18n';
 import {Recommendations} from './Recommendations';
-import {SeoAssist} from './SeoAssist';
 import styles from './Tabs.module.css';
 
-export function SeoTab({result, assist}) {
+/** The SEO recommendations, and the sharing preview and the tag list that the rule seo.tags gives. */
+export function SeoTab({result}) {
     const {t} = useGovernanceTranslation('audit');
+
+    // A site that turns seo.tags off hides the preview and the tag list
+    if (!result.og) {
+        return <Recommendations items={result.recommendations} ns="seo" tab="seo"/>;
+    }
 
     const rows = [
         {key: 'title', ok: Boolean(result.title.text), value: result.title.text ? `${result.title.text} (${t('seo.chars', {count: result.title.length})})` : null},
@@ -26,8 +31,6 @@ export function SeoTab({result, assist}) {
     return (
         <div>
             <Recommendations items={result.recommendations} ns="seo" tab="seo"/>
-
-            <SeoAssist {...assist} ranges={result.ranges}/>
 
             <h4 className={styles.sectionTitle}>{t('seo.preview')}</h4>
             {(result.og.title || result.title.text) ? (
@@ -63,7 +66,5 @@ export function SeoTab({result, assist}) {
 }
 
 SeoTab.propTypes = {
-    result: PropTypes.object.isRequired,
-    // Props forwarded to <SeoAssist/> (AI status, suggestions, phase, callbacks)
-    assist: PropTypes.object.isRequired
+    result: PropTypes.object.isRequired
 };

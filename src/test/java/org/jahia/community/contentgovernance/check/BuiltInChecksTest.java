@@ -1,0 +1,109 @@
+package org.jahia.community.contentgovernance.check;
+
+import org.jahia.community.contentgovernance.check.spi.CheckInput;
+import org.jahia.community.contentgovernance.check.spi.CheckResult;
+import org.jahia.community.contentgovernance.check.spi.Finding;
+import org.jahia.community.contentgovernance.rules.ContentRule;
+import org.jahia.community.contentgovernance.rules.RuleValues;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class BuiltInChecksTest {
+
+    private static final String PATH = "/sites/digitall/home";
+
+    private static ContentRule rule(Map<String, Object> values) {
+        return RuleValues.toRule(values);
+    }
+
+    @Test
+    @DisplayName("threshold judges the value measured under the id of the rule against its limits")
+    void threshold_judgesTheMeasuredFact() {
+        ContentRule title = rule(Map.of(RuleValues.RULE_ID, "seo.title", RuleValues.EVALUATOR, "threshold",
+                RuleValues.SEVERITY, "serious", RuleValues.MINIMUM, 30.0, RuleValues.MAXIMUM, 60.0));
+        ThresholdCheck check = new ThresholdCheck();
+        CheckInput page = CheckInput.page(PATH, "en", "<html></html>");
+
+        assertThat(check.check(page.withFact("seo.title", 72), title))
+                .containsExactly(new Finding("seo.title", "serious", "72", null));
+        assertThat(check.check(page.withFact("seo.title", 45), title)).isEmpty();
+        assertThat(check.check(page, title)).as("nothing measured, nothing found").isEmpty();
+        assertThat(ThresholdCheck.text(0.5)).isEqualTo("0.5");
+    }
+
+    @Test
+    @DisplayName("a threshold result carries the values that the caller measured, else the measured number")
+    void threshold_resultCarriesTheValues() {
+        ContentRule title = rule(Map.of(RuleValues.RULE_ID, "seo.title", RuleValues.EVALUATOR, "threshold",
+                RuleValues.SEVERITY, "serious", RuleValues.MINIMUM, 30.0, RuleValues.MAXIMUM, 60.0));
+        ThresholdCheck check = new ThresholdCheck();
+        CheckInput page = CheckInput.page(PATH, "en", "<html></html>").withFact("seo.title", 72);
+
+        CheckResult measured = check.result(page.withValues("seo.title", Map.of("length", 72, "text", "Annual report")), title);
+        assertThat(measured.passed()).isFalse();
+        assertThat(measured.values()).containsExactlyInAnyOrderEntriesOf(Map.of("length", 72, "text", "Annual report"));
+        assertThat(measured.findings()).extracting(Finding::text).containsExactly("72");
+        assertThat(check.result(page, title).values()).containsExactlyEntriesOf(Map.of("value", 72));
+        assertThat(check.result(CheckInput.page(PATH, "en", ""), title))
+                .as("nothing measured: the rule passes with no value")
+                .isEqualTo(new CheckResult("seo.title", true, Map.of(), List.of()));
+    }
+
+    @Test
+    @DisplayName("presence gives a finding for false, 0, a blank text or an empty list, and none for an unmeasured fact")
+    void presence_findsWhatIsAbsent() {
+        ContentRule canonical = rule(Map.of(RuleValues.RULE_ID, "acme.canonical", RuleValues.EVALUATOR, "presence"));
+        PresenceCheck check = new PresenceCheck();
+        CheckInput page = CheckInput.page(PATH, "en", "");
+
+        for (Object absent : List.of(false, 0, " ", List.of())) {
+            assertThat(check.check(page.withFact("acme.canonical", absent), canonical)).as(String.valueOf(absent)).hasSize(1);
+        }
+        for (Object present : List.of(true, 2, "https://example.com/", List.of("a"))) {
+            assertThat(check.check(page.withFact("acme.canonical", present), canonical)).as(String.valueOf(present)).isEmpty();
+        }
+        assertThat(check.check(page, canonical)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("pattern checks the writing rule of the rule node on a value")
+    void pattern_checksTheWritingRule() {
+        ContentRule robust = rule(Map.of(RuleValues.RULE_ID, "writing.robust", RuleValues.EVALUATOR, "pattern",
+                RuleValues.SEVERITY, "moderate", RuleValues.KIND, "forbidden", RuleValues.PATTERN, "robust"));
+        PatternCheck check = new PatternCheck();
+
+        List<Finding> found = check.check(CheckInput.value(PATH, "en", "A robust and Robust tool, robustness aside."), robust);
+
+        assertThat(found).extracting(Finding::text).containsExactly("robust", "Robust");
+        assertThat(found.get(0).ruleId()).isEqualTo("writing.robust");
+        assertThat(found.get(0).context()).contains("A robust and");
+    }
+
+    @Test
+    @DisplayName("pattern skips a rule with no pattern, an unknown kind, or a validity that ended")
+    void pattern_skipsWhatItCannotCheck() {
+        PatternCheck check = new PatternCheck();
+        CheckInput value = CheckInput.value(PATH, "en", "A robust tool");
+
+        assertThat(check.check(value, rule(Map.of(RuleValues.RULE_ID, "w.none", RuleValues.EVALUATOR, "pattern")))).isEmpty();
+        assertThat(check.check(value, rule(Map.of(RuleValues.RULE_ID, "w.kind", RuleValues.EVALUATOR, "pattern",
+                RuleValues.PATTERN, "robust", RuleValues.KIND, "bogus")))).isEmpty();
+        assertThat(check.check(value, rule(Map.of(RuleValues.RULE_ID, "w.old", RuleValues.EVALUATOR, "pattern",
+                RuleValues.PATTERN, "robust", RuleValues.VALID_UNTIL, LocalDate.of(2020, 1, 1))))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("an input names the site of its path")
+    void input_namesItsSite() {
+        assertThat(CheckInput.value("/sites/digitall/home/main", "en", "x").siteKey()).isEqualTo("digitall");
+        assertThat(CheckInput.site("digitall").siteKey()).isEqualTo("digitall");
+        assertThat(CheckInput.value("/modules/x", "en", "x").siteKey()).isNull();
+        assertThat(CheckInput.value(null, "en", "x").siteKey()).isNull();
+    }
+}

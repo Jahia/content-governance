@@ -1,41 +1,40 @@
 import React, {Suspense, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import PropTypes from 'prop-types';
+import {useApolloClient} from '@apollo/client';
 import {Button, Close, Loader, Tab, TabItem, Typography} from '@jahia/moonstone';
 import {HelpTab} from '../common/HelpTab';
 import {useGovernanceTranslation} from '../common/i18n';
-import {AuditSection} from '../audit/AuditSection';
-import {GeoSection} from '../geo/GeoSection';
-import {ComplianceSection} from '../compliance/ComplianceSection';
+import {fetchPageAudits, saveFindings} from '../audit/auditHistory';
 import {FixFirst} from './FixFirst';
 import {entryFindings, isSerious, rankFindings} from './findings';
-import {addedTabs, findingActions} from './entries';
+import {findingActions} from './entries';
 import {DrawerEntryContext} from './DrawerEntryContext';
 import {EntryBoundary} from './EntryBoundary';
 import {useDock} from './useDock';
 import styles from './GovernanceDrawer.module.css';
 import {CountBadge} from '../common/CountBadge';
 
-const OWN_SECTIONS = ['audit', 'geo', 'compliance'];
-
 /**
- * The one drawer of the module: a header, one tab per section the site switched on, and the
- * sections themselves. A section mounts the first time it is shown and stays mounted while the
- * drawer is open, so switching back to it keeps its results and any AI answer still on its way.
+ * The one drawer of the module: a header, one tab per entry of the registry the site switched on
+ * (drawer/entries.js), and the content of those tabs. The module's own tabs register there too, so
+ * the drawer renders every tab the same way. A tab mounts the first time it is shown and stays
+ * mounted while the drawer is open, so switching back to it keeps its results and any answer
+ * still on its way.
  *
- * Sections the page cannot use (compliance on a content item that is not a page, or without write
+ * Tabs the page cannot use (compliance on a content item that is not a page, or without write
  * access) stay in the bar, greyed out, with the reason as a tooltip.
  *
- * Tabs that other modules add (drawer/entries.js) follow the module's own sections. They, and the
- * actions on a finding, read the page, the language and the findings from `DrawerEntryContext`.
+ * A tab, and the actions on a finding, read the page, the language and the findings from its props
+ * and from `DrawerEntryContext`.
  */
-export const GovernanceDrawer = ({path, language, sections, initialSection, settings, isOn, onClose, onReopen}) => {
+export const GovernanceDrawer = ({path, language, tabs, initialSection, settings, isOn, onClose, onReopen}) => {
     const {t} = useGovernanceTranslation('drawer');
     // An entry's labels are keys with their own namespace (`my-module:tab.label`)
     const {t: translate} = useGovernanceTranslation();
     // Read once per opening: modules add their entries when jContent starts
-    const added = useMemo(() => addedTabs(OWN_SECTIONS), []);
     const actions = useMemo(() => findingActions(), []);
-    const tabs = [...sections, ...added.map(entry => ({id: entry.key, entry}))];
+    // The client of jContent, with which a tab stores and reads its history
+    const client = useApolloClient();
     const usable = tabs.filter(s => !s.unavailable);
     const [active, setActive] = useState(() => (usable.find(s => s.id === initialSection) || usable[0] || {}).id);
     const [visited, setVisited] = useState(() => new Set(active ? [active] : []));
@@ -56,29 +55,35 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
         setCounts(c => (c[id] === count ? c : {...c, [id]: count}));
     }, []);
 
-    // Sections report on every change of their results: the same list again changes nothing.
+    // Tabs report on every change of their results: the same list again changes nothing. Each
+    // finding names the tab that found it, so "Fix first" opens that tab.
     const reportFindings = useCallback((id, list) => {
-        setFindings(f => (JSON.stringify(f[id] || []) === JSON.stringify(list) ? f : {...f, [id]: list}));
+        const own = (Array.isArray(list) ? list : []).map(finding => ({...finding, section: id}));
+        setFindings(f => (JSON.stringify(f[id] || []) === JSON.stringify(own) ? f : {...f, [id]: own}));
     }, []);
 
-    // Stable per section: a section keys its effects on these, so a new function on every render of
-    // the drawer would refetch on every render.
-    const scoped = useMemo(() => Object.fromEntries([...OWN_SECTIONS, ...added.map(entry => entry.key)].map(id => [id, {
-        isOn: tab => isOn(id, tab),
+    const ids = tabs.map(s => s.id).join(',');
+    // Stable per tab: a tab keys its effects on these, so a new function on every render of the
+    // drawer would refetch on every render.
+    const scoped = useMemo(() => Object.fromEntries(ids.split(',').map(id => [id, {
+        isOn: part => isOn(id, part),
         onCount: count => reportCount(id, count),
-        onFindings: list => reportFindings(id, list)
-    }])), [isOn, reportCount, reportFindings, added]);
+        onFindings: list => reportFindings(id, list),
+        onReopen: () => onReopen(id),
+        saveFindings: list => saveFindings(client, path, language, id, list),
+        fetchHistory: () => fetchPageAudits(client, path, language, id)
+    }])), [ids, isOn, reportCount, reportFindings, onReopen, client, path, language]);
 
-    // "Fix first" lists what is critical or serious only, sections in the drawer's order so findings
-    // of equal severity follow it; a section's count is red when it holds one of them
-    const ranked = useMemo(() => rankFindings(sections.filter(s => !s.unavailable)
-        .flatMap(s => findings[s.id] || [])
+    // "Fix first" lists what is critical or serious only, tabs in the drawer's order so findings of
+    // equal severity follow it; a tab's count is red when it holds one of them
+    const usableIds = usable.map(s => s.id).join(',');
+    const ranked = useMemo(() => rankFindings(usableIds.split(',')
+        .flatMap(id => findings[id] || [])
         .filter(finding => isSerious(finding.severity))),
-    [sections, findings]);
+    [usableIds, findings]);
 
-    // The same object while the findings and the usable sections stay the same, so an entry that
-    // keys an effect on it runs that effect again only when they change
-    const usableIds = sections.filter(s => !s.unavailable).map(s => s.id).join(',');
+    // The same object while the findings and the usable tabs stay the same, so an entry that keys
+    // an effect on it runs that effect again only when they change
     const entryContext = useMemo(() => ({path, language, findings: entryFindings(findings, usableIds.split(',')), actions}),
         [path, language, findings, usableIds, actions]);
     const hasSerious = id => (findings[id] || []).some(finding => isSerious(finding.severity));
@@ -89,7 +94,6 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
         }
     }, [select]);
     const requestedFor = id => (requested && requested.section === id ? requested : null);
-    const reopenCompliance = useCallback(() => onReopen('compliance'), [onReopen]);
 
     // A portal into document.body has no place in the page's focus order: take focus on open and
     // give it back on close.
@@ -119,63 +123,33 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
         return () => node.removeEventListener('keydown', onKeyDown);
     }, [onClose]);
 
-    const renderEntry = entry => {
+    const renderTab = ({id, entry}) => {
         const Entry = entry.component;
         return (
-            <EntryBoundary name={entry.key}
+            <EntryBoundary name={id}
                            fallback={<div className={styles.empty}><Typography>{t('entryFailed')}</Typography></div>}
             >
                 <Suspense fallback={<Loader size="small"/>}>
                     <Entry path={path}
                            language={language}
                            findings={entryContext.findings}
-                           onCount={scoped[entry.key].onCount}/>
+                           settings={settings}
+                           isOn={scoped[id].isOn}
+                           requestedTab={requestedFor(id)}
+                           onCount={scoped[id].onCount}
+                           onFindings={scoped[id].onFindings}
+                           saveFindings={scoped[id].saveFindings}
+                           fetchHistory={scoped[id].fetchHistory}
+                           onClose={onClose}
+                           onReopen={scoped[id].onReopen}/>
                 </Suspense>
             </EntryBoundary>
         );
     };
 
-    const renderSection = ({id, entry}) => {
-        if (entry) {
-            return renderEntry(entry);
-        }
-        switch (id) {
-            case 'audit':
-                return (
-                    <AuditSection path={path}
-                                  language={language}
-                                  isOn={scoped.audit.isOn}
-                                  ai={settings.ai}
-                                  onCount={scoped.audit.onCount}
-                                  onFindings={scoped.audit.onFindings}
-                                  requestedTab={requestedFor('audit')}/>
-                );
-            case 'geo':
-                return (
-                    <GeoSection path={path}
-                                language={language}
-                                isOn={scoped.geo.isOn}
-                                onCount={scoped.geo.onCount}
-                                onFindings={scoped.geo.onFindings}
-                                requestedTab={requestedFor('geo')}/>
-                );
-            case 'compliance':
-                return (
-                    <ComplianceSection path={path}
-                                       language={language}
-                                       onClose={onClose}
-                                       onReopen={reopenCompliance}
-                                       onCount={scoped.compliance.onCount}
-                                       onFindings={scoped.compliance.onFindings}/>
-                );
-            default:
-                return null;
-        }
-    };
-
-    // An added tab has its own label, and its help or else its label as tooltip
-    const label = section => (section.entry ? translate(section.entry.label) : t(`section.${section.id}`));
-    const help = section => (section.entry ? translate(section.entry.help || section.entry.label) : t(`sectionHelp.${section.id}`));
+    // A tab has its own label, and its help or else its label as tooltip
+    const label = section => translate(section.entry.label);
+    const help = section => translate(section.entry.help || section.entry.label);
 
     return (
         // A non-modal <dialog>, rendered `open` rather than through showModal(): showModal() makes it
@@ -245,7 +219,7 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
                          className={styles.section}
                          hidden={active !== section.id}
                     >
-                        {renderSection(section)}
+                        {renderTab(section)}
                     </div>
                 ))}
             </dialog>
@@ -256,8 +230,13 @@ export const GovernanceDrawer = ({path, language, sections, initialSection, sett
 GovernanceDrawer.propTypes = {
     path: PropTypes.string.isRequired,
     language: PropTypes.string.isRequired,
-    // [{id, unavailable?: 'notPage' | 'noWrite'}] in drawer order, switched-on sections only
-    sections: PropTypes.arrayOf(PropTypes.shape({id: PropTypes.string.isRequired, unavailable: PropTypes.string})).isRequired,
+    // [{id, entry, unavailable?: 'notPage' | 'noWrite'}] in drawer order, switched-on tabs only;
+    // `entry` is the registry entry of the tab (drawer/entries.js)
+    tabs: PropTypes.arrayOf(PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        entry: PropTypes.object.isRequired,
+        unavailable: PropTypes.string
+    })).isRequired,
     initialSection: PropTypes.string,
     settings: PropTypes.object.isRequired,
     isOn: PropTypes.func.isRequired,

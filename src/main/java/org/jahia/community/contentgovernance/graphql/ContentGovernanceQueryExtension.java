@@ -23,7 +23,7 @@ public final class ContentGovernanceQueryExtension {
     @GraphQLField
     @GraphQLName("contentGovernance")
     @GraphQLNonNull
-    @GraphQLDescription("Content Governance: which sections and tabs a site uses, and whether AI is configured")
+    @GraphQLDescription("Content Governance: which sections and tabs a site uses")
     public static GqlContentGovernance contentGovernance() {
         return new GqlContentGovernance();
     }
@@ -34,7 +34,7 @@ public final class ContentGovernanceQueryExtension {
     @GraphQLField
     @GraphQLName("complianceScan")
     @GraphQLNonNull
-    @GraphQLDescription("Content compliance scan: checks content against the site's glossaries of non-authorised terms")
+    @GraphQLDescription("Content compliance scan: checks content against the term rules of the site")
     public static GqlComplianceScan complianceScan() {
         return new GqlComplianceScan();
     }

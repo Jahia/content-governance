@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import {Button} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../../common/i18n';
 import {MANUAL_CHECKLIST} from './a11yChecklist';
-import {AltAssist} from './AltAssist';
+import {Recommendations} from './Recommendations';
 import {auditFindingKey} from '../../drawer/findings';
 import {FindingActions} from '../../drawer/FindingActions';
 import styles from './Tabs.module.css';
@@ -32,19 +32,25 @@ function levelScore(level, summary, violations) {
     };
 }
 
-function RuleDetails({rule, chip, onHighlight, findingKey}) {
+function RuleDetails({rule, chip, onHighlight, findingKey, siteSeverity}) {
     const {t} = useGovernanceTranslation('audit');
 
     return (
         <details className={styles.violation}>
             <summary className={styles.violationSummary}>
                 {chip}
+                {siteSeverity && (
+                    <span className={`${impactClass(siteSeverity)} ${styles.siteSeverity}`} title={t('a11y.siteSeverityHelp')}>
+                        {t('a11y.siteSeverity', {severity: t(`a11y.impacts.${siteSeverity}`)})}
+                    </span>
+                )}
                 <span className={styles.levelChip}>{rule.level}</span>
-                <span className={styles.violationHelp}>{rule.help}</span>
+                <span className={styles.violationHelp}>{rule.title || rule.help}</span>
                 <span className={styles.nodeCount}>{rule.totalNodes}</span>
             </summary>
             <div className={styles.violationBody}>
                 <p>{rule.description} (<a href={rule.helpUrl} target="_blank" rel="noreferrer">{rule.id}</a>)</p>
+                {rule.rule && <code className={styles.recRule}>{rule.rule}</code>}
                 {findingKey && <FindingActions findingKey={findingKey}/>}
                 {rule.nodes.map((node, i) => (
                     /* eslint-disable-next-line react/no-array-index-key */
@@ -71,10 +77,12 @@ RuleDetails.propTypes = {
     chip: PropTypes.node.isRequired,
     onHighlight: PropTypes.func.isRequired,
     // The key of the finding of a violation, for the actions other modules add to it
-    findingKey: PropTypes.string
+    findingKey: PropTypes.string,
+    // The severity that the site gives the rule axe.<id>, shown beside the impact of axe-core
+    siteSeverity: PropTypes.string
 };
 
-export function AccessibilityTab({result, onHighlight, assist}) {
+export function AccessibilityTab({result, onHighlight}) {
     const {t} = useGovernanceTranslation('audit');
 
     return (
@@ -127,16 +135,19 @@ export function AccessibilityTab({result, onHighlight, assist}) {
                     key={v.id}
                     rule={v}
                     chip={
-                        <span className={impactClass(v.impact)}>
+                        <span className={impactClass(v.impact)} title={t('a11y.axeImpactHelp')}>
                             {t(`a11y.impacts.${v.impact}`)}
                         </span>
                     }
+                    siteSeverity={v.rule ? v.severity : null}
                     onHighlight={onHighlight}
                     findingKey={auditFindingKey('a11y', v.id)}
                 />
             ))}
 
-            <AltAssist {...assist}/>
+            {result.recommendations?.length > 0 && (
+                <Recommendations items={result.recommendations} ns="a11y" tab="a11y" title={t('a11y.serverRules')}/>
+            )}
 
             {result.incomplete.length > 0 && (
                 <>
@@ -182,7 +193,5 @@ export function AccessibilityTab({result, onHighlight, assist}) {
 
 AccessibilityTab.propTypes = {
     result: PropTypes.object.isRequired,
-    onHighlight: PropTypes.func.isRequired,
-    // Props forwarded to <AltAssist/> (AI status, suggestions, phase, callbacks)
-    assist: PropTypes.object.isRequired
+    onHighlight: PropTypes.func.isRequired
 };

@@ -1,127 +1,170 @@
-# Glossaries, for the people who maintain the terms
+# Term rules, for the people who maintain the terms
 
-A glossary is the list of words and phrases that must not appear in the content of one language of
-the site. Each scan checks the content of one language against every glossary of that language:
+A term rule is a content rule of the evaluator `pattern`. It names a word or a phrase that the content
+of a language must not hold, or must write in another way. Each team keeps its terms in a folder of rules
+with its own permissions. Example: the legal team keeps "guaranteed" in its folder, and the brand team
+keeps "seamless" in another folder that the legal team cannot change.
+
+Three places check the term rules of the language of the content, with the same rules and the same
+matching:
 
 - the **Compliance** section of the **Content governance** drawer checks one page
   ([`page-scan-guide.md`](page-scan-guide.md));
-- the **Compliance** dashboard under jContent's **Additional** accordion checks the whole site
-  ([`dashboard-guide.md`](dashboard-guide.md)).
+- the **Compliance** dashboard under the **Additional** accordion of jContent checks the whole site
+  ([`dashboard-guide.md`](dashboard-guide.md));
+- the tool `frame.check` of the MCP server checks a text that an agent writes.
 
-Both need the Content Governance module enabled on the site and the Compliance section switched on in
-**Site Settings > Content governance** (it is on by default). A site that switches the section off
-keeps its glossaries; nothing reads them until the section is on again.
+Each finding names the id of its rule and the folder of the rule. Example: `compliance.guaranteed`
+in `contents/term-lists/legal`.
 
-## The example glossary
+The Compliance section and the dashboard need the Content Governance module on the site and the
+Compliance section on in **Site Settings > Content governance**. The section is on by default. A site
+that switches the section off keeps its rules, and the drawer does not read them until the section is
+on again.
 
-When Content Governance is enabled on a site that has no glossary yet, it creates one to start from:
-**Content Folders > Compliance glossaries** (`contents/compliance-glossaries`), holding a glossary in
-the site's default language with one example term ("click here" in English, "cliquez ici" in
-French; English text for a language the module has no translation for). The folder only offers
-**Compliance glossary**, and a glossary only offers **Non-authorised term**. The example is not
-published (scans read glossaries in the edit workspace). Rename it, add your terms and delete the
-example term: it is created once per site, so it does not come back.
+## The example rule
 
-## Create a glossary
+When Content Governance is enabled on a site, it creates one list to start from:
+**Content Folders > Compliance glossaries** (`contents/compliance-glossaries`). This folder holds a
+folder for the default language of the site, with one example rule. The rule is "click here" in
+English and "cliquez ici" in French. A language that the module does not translate gets the English
+text. The id of the
+example rule is `compliance.example-term`.
 
-1. In jContent, open **Content Folders** and pick a folder under the site's `contents` (any folder,
-   any depth; a dedicated `compliance-glossaries` folder keeps things tidy).
-2. **New content > Compliance > Compliance glossary**.
-3. Fill in:
+The example is not published, because the checks read the rules in the edit workspace. Rename it, add
+your rules and delete the example. The module creates it once for each site, so it does not come back.
 
-| Field | What to enter |
-|---|---|
-| Title | The name editors see in the reports ("Legal - claims and wording (EN)") |
-| Language | The site language the glossary applies to. The list shows every language of the site, live or not |
-| Description | Who maintains it and what it covers. Never shown to visitors |
+## Create a list of terms
 
-You can have several glossaries for the same language (one from Legal, one from Brand): a scan
-applies them all and says which ones it applied.
+A list of terms is a content folder that holds rules. Each list has the permissions of its folder.
 
-## Several glossaries for one language
+1. In jContent, open **Content Folders** and select a folder under `contents` of the site.
+2. Create a folder for the list, such as `term-lists/legal`.
+3. In the folder, set the roles of the team that keeps the list. Example: give the role `editor` on
+   `term-lists/legal` to the legal team only.
+4. Optionally, restrict the folder to rules: in **Content types allowed**, select **Content rule**.
 
-- Every glossary of the language applies; the reports list them under **Glossaries applied:**.
-- When more than one applies, every issue names its glossary (the drawer section, the dashboard and
-  the CSV export, which also has a `glossary` column).
-- The same term in two glossaries is reported once **per glossary**, each with its own reason and
-  suggested wording: Legal and Brand both see their rule. The counts then include both.
-- Within one glossary, two entries that find the same text are reported once.
+A team that has no role on a folder cannot change its rules. The rules of that folder still apply to
+the content of the team. The checks read every rule with a system session, so a rule applies even
+to an editor who cannot read its folder.
 
-## Add terms
+## Add a term rule
 
-Open the glossary and use **New Non-authorised term**. One entry per word or phrase:
+Open the folder and create a **Content rule**. One rule holds one word or phrase and its other forms.
 
 | Field | What to enter |
 |---|---|
-| Term | The word or phrase, as you would write it |
-| Match | How the term is found (below) |
-| Reason | Why it is not authorised. Editors read it in the report, so write it for them |
-| Suggested wording | What to write instead. Editors see it under **Write instead**, next to the reason |
+| Rule id | A unique id with a dot, such as `compliance.guaranteed`. The part before the first dot is the domain of the rule |
+| Evaluator | `pattern` |
+| Kind | **Forbidden term** when the term has no replacement. **Term to replace** when the editor writes the replacement instead |
+| Term or pattern | The word or phrase, as you write it. The next section states the stars |
+| Match | **Whole word or phrase, any case and accents** for a term |
+| Replacement | What to write instead. Editors see it under **Write instead** |
+| Language | The language of the content that the rule checks, such as `en`. Empty: every language |
+| Other forms of the term | Other ways to write the term, such as the plural "guarantees" |
+| Severity | **Serious** for a legal term. The drawer ranks the findings by severity |
+| Advice | Why the term is not allowed. Editors read it in the report, so write it for them |
 
-The terms list in jContent shows each entry by its term.
+A rule of the kind **Mandatory mention** needs a whole page. The Compliance section checks each value
+on its own, so it does not report a mandatory mention.
+
+## Several lists for one language
+
+- Every rule of the language applies, whatever its folder. The reports list the folders under
+  **Rule folders applied:**.
+- Every finding names its rule id and its folder, in the drawer section, in the dashboard and in the
+  CSV export. The CSV export has a `ruleId` column and a `glossary` column for the folder.
+- When two folders hold the same term, a text that holds the term gets one finding for each rule.
+  Each finding has the advice of its own rule, so the legal team and the brand team both see their
+  rule.
 
 ## How matching works
 
 - **Case and accents are ignored.** "gratuité" also finds "Gratuite" and "GRATUITÉ".
-  Typographic apostrophes count as straight ones (’ and '), and "œ"/"æ" as "oe"/"ae".
-- **Phrases match across any white space**, line breaks and non-breaking spaces included:
-  "satisfait ou remboursé" finds "satisfait&nbsp;ou remboursé".
-- **Match** decides how much of a word must match:
+  A typographic apostrophe (’) counts as a straight one ('), and "œ" and "æ" count as "oe" and "ae".
+- **A phrase matches across any white space**, which includes a line break and a non-breaking space.
+  Example: "satisfait ou remboursé" finds "satisfait&nbsp;ou remboursé".
+- **A star at an end of the term** decides how much of a word must match:
 
-| Match | Term | Finds | Does not find |
-|---|---|---|---|
-| Whole word or phrase (default) | `best` | "the best talent" | "bestseller" |
-| Word starting with | `guarant` | "guarantee", "guaranteed" | "unguaranteed" |
-| Anywhere, inside words too | `free` | "free", "carefree" | |
+| Term | Finds | Does not find |
+|---|---|---|
+| `best` | "the best talent" | "bestseller" |
+| `guarant*` | "guarantee", "guaranteed" | "unguaranteed" |
+| `*free*` | "free", "carefree" | |
 
-- **Japanese, Chinese, Thai, Lao, Khmer and Burmese** write words without spaces: there, a term is
-  found wherever it is written (安全 in 安全なロック機能), and *Word starting with* matches the term
-  itself. Kana keep their voiced marks (ガイド is not カイト), and fullwidth Latin letters count as
-  plain ones (ＦＲＥＥ is "free").
-- Rich text is read as the visitor reads it: formatting inside a word does not hide it
-  (`<b>gra</b>tuit` is "gratuit"), and HTML tags or attributes never match.
+- **Japanese, Chinese, Thai, Lao, Khmer and Burmese** write words without spaces. In these scripts,
+  a term matches wherever it is written, such as 安全 in 安全なロック機能, and a star after the term
+  matches the term itself. Kana keep their voiced marks, so ガイド is not カイト. A fullwidth Latin
+  letter counts as a plain letter, so ＦＲＥＥ is "free".
+- **Rich text is read as the visitor reads it.** Formatting inside a word does not hide it, so
+  `<b>gra</b>tuit` is "gratuit". An HTML tag or attribute never matches.
+- **The longer term wins.** A term that matches inside a longer match of another term rule reports
+  nothing there. Example: with the rules "Baggins" to "Sacquet" and "Sackville-Baggins" to
+  "Sacquet-de-Besace", the text "Sackville-Baggins" gets one finding, for the longer rule. Two rules
+  with the same term each report it. A regular expression neither hides a term nor is hidden by one.
+- **A match inside the replacement is the right term.** Example: with the rule "mail" to "e-mail", the
+  text "e-mail" passes. This search keeps the accents. With the rule "role" to "rôle", the text "rôle"
+  passes and the text "role" gets a finding.
+- **The Match value Regular expression** reads the text as it is written, in any case, and keeps the
+  accents. A pattern that must respect the case starts with `(?-i)`, such as `(?-i)\bJAHIA\b`. An
+  inline flag keeps the case of one part only, such as `\b(?-i:JAHIA)\b`.
+
+## Glossary terms to translate
+
+A glossary term to translate is a term rule of the language of the translation. Its term is in another
+language, which the field **Language of the term (glossary)** names. Example: the rule
+`glossary.access-token` of `fr` replaces "access token" (`en`) with "jeton d'accès".
+
+A French text that holds "access token" gets a finding with the replacement "jeton d'accès". The tool
+`frame.check` also checks a translation against its source. If the source holds "access token" and
+the translation lacks "jeton d'accès", the tool reports the missing term.
+
+A form of the term that belongs to another language also gets a finding. Example: the term "Frodo"
+(`en`) is "Frodon" in `fr` and "Frodo" in `es`. A Spanish text that holds "Frodon" gets a finding with
+the replacement "Frodo", and the finding names the French rule. A language that has no form of the
+term gets no such finding, because the form to write is unknown.
+
+The brand can also forbid a translation, with a rule of the language of the translation. Example: the
+rule of `fr` replaces "jeton d'authentification" with "jeton d'accès".
 
 ## Things to know
 
-- **No need to publish a glossary.** Scans read the version you are editing, so a new term applies
-  at the next scan.
-- **Editors must be able to read the glossaries.** A scan reads everything with the rights of the
-  person who runs it: a glossary someone cannot read does not apply to their scans. Keep glossaries in
-  a folder every editor can read.
-- **The Language list shows every language of the site**, also one not yet active on the live
-  site: check a language's content before it goes live.
-- **Keep glossaries in the content folders.** The type is also offered when adding content to a
-  page in Page Builder (content folders accept only droppable types); a glossary placed on a page
-  is never read by the scans.
-- **A language with no glossary is "Not checked"**, never "Compliant": the reports say that nothing
+- **No need to publish a rule for the drawer.** The Compliance section reads the version that you
+  edit, so a new rule applies at the next check. The tool `frame.check` reads the published rules.
+- **A language with no term rule is "Not checked"**, never "Compliant". The reports say that nothing
   was checked and how to fix it.
+- **Keep the rules in the content folders.** A rule that is placed on a page applies too, and an
+  editor of the page can change it.
+
+## On an instance that held glossaries
+
+Before content-governance#74, the terms lived in two other content types: the Compliance glossaries
+(`ccs:glossary` and `ccs:glossaryTerm`) and the glossary of the editorial frame (`efnt:glossaryTerm`).
+When the module starts, the processing server converts each node of these types into a content rule. It
+converts the node in place, in the edit and the live workspace. A browsing node of a cluster converts nothing, because it
+shares the repository of the processing server.
+
+Each node keeps its identifier, its place and its permissions, so each list
+keeps the permissions of its folder. The conversion is one-way: an older version of the module cannot
+read the converted nodes. A backup restores the old nodes.
+
+| Old node | Content rule |
+|---|---|
+| A term of a Compliance glossary | The rule `compliance.<node name>`, serious, of the language of its glossary, whose advice is the Reason. A term with a Suggested wording becomes a **Term to replace**, and the wording becomes the replacement |
+| A Match of a Compliance term | **Whole word or phrase** keeps the term, **Word starting with** adds a star at the end, and **Anywhere** adds a star at each end |
+| A Compliance glossary | A content folder that holds rules, with its title and its description |
+| An approved term of the frame | The rule `glossary.<node name>`, moderate, of the language of the translation. It replaces the term with the translation |
+| A forbidden translation of the frame | The rule `glossary.<node name>`, moderate, of the language of the translation. It replaces the forbidden translation with the approved one. With no approved translation, it forbids the term |
+
+The other forms of a term and of a translation become the other forms of the term and of the
+replacement. The note and the definition of a frame term become the advice. An id that the site
+already has is not used twice. The new rule then takes the first 8 characters of the node identifier
+after its domain, such as `glossary.67d3bc8a`.
 
 ## On an instance that had Content Compliance Scan
 
 Content Governance replaces the Content Compliance Scan module and keeps its glossaries where they
-are, with the same content types. Existing glossaries and terms carry over: nothing to export or
-recreate, and scans find exactly what they found before.
-
-From Content Governance 1.1.0, the glossary types are taken over when the module starts, and the
-upgrade needs nothing more. With 1.0.0, on an instance where Content Compliance Scan was installed
-before, **New content** did not offer **Compliance glossary** and **Non-authorised term**, and
-jContent showed the types and their fields by their technical names with a generic icon; existing
-glossaries kept working and scanning. Installing 1.1.0 fixes it. Why it happened:
+are. From Content Governance 1.1.0, the glossary types are taken over when the module starts. Since
+content-governance#74, the module converts these glossaries into rules, as the previous section
+states. Why the types needed a takeover:
 [`architecture.md`](architecture.md#migration-from-content-compliance-scan).
-
-What the technical names stand for:
-
-| Technical name | Label on a fresh install |
-|---|---|
-| `complianceContent` (category of the New content menu) | Compliance |
-| `glossary` | Compliance glossary |
-| `language` | Language |
-| `description` | Description |
-| `glossaryTerm` | Non-authorised term |
-| `term` | Term |
-| `matchMode` | Match |
-| `word`, `prefix`, `anywhere` (values of Match) | Whole word or phrase, Word starting with, Anywhere, inside words too |
-| `reason` | Reason |
-| `alternative` | Suggested wording |
-
-The field tooltips are missing in that case too. The tables above describe each field.

@@ -70,22 +70,6 @@
     color: var(--color-gray, #5c6b7a);
 }
 
-.facts {
-    display: grid;
-    grid-template-columns: max-content 1fr;
-    gap: var(--moon-spacing-nano, 4px) var(--moon-spacing-medium, 16px);
-    margin: 0;
-}
-
-.facts dt {
-    font-weight: 600;
-}
-
-.facts dd {
-    margin: 0;
-    overflow-wrap: anywhere;
-}
-
 .headerTabs {
     overflow-x: auto;
     max-width: 100%;

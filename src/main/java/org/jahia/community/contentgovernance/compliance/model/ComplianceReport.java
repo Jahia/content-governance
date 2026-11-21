@@ -10,8 +10,8 @@ import java.util.List;
  * @param status          outcome of the scan
  * @param scannedContents number of nodes whose properties were read
  * @param truncated       {@code true} when a limit stopped the scan before every content or issue was read
- * @param glossaries      glossaries applied, in path order
- * @param issues          every use of a term found, in reading order
+ * @param glossaries      folders of rules applied, in path order
+ * @param issues          every place that breaks a rule, in reading order
  */
 public record ComplianceReport(String pagePath, String language, ScanStatus status, int scannedContents,
                                boolean truncated, List<Glossary> glossaries, List<ComplianceIssue> issues) {

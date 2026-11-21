@@ -9,8 +9,8 @@ is in [`CHANGELOG.md`](../CHANGELOG.md).
 Open a page, click **Content governance** in the header, then pick a section. Each guide says what
 every tab shows, which findings are yours to fix and which belong to a developer or an administrator.
 
-- **[`page-quality/guide.md`](page-quality/guide.md)**: the **Page quality** section, its eight tabs
-  and the AI assists.
+- **[`page-quality/guide.md`](page-quality/guide.md)**: the **Page quality** section and its seven
+  tabs.
 - **[`geo-readiness/drawer-guide.md`](geo-readiness/drawer-guide.md)**: the **GEO readiness**
   section, its five tabs and the banners above them.
 - **[`compliance/page-scan-guide.md`](compliance/page-scan-guide.md)**: the **Compliance** section,
@@ -25,18 +25,17 @@ every tab shows, which findings are yours to fix and which belong to a developer
 - **[`compliance/glossary-guide.md`](compliance/glossary-guide.md)**: for the people who own the
   wording (Legal, compliance): writing glossaries and terms, how matching works.
 
-## If you own the voice and the writing rules of the brand
+## If you own the writing rules of the brand
 
 - **[`editorial-frame/guide.md`](editorial-frame/guide.md)**: the editorial frame, which holds the
-  voice, the personas, the writing rules, the translation glossary and the skills. The guide states
-  where they live, who reads them, the import and the endpoints.
+  writing rules and the translation glossary. The guide states where they live and who reads them.
 
 ## If you are a site administrator
 
 - **[`settings-guide.md`](settings-guide.md)**: **Site Settings > Content governance**: switching
-  sections and tabs, the AI model, connecting BotRank.
-- **[`content-rules/catalog.md`](content-rules/catalog.md)**: the rules the checks apply, and how
-  a site turns one off or changes its severity or its limits.
+  sections and tabs, connecting BotRank.
+- **[`content-rules/catalog.md`](content-rules/catalog.md)**: the rules the checks apply, how a
+  site changes one or adds its own, and how a module ships rules.
 
 ## If you want to know what it checks, or how it works
 
@@ -52,11 +51,13 @@ every tab shows, which findings are yours to fix and which belong to a developer
 Agents read [`../.agents/README.md`](../.agents/README.md) first: invariants, the legacy storage
 kept on purpose, traps already hit once, known leftovers.
 
-## If you build a module that adds to the drawer
+## If you build a module that adds to Content Governance
 
 - **[`drawer-entries.md`](drawer-entries.md)**: how another module adds a tab to the drawer, or an
   action on a finding, and what the drawer gives to each entry: the page, the language and the
   findings.
+- **[`geo-readiness/architecture.md`](geo-readiness/architecture.md#the-geo-report-writer)**: how
+  another module writes the report of the GEO dashboard with a model.
 
 ## If you are deciding what to build next
 

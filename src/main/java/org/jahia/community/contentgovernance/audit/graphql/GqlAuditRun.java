@@ -11,7 +11,7 @@ import org.jahia.community.contentgovernance.audit.model.AuditRun;
  * GraphQL view of an {@link AuditRun}.
  */
 @GraphQLName("ContentGovernanceAuditRun")
-@GraphQLDescription("One stored Page quality audit")
+@GraphQLDescription("One stored run of a tab of the drawer: a Page quality audit, or the findings of another tab")
 public class GqlAuditRun {
 
     private final AuditRun run;
@@ -19,6 +19,14 @@ public class GqlAuditRun {
     /** @param run the audit to expose */
     public GqlAuditRun(AuditRun run) {
         this.run = run;
+    }
+
+    /** @return the id of the tab that stored the run */
+    @GraphQLField
+    @GraphQLNonNull
+    @GraphQLDescription("Id of the tab that stored the run: audit for Page quality")
+    public String getTab() {
+        return run.tab();
     }
 
     /** @return when the audit ran, ISO-8601 */
@@ -44,9 +52,10 @@ public class GqlAuditRun {
         return new GqlAuditSummary(run.summary());
     }
 
-    /** @return the full results as JSON, on the latest audit of a page only */
+    /** @return what the run stores as JSON, on the latest run of a tab only */
     @GraphQLField
-    @GraphQLDescription("The full results as JSON: on the latest audit of a page only")
+    @GraphQLDescription("What the run stores as JSON, on the latest run of a tab only: the Page quality results, "
+            + "or {findings: [...]} for another tab")
     public String getResults() {
         return run.results();
     }

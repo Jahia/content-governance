@@ -6,8 +6,9 @@ package org.jahia.community.contentgovernance.html.tools;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.community.contentgovernance.html.HtmlCheck;
-import org.jahia.community.contentgovernance.html.rules.Finding;
+import org.jahia.community.contentgovernance.html.rules.HtmlRule;
 import org.jahia.community.contentgovernance.html.rules.HtmlRules;
 import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.modules.mcp.spi.tool.JahiaMcpTool;
@@ -56,7 +57,8 @@ public class AccessibilityAuditTool implements JahiaMcpTool {
         return "Check one page, or one content item, for accessibility and SEO defects that need no browser "
                 + "engine: image text alternatives, heading structure, link and button names, form labels, frame "
                 + "titles, table headers, and for a whole page its language, title, description and ids. Each "
-                + "finding names its rule and, when one applies, a WCAG 2.2 success criterion. Colour contrast and "
+                + "finding names its rule, the severity that the site gives the rule and, when one applies, a WCAG "
+                + "2.2 success criterion. A rule that the site switched off gives no finding. Colour contrast and "
                 + "keyboard focus are not checked. The check reads the content as the user sees it in the edit "
                 + "workspace, with the changes that are not published yet.";
     }
@@ -114,12 +116,15 @@ public class AccessibilityAuditTool implements JahiaMcpTool {
         Map<String, Integer> byRule = new TreeMap<>();
         ArrayNode list = out.putArray("findings");
         for (Finding finding : findings) {
-            byRule.merge(finding.rule().id(), 1, Integer::sum);
-            list.addObject()
-                    .put("rule", finding.rule().id())
-                    .put("wcag", finding.rule().wcag())
-                    .put("scope", finding.rule().scope().id())
-                    .put("element", finding.element());
+            byRule.merge(finding.ruleId(), 1, Integer::sum);
+            ObjectNode item = list.addObject()
+                    .put("rule", finding.ruleId())
+                    .put("severity", finding.severity());
+            HtmlRule htmlRule = HtmlRule.byId(finding.ruleId());
+            if (htmlRule != null) {
+                item.put("wcag", htmlRule.wcag()).put("scope", htmlRule.scope().id());
+            }
+            item.put("element", finding.text());
         }
         ObjectNode counts = out.putObject("countByRule");
         byRule.forEach(counts::put);

@@ -32,7 +32,13 @@ export const MODULE_NAME = 'content-governance';
  */
 export const TEMPLATE_SET: string = Cypress.env('CG_TEMPLATE_SET') || 'dx-base-demo-templates';
 
-export const SETTINGS_FIELDS = 'siteKey moduleEnabled canEdit disabled sections { id enabled tabs { id enabled } }';
+export const SETTINGS_FIELDS = 'siteKey moduleEnabled canEdit disabled';
+
+/**
+ * The tab that the test module (tests/jahia-module) adds to the drawer. Every site has it on until a
+ * spec switches it off, so a spec that switches every tab off names it too.
+ */
+export const TEST_TAB = 'cgTestTab';
 
 export function asRoot(): TestUser {
     return {username: 'root', password: Cypress.env('SUPER_USER_PASSWORD') || 'root1234'};
@@ -109,7 +115,7 @@ export function saveSettings(user: TestUser, siteKey: string, disabled: string[]
     }`, {siteKey, disabled});
 }
 
-/** Switches sections and tabs off on a site as root (every id not listed is switched on). */
+/** Switches tabs of the drawer, and parts of tabs, off on a site as root (every id not listed is switched on). */
 export function switchOff(siteKey: string, disabled: string[]): void {
     saveSettings(asRoot(), siteKey, disabled).its('errors').should('be.undefined');
 }
@@ -124,6 +130,21 @@ export function addNodeTree(parentPath: string, node: Record<string, unknown>): 
         jcr { addNode(parentPathOrId: $parent, name: $name, primaryNodeType: $type, properties: $props,
                 children: $children, mixins: $mixins) { uuid } }
     }`, {parent: parentPath, ...node});
+}
+
+/**
+ * Adds HTML to the main area of a page, so that the page renders it as written, on the server as in the
+ * preview of the drawer: a `jnt:bigText` in a free zone (`ctpl:freeZone`) of classic-templates, the
+ * template set of the CI (CYPRESS_CG_TEMPLATE_SET), whose page templates hold the area `main`. A rich
+ * text of the template set rewrites its HTML, such as a heading level that skips one.
+ *
+ * @param {string} pagePath the path of the page.
+ * @param {string} name the name of the zone.
+ * @param {Record<string, string>} bodies the HTML, by language.
+ */
+export function addPageText(pagePath: string, name: string, bodies: Record<string, string>): void {
+    const properties = Object.entries(bodies).map(([language, value]) => ({name: 'text', language, value}));
+    addNodeTree(`${pagePath}/main`, {name, type: 'ctpl:freeZone', children: [{name: 'text', primaryNodeType: 'jnt:bigText', properties}]});
 }
 
 /** Whether a node exists, read as root. */
@@ -209,4 +230,68 @@ export function servlet(endpoint: string, body: Record<string, unknown>, headers
 export function assertGuardRefused(response: Cypress.Response<unknown>): void {
     expect(response.status, 'the CSRF guard redirects').to.eq(302);
     expect(String(response.headers.location), 'to its error page').to.contain('/error.html');
+}
+
+/** One violation that the tool frame.check returns. */
+export type FrameViolation = {ruleId: string; folder: string | null; kind: string; match?: string; replacement?: string};
+
+function mcpRequest(method: string, params: Record<string, unknown>, session?: string): Cypress.Chainable<Cypress.Response<unknown>> {
+    const root = asRoot();
+    return cy.request({
+        method: 'POST',
+        url: '/modules/mcp',
+        auth: {username: root.username, password: root.password},
+        headers: {
+            Origin: jahiaOrigin(),
+            'Content-Type': 'application/json',
+            Accept: 'application/json, text/event-stream',
+            ...(session ? {'Mcp-Session-Id': session} : {})
+        },
+        body: {jsonrpc: '2.0', id: 1, method, params}
+    });
+}
+
+/** The JSON-RPC message of an answer of the MCP server, sent as JSON or as server-sent events. */
+function mcpMessage(body: unknown): Record<string, any> {
+    if (typeof body !== 'string') {
+        return body as Record<string, any>;
+    }
+    const data = body.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trim()).join('');
+    return JSON.parse(data || body);
+}
+
+/** One finding that the tool frame.check returns for a path. */
+export type FramePageFinding = {rule: string; severity: string; text: string; context?: string};
+
+/**
+ * Calls the tool frame.check of mcp-server as root, as an agent does, and yields its result.
+ *
+ * @param {object} args the arguments of the tool: siteKey, locale, and text or path.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function callFrameCheck(args: Record<string, unknown>): Cypress.Chainable<Record<string, any>> {
+    return mcpRequest('initialize', {protocolVersion: '2025-03-26', capabilities: {}, clientInfo: {name: 'cg-cypress', version: '1'}})
+        .then(init => mcpRequest('tools/call', {name: 'frame.check', arguments: args}, init.headers['mcp-session-id'] as string | undefined))
+        .then(response => {
+            const result = mcpMessage(response.body).result;
+            return result.structuredContent || JSON.parse(result.content[0].text);
+        });
+}
+
+/**
+ * Calls frame.check on a text, and yields its violations.
+ *
+ * @param {object} args the arguments of the tool: siteKey, locale and text.
+ */
+export function frameCheck(args: Record<string, unknown>): Cypress.Chainable<FrameViolation[]> {
+    return callFrameCheck(args).then(payload => payload.violations as FrameViolation[]);
+}
+
+/**
+ * Calls frame.check on a page or a content item, and yields the findings of the checks of the server.
+ *
+ * @param {object} args the arguments of the tool: siteKey, locale and path.
+ */
+export function framePageCheck(args: Record<string, unknown>): Cypress.Chainable<FramePageFinding[]> {
+    return callFrameCheck(args).then(payload => payload.findings as FramePageFinding[]);
 }

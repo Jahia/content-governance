@@ -2,7 +2,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../../common/i18n';
 import {Recommendations} from './Recommendations';
-import {SimplifyAssist} from './SimplifyAssist';
 import {HeadingOutline} from './HeadingOutline';
 import styles from './Tabs.module.css';
 import {languageDisplayName} from '../../common/locale';
@@ -37,14 +36,26 @@ Structure.propTypes = {
     onHighlight: PropTypes.func.isRequired
 };
 
-export function ReadabilityTab({result, assist, onHighlight}) {
+/** The statistics that the rule readability.statistics gives, and the headings that readability.headings gives. */
+export function ReadabilityTab({result, onHighlight}) {
     const {t, i18n} = useGovernanceTranslation('audit');
+    // A site that turns one of the two rules off hides what it gives
+    const structure = (result.outline !== undefined || result.h1Count !== undefined) && <Structure result={result} onHighlight={onHighlight}/>;
+
+    if (result.spaced === undefined) {
+        return (
+            <div>
+                <Recommendations items={result.recommendations} ns="readability" tab="readability"/>
+                {structure}
+            </div>
+        );
+    }
 
     if (result.empty) {
         return (
             <div>
                 <p className={styles.note}>{t('readability.noText', {count: result.words || 0})}</p>
-                <Structure result={result} onHighlight={onHighlight}/>
+                {structure}
             </div>
         );
     }
@@ -94,8 +105,6 @@ export function ReadabilityTab({result, assist, onHighlight}) {
 
             <Recommendations items={result.recommendations} ns="readability" tab="readability"/>
 
-            <SimplifyAssist {...assist}/>
-
             <h4 className={styles.sectionTitle}>{t('readability.textStats')}</h4>
             <ul className={styles.statList}>
                 {result.spaced ? (
@@ -117,15 +126,13 @@ export function ReadabilityTab({result, assist, onHighlight}) {
                 )}
             </ul>
 
-            <Structure result={result} onHighlight={onHighlight}/>
+            {structure}
         </div>
     );
 }
 
 ReadabilityTab.propTypes = {
     result: PropTypes.object.isRequired,
-    // Props forwarded to <SimplifyAssist/> (AI status, rewrites, phase, callbacks)
-    assist: PropTypes.object.isRequired,
     // Shows an element of the page from its selector (a heading of the outline)
     onHighlight: PropTypes.func.isRequired
 };

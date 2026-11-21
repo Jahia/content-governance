@@ -91,13 +91,13 @@ report the same failures.
 ### Report
 
 Everything else on this dashboard is measured. This tab asks a model to read those measurements and
-say what they add up to. The **Report** tab is always listed, but stays greyed out until a model
-answers you on this site. While the tab is greyed out, its tooltip shows *No AI model is
-available for you on this site.* A model answers you when two things are true:
+say what they add up to. Content Governance calls no model itself: another module, such as the AI
+Assistant, writes the report. The **Report** tab shows only while that module answers you on this
+site. The module answers you when two things are true:
 
-- A server administrator configures a model in the `genai-connector` module (see
-  [`architecture.md`](architecture.md#configuration)).
-- You have the `genaiAccess` permission on the site. Without this permission, the tab says so.
+- A server administrator installs a module that writes the report, and gives it a model (see
+  [`architecture.md`](architecture.md#the-geo-report-writer)).
+- That module lets you use it on this site. Without this access, the tab says so.
 
 Press **Write the report**. You get a verdict, a status per area, a ranked list of what to fix first
 with who can fix it and how much effort, quick wins, and a now/next/later plan. **Export as
@@ -108,9 +108,10 @@ IPTC term for content that a trained model created
 (`http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia`).
 
 **What leaves the building:** scores, the names of failing checks, page paths and titles, and
-counts. Never the text of your pages, and never the key. It is written only when you ask, because
-each one costs money. The report is written in your interface language; when a stored report was
-written in another one, the tab says so.
+counts. Content Governance gives them to the module that writes the report, and that module sends
+them to its model. Never the text of your pages. It is written only when you ask, because each one
+costs money. The report is written in your interface language; when a stored report was written in
+another one, the tab says so.
 
 ## Can a crawler reach it
 
@@ -296,10 +297,6 @@ off, and the server refuses the dashboard's and BotRank's calls; the tabs keep t
 for when it comes back. A tab switched off disappears from the drawer. The **AI citations** switch
 also hides the dashboard's **AI citations** group and pauses the site's daily BotRank sync: its runs
 are skipped while the switch is off, and the first run after it is back on syncs again. Press **Save**; editors see the change the next time they open the drawer.
-
-**AI model tab.** Shows whether the model that genai-connector serves to the AI features answers
-you on this site, and which provider and model. The written report of this dashboard uses that
-model.
 
 **BotRank tab.** Connects the site to BotRank, which feeds the drawer's **AI citations** tab and the
 dashboard's **AI citations** group.

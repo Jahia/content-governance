@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.jahia.modules</groupId>
+        <artifactId>jahia-modules</artifactId>
+        <version>8.2.2.0</version>
+    </parent>
+    <groupId>org.jahia.test</groupId>
+    <artifactId>content-governance-test-module</artifactId>
+    <name>Test module for Content Governance</name>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>bundle</packaging>
+    <description>Adds a tab to the drawer and a content check to Content Governance, as another module does, for the Cypress suite</description>
+
+    <!-- The Jahia parent POM is not on Maven Central. The integration-tests job runs a bare
+         `mvn` with no settings file, so without this the parent cannot resolve. -->
+    <repositories>
+        <repository>
+            <id>jahia-public</id>
+            <url>https://devtools.jahia.com/nexus/content/groups/public</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>jahia-public</id>
+            <url>https://devtools.jahia.com/nexus/content/groups/public</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>true</enabled></snapshots>
+        </pluginRepository>
+    </pluginRepositories>
+
+    <dependencies>
+        <!-- The jar that the build of the root left in ../../target. A version from a repository would be the
+             snapshot of main: the CI builds this module with -U, which prefers the snapshot that Nexus holds. -->
+        <dependency>
+            <groupId>org.jahia.community</groupId>
+            <artifactId>content-governance</artifactId>
+            <version>1.12.0-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/../../target/content-governance-1.12.0-SNAPSHOT.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>osgi.cmpn</artifactId>
+            <version>7.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Jahia-Depends>default,content-governance</Jahia-Depends>
+                        <Jahia-Module-Type>module</Jahia-Module-Type>
+                        <_dsannotations>*</_dsannotations>
+                        <!-- Mandatory: the plugin marks the package of a system dependency optional. -->
+                        <Import-Package>
+                            ${jahia.plugin.projectPackageImport},
+                            org.jahia.community.contentgovernance.check.spi;version="[1.0,2)",
+                            org.jahia.community.contentgovernance.geo.spi;version="[1.0,2)",
+                            *
+                        </Import-Package>
+                        <!-- The rule acme.erpPrice, which the seeder of Content Governance copies into each site. -->
+                        <Jahia-Content-Rules>content-rules</Jahia-Content-Rules>
+                    </instructions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

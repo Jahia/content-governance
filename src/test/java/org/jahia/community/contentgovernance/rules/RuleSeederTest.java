@@ -1,0 +1,136 @@
+package org.jahia.community.contentgovernance.rules;
+
+import org.jahia.services.content.JCRTemplate;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
+
+import javax.jcr.RepositoryException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
+
+class RuleSeederTest {
+
+    private static final Map<String, Object> TITLE = Map.of(RuleValues.RULE_ID, "seo.title",
+            RuleValues.EVALUATOR, "threshold", RuleValues.SEVERITY, "serious", RuleValues.UNIT, "characters",
+            RuleValues.MINIMUM, 30.0, RuleValues.MAXIMUM, 60.0);
+
+    @Test
+    @DisplayName("a node with the defaults of its type has the fingerprint of a file that leaves them out")
+    void digest_countsTheDefaults() {
+        Map<String, Object> node = new HashMap<>(TITLE);
+        node.put(RuleValues.ENABLED, true);
+        node.put(RuleValues.BLOCKING, false);
+        node.put(RuleValues.FIXER, "editor");
+        node.put(RuleValues.DOMAIN, "seo");
+
+        assertThat(RuleValues.digest(node)).isEqualTo(RuleValues.digest(TITLE));
+    }
+
+    @Test
+    @DisplayName("a site that changes one value changes the fingerprint")
+    void digest_seesAChange() {
+        Map<String, Object> changed = new HashMap<>(TITLE);
+        changed.put(RuleValues.MINIMUM, 40.0);
+
+        assertThat(RuleValues.digest(changed)).isNotEqualTo(RuleValues.digest(TITLE));
+    }
+
+    @Test
+    @DisplayName("a new version overwrites a rule that nobody changed, and only fills a rule that the site changed")
+    void update_followsTheFingerprint() {
+        assertThat(RuleSeeder.updateOf("a", "a", "a")).isEqualTo(RuleSeeder.Update.NONE);
+        assertThat(RuleSeeder.updateOf("a", "a", "b")).isEqualTo(RuleSeeder.Update.OVERWRITE);
+        assertThat(RuleSeeder.updateOf("a", "c", "b")).isEqualTo(RuleSeeder.Update.FILL);
+        assertThat(RuleSeeder.updateOf(null, "a", "a")).isEqualTo(RuleSeeder.Update.FILL);
+    }
+
+    @Test
+    @DisplayName("a rule that the module no longer ships goes if nobody changed it, and stays marked if the site did")
+    void retirement_followsTheFingerprint() {
+        assertThat(RuleSeeder.retirementOf("a", "a")).isEqualTo(RuleSeeder.Retirement.REMOVE);
+        assertThat(RuleSeeder.retirementOf("a", "b")).isEqualTo(RuleSeeder.Retirement.MARK);
+        assertThat(RuleSeeder.retirementOf(null, "b")).isEqualTo(RuleSeeder.Retirement.KEEP);
+    }
+
+    @Test
+    @DisplayName("a writing rule gets the evaluator pattern, blocking as a flag next to its severity, and a style rule is minor")
+    void writingRule_mapsToAContentRule() {
+        assertThat(LegacyRules.ruleOf("writing.a", "forbidden", "warning"))
+                .containsEntry(RuleValues.EVALUATOR, "pattern").containsEntry(RuleValues.SEVERITY, "moderate")
+                .containsEntry(RuleValues.BLOCKING, false).containsEntry(RuleValues.DOMAIN, "writing");
+        assertThat(LegacyRules.ruleOf("writing.b", "replace", "blocking"))
+                .containsEntry(RuleValues.SEVERITY, "serious").containsEntry(RuleValues.BLOCKING, true);
+        assertThat(LegacyRules.ruleOf("writing.c", "style", "warning"))
+                .containsEntry(RuleValues.EVALUATOR, "pattern").containsEntry(RuleValues.SEVERITY, "minor");
+    }
+
+    @Test
+    @DisplayName("only a change of the installed modules of a site triggers a seed")
+    void sitePathOf_readsTheInstalledModules() {
+        assertThat(RuleSeeder.sitePathOf("/sites/digitall/j:installedModules")).isEqualTo("/sites/digitall");
+        assertThat(RuleSeeder.sitePathOf("/sites/digitall/home/j:installedModules")).isNull();
+        assertThat(RuleSeeder.sitePathOf("/sites/digitall/j:title")).isNull();
+    }
+
+    @Test
+    @DisplayName("only the processing server converts the rules and the terms of an older version")
+    void activate_convertsOnTheProcessingServerOnly() {
+        for (boolean processing : List.of(false, true)) {
+            try (MockedStatic<LegacyRules> rules = mockStatic(LegacyRules.class);
+                 MockedStatic<LegacyTerms> terms = mockStatic(LegacyTerms.class)) {
+                RuleSeeder seeder = seeder(processing);
+
+                seeder.activate(mock(BundleContext.class));
+
+                rules.verify(LegacyRules::migrate, processing ? times(1) : never());
+                terms.verify(LegacyTerms::migrate, processing ? times(1) : never());
+                seeder.deactivate();
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("every node reads the rules that a module ships, and only the processing server seeds the sites")
+    void addingBundle_seedsOnTheProcessingServerOnly() throws RepositoryException {
+        ShippedRules.Shipment shipment = new ShippedRules.Shipment("acme", Map.of(), true);
+        for (boolean processing : List.of(false, true)) {
+            try (MockedStatic<LegacyRules> rules = mockStatic(LegacyRules.class);
+                 MockedStatic<LegacyTerms> terms = mockStatic(LegacyTerms.class);
+                 MockedStatic<ShippedRules> shipped = mockStatic(ShippedRules.class);
+                 MockedStatic<JCRTemplate> jcr = mockStatic(JCRTemplate.class)) {
+                Bundle bundle = mock(Bundle.class);
+                shipped.when(() -> ShippedRules.load(bundle)).thenReturn(shipment);
+                JCRTemplate template = mock(JCRTemplate.class);
+                jcr.when(JCRTemplate::getInstance).thenReturn(template);
+                when(template.doExecuteWithSystemSessionAsUser(any(), any(), any(), any())).thenReturn(List.of());
+                RuleSeeder seeder = seeder(processing);
+                seeder.activate(mock(BundleContext.class));
+
+                assertThat(seeder.addingBundle(bundle, null)).isEqualTo("acme");
+
+                shipped.verify(() -> ShippedRules.put(shipment));
+                jcr.verify(JCRTemplate::getInstance, processing ? times(1) : never());
+                seeder.deactivate();
+            }
+        }
+    }
+
+    /** A seeder on the processing server, or on a browsing node of a cluster. */
+    private static RuleSeeder seeder(boolean processing) {
+        RuleSeeder seeder = new RuleSeeder();
+        seeder.processingServerCheck = () -> processing;
+        return seeder;
+    }
+}

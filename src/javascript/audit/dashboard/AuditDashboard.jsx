@@ -5,7 +5,7 @@ import {useApolloClient} from '@apollo/client';
 import {Banner, Button, Chip, DataTable, Download, EmptyData, Header, LayoutContent, Loader, Pagination, Reload, Typography} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../../common/i18n';
 import {languageName, pageBuilderUrl} from '../../common/url';
-import {SITE_AUDITS} from '../auditHistory';
+import {SITE_AUDITS, countsOf} from '../auditHistory';
 import {keyed, readFindings, subRowsOf} from './pageFindings';
 import {TAB_COLUMNS, exportCsv, exportJson} from './exportAudits';
 import styles from './AuditDashboard.module.css';
@@ -140,8 +140,8 @@ const PagesTable = ({pages, siteKey, language}) => {
                 if (value.kind !== 'page') {
                     return null;
                 }
-                const summary = value.item.lastAudit.summary;
-                const withIssues = TAB_COLUMNS.filter(tab => summary[tab] > 0);
+                const counts = countsOf(value.item.lastAudit.summary);
+                const withIssues = TAB_COLUMNS.filter(tab => counts[tab] > 0);
                 if (withIssues.length === 0) {
                     return <Typography variant="caption" className={styles.muted}>{t('dashboard.noIssues')}</Typography>;
                 }
@@ -149,7 +149,7 @@ const PagesTable = ({pages, siteKey, language}) => {
                     <div className={styles.inline}>
                         {withIssues.map(tab => {
                             const label = t(`tabs.${tab}`);
-                            return <Chip key={tab} label={`${label} ${summary[tab]}`}/>;
+                            return <Chip key={tab} label={`${label} ${counts[tab]}`}/>;
                         })}
                     </div>
                 );

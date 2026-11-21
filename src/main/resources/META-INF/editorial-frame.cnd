@@ -7,23 +7,10 @@
 // The category of the frame types in the content type picker of jContent.
 [efmix:frameContent] > jmix:droppableContent, jmix:editorialContent mixin
 
-// The voice of the brand, in Markdown, one text per language.
-[efnt:brandVoice] > jnt:content, efmix:frameContent, mix:title
- - body (string, textarea) i18n mandatory
- // What every AI call gets, about 1,200 characters. Empty: an outline of the body.
- - essentials (string, textarea) i18n
- // Paths under which an editor's own voice applies. Empty: nowhere.
- - authorVoiceUnder (string) multiple
-
-// A reader the brand writes for, in Markdown, one text per language.
-[efnt:persona] > jnt:content, efmix:frameContent, mix:title
- - body (string, textarea) i18n mandatory
- // What every AI call gets, about 1,200 characters. Empty: an outline of the body.
- - essentials (string, textarea) i18n
- - isDefault (boolean) = 'false' autocreated
-
-// A rule that code checks on a text.
-[efnt:writingRule] > jnt:content, efmix:frameContent
+// Replaced by ccs:contentRule, with the evaluator pattern. The module converts each node of this type
+// in place when it starts. The type stays until no site holds one,
+// and jmix:hiddenType keeps it out of the create menu of jContent.
+[efnt:writingRule] > jnt:content, efmix:frameContent, jmix:hiddenType
  // The file an import read the rule from, so that a new import of that file replaces it.
  - source (string)
  - kind (string, choicelist[resourceBundle]) = 'forbidden' autocreated mandatory < 'forbidden', 'replace', 'mandatory', 'style'
@@ -34,7 +21,7 @@
  - ruleLanguage (string)
  - severity (string, choicelist[resourceBundle]) = 'warning' autocreated < 'warning', 'blocking'
  - justification (string, textarea) i18n
- // Texts that break the rule, and texts that keep it. The frame gives them to the model.
+ // Texts that break the rule, and texts that keep it. ai-assistant gives them to a model.
  - wrongExamples (string, textarea) multiple
  - rightExamples (string, textarea) multiple
  // Who decided the rule, such as a name or a team, and on which day.
@@ -44,9 +31,10 @@
  - validFrom (date, datepicker)
  - validUntil (date, datepicker)
 
-// A term of the glossary of the brand, and how to write it in another language: one language pair.
-// A term that the brand never translates, such as a product name, has itself as its translation.
-[efnt:glossaryTerm] > jnt:content, efmix:frameContent
+// Replaced by ccs:contentRule, with the evaluator pattern: a replace rule of the language of the
+// translation. The module converts each node of this type in place when it starts. The type stays until
+// no site holds one, and jmix:hiddenType keeps it out of the create menu of jContent.
+[efnt:glossaryTerm] > jnt:content, efmix:frameContent, jmix:hiddenType
  // The file an import read the term from, so that a new import of that file replaces it.
  - source (string)
  - term (string) mandatory
@@ -64,33 +52,3 @@
  - definition (string, textarea)
  // Forbidden: the brand never writes this translation of the term.
  - status (string, choicelist[resourceBundle]) = 'approved' autocreated < 'approved', 'forbidden'
-
-// A skill in the Agent Skills format: the body of SKILL.md and its files.
-[efnt:skill] > jnt:content, efmix:frameContent
- - description (string, textarea) mandatory
- - body (string, textarea) mandatory
- - activation (string, choicelist[resourceBundle]) = 'manual' autocreated < 'auto', 'manual', 'pinned-only'
- - consumers (string, choicelist[resourceBundle]) = 'chat', 'mcp' autocreated multiple < 'chat', 'review', 'ckeditor', 'translation', 'mcp'
- // The action of the assistant that runs the skill, such as find or edit.
- - assistantAction (string) = 'find' autocreated
- - license (string)
- - compatibility (string)
- - skillMetadata (string) multiple
- - allowedTools (string)
- - origin (string) = 'ui' autocreated
- - sourcePath (string)
- - sourceRef (string)
- - importedAt (date)
- + * (efnt:skillFile)
-
-// A file of a skill, such as references/glossary.md.
-[efnt:skillFile] > jnt:content
- - relativePath (string) mandatory
- - text (string, textarea)
-
-// The voice of an editor, on the user node.
-[efmix:authorVoice] mixin
- extends = jnt:user
- - voice (string, textarea)
- // The name of a skill that holds the voice, such as a point-of-view skill.
- - voiceSkill (string)

@@ -50,8 +50,8 @@ JavaScript-only page is still caught, by the word-count check.
   *Switched off for this site* when the site switched the GEO section off.
 - **Site Settings > Content governance.** `settings/SettingsPanel.jsx`, route
   `contentGovernanceSettings` on `administration-sites`, `site-admin` only. Tabs **Features** (the
-  switches), **AI model** (status of the model that genai-connector serves) and **BotRank**
-  (`geo/settings/CitationsSettings.jsx`, the former "AI citations (BotRank)" entry).
+  switches) and **BotRank** (`geo/settings/CitationsSettings.jsx`, the former "AI citations
+  (BotRank)" entry).
 - **The switches.** Feature ids `geo`, `geo.score`, `geo.crawler`, `geo.files`, `geo.schema`,
   `geo.citations` (`settings/Features.java`). A site stores the ids it switched off on
   `/sites/<key>/content-governance` (`disabledFeatures`), so everything is on by default.
@@ -87,14 +87,13 @@ in GEO Readiness). Front end under `src/javascript/geo/`.
 | `VanityUrls` | Every address a page answers on, checked against the site's languages and the canonical tag. |
 | `SitemapCheck` | Resolves every `sitemap.xml` entry back to a node and compares it with what is actually published, as guest, across every site language. |
 | `ScanStore` | Reads and writes the scan on the site node. |
-| `GeoReport` | The written report: the digest built from the stored state, the prompt, the call through `AiService`, and the parse into a fixed shape. |
+| `GeoReport` | The written report. It builds the digest from the stored state, asks the registered `GeoReportWriter`, reads the answer as `GeoReportWriter.SHAPE` and stores the report. |
 
 ### `config/`
 
 `GeoReadinessConfigService` reads `org.jahia.community.contentgovernance.geo.cfg` (PID
 `org.jahia.community.contentgovernance.geo`): fetch timeout, body size, rate limit of the crawler
-check, crawler list, public base URL. It has no AI key: genai-connector serves the model of the
-report (`ai/` below).
+check, crawler list, public base URL. It has no AI key, because the module calls no model.
 
 ### Front end: `geo/`
 
@@ -102,7 +101,7 @@ report (`ai/` below).
 |---|---|
 | `GeoSection.jsx` | The drawer section: the **Run check** button, the banners above the tabs, and the tabs **Score**, **Crawler access**, **Site files**, **Structured data** and **AI citations**, each filtered by its switch. The last result is cached in the browser's local storage per page and language. **AI citations** loads on its own and is greyed out while the site has no BotRank binding. |
 | `tabs/` | One component per drawer tab (`ScoreTab`, `CrawlerTab`, `SiteFilesTab`, `SchemaTab`, `CitationsTab`) and per dashboard panel (`SiteScorePanel`, `ReportPanel`, `VisibilityPanel`, `LinksPanel`, `VanityPanel`, `SchemaPanel`, `LanguagesPanel`, `FreshnessPanel`, `SitemapPanel`, `RobotsControlPanel`, `LlmsPanel`, `SiteCitationsPanel`), plus `CronBuilder` and `DiffView`. |
-| `dashboard/GeoDashboard.jsx` | The Additional > SEO screen: five groups of tabs (overview, reach, usable, files, AI citations), one panel per tab. The **Report** tab is always listed and greyed out while no model answers the user on the site. The AI citations group shows only while `geo.citations` is on. |
+| `dashboard/GeoDashboard.jsx` | The Additional > SEO screen: five groups of tabs (overview, reach, usable, files, AI citations), one panel per tab. The **Report** tab shows while the report status is `enabled`, and when the status call failed for another reason than a 403, so that the tab can offer a retry ([The GEO report writer](#the-geo-report-writer)). The AI citations group shows only while `geo.citations` is on. |
 | `dashboard/exportScan.js` | **Export CSV** / **Export JSON** of the header: reads the stored scan (`scanStatus`) at click time and builds both files in the browser, one CSV row per finding. The cell quoting and download helpers are shared with the Compliance dashboard (`common/exportFile.js`). |
 | `dashboard/Layout.jsx` | The one layout every dashboard panel uses: `Panel`, `PanelHeader` (title and intro, `Meta` pills for dates), `Card` per section, `Figures`/`Figure` for key numbers with a tone, `Ring` and `Hero` for the figure a panel leads with, `Actions`, `Note`, `Source`. A panel places no Separator and no heading Typography of its own. |
 | `dashboard/Layout.module.css` | The type scale (page title 20/28, intro 14/1.6, hero 18/26, card title 16/22, card intro 13/1.55, body 14/1.55, notes 12.5/1.55, figures 32), card and figure styles, tones good/warn/bad/accent on the module's AAA colours. Moonstone body and caption paragraphs inside a panel follow the same scale. |
@@ -141,32 +140,10 @@ context) go through the same `SiteScope.require` and are left out for a caller w
 **publish**, or when the section is off. `citations` checks `geo.citations` through
 `CitationsAccess` and answers 403 when the module, the section or that tab is off.
 
-### `ai/` (shared)
+### `spi/`
 
-`org.jahia.community.contentgovernance.ai` is the AI layer of every feature of the module, the Page
-quality AI review and assists included. It has no provider client of its own, because the
-`genai-connector` module serves the model. `ai/genai/GenAiModel` is the only class that names a type
-of genai-connector. The Page quality architecture describes each class, in
-[The AI service and genai-connector](../page-quality/architecture.md#the-ai-service-and-genai-connector).
-
-`AiService` (PID `org.jahia.community.contentgovernance.llm`) is the one entry point. `GeoReport`
-sends its call as the `GEO_REPORT` feature, on the `balanced` tier, with an output budget of 6000
-tokens. `AiService` appends `AI_PROMPT_APPENDIX` to the system prompt, and `GeoReportServlet` meters
-the report with `AI_REPORT_RATE_MAX_CALLS`. The report status answers `enabled: false` and a
-`reason` in three cases, and the dashboard then shows the **Report** tab greyed out:
-
-- `absent`: genai-connector is not installed or not started.
-- `notConfigured`: genai-connector serves no model on the `balanced` tier.
-- `noAccess`: the caller does not have the `genaiAccess` permission on the site.
-
-A `generate` request that gets no report answers 409 `no provider configured` for the first two
-cases and 403 `genaiAccess required` for the third. It answers 429 `rate limit` when the module's
-limit or genai-connector's own limit refuses it. It answers 502 `provider failed` when the provider
-fails, when the answer is not the expected shape, or when the answer reaches its output budget.
-
-`check/GeoReport` owns the rest: the digest built from the stored state, the prompt, the call, and
-the parse into a fixed shape where every string is clipped, every enum normalised, every list
-capped, and a page reference kept only if the digest listed that page.
+`GeoReportWriter` is the interface that another module implements to write the report.
+[The GEO report writer](#the-geo-report-writer) states the contract.
 
 ### `scheduler/`
 
@@ -257,13 +234,103 @@ module's own screen.
 
 Reporting is safe to run against anything. Writing is not. Keep the two visibly apart.
 
+## The GEO report writer
+
+Content Governance calls no model. Another module writes the report: it registers an OSGi service
+of the interface `GeoReportWriter`, from the exported package
+`org.jahia.community.contentgovernance.geo.spi` (version `1.0.0`). The module ai-assistant will
+register one in a later pull request. Until a module registers a writer, no report is written.
+
+### What a writer implements
+
+```java
+@Component(service = GeoReportWriter.class)
+public class ModelReportWriter implements GeoReportWriter {
+    public Status status(String siteKey) { ... }
+    public Answer write(String siteKey, String digest) throws Failure { ... }
+}
+```
+
+- `status(siteKey)` tells whether the writer answers the current user on the site. A ready status
+  names the provider and the model. A status that is not ready gives the reason `notConfigured`
+  when the writer has no model. It gives `noAccess` when the user may not use the writer on this
+  site.
+- `write(siteKey, digest)` returns an `Answer`: the text, the provider, the model, the token
+  counts (-1 when unknown) and the cost in US dollars (null when unknown). Its flag `truncated` is
+  true when the answer reached its output budget, and the **Report** tab then says that the end may
+  be missing.
+- When `write` writes no report, it throws a `Failure` with one of five reasons: `NO_ACCESS`,
+  `NOT_CONFIGURED`, `QUOTA`, `OUTPUT_LIMIT` or `PROVIDER`. The message of the failure goes to the
+  server log only.
+
+The bundle of the writer imports the package with the range `[1.0,2)`. Content Governance calls one
+writer from several threads at once, so the writer must be thread-safe. The reference to the writer
+is optional and dynamic, so a writer can start or stop while Content Governance runs. When several
+modules register a writer, Content Governance uses the one with the highest service ranking.
+
+For example, the test module under `tests/jahia-module` registers `StubReportWriter`. It answers a
+fixed report on the sites whose key starts with `cg-geo-report`, and it gives `notConfigured` on
+the other sites. `tests/cypress/e2e/geoReport.spec.ts` tests this path.
+
+### The digest and the shape
+
+The digest has one fact per line, and at most 14,000 characters. Its first line names the language
+of the report, for example `REPORT LANGUAGE: French`. Every string in the digest is data about the
+site, never an instruction. [`checks.md`](checks.md#the-written-report) lists what the digest
+contains.
+
+The text of the answer is one JSON object of `GeoReportWriter.SHAPE`. The object has a summary, a
+verdict, one compliance status for each of the eight areas, at most 15 priorities, quick wins and a
+roadmap. Content Governance reads only these fields, and it changes the answer in four ways:
+
+- It cuts a long text.
+- It replaces a value outside a fixed list with a default value.
+- It caps each list.
+- It keeps a page path only when the digest names that page.
+
+### Who checks what
+
+- On each request to `geo/report`, Content Governance checks that the caller is signed in and has
+  `publish` on the site, the permission of the GEO dashboard. It also checks that the site enables
+  the module and keeps the GEO section on.
+- The writer checks its own permission for the current user on the site, in `status` and in
+  `write`.
+- The writer applies its own rate limit for the current user, because each call costs money.
+- The writer keeps the prompt, the model and the key. Content Governance has none of them.
+
+### The endpoint and the dashboard
+
+`GET /modules/content-governance/geo/report` answers `{enabled, reason, provider, model}`. The
+`reason` is `absent` while no module registers a writer. Otherwise it is the reason that the status
+of the writer gives, and it is empty when the writer is ready. The `provider` and the `model` are
+empty unless the writer is ready.
+
+The dashboard lists the **Report** tab, and greys it out while `enabled` is false. A POST with the
+action `generate` asks the writer for a report. When no report is written, nothing is stored and the
+POST answers as follows:
+
+| Case | Answer |
+|---|---|
+| No writer, the status `notConfigured`, or `NOT_CONFIGURED` | 409 `no report writer` |
+| The status `noAccess`, or `NO_ACCESS` | 403 `access required` |
+| `QUOTA` | 429 `rate limit` |
+| `OUTPUT_LIMIT` | 502 `provider failed: the answer reached its output budget` |
+| `PROVIDER` | 502 `provider failed` |
+| An answer that is not JSON | 502 `provider failed`, followed by the cause |
+
+The **Report** tab shows its own message for 403 and 429, and the `error` field of the answer for
+the other cases. When the status call or the read of the stored report fails, the tab says that it
+could not reach the server and offers a retry: a refused or failed call never reads as no model.
+`guardedFetch` sends a request once more with fresh tokens after a refusal of the CSRF guard, which
+comes as a redirect, or as a 403 or a 503 with a page that is not JSON.
+
 ## Configuration
 
-Files in `digital-factory-data/karaf/etc/`. The module ships the first two with `# default
-configuration` as their first line, so a redeploy never overwrites them; the BotRank files are added by
-a server administrator and never shipped. Edits apply at once, with no redeploy, except for scheduled
-scans: a schedule keeps the fetch limits it was given when it was saved or when the module last
-started.
+Files in `digital-factory-data/karaf/etc/`. The module ships the first one with `# default
+configuration` as its first line, so a redeploy never overwrites it. A server administrator adds the
+BotRank files, and the module never ships them. Edits apply at once, with no redeploy, except for
+scheduled scans: a schedule keeps the fetch limits it was given when it was saved or when the module
+last started.
 
 ### `org.jahia.community.contentgovernance.geo.cfg`
 
@@ -274,7 +341,7 @@ AI keys.
 |---|---|---|
 | `FETCH_TIMEOUT_MS` | 8000 | Per-fetch timeout. Sixteen agents run three at a time, so the drawer's worst case is about six times this. |
 | `MAX_BODY_BYTES` | 1500000 | How much of a page to read. |
-| `RATE_MAX_CALLS` / `RATE_WINDOW_MS` | 20 / 600000 | Per-user limit on the crawler check only. The site scan has its own limit as a constant in the servlet (30 per ten minutes) and the report uses `AI_REPORT_RATE_MAX_CALLS`; neither reads these keys. Reading a stored result is never limited. |
+| `RATE_MAX_CALLS` / `RATE_WINDOW_MS` | 20 / 600000 | Per-user limit on the crawler check only. The site scan has its own limit as a constant in the servlet (30 per ten minutes). The writer of the report applies its own limit, and neither reads these keys. Reading a stored result is never limited. |
 | `CRAWLER_AGENTS` | *(blank)* | Override the agent list as `name\|user-agent` pairs. Blank uses the built-in fifteen. |
 | `PUBLIC_BASE_URL` | *(blank)* | The base URL to fetch. Set this when the site's server name is not resolvable from inside the container. |
 
@@ -288,33 +355,6 @@ back to `http://localhost:8080` and fetches that. On a box serving one site that
 On a box serving several it is the *default* site, so the check reports another site's pages and
 robots.txt as if they were yours, quietly, because the fetch succeeds. `PUBLIC_BASE_URL` is how you
 say which, and on a multi-site box it is required rather than optional.
-
-### `org.jahia.community.contentgovernance.llm.cfg`
-
-The limits and the instructions of the AI features. The `genai-connector` module serves the model of
-every AI feature, the written report included. A server administrator sets the provider, the key and
-the model of each tier in the configuration of genai-connector (PID `org.jahia.modules.genai`).
-
-The **Report** tab can be used once genai-connector serves a model on its `balanced` tier and the
-user has `genaiAccess` on the site. Until then the tab stays greyed out, and nothing leaves the
-server. The written report reads these keys:
-
-| Key | Default | What it does |
-|---|---|---|
-| `AI_REPORT_RATE_MAX_CALLS` | 5 | Report generations allowed per user per ten minutes. |
-| `AI_PROMPT_APPENDIX` | *(blank)* | Instructions appended to every prompt of the module, the report's included. |
-
-`AI_RATE_MAX_CALLS` in the same file belongs to the page tasks of Page quality, and the report does
-not read it. The output budget of the report is 6000 tokens, and genai-connector caps it with its
-`max.output.tokens.limit` key. A site-wide report is long: with a cap that is too low, the request
-answers 502 `provider failed: the answer reached its output budget`, and no report is
-stored. Site Settings > Content governance > **AI model** shows
-whether a model answers the user on the site, and its provider and model.
-
-Up to 1.11.0, the module had its own client, configured in this file by `AI_PROVIDER`, `AI_MODEL`,
-`AI_API_KEY`, `AI_BASE_URL`, `AI_MAX_TOKENS`, `AI_REPORT_MAX_TOKENS` and the two `AI_COST_*` keys. The
-module ignores these keys now, and logs a WARN at start while the file sets one of them. Remove them
-from the file, `AI_API_KEY` first.
 
 ### BotRank connections
 
@@ -364,7 +404,7 @@ baseUrl =
 | Drawer **AI citations** tab | can read the page | `geo.citations` on; greyed out until the site is bound to BotRank |
 | Dashboard, robots.txt editor, llms.txt view | **publish** on the site | the GEO section is on (otherwise *Switched off for this site*) |
 | Dashboard **AI citations** group | **publish** on the site | `geo.citations` on |
-| Dashboard **Report** tab | **publish** and `genaiAccess` on the site | the GEO section is on; greyed out until genai-connector serves a model and the user has `genaiAccess` |
+| Dashboard **Report** tab | **publish** on the site, and the permission that the writer checks | the GEO section is on; greyed out until a writer answers the user on the site ([The GEO report writer](#the-geo-report-writer)) |
 | Site Settings > Content governance, BotRank tab included | **site-admin** on the site, on the route and on every call: binding a site to a connection spends the customer's organisation key | always listed; the BotRank tab cannot read the site's settings while the GEO section or `geo.citations` is off |
 
 A scan's optional scope has to name a node inside the site it was started from, and it is resolved

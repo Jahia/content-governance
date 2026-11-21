@@ -5,26 +5,27 @@ maintain it. The user-facing behaviour is in [guide.md](guide.md).
 
 ## In one paragraph
 
-The automated checks run in the editor's browser. The section loads
+The checks of SEO, readability, links and Jahia health run on the server: the GraphQL field
+`checkPage` renders the page as the editor, in the edit workspace, runs every check of the server on
+it, and gives the result of each rule that ran, with the values that these tabs show. `frame.check`
+gives an agent the same findings for the same path. The checks that need a browser run in the editor's browser: the section loads
 `/cms/render/default/{lang}{path}.html` in a same-origin iframe, waits for it to settle, strips
-editing tooling from its DOM, and runs seven analyzers against the frame's document and performance
-entries. One of them (Jahia) also queries GraphQL through jContent's Apollo client. Results are kept
+editing tooling from its DOM, and runs axe-core, the web vitals and eco-design against the frame's
+document and performance entries. Results are kept
 in the editor's `localStorage` and, once complete, stored on the site for every editor (see
-[Shared audits](#shared-audits-and-the-site-dashboard)). The other server code specific to the section is one servlet,
-`/modules/content-governance/audit/ai-review`. It runs four server-defined AI tasks through
-`AiService` (`org.jahia.community.contentgovernance.ai`), on the model that genai-connector serves.
+[Shared audits](#shared-audits-and-the-site-dashboard)). The section calls no model. When the
+module ai-assistant is installed, it adds its own AI review tab to the drawer
+([`drawer-entries.md`](../drawer-entries.md)).
 
 ```
 jContent / Page Builder header
   GovernanceAction (headerPrimaryActions:890)
     GovernanceDrawer  (portal into document.body)
       AuditSection
+        GraphQL checkPage (HtmlCheck)  -> one result per rule: seo, readability, links, jahia, HTML rules
         iframe  /cms/render/default/{lang}{path}.html?pageAuditRun=N
-          removeToolingElements -> webVitals -> ecodesign -> readability -> seo
-          -> accessibility (axe-core injected) -> links (HEAD/GET) -> jahiaHealth (GraphQL)
+          removeToolingElements -> webVitals -> ecodesign -> accessibility (axe-core injected)
         localStorage  content-governance:audit:{lang}:{path}
-        POST /modules/content-governance/audit/ai-review  {task: review|seo|alt|simplify}
-          AiReviewServlet -> AiService -> GenAiModel -> genai-connector GenAiService
 ```
 
 ## Where the code lives
@@ -36,13 +37,12 @@ jContent / Page Builder header
 | `src/javascript/drawer/FixFirst.jsx`, `findings.js` | "Fix first": each section reports `{key, section, tab, severity, title}` findings through `onFindings` (Page quality: violations by impact and every tab's recommendations, `auditFindings`; GEO: one per tab with a count, score and crawler serious, the others moderate; Compliance: one serious per term, `complianceFindings`). The drawer keeps them per section (an identical list changes nothing), `rankFindings` keeps the five most serious, ties in section order, and **Open** selects the section and passes `requestedTab` `{tab, at}`. |
 | `src/javascript/drawer/GovernanceDrawer.jsx` | The drawer: header, one section tab per switched-on section with its count badge, sections mounted on first show and kept mounted while the drawer is open. |
 | `src/javascript/drawer/useDock.js` | Docks the drawer beside the page under edit, under jContent's header, and resizes it from its left edge (see the drawer notes below). |
-| `src/javascript/audit/AuditSection.jsx` | The section: preview frame, analyzer pipeline, cache, staleness probe, export, AI task lifecycle, tab bar and badges. |
-| `src/javascript/audit/analyzers/` | One file per analyzer, plus `tooling.js` (DOM cleanup), `aiReview.js` (AI client), `headingOutline.js` (the heading outline of the Readability tab) and `cssPath.js` (the selector a highlight finds an element by). |
-| `src/javascript/audit/tabs/` | One component per tab, the three assist components, the shared `Recommendations` list, the two manual checklists. |
-| `src/javascript/common/useSiteSettings.js`, `settings.gql.js` | Site switches and AI status, from `contentGovernance.siteSettings`. |
-| `src/javascript/common/AiUnavailable.jsx` | The greyed-out box shown in place of an AI feature when no model answers the user on the site, with a message for the reason. |
-| `src/main/java/org/jahia/community/contentgovernance/audit/servlet/AiReviewServlet.java` | The AI endpoint. |
-| `src/main/java/org/jahia/community/contentgovernance/ai/` | `AiService`, the entry point of every AI feature, and `genai/GenAiModel`, the bridge to genai-connector. |
+| `src/javascript/audit/AuditSection.jsx` | The section: the check of the server, preview frame, analyzer pipeline, cache, staleness probe, export, tab bar and badges. |
+| `src/javascript/audit/pageCheck.js` | Calls `checkPage`, and turns the findings and the values of its results into the results of the tabs SEO, Readability, Links and Jahia health, and the HTML rules of the Accessibility tab. |
+| `src/javascript/audit/analyzers/` | The analyzers of the browser (`webVitals.js`, `ecodesign.js`, `accessibility.js`), plus `tooling.js` (DOM cleanup) and `cssPath.js` (the selector a highlight finds an element by). |
+| `src/main/java/org/jahia/community/contentgovernance/page/` | The checks of the server for each domain (`SeoChecks`, `ReadabilityChecks`, `LinkChecks`, `HealthChecks`), with the values each one measures, and the checks of the measure rules `seo.tags`, `readability.statistics` and `readability.headings`. |
+| `src/javascript/audit/tabs/` | One component per tab, the shared `Recommendations` list, the two manual checklists. |
+| `src/javascript/common/useSiteSettings.js`, `settings.gql.js` | Site switches, from `contentGovernance.siteSettings`. |
 | `src/main/java/org/jahia/community/contentgovernance/settings/Features.java`, `SiteFeatures.java` | Feature ids and the server-side gate. |
 | `src/main/resources/javascript/locales/{en,fr}.json` | Labels, under `content-governance.audit`, `content-governance.drawer` and `content-governance.common`. |
 | `webpack.config.js` | Copies `node_modules/axe-core/axe.min.js` to `javascript/apps/axe.min.js`. |
@@ -54,8 +54,7 @@ jContent / Page Builder header
   the language jContent is in.
 - `useSiteSettings(siteKey)` runs `ContentGovernanceSiteSettings` with `fetchPolicy: 'network-only'`
   on every mount, so a switch changed by an administrator applies the next time the drawer opens. It
-  returns `isOn(section, tab)` and `settings.ai` (`configured`, `reason`, `provider`, `model`,
-  `images`).
+  returns `isOn(section, tab)`.
 - The drawer is a non-modal `<dialog open>` (not `showModal()`, which would make it modal, in the top
   layer above Content Editor and jContent's menus) rendered by a portal into `document.body`.
   `drawer/useDock.js` docks it in jContent's content area (`main .moonstone-layoutContent`), under
@@ -71,19 +70,17 @@ jContent / Page Builder header
   does not render the sections. It closes on Escape, its close button and the header button; a
   press on the page leaves it open, and it returns focus where it was on close.
 - `AuditSection` receives `isOn(tab)` for the `audit` section. `TAB_IDS` (`accessibility`, `seo`,
-  `vitals`, `readability`, `ecodesign`, `links`, `jahia`, `ai`) is filtered by it. The `ai` tab is
-  kept but disabled while `settings.ai.configured` is false. Its tooltip (Moonstone `Tooltip`,
-  `common/HelpTab.jsx`) says what it is for, then `audit.tabs.aiNoAccess` when `settings.ai.reason`
-  is `noAccess`, else `audit.tabs.aiNotConfigured`.
+  `vitals`, `readability`, `ecodesign`, `links`, `jahia`) is filtered by it.
 
-A tab switched off is not measured. Its analyzer does not run, and its result is not cached,
-exported or sent to the AI review (`keepEnabled` in `AuditSection.jsx`). Web Vitals still runs as the
-input of Ecodesign, and the SEO read (a DOM pass) always runs for the page facts the AI tasks need:
-`results.page` holds the title, the meta description and the number of images without alt, whatever
-the switches. Neither result is kept when its own tab is off. A cached audit that lacks a tab switched
-back on since is measured again; `CACHE_SCHEMA` 4 dropped caches from before `results.page`, 5 those from before per-language readability.
-The analyzers call no module endpoint; the server enforces the switches on the AI endpoint (see
-[Feature gates](#feature-gates)).
+A tab switched off is not measured. Its analyzer does not run, and its result is not cached or
+exported (`keepEnabled` in `AuditSection.jsx`). Web Vitals still runs as the input of Ecodesign, and
+the check of the server runs while a tab that reads it is on, Accessibility included, and gives the
+page facts kept with each audit: `results.page` holds the title, the meta description and the number
+of images without alt. Neither result is kept when its own tab is off. A run whose check of the
+server did not finish, or whose server could not read the state of the content (Jahia health and
+Links then show why), is never cached or stored. A cached audit that lacks a tab switched back on
+since is measured again. `results.page.schema` holds `CACHE_SCHEMA`, and a stored audit of another
+schema is measured again: 6 dropped the audits from before the check of the server.
 
 ## The preview frame
 
@@ -106,10 +103,11 @@ The analyzers call no module endpoint; the server enforces the switches on the A
   2. calls `removeToolingElements(doc)`, which removes `[id^="tst-"]`, `[class*="tst-"]` and
      `#personas_panel` (jExperience persona preview, injected by `wem.js` in authoring contexts),
      before any analyzer reads the DOM;
-  3. runs the analyzers in order. The four network-bound ones go through `runStep`
-     (`analyzers/timeLimit.js`) with `STEP_LIMITS_MS`: vitals 15 s, accessibility 60 s, links 45 s,
-     Jahia 30 s. A step that fails or runs out of time is left out: its tab shows `IncompleteStep`
-     (why, and **Re-run**) from `results.incomplete[<result key>]`, eco-design follows vitals, the
+  3. starts the check of the server, then runs the analyzers of the browser in order. Each step goes
+     through `runStep` (`analyzers/timeLimit.js`) with `STEP_LIMITS_MS`: the check of the server
+     60 s, vitals 15 s, accessibility 60 s. A step that fails or runs out of time is left out: its
+     tabs show `IncompleteStep` (why, and **Re-run**) from `results.incomplete[<result key>]`, the
+     check of the server for SEO, Readability, Links and Jahia health, eco-design after vitals. The
      other tabs show their results, and such a partial audit is never cached. The late answer of a
      stopped step is ignored, not cancelled.
 - When results come from the cache, the frame still loads (preview and highlight target) but the
@@ -131,26 +129,66 @@ The analyzers call no module endpoint; the server enforces the switches on the A
   `inert`, `aria-hidden`), because the analyzers read the frame's viewport and paint (LCP, images
   above the fold) and a frame with no height measures nothing. A re-run keeps the editor's choice.
 
-## The analyzers
+## The check of the server
+
+`audit/pageCheck.js` calls the GraphQL field `checkPage(path, language)` (`ContentGovernanceCheckPage`,
+`fetchPolicy: 'no-cache'`). The server renders the page as the editor, in the edit workspace, with
+`HtmlCheck`, the service that `frame.check` and `audit.accessibility` call too. It answers `results`:
+one result per rule that ran, passed or failed, in the order of the rules,
+`{ruleId, passed, values, findings}`. A rule that the site turned off gives no result.
+
+- `findings`: each place where the page breaks the rule, `{ruleId, severity, text, context, locator,
+  values}`, at most 50.
+- `values`: a JSON object of what the check of the rule measured. Example: `seo.title` gives
+  `{length: 92, text: "Annual report…"}`.
+
+Each block of a tab reads the values of the rule that feeds it, and is left out when the site turned
+that rule off:
+
+| Rule | Tab | Values |
+|---|---|---|
+| `seo.tags` (measure) | SEO | The tags of the head and the images: the tag list and the sharing preview. |
+| `readability.statistics` (measure) | Readability | The statistics of the main text with the formula of its language (`Readability`), and its paragraphs. |
+| `readability.headings` (measure) | Readability | The outline of the headings, each with a CSS selector of the server render, which the preview resolves to highlight it. |
+| `links.broken` | Links | The links to a page, the internal links resolved in the repository and the broken ones (`missing` or `not_published`). |
+| `health.unpublishedChanges` | Jahia health | The status of the page, the content items read (400 at most), and what is not published in the language. |
+| `health.missingTranslations` | Jahia health | The active languages of the site, and what lacks one of them. |
+
+A measure rule has no limit: it always passes, and carries values only. Each other built-in rule
+carries its values too, such as the score under `readability.flesch` or the Open Graph tags under
+`seo.openGraph`, for what the drawer shows later.
+
+Each finding goes to the tab of the domain of its rule (`tabOf`, `DOMAIN_TABS`): `accessibility`,
+`seo`, `readability` (and `writing`), `links`, `health` for Jahia health, and `ecodesign`. No list
+names the tab of one rule, so a check that another module registers lands like a built-in one. A
+tab shows one recommendation per rule `{key, rule, severity, params, items, title, detail, label}`:
+`items` holds each finding of the rule, with its `locator` when the check gave one. The texts come
+from the rule (`audit/ruleText.js`), in the language of the interface of the editor: the plural form
+of its title for the count, with the values `count`, `value` (the text of the first finding), `min`
+and `max`, and its advice. A finding with a locator offers "Highlight on the page", and says "Item
+not found" when the preview has no such element. An audit stored before this version keeps its old
+texts (`audit.<ns>.recs.<key>`), and the drawer offers "Run again".
+
+## The analyzers of the browser
 
 Each analyzer gets the rules of the site, which `audit/rules.js` reads at the start of the audit
-through the GraphQL field `contentRules` ([the catalog](../content-rules/catalog.md)). A finding is
-`{key, rule, severity, params}`: `key` names its text, `rule` is the id of its rule, `severity` is
-the severity of the rule, and `params` holds the `min` and `max` of the rule. A rule that the site
-turned off gives no finding.
+through the GraphQL field `contentRules(siteKey, language)` ([the catalog](../content-rules/catalog.md)).
+A finding is `{key, rule, severity, params, title, detail}`: `rule` is the id of its rule, `severity`
+is the severity of the rule, `params` holds the values of its texts, and the texts come from the
+rule. axe-core skips each check whose rule `axe.<id>` the site turned off, and each violation keeps
+the impact of axe-core beside the severity of the site. The findings of the web vitals are rules of
+the domain `ecodesign`: the Ecodesign tab shows them. A rule that the site
+turned off gives no finding. These rules are browser rules: the server registers their ids and never
+runs them, and they never block.
 
 Run in this order in `handleFrameLoad`. Each returns a result object with a `recommendations` array
-of these findings; the text is in `audit.<ns>.recs.<key>.title|detail`.
+of these findings.
 
 | Analyzer | File | Reads | Notes |
 |---|---|---|---|
-| Web Vitals | `webVitals.js` | Buffered `PerformanceObserver` (`largest-contentful-paint`, `layout-shift`, 700 ms window), navigation and resource entries, `doc.images` | Runs first so axe and link checks are not in the resource stats. LCP falls back to the `responseEnd` of the largest in-viewport image, else `domContentLoadedEventEnd` (`lcpApprox`). INP is always `null`. The timings are indicative figures: no band, no finding (they are measured on the editing preview in the editor's browser and cannot match the live site); `buildVitalsRecommendations` reads the diagnostics only, and `audit/vitalsFindings.js` drops the `slowLcp`, `highCls` and `slowTtfb` findings of audits stored before 1.11 where they are shown (`keepEnabled`, `auditFindings`). The counts stored with those audits keep them, as history. Size is `transferSize`, else `encodedBodySize` (HTTP cache hits). |
+| Web Vitals | `webVitals.js` | Buffered `PerformanceObserver` (`largest-contentful-paint`, `layout-shift`, 700 ms window), navigation and resource entries, `doc.images` | Runs first so axe is not in the resource stats. LCP falls back to the `responseEnd` of the largest in-viewport image, else `domContentLoadedEventEnd` (`lcpApprox`). INP is always `null`. The timings are indicative figures: no band, no finding (they are measured on the editing preview in the editor's browser and cannot match the live site); `buildVitalsRecommendations` reads the diagnostics only, and `audit/vitalsFindings.js` drops the `slowLcp`, `highCls` and `slowTtfb` findings of audits stored before 1.11 where the dashboard shows them (`auditFindings`). The counts stored with those audits keep them, as history. Size is `transferSize`, else `encodedBodySize` (HTTP cache hits). |
 | Ecodesign | `ecodesign.js` | Vitals diagnostics, resource entries, DOM | 10 criteria, each under the rule `ecodesign.<criterion>` of the catalog, whose maximum it reads: weight, requests, DOM size, below-the-fold images without `loading="lazy"`, fonts (WOFF2 only), autoplay media, legacy-format images over 30 kB, oversized images, missing dimensions, third-party origins. A criterion passes when its rule has no finding. Not an RGESN conformity score; `ecoChecklist.js` lists 8 whole-service criteria. |
-| Readability | `readability.js` | `main` or `body`, minus `script, style, noscript, svg, nav, header, footer, [aria-hidden="true"]` | Text nodes joined with spaces. `analyzeText` scores with the formula of the language (`FORMULAS`: Flesch and Flesch-Kincaid grade `en`, Kandel-Moles `fr`, Amstad `de`, Fernández Huerta with Law's correction `es`, Franchina-Vacca `it`, Douma `nl`, Martins `pt`; LIX for `sv da nb nn no`, `scale: 'lix'`, higher is harder, bands at the midpoints of Björnsson's 20/30/40/50/60 table), syllables by vowel groups per language (diaeresis hiatus in `fr`/`nl`, silent final e in `en`/`fr`). Another language: `scored: false`, `score: null`, no score advice. `ja zh th lo km my` (`UNSPACED`): `spaced: false`, characters and sentences (split on `。．！？!?`), no word-based field or advice. Under 30 words: `empty`, with no advice. Long sentence: over the maximum of `readability.longSentences`. H1 count on the whole document. Headings of the root through `headingOutline.js`: `collectHeadings` reads level, text (else `aria-label` or an image's `alt`) and a selector (`cssPath.js`, shared with the AI assists), and the pure `buildOutline` gives `outline` (the first 200, text cut at 160 characters, `skippedFrom` on a heading more than one level under the one before it, `empty` without text), `headingSkips` and `headingCount` over all of them. They are returned for an `empty` page too. The outline is stored with the audit; `HeadingOutline.jsx` lists it, and an audit without one (before 1.10) says to re-run. |
-| SEO | `seo.js` | `<head>` tags, JSON-LD blocks, `<html lang>`, images, links and buttons | Strips the preview prefix ("Aperçu - ", "Preview - "...) from the title. The ranges of the rules `seo.title` and `seo.metaDescription`, also in `ranges` for the SEO assist. `collectWeakCtas` keeps up to 10 distinct generic labels with their target and 300 characters of context, for the SEO assist. |
-| Accessibility | `accessibility.js` | Whole frame document | Injects axe-core (below) and runs tags `wcag2a, wcag21a, wcag2aa, wcag21aa, wcag22aa, wcag2aaa, best-practice` by tag, not by rule list, so an axe-core update brings its new rules. Keeps 25 nodes per rule. A card's percentage is passes / (passes + violations), floored; `incomplete` is outside the ratio. `a11yChecklist.js` lists 14 manual criteria. |
-| Links | `links.js` | `a[href]` | Same-origin links whose path starts with `/cms/render/`, `/cms/file/` or `/files/` are fetched with `credentials: 'same-origin'`: `HEAD`, then `GET` on 405/501, batches of 6, at most 60 distinct URLs. URLs matching `logout|login|\.do` and every other same-origin path are counted (`skippedSideEffect`) and never fetched, so a planted link cannot make the auditor's session call an action. External links are only counted. |
-| Jahia | `jahiaHealth.js` | GraphQL `pageAuditHealth`, DOM text nodes | `descendants` of type `jnt:content`, recursion stopped at `jnt:page`, `limit: 400`; publication status per node and `translationLanguages` against the site languages `activeInEdit`. DOM scan for raw keys (`namespace:key.path`) and placeholders. A GraphQL failure adds `graphqlUnavailable` (minor) instead of failing the audit. |
+| Accessibility | `accessibility.js` | Whole frame document | Injects axe-core (below) and runs tags `wcag2a, wcag21a, wcag2aa, wcag21aa, wcag22aa, wcag2aaa, best-practice` by tag, not by rule list, so an axe-core update brings its new rules. Keeps 25 nodes per rule. A card's percentage is passes / (passes + violations), floored; `incomplete` is outside the ratio. `a11yChecklist.js` lists 14 manual criteria. The tab also lists the HTML rules of the server that no other tab words. |
 
 ### axe-core injection
 
@@ -166,7 +204,7 @@ realm. Inline injection is not possible: `axe.source` was removed in axe-core 4.
 as a Module Federation singleton with `import: false`, so the bundle never ships its own copy and
 the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-cache'`:
 
-- `pageAuditHealth(path, language)`: the Jahia tab.
+- `ContentGovernanceCheckPage(path, language)`: the check of the server.
 - `pageAuditLastModified(path, language)`: `aggregatedLastModifiedDate` of the page and its content,
   stopping at sub-pages. Used as the staleness probe when results come from the cache: if it is later
   than the cached timestamp, the **Page modified since this audit** banner is shown. It compares a
@@ -174,26 +212,24 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
 
 ## Results, badges, cache and export
 
-- Results: `{a11y, vitals, ecodesign, readability, seo, links, jahia}`. AI answers are kept beside
-  them (`aiReview`, `seoAssist`, `altAssist`, `simplifyAssist`).
-- Counts (`audit/tabCounts.js`): `a11y.violations.length` for Accessibility, `recommendations.length`
-  for the other analyzers, `aiReview.recommendations.length` for the AI tab, each with `serious` when
-  one finding is critical or serious. `common/CountBadge.jsx` draws a count red (Moonstone `Badge`,
-  danger) when serious and grey (`Chip`) otherwise, on the tabs of every section and on the section
-  tabs, where the drawer reads the severities from the findings the section reports. The section
-  total, reported through `onCount`, sums the counts of the switched-on tabs. "Fix first" lists
-  critical and serious findings only (`isSerious`, `drawer/findings.js`) and shows nothing without
-  one. GEO readiness: Score and Crawler access are serious, the other tabs grey.
+- Results: `{a11y, vitals, ecodesign, readability, seo, links, jahia}`.
+- Counts (`audit/tabCounts.js`): the violations of axe-core and the HTML rules of the server for
+  Accessibility, `recommendations.length` for the other tabs, each with `serious` when one finding is
+  critical or serious. `common/CountBadge.jsx` draws a count red (Moonstone `Badge`, danger) when
+  serious and grey (`Chip`) otherwise, on the tabs of every section and on the section tabs, where
+  the drawer reads the severities from the findings the section reports. The section total, reported
+  through `onCount`, sums the counts of the switched-on tabs. "Fix first" lists critical and serious
+  findings only (`isSerious`, `drawer/findings.js`) and shows nothing without one. GEO readiness:
+  Score and Crawler access are serious, the other tabs grey.
 - Cache: `localStorage` key `content-governance:audit:{language}:{path}`, entry
-  `{schema, timestamp, results, aiReview, seoAssist, altAssist, simplifyAssist}`. `CACHE_SCHEMA` is 5:
-  bump it whenever the shape of `results` changes, or an old entry is restored into a UI expecting the
-  new shape (entries with another schema are deleted on read). Pruned to the 10 most recent entries;
-  on a quota error, pruned to 2 and retried once; failures are silent. Every AI result is persisted
-  through `persistAi`, which rewrites all four AI fields, so saving one never drops the others.
-- **Re-run** (`runId > 0`) skips the cache and resets every AI result.
+  `{schema, timestamp, results}`. `CACHE_SCHEMA` is 6: bump it whenever the shape of `results`
+  changes, or an old entry is restored into a UI expecting the new shape (entries with another
+  schema are deleted on read). Pruned to the 10 most recent entries;
+  on a quota error, pruned to 2 and retried once; failures are silent.
+- **Re-run** (`runId > 0`) skips the cache.
 - **Shared audits:** see the next section.
 - **Export JSON** builds `{path, language, url, auditedAt, results}` in the browser and downloads
-  `content-governance-audit-<last path segment>.json`. AI answers are not exported.
+  `content-governance-audit-<last path segment>.json`.
 
 ## Shared audits and the site dashboard
 
@@ -262,135 +298,16 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
   - **Export CSV** (one row per page, a column per tab) and **Export JSON**, both built in the
     browser (`exportAudits.js`, `common/exportFile.js`).
 
-## The AI endpoint
-
-`AiReviewServlet`, a DS component registered as an `HttpServlet` with `alias=/content-governance/audit/ai-review`,
-so it answers at `/modules/content-governance/audit/ai-review`.
-
-The endpoint answers `POST` only (405 otherwise). The drawer reads the provider, model and image
-support from `contentGovernance.siteSettings.ai`.
-
-### POST: guards, in order
-
-| Check | Failure |
-|---|---|
-| Authenticated, not `guest` | 403 `unauthenticated` |
-| `Content-Type` starts with `application/json` | 415 `invalidRequest` |
-| `Origin`, else `Referer`, has the request's host (`Host` header without port, else `getServerName()`); a request with neither header passes, as a non-browser caller | 403 `crossOrigin` |
-| Body is at most 4 194 304 characters | 413 `invalidRequest` |
-| Body parses as JSON | 400 `invalidRequest` |
-| `path` is absolute, exists and has `jcr:read` for the caller's session | 403 `noAccess` |
-| The site of the page enables the feature of the task (`SiteFeatures.isEnabled`) | 403 `switchedOff` |
-| `AiService.status`: genai-connector runs and serves a model on the tier of the task (see Tiers below) | 503 `notConfigured` |
-| `AiService.status`: the caller has `genaiAccess` on the site of the page | 403 `genaiAccess` |
-| Per-user rate limit: `AI_RATE_MAX_CALLS` per 10-minute sliding window | 429 `rateLimited` |
-| The call: genai-connector's own rate limit refuses it | 429 `rateLimited` |
-| The call: the answer reached its output budget before it was one complete JSON object | 502 `budget` |
-| The call and the parse | 502 `upstream`; detail and the first 500 characters of an unparseable answer are logged server-side only |
-
-Every task asks genai-connector for a JSON answer (`ResponseFormat.JSON`), with an output budget of
-6000 tokens (`MAX_OUTPUT_TOKENS`). A reasoning model spends part of that budget before it answers.
-genai-connector caps the budget with its
-`max.output.tokens.limit` key, and it retries an answer that is not JSON. The servlet does not
-retry: an answer that is still not JSON gives `upstream`.
-
-Every refusal is JSON, `{"code": "...", "error": "<English message>"}`. The drawer shows the code in
-the editor's language (`audit.ai.errors.<code>`) and falls back to the message. The rate limit is
-counted after every refusal that costs nothing, so only a call that goes to the provider takes a
-slot (a provider failure included); it is kept in memory per node.
-
-The endpoint is under Jahia's CSRF guard, like every servlet of the module (see
-[the GEO architecture](../geo-readiness/architecture.md), "Jahia's CSRF guard"): the drawer sends the
-guard's token. The JSON content type and the Origin/Referer host check stay as a second check.
-
-### Tasks
-
-The client sends `task` and data; the server owns the prompts. An unknown task runs as `review`.
-
-| Task | Feature gate | Client sends | Server caps | Answer (whitelisted) |
-|---|---|---|---|---|
-| `review` (default) | `audit.ai` | `language`, `uiLanguage`, `path`, `title`, `description`, `findings` (digest from `buildDigest`), `text` | text 15,000 chars, digest 60 lines, 20 recommendations kept | `summary`, `recommendations[{severity, category, title, detail, wording, fix}]` |
-| `seo` | `audit.seo` | the above plus `headings` (h1-h3, max 20) and `ctas` (weak CTAs) | 3 titles, 3 descriptions, 8 secondary keywords, 8 headings, 10 CTAs of 3 suggestions | `titles`, `metaDescriptions`, `social{title, description}`, `keywords{focus, secondary}`, `headings[{level, current, suggested, reason}]`, `ctas[{current, suggestions, reason}]` |
-| `alt` | `audit.accessibility` | `images[]`: selector, filename, size, link target, caption, nearest heading, context, and a JPEG thumbnail (max 512 px, quality 0.7) only when `settings.ai.images` is true and the canvas is not tainted | 8 images. A picture is attached only if genai-connector serves the `vision` tier. Its type must be JPEG, PNG or WebP, and its base64 valid and at most 400,000 chars. | `images[{id, decorative, alt, reason}]`, `vision` (true when at least one picture was attached) |
-| `simplify` | `audit.readability` | `sentences[{id, text, words}]`: the longest sentences of 22 words or more in `p, li, td, blockquote, dd` of the main content, outside nav, header, footer | 8 sentences, 1,500 chars each (the client sends 6) | `sentences[{id, rewrite, reason}]` |
-
-- Prompts: `SYSTEM_PROMPT`, `SEO_ASSIST_PROMPT`, `ALT_TEXT_PROMPT`, `SIMPLIFY_PROMPT`. Each requires
-  a JSON-only answer of a fixed shape. `AiService.complete` adds `AI_PROMPT_APPENDIX` after every
-  prompt.
-- Languages: `language` is the audited page language, `uiLanguage` is `contextJsParameters.uilang`.
-  Both are turned into a language name (French, German, Spanish, Italian, Portuguese, Dutch, English;
-  any other code is passed as is). Content to publish (fixes, titles, alt texts, rewrites) is written
-  in the page language; prose for the editor (summary, details, reasons) in the UI language.
-- Parsing: genai-connector returns one JSON object, or refuses an answer cut before it is complete
-  JSON (`budget` error). `parseJson` reads the object from its first `{`. Each task has its own
-  parser that copies only the expected fields, normalises enums (severity, category, heading level, with a fallback), caps array lengths
-  and clips suggestions and reasons to 300 characters (rewrites to 1,500; the review's title, detail
-  and wording are not clipped). Nothing else from the model reaches the browser, and the tabs render
-  it as React text (no `innerHTML`).
-- Response extras: `provider`, `model`, `truncated` (the provider reported the output limit) and
-  `usage{inputTokens, outputTokens}`. When the provider reports a cost through genai-connector, the
-  response also has `usage.cost` in USD (rounded to 4 decimals).
-- Every task is started by a click (`runAiTask`), never automatically, to control cost.
-
-## The AI service and genai-connector
-
-Package `org.jahia.community.contentgovernance.ai`, used by this servlet and by the GEO site report
-(`GeoReportServlet`, `GeoReport`), and read by the settings GraphQL types for the status. The
-`genai-connector` module serves the model through its `GenAiService`. This module has no provider,
-no key and no model.
-
-| Class | Role |
-|---|---|
-| `AiService` | DS component, PID `org.jahia.community.contentgovernance.llm`, and the one entry point of the AI features. `status(feature, siteKey)` tells whether a model answers the current user on the site. `complete(request)` sends one call and adds `AI_PROMPT_APPENDIX` after the instructions. |
-| `AiModel` | The model behind the features. Its interface names no type of genai-connector, so the module loads without genai-connector. `AiService` binds it with an optional, dynamic reference and answers `ABSENT` while it is missing. |
-| `genai/GenAiModel` | The only class that names a type of genai-connector. It starts once `GenAiService` is there, and the module loads it through a dynamic import of `org.jahia.modules.genai.api;version="[0.1,1)"`. It picks the tier, asks for `ResponseFormat.JSON` and turns each exception of genai-connector into an `AiException.Reason`. |
-| `AiStatus` | `READY`, `ABSENT`, `NOT_CONFIGURED` or `NO_ACCESS`, with the provider and the model of the `balanced` tier and whether the `vision` tier is served. `reason()` gives the value of GraphQL and of `geo/report`: `absent`, `notConfigured`, `noAccess`, or empty when ready. |
-| `AiFeature` | `REVIEW`, `SEO`, `SIMPLIFY`, `ALT_TEXT` and `GEO_REPORT`. |
-| `AiRequest`, `AiAnswer`, `AiImage` | One call, its answer and one picture. The request has the feature, the site key, the instructions, the input, the pictures and the output budget. The answer has the text, `truncated`, the token counts (or -1), the cost when the provider reports one, the provider and the model. Their `toString` leaves out the prompt, the answer and the picture bytes. |
-| `AiException` | A call with no answer, and its `Reason`: `NO_ACCESS`, `QUOTA`, `NOT_CONFIGURED`, `OUTPUT_LIMIT`, `INVALID_OUTPUT` or `PROVIDER`. The endpoints answer the browser from the reason, and the message goes to the server log only. |
-
-Tiers: every task asks for the `balanced` tier. The `alt` task asks for the `vision` tier when it
-attaches at least one picture, and for `balanced` otherwise, or for `vision` when only that tier
-has a model. A tier with no model of its own uses
-genai-connector's shared model. `settings.ai` is the status of `REVIEW`, because every page task runs
-on the same tier.
-
-Access: `AiService` checks `genaiAccess` on `/sites/<key>` with the session of the current user, as
-genai-connector checks it. No user, a site that does not exist and a site the user cannot read all
-give `NO_ACCESS`. genai-connector checks the permission again on each call.
-
-Configuration, in `digital-factory-data/karaf/etc/org.jahia.community.contentgovernance.llm.cfg`
-(first line `# default configuration - won't be overridden`, so a redeploy keeps the operator's
-values):
-
-| Key | Default | Use |
-|---|---|---|
-| `AI_RATE_MAX_CALLS` | 30 (min 1) | page tasks per user per 10 minutes |
-| `AI_PROMPT_APPENDIX` | empty | instructions appended to every prompt, of every site |
-| `AI_REPORT_RATE_MAX_CALLS` | 5 (min 1) | GEO site report only |
-
-The provider, the key and the model of each tier are set in genai-connector (PID
-`org.jahia.modules.genai`). Up to 1.11.0, the module had its own client, configured by
-`AI_PROVIDER`, `AI_MODEL`, `AI_API_KEY`, `AI_BASE_URL`, `AI_MAX_TOKENS`, `AI_REPORT_MAX_TOKENS`,
-`AI_COST_INPUT_PER_MTOKENS` and `AI_COST_OUTPUT_PER_MTOKENS`. `AiService` ignores these keys, and
-it logs a WARN at start while the file sets one of them.
-
-The rate-limit windows are kept in memory per servlet instance: they reset on restart and are not
-shared across cluster nodes.
-
 ## Feature gates
 
-- `Features.SECTIONS` declares the ids: section `audit` with tabs `accessibility`, `seo`, `vitals`,
-  `readability`, `ecodesign`, `links`, `jahia`, `ai`. Ids are stored and exposed in GraphQL: never
+- `drawer/ownTabs.js` registers the ids: section `audit` with tabs `accessibility`, `seo`, `vitals`,
+  `readability`, `ecodesign`, `links`, `jahia`. Ids are stored and exposed in GraphQL: never
   rename one.
 - `SiteFeatures.isEnabled(sitePath, "audit.<tab>")` is true when the site enables the module
   (directly or through a dependency) and neither `audit` nor `audit.<tab>` is in the site's
   `disabledFeatures`, stored on `/sites/<key>/content-governance` (`nt:unstructured`,
   `jmix:nolive`, default workspace), read with a system session. A site never configured has
   everything on, and so does a tab added in a later version.
-- Task to feature: `review` to `audit.ai`, `seo` to `audit.seo`, `alt` to `audit.accessibility`,
-  `simplify` to `audit.readability`. Switching off the AI tab therefore leaves the three assists
-  working.
 
 ## Known leftovers
 

@@ -49,7 +49,10 @@ export function VitalsTab({result}) {
                 })}
             </div>
 
-            <Recommendations items={result.recommendations} ns="vitals" tab="vitals"/>
+            {/* The findings of the vitals are rules of the domain ecodesign: the Ecodesign tab shows them.
+                An audit stored by an older version still has them here. */}
+            {result.recommendations?.length > 0 && <Recommendations items={result.recommendations} ns="vitals" tab="vitals"/>}
+            {!result.recommendations?.length && <p className={styles.note}>{t('vitals.findingsInEcodesign')}</p>}
 
             <h4 className={styles.sectionTitle}>{t('vitals.diagnostics')}</h4>
             <ul className={styles.statList}>
