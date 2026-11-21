@@ -23,7 +23,7 @@ public final class ContentGovernanceQueryExtension {
     @GraphQLField
     @GraphQLName("contentGovernance")
     @GraphQLNonNull
-    @GraphQLDescription("Content Governance: which sections and tabs a site uses, and whether AI is configured")
+    @GraphQLDescription("Content Governance: which sections and tabs a site uses")
     public static GqlContentGovernance contentGovernance() {
         return new GqlContentGovernance();
     }

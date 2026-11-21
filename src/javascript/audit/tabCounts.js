@@ -10,10 +10,9 @@ const countOf = list => ({count: list.length, serious: list.some(item => isSerio
  * or serious (its count is then red, grey otherwise). A tab the audit did not measure has no entry.
  *
  * @param {object} [results] the audit results (`{a11y, seo, vitals, ...}`)
- * @param {object} [aiReview] the AI review, when one was written
  * @returns {Object<string, {count: number, serious: boolean}>} by tab id
  */
-export function tabCounts(results, aiReview) {
+export function tabCounts(results) {
     const counts = {};
     if (results?.a11y) {
         // The checks of axe-core, and the HTML rules of the server that no other tab words
@@ -24,8 +23,5 @@ export function tabCounts(results, aiReview) {
             counts[tab] = countOf(results[key].recommendations || []);
         }
     });
-    if (aiReview) {
-        counts.ai = countOf(aiReview.recommendations || []);
-    }
     return counts;
 }

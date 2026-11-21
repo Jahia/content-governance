@@ -32,7 +32,7 @@ import styles from './GeoDashboard.module.css';
  * The site score sits outside them because it is the summary of all three.
  */
 const GROUPS = [
-    // The written report is always listed, greyed out while no model answers this user on the site.
+    // The written report shows only while a module writes it and answers this user on the site.
     {id: 'overview', tabs: ['score', 'report']},
     {id: 'reach', tabs: ['visibility', 'links', 'vanity']},
     {id: 'usable', tabs: ['schema', 'languages', 'freshness']},
@@ -64,8 +64,8 @@ export const GeoDashboard = ({isOn}) => {
     const [hasScan, setHasScan] = useState(false);
     const [exporting, setExporting] = useState(false);
 
-    // The written report needs a model that genai-connector serves to this user
-    // on the site.
+    // The written report needs a module that writes it, such as ai-assistant,
+    // and that answers this user on the site.
     //
     // Asked per site rather than once, because the server now resolves the site
     // to decide whether this caller may be told at all (JAHIA-SEC-432). A
@@ -117,7 +117,9 @@ export const GeoDashboard = ({isOn}) => {
         }
     }, [siteKey, language, t]);
 
-    const groups = useMemo(() => GROUPS.filter(g => g.id !== 'citations' || isOn('citations')), [isOn]);
+    const groups = useMemo(() => GROUPS
+        .filter(g => g.id !== 'citations' || isOn('citations'))
+        .map(g => ({...g, tabs: g.tabs.filter(id => id !== 'report' || reportEnabled)})), [isOn, reportEnabled]);
 
     const {siteInfo} = useSiteInfo({
         siteKey,
@@ -143,6 +145,8 @@ export const GeoDashboard = ({isOn}) => {
     // site node itself is the most honest thing to send from a site-level page.
     const sitePath = `/sites/${siteKey}`;
     const activeGroup = groups.find(g => g.id === group) || groups[0];
+    // A tab that left its group, such as Report once no writer answers, gives way to the first one.
+    const shownTab = activeGroup.tabs.includes(tab) ? tab : activeGroup.tabs[0];
 
     return (
         <LayoutContent
@@ -188,21 +192,16 @@ export const GeoDashboard = ({isOn}) => {
                 {activeGroup.tabs.length > 1 && (
                     <div className={styles.subTabs}>
                         <Tab>
-                            {activeGroup.tabs.map(id => {
-                                const disabled = id === 'report' && !reportEnabled;
-                                const item = (
-                                    <TabItem
-                                        key={id}
-                                        id={`geo-dash-tab-${id}`}
-                                        aria-controls={`geo-dash-panel-${id}`}
-                                        label={t(`dashboard.tab.${id}`)}
-                                        isSelected={tab === id}
-                                        isDisabled={disabled}
-                                        onClick={() => setTab(id)}
-                                    />
-                                );
-                                return disabled ? <span key={id} title={t('report.notConfiguredTab')}>{item}</span> : item;
-                            })}
+                            {activeGroup.tabs.map(id => (
+                                <TabItem
+                                    key={id}
+                                    id={`geo-dash-tab-${id}`}
+                                    aria-controls={`geo-dash-panel-${id}`}
+                                    label={t(`dashboard.tab.${id}`)}
+                                    isSelected={shownTab === id}
+                                    onClick={() => setTab(id)}
+                                />
+                            ))}
                         </Tab>
                     </div>
                 )}
@@ -218,12 +217,12 @@ export const GeoDashboard = ({isOn}) => {
                   */}
                 <div
                     role="tabpanel"
-                    id={`geo-dash-panel-${tab}`}
-                    aria-labelledby={activeGroup.tabs.length > 1 ? `geo-dash-tab-${tab}` : `geo-dash-group-${group}`}
+                    id={`geo-dash-panel-${shownTab}`}
+                    aria-labelledby={activeGroup.tabs.length > 1 ? `geo-dash-tab-${shownTab}` : `geo-dash-group-${group}`}
                     tabIndex={0}
                 >
-                    {tab === 'score' && <SiteScorePanel path={sitePath} language={language}/>}
-                    {tab === 'report' && (
+                    {shownTab === 'score' && <SiteScorePanel path={sitePath} language={language}/>}
+                    {shownTab === 'report' && (
                         <ReportPanel
                             path={sitePath}
                             language={language}
@@ -232,17 +231,17 @@ export const GeoDashboard = ({isOn}) => {
                             siteName={siteInfo.displayName}
                         />
                     )}
-                    {tab === 'languages' && <LanguagesPanel path={sitePath} language={language}/>}
-                    {tab === 'sitemap' && <SitemapPanel path={sitePath} language={language}/>}
-                    {tab === 'links' && <LinksPanel path={sitePath} language={language}/>}
-                    {tab === 'vanity' && <VanityPanel path={sitePath} language={language}/>}
-                    {tab === 'freshness' && <FreshnessPanel path={sitePath} language={language}/>}
-                    {tab === 'schema' && <SchemaPanel path={sitePath} language={language}/>}
-                    {tab === 'robots' && <RobotsControlPanel path={sitePath} language={language}/>}
-                    {tab === 'llms' && <LlmsPanel path={sitePath} siteKey={siteKey} language={language}/>}
-                    {tab === 'visibility' && <VisibilityPanel path={sitePath} language={language}/>}
-                    {tab.startsWith('citations-') && (
-                        <SiteCitationsPanel path={sitePath} language={language} view={tab.slice('citations-'.length)}/>
+                    {shownTab === 'languages' && <LanguagesPanel path={sitePath} language={language}/>}
+                    {shownTab === 'sitemap' && <SitemapPanel path={sitePath} language={language}/>}
+                    {shownTab === 'links' && <LinksPanel path={sitePath} language={language}/>}
+                    {shownTab === 'vanity' && <VanityPanel path={sitePath} language={language}/>}
+                    {shownTab === 'freshness' && <FreshnessPanel path={sitePath} language={language}/>}
+                    {shownTab === 'schema' && <SchemaPanel path={sitePath} language={language}/>}
+                    {shownTab === 'robots' && <RobotsControlPanel path={sitePath} language={language}/>}
+                    {shownTab === 'llms' && <LlmsPanel path={sitePath} siteKey={siteKey} language={language}/>}
+                    {shownTab === 'visibility' && <VisibilityPanel path={sitePath} language={language}/>}
+                    {shownTab.startsWith('citations-') && (
+                        <SiteCitationsPanel path={sitePath} language={language} view={shownTab.slice('citations-'.length)}/>
                     )}
                 </div>
             </div>

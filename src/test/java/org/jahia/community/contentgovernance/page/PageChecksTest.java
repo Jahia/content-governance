@@ -245,7 +245,7 @@ class PageChecksTest {
         }
 
         @Test
-        @DisplayName("the SEO facts read the tags of the head, the images and the vague links")
+        @DisplayName("the SEO facts read the tags of the head and the images")
         void seo() {
             Map<String, Object> seo = SeoChecks.report(Jsoup.parse("<html lang='EN'>" + GOOD_HEAD
                     + "<body><img src='a.png'><img src='b.png' alt=''>"
@@ -261,9 +261,6 @@ class PageChecksTest {
                     .containsEntry("lang", Map.of("htmlLang", "en", "expected", "en"));
             assertThat(map(seo.get("robots"))).containsEntry("content", null).containsEntry("noindex", false);
             assertThat(map(seo.get("og"))).containsEntry("title", "Report").containsEntry("description", null);
-            assertThat(list(seo.get("weakCtas"))).singleElement().satisfies(cta -> assertThat(map(cta))
-                    .containsEntry("text", "Read more").containsEntry("count", 2).containsEntry("target", "/report")
-                    .extractingByKey("context").asString().startsWith("Our yearly report"));
         }
 
         @Test

@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../common/i18n';
 import {useApolloClient} from '@apollo/client';
@@ -11,7 +11,6 @@ import {removeToolingElements} from './analyzers/tooling';
 import {runStep} from './analyzers/timeLimit';
 import {fetchPageAudits, fetchPageLastModified, saveAudit, storedResults} from './auditHistory';
 import {auditFindings} from '../drawer/findings';
-import {requestAiReview, requestSeoAssist, requestAltAssist, requestSimplifyAssist} from './analyzers/aiReview';
 import {AccessibilityTab} from './tabs/AccessibilityTab';
 import {VitalsTab} from './tabs/VitalsTab';
 import {ReadabilityTab} from './tabs/ReadabilityTab';
@@ -19,7 +18,6 @@ import {EcodesignTab} from './tabs/EcodesignTab';
 import {SeoTab} from './tabs/SeoTab';
 import {LinksTab} from './tabs/LinksTab';
 import {JahiaTab} from './tabs/JahiaTab';
-import {AiTab} from './tabs/AiTab';
 import {IncompleteStep} from './tabs/IncompleteStep';
 import {Banner, Button, Download, Loader, Reload, Tab, TabItem, Typography, Visibility} from '@jahia/moonstone';
 import {HelpTab} from '../common/HelpTab';
@@ -47,8 +45,8 @@ const STEP_LIMITS_MS = {vitals: 15_000, a11y: 60_000, page: 60_000};
 // The tabs whose results the check of the server gives, by their key in the results
 const SERVER_KEYS = ['seo', 'readability', 'links', 'jahia'];
 
-// The tabs that read the check of the server: its results, its HTML rules, or the page facts of the AI tasks
-const SERVER_TABS = ['seo', 'readability', 'links', 'jahia', 'accessibility', 'ai'];
+// The tabs that read the check of the server: its results, or its HTML rules
+const SERVER_TABS = ['seo', 'readability', 'links', 'jahia', 'accessibility'];
 
 // Why a tab misses the facts of the repository: the server rendered the page, and could not read its state
 const UNREAD = {incomplete: 'failed', message: 'the server could not read the repository'};
@@ -123,9 +121,9 @@ function saveCachedAudit(path, language, entry) {
 }
 
 /** The tabs of the section, in order; each id is also its feature id (`audit.<id>`). */
-const TAB_IDS = ['accessibility', 'seo', 'vitals', 'readability', 'ecodesign', 'links', 'jahia', 'ai'];
+const TAB_IDS = ['accessibility', 'seo', 'vitals', 'readability', 'ecodesign', 'links', 'jahia'];
 
-/** The key of each measured tab in the results (the AI tab measures nothing). */
+/** The key of each tab in the results. */
 const RESULT_KEYS = {
     accessibility: 'a11y',
     seo: 'seo',
@@ -136,13 +134,8 @@ const RESULT_KEYS = {
     jahia: 'jahia'
 };
 
-// What a tab's tooltip adds to its help: why it is greyed out, or how many issues it holds
-const tabNote = (tab, t) => {
-    if (tab.disabled) {
-        return t(tab.reason === 'noAccess' ? 'tabs.aiNoAccess' : 'tabs.aiNotConfigured');
-    }
-    return tab.badge ? t('tabs.badgeTooltip', {count: tab.badge}) : undefined;
-};
+// What a tab's tooltip adds to its help: how many issues it holds
+const tabNote = (tab, t) => (tab.badge ? t('tabs.badgeTooltip', {count: tab.badge}) : undefined);
 
 const formatDate = (timestamp, language) => new Date(timestamp).toLocaleString(toLocaleTag(language));
 
@@ -215,7 +208,7 @@ function markServerTabs(incomplete, checked) {
     });
 }
 
-/** The page facts that the AI tasks read, from the SEO facts of the server: empty without them. */
+/** The page facts kept with each audit, from the SEO facts of the server: empty without them. */
 const pageFactsOf = seo => ({
     title: seo ? seo.title.text || '' : '',
     description: seo ? seo.description.text || '' : '',
@@ -246,11 +239,11 @@ async function auditFrame(frame, {isOn, language, path, apolloClient}) {
     const rules = await fetchRules(apolloClient, path);
 
     // Only the tabs the site keeps on are kept. Eco-design reads the vitals measurement, so vitals
-    // run as its input. The check of the server runs when a tab that reads it is on, Accessibility and
-    // AI included, for the page facts the AI tasks need (title, description, images without alt): it
-    // starts at once, since its request leaves no trace in the frame's own resource statistics. Vitals
-    // then run first in the frame: axe injection would otherwise appear in the page's own resource
-    // statistics.
+    // run as its input. The check of the server runs when a tab that reads it is on, Accessibility
+    // included, and gives the page facts kept with each audit (title, description, images without
+    // alt): it starts at once, since its request leaves no trace in the frame's own resource
+    // statistics. Vitals then run first in the frame: axe injection would otherwise appear in the
+    // page's own resource statistics.
     // A step that fails or runs out of time leaves its own tabs out; the other tabs are still shown,
     // and such a partial audit is never cached. So is an audit whose server could not read the state of
     // the content: Jahia health and Links say so.
@@ -286,7 +279,7 @@ async function auditFrame(frame, {isOn, language, path, apolloClient}) {
 /**
  * The results of the tabs the site keeps on, or null when one of them is missing (a tab switched
  * back on since the audit was cached) or when an older version of the module stored them in another
- * shape: a tab switched off is never shown, exported, nor sent to the AI review.
+ * shape: a tab switched off is never shown nor exported.
  */
 function keepEnabled(results, isOn) {
     if (results.page?.schema !== CACHE_SCHEMA) {
@@ -304,19 +297,13 @@ function keepEnabled(results, isOn) {
     return kept;
 }
 
-/** Images without alt for the alt text assist, from the page facts kept with every audit. */
-function imagesWithoutAlt(results) {
-    return results.page ? results.page.imagesWithoutAlt : 0;
-}
-
 /**
  * The Page quality section of the drawer: the page checked by the server (SEO, readability, links,
  * Jahia health) and rendered in a preview frame, measured there by what needs a browser
- * (accessibility, vitals, eco-design), with the AI review and assists on demand. Results are cached
- * per page and language; the section measures the page when it first shows and on every re-run.
+ * (accessibility, vitals, eco-design). Results are cached per page and language; the section measures
+ * the page when it first shows and on every re-run.
  */
-export function AuditSection({path, language, isOn, settings, onCount, onFindings, requestedTab}) {
-    const ai = settings?.ai;
+export function AuditSection({path, language, isOn, onCount, onFindings, requestedTab}) {
     const {t} = useGovernanceTranslation('audit');
     const apolloClient = useApolloClient();
     const [activeTab, setActiveTab] = useState(null);
@@ -332,31 +319,6 @@ export function AuditSection({path, language, isOn, settings, onCount, onFinding
     const [auditedBy, setAuditedBy] = useState(null);
     // Set when results were restored from cache: skips re-analysis on frame load
     const cacheHitRef = useRef(false);
-    // AI review state lives here so it survives tab switches
-    const [aiReview, setAiReview] = useState(null);
-    const [aiPhase, setAiPhase] = useState('idle');
-    const [aiError, setAiError] = useState(null);
-    // SEO assist (AI suggestions inside the SEO tab) - same lifecycle rules
-    const [seoAssist, setSeoAssist] = useState(null);
-    const [seoAssistPhase, setSeoAssistPhase] = useState('idle');
-    const [seoAssistError, setSeoAssistError] = useState(null);
-    // Alt text assist (AI suggestions inside the Accessibility tab)
-    const [altAssist, setAltAssist] = useState(null);
-    const [altPhase, setAltPhase] = useState('idle');
-    const [altError, setAltError] = useState(null);
-    // Plain-language rewrites (AI suggestions inside the Readability tab)
-    const [simplifyAssist, setSimplifyAssist] = useState(null);
-    const [simplifyPhase, setSimplifyPhase] = useState('idle');
-    const [simplifyError, setSimplifyError] = useState(null);
-    // {enabled, reason, provider, model, vision}: the model genai-connector serves to this user on the
-    // site, read with the site settings; shared by the AI tab and the assist sections
-    const aiStatus = useMemo(() => ({
-        enabled: Boolean(ai && ai.configured),
-        reason: ai ? ai.reason : 'absent',
-        provider: ai ? ai.provider : '',
-        model: ai ? ai.model : '',
-        vision: Boolean(ai && ai.images)
-    }), [ai]);
     const [runId, setRunId] = useState(0);
     // The iframe is mounted only once the drawer slide-in transition is done:
     // loading it while the drawer is still translated off-screen makes Chrome
@@ -378,10 +340,6 @@ export function AuditSection({path, language, isOn, settings, onCount, onFinding
 
     useEffect(() => {
         setError(null);
-        setAiError(null);
-        setSeoAssistError(null);
-        setAltError(null);
-        setSimplifyError(null);
         highlightedRef.current = null;
 
         const showCached = (entry, by) => {
@@ -389,14 +347,6 @@ export function AuditSection({path, language, isOn, settings, onCount, onFinding
             setResults(entry.results);
             setAuditedAt(entry.timestamp || null);
             setAuditedBy(by);
-            setAiReview(entry.aiReview || null);
-            setAiPhase(entry.aiReview ? 'done' : 'idle');
-            setSeoAssist(entry.seoAssist || null);
-            setSeoAssistPhase(entry.seoAssist ? 'done' : 'idle');
-            setAltAssist(entry.altAssist || null);
-            setAltPhase(entry.altAssist ? 'done' : 'idle');
-            setSimplifyAssist(entry.simplifyAssist || null);
-            setSimplifyPhase(entry.simplifyAssist ? 'done' : 'idle');
             setStatus('ready');
             // Staleness probe: was the page modified after this audit?
             if (entry.timestamp) {
@@ -419,14 +369,6 @@ export function AuditSection({path, language, isOn, settings, onCount, onFinding
             setResults(null);
             setAuditedAt(null);
             setAuditedBy(null);
-            setAiReview(null);
-            setAiPhase('idle');
-            setSeoAssist(null);
-            setSeoAssistPhase('idle');
-            setAltAssist(null);
-            setAltPhase('idle');
-            setSimplifyAssist(null);
-            setSimplifyPhase('idle');
         }
 
         // The frame mounts a moment after the section shows: a frame loaded while its box is still
@@ -583,62 +525,6 @@ export function AuditSection({path, language, isOn, settings, onCount, onFinding
     // A mark left in the page under edit goes with the drawer
     useEffect(() => () => mark(null), [mark]);
 
-    // Every AI result rides in the same cache entry: always persist all of
-    // them, overriding the one that just changed, or one save wipes the others.
-    const persistAi = useCallback(override => {
-        saveCachedAudit(path, language, {
-            schema: CACHE_SCHEMA,
-            timestamp: auditedAt || Date.now(),
-            results,
-            aiReview,
-            seoAssist,
-            altAssist,
-            simplifyAssist,
-            ...override
-        });
-    }, [path, language, auditedAt, results, aiReview, seoAssist, altAssist, simplifyAssist]);
-
-    // The three AI tasks share one lifecycle: explicit click, running/done/error
-    // phases, result cached with the audit. Never auto-triggered (cost control).
-    const runAiTask = useCallback(async ({request, cacheKey: key, setResult, setPhase, setErr, label}) => {
-        if (!results) {
-            return;
-        }
-
-        setPhase('running');
-        setErr(null);
-        try {
-            const answer = await request({language, path, results, frame: frameRef.current, aiStatus});
-            setResult(answer);
-            setPhase('done');
-            persistAi({[key]: answer});
-        } catch (e) {
-            console.error(`[content-governance] ${label} failed`, e);
-            setErr(e.code ? t(`ai.errors.${e.code}`, {defaultValue: e.message}) : e.message);
-            setPhase('error');
-        }
-    }, [results, language, path, persistAi, aiStatus, t]);
-
-    const generateAiReview = useCallback(() => runAiTask({
-        request: requestAiReview, cacheKey: 'aiReview', label: 'AI review',
-        setResult: setAiReview, setPhase: setAiPhase, setErr: setAiError
-    }), [runAiTask]);
-
-    const generateSeoAssist = useCallback(() => runAiTask({
-        request: requestSeoAssist, cacheKey: 'seoAssist', label: 'SEO assist',
-        setResult: setSeoAssist, setPhase: setSeoAssistPhase, setErr: setSeoAssistError
-    }), [runAiTask]);
-
-    const generateAltAssist = useCallback(() => runAiTask({
-        request: requestAltAssist, cacheKey: 'altAssist', label: 'Alt text assist',
-        setResult: setAltAssist, setPhase: setAltPhase, setErr: setAltError
-    }), [runAiTask]);
-
-    const generateSimplifyAssist = useCallback(() => runAiTask({
-        request: requestSimplifyAssist, cacheKey: 'simplifyAssist', label: 'Plain-language assist',
-        setResult: setSimplifyAssist, setPhase: setSimplifyPhase, setErr: setSimplifyError
-    }), [runAiTask]);
-
     const exportJson = useCallback(() => {
         if (!results) {
             return;
@@ -654,19 +540,15 @@ export function AuditSection({path, language, isOn, settings, onCount, onFinding
     }, [results, path, language, previewUrl, auditedAt]);
 
     // Badge = number of issues to review in that tab; null-safe so a partial
-    // result never breaks the tab bar. Tabs the site switched off are left out; the AI tab stays,
-    // greyed out, while no model answers this user on the site.
-    const counts = tabCounts(results, aiReview);
+    // result never breaks the tab bar. Tabs the site switched off are left out.
+    const counts = tabCounts(results);
     const tabs = TAB_IDS.filter(id => isOn(id)).map(id => ({
         key: id,
         label: t(`tabs.${id}`),
         badge: counts[id] ? counts[id].count : null,
-        serious: Boolean(counts[id] && counts[id].serious),
-        disabled: id === 'ai' && !aiStatus.enabled,
-        reason: aiStatus.reason
+        serious: Boolean(counts[id] && counts[id].serious)
     }));
-    const enabledTabs = tabs.filter(tab => !tab.disabled);
-    const currentTab = enabledTabs.some(tab => tab.key === activeTab) ? activeTab : (enabledTabs[0] || {}).key;
+    const currentTab = tabs.some(tab => tab.key === activeTab) ? activeTab : (tabs[0] || {}).key;
     const total = tabs.reduce((sum, tab) => sum + (tab.badge || 0), 0);
 
     useEffect(() => {
@@ -754,7 +636,6 @@ export function AuditSection({path, language, isOn, settings, onCount, onFinding
                                      aria-controls="audit-tab-panel"
                                      label={tab.label}
                                      isSelected={currentTab === tab.key}
-                                     isDisabled={tab.disabled}
                                      icon={tab.badge ? <CountBadge count={tab.badge} isSerious={tab.serious}/> : undefined}
                                      onClick={() => setActiveTab(tab.key)}/>
                         </HelpTab>
@@ -780,63 +661,17 @@ export function AuditSection({path, language, isOn, settings, onCount, onFinding
                         <IncompleteStep outcome={results.incomplete[RESULT_KEYS[currentTab]]} onRerun={() => setRunId(id => id + 1)}/>
                     )}
                     {currentTab === 'accessibility' && results.a11y &&
-                        <AccessibilityTab
-                            result={results.a11y}
-                            onHighlight={highlight}
-                            assist={{
-                                aiStatus,
-                                assist: altAssist,
-                                phase: altPhase,
-                                error: altError,
-                                language,
-                                count: imagesWithoutAlt(results),
-                                onGenerate: generateAltAssist,
-                                onHighlight: highlight
-                            }}
-                        />}
+                        <AccessibilityTab result={results.a11y} onHighlight={highlight}/>}
                     {currentTab === 'seo' && results.seo &&
-                        <SeoTab
-                            result={results.seo}
-                            assist={{
-                                aiStatus,
-                                assist: seoAssist,
-                                phase: seoAssistPhase,
-                                error: seoAssistError,
-                                language,
-                                onGenerate: generateSeoAssist,
-                                onHighlightText: highlightText
-                            }}
-                        />}
+                        <SeoTab result={results.seo}/>}
                     {currentTab === 'links' && results.links &&
                         <LinksTab result={results.links} onHighlight={highlight}/>}
                     {currentTab === 'jahia' && results.jahia &&
                         <JahiaTab result={results.jahia} onHighlightText={highlightText}/>}
-                    {currentTab === 'ai' &&
-                        <AiTab
-                            status={aiStatus}
-                            review={aiReview}
-                            phase={aiPhase}
-                            error={aiError}
-                            onGenerate={generateAiReview}
-                            onHighlightText={highlightText}
-                        />}
                     {currentTab === 'vitals' && results.vitals &&
                         <VitalsTab result={results.vitals}/>}
                     {currentTab === 'readability' && results.readability &&
-                        <ReadabilityTab
-                            result={results.readability}
-                            onHighlight={highlight}
-                            assist={{
-                                aiStatus,
-                                assist: simplifyAssist,
-                                phase: simplifyPhase,
-                                error: simplifyError,
-                                language,
-                                count: results.readability.longSentences || 0,
-                                onGenerate: generateSimplifyAssist,
-                                onHighlightText: highlightText
-                            }}
-                        />}
+                        <ReadabilityTab result={results.readability} onHighlight={highlight}/>}
                     {currentTab === 'ecodesign' && results.ecodesign &&
                         <EcodesignTab result={results.ecodesign}/>}
                     </>
@@ -851,8 +686,6 @@ AuditSection.propTypes = {
     language: PropTypes.string.isRequired,
     // isOn(tabId): whether the site switched that tab on
     isOn: PropTypes.func.isRequired,
-    // The site settings: `ai` is {configured, reason, provider, model, images}
-    settings: PropTypes.shape({ai: PropTypes.object}),
     onCount: PropTypes.func.isRequired,
     // Reports the section's findings to the drawer's "Fix first" list (drawer/findings.js)
     onFindings: PropTypes.func.isRequired,

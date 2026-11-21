@@ -4,16 +4,18 @@ import {guardedFetch} from '../../common/guardedFetch';
 const ENDPOINT = moduleUrl('/geo/report');
 
 /**
- * The written report. The prompt, the digest and the key all live on the
- * server; this client only asks, reads back, and renders the fixed shape.
+ * The written report. The digest lives on the server, and the prompt and the
+ * key in the module that writes it; this client only asks, reads back, and
+ * renders the fixed shape.
  */
 
 /**
- * Whether genai-connector serves a model to this caller on the site, which one,
- * or why not: {enabled, reason, provider, model}.
+ * Whether a module that writes the report, such as ai-assistant, answers this
+ * caller on the site, with which model, or why not: {enabled, reason, provider,
+ * model}. The reason is `absent` while no module writes it.
  *
  * The site and language are what the server resolves to decide whether this
- * caller may be told, and whether the caller holds genaiAccess there. The endpoint used to answer any logged-in account (JAHIA-SEC-432), so
+ * caller may be told, and whether the writer answers the caller there. The endpoint used to answer any logged-in account (JAHIA-SEC-432), so
  * these are not optional - omitting them is a 400, and holding no `publish` on
  * the named site is a 403.
  *

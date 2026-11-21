@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import {Button} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../../common/i18n';
 import {MANUAL_CHECKLIST} from './a11yChecklist';
-import {AltAssist} from './AltAssist';
 import {Recommendations} from './Recommendations';
 import {auditFindingKey} from '../../drawer/findings';
 import {FindingActions} from '../../drawer/FindingActions';
@@ -75,7 +74,7 @@ RuleDetails.propTypes = {
     findingKey: PropTypes.string
 };
 
-export function AccessibilityTab({result, onHighlight, assist}) {
+export function AccessibilityTab({result, onHighlight}) {
     const {t} = useGovernanceTranslation('audit');
 
     return (
@@ -141,8 +140,6 @@ export function AccessibilityTab({result, onHighlight, assist}) {
                 <Recommendations items={result.recommendations} ns="a11y" tab="a11y" title={t('a11y.serverRules')}/>
             )}
 
-            <AltAssist {...assist}/>
-
             {result.incomplete.length > 0 && (
                 <>
                     <h4 className={styles.sectionTitle}>{t('a11y.incompleteTitle')}</h4>
@@ -187,7 +184,5 @@ export function AccessibilityTab({result, onHighlight, assist}) {
 
 AccessibilityTab.propTypes = {
     result: PropTypes.object.isRequired,
-    onHighlight: PropTypes.func.isRequired,
-    // Props forwarded to <AltAssist/> (AI status, suggestions, phase, callbacks)
-    assist: PropTypes.object.isRequired
+    onHighlight: PropTypes.func.isRequired
 };

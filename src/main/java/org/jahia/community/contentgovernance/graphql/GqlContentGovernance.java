@@ -7,7 +7,6 @@ import graphql.annotations.annotationTypes.GraphQLField;
 import graphql.annotations.annotationTypes.GraphQLName;
 import graphql.annotations.annotationTypes.GraphQLNonNull;
 import graphql.schema.DataFetchingEnvironment;
-import org.jahia.community.contentgovernance.ai.AiService;
 import org.jahia.community.contentgovernance.audit.graphql.AuditFields;
 import org.jahia.community.contentgovernance.audit.graphql.GqlAuditRun;
 import org.jahia.community.contentgovernance.audit.graphql.GqlSiteAudits;
@@ -45,10 +44,6 @@ public class GqlContentGovernance {
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final Pattern LANGUAGE = Pattern.compile("^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8}){0,3}$");
 
-    @Inject
-    @GraphQLOsgiService
-    private AiService ai;
-
     // graphql-java-annotations injects OSGi services into fields only (@GraphQLOsgiService)
     @SuppressWarnings("java:S6813")
     @Inject
@@ -77,10 +72,10 @@ public class GqlContentGovernance {
     @GraphQLField
     @GraphQLName("siteSettings")
     @GraphQLNonNull
-    @GraphQLDescription("The tabs of the drawer a site switched off, and whether AI is configured")
+    @GraphQLDescription("The tabs of the drawer a site switched off")
     public GqlSiteSettings siteSettings(
             @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey) {
-        return GqlSiteSettings.of(SiteAccess.site(siteKey), ai);
+        return GqlSiteSettings.of(SiteAccess.site(siteKey));
     }
 
     /**

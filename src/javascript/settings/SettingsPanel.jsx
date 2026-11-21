@@ -12,11 +12,11 @@ import {CitationsSettings} from '../geo/settings/CitationsSettings';
 import {drawerTabs, tabParts} from '../drawer/entries';
 import styles from './SettingsPanel.module.css';
 
-const PANEL_TABS = ['features', 'ai', 'botrank'];
+const PANEL_TABS = ['features', 'botrank'];
 
-/** What a part of a tab needs, as a chip: the AI model while none answers, or a BotRank connection. */
-const NEEDS = {ai: settings => (settings.ai.configured ? null : 'needsAi'), botRank: () => 'needsBotRank'};
-const NEEDS_COLOR = {needsAi: 'warning', needsBotRank: 'accent'};
+/** What a part of a tab needs, as a chip: a BotRank connection. */
+const NEEDS = {botRank: () => 'needsBotRank'};
+const NEEDS_COLOR = {needsBotRank: 'accent'};
 
 /** The switched-off ids of a draft: a tab off hides its parts, which keep their own state. */
 const toggle = (draft, id, on) => {
@@ -150,57 +150,10 @@ FeaturesScreen.propTypes = {
     onSaved: PropTypes.func.isRequired
 };
 
-const AiScreen = ({settings, toolbarLeft, title}) => {
-    const {t} = useGovernanceTranslation('settings');
-    const {ai} = settings;
-    const noAccess = ai.reason === 'noAccess';
-    let chip = <Chip color="success" label={t('ai.configured')}/>;
-    if (!ai.configured) {
-        chip = <Chip color="warning" label={noAccess ? t('ai.noAccess') : t('ai.notConfigured')}/>;
-    }
-
-    return (
-        <LayoutContent
-            hasPadding
-            header={<Header title={title} toolbarLeft={toolbarLeft}/>}
-            content={(
-                <div className={styles.content}>
-                    <Paper className={styles.card}>
-                        <div className={styles.cardHeader}>
-                            <Typography component="h3" variant="heading">{t('ai.title')}</Typography>
-                            {chip}
-                        </div>
-                        {ai.configured ? (
-                            <dl className={styles.facts}>
-                                <dt>{t('ai.provider')}</dt>
-                                <dd>{ai.provider}</dd>
-                                <dt>{t('ai.model')}</dt>
-                                <dd>{ai.model}</dd>
-                                <dt>{t('ai.images')}</dt>
-                                <dd>{ai.images ? t('ai.yes') : t('ai.no')}</dd>
-                            </dl>
-                        ) : (
-                            <Typography>{noAccess ? t('ai.howToAccess') : t('ai.howTo')}</Typography>
-                        )}
-                        <Typography variant="caption" className={styles.muted}>{t('ai.servedBy')}</Typography>
-                        <Typography variant="caption" className={styles.muted}>{t('ai.uses')}</Typography>
-                    </Paper>
-                </div>
-            )}
-        />
-    );
-};
-
-AiScreen.propTypes = {
-    settings: PropTypes.object.isRequired,
-    toolbarLeft: PropTypes.node,
-    title: PropTypes.string.isRequired
-};
-
 /**
  * Site Settings > Content governance: which tabs of the drawer, and parts of tabs, the site uses
- * (every tab of the drawer's registry, those of other modules included), the shared model the
- * AI features run on, and the site's BotRank connection. The route hides the entry from users
+ * (every tab of the drawer's registry, those of other modules included), and the site's BotRank
+ * connection. The route hides the entry from users
  * without site-admin; the component checks the module and the permission again, and the server
  * checks site-admin on every save.
  */
@@ -243,7 +196,5 @@ export const SettingsPanel = () => {
                            content={<Banner variant="danger" title={t('errorTitle')}>{t('loadError')}</Banner>}/>
         );
     }
-    return tab === 'ai'
-        ? <AiScreen settings={settings} toolbarLeft={toolbarLeft} title={title}/>
-        : <FeaturesScreen key={siteKey} settings={settings} toolbarLeft={toolbarLeft} title={title} onSaved={refetch}/>;
+    return <FeaturesScreen key={siteKey} settings={settings} toolbarLeft={toolbarLeft} title={title} onSaved={refetch}/>;
 };

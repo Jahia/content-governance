@@ -720,9 +720,9 @@
         "title": "El informe redactado",
         "intro": "Todo lo demás en este panel está medido y así lo indica. Esta pestaña pide a un modelo que lea esas mediciones y redacte la conclusión: en qué situación está el sitio frente a los rastreadores de IA, qué corregir primero, quién puede corregirlo y en qué orden. Solo responde cuando usted lo pide, porque cada respuesta tiene un coste y tarda un tiempo.",
         "notConfiguredTitle": "Ningún modelo de IA disponible",
-        "notConfigured": "Instale genai-connector y asigne un modelo a su nivel balanced para activar esta pestaña. Hasta entonces, nada sale del servidor.",
+        "notConfigured": "El informe redactado viene del módulo AI Assistant. Instálelo y asígnele un modelo para activar esta pestaña. Hasta entonces, nada sale del servidor.",
         "provider": "Redactado por {{provider}} · {{model}}",
-        "privacy": "El modelo recibe las mediciones de este sitio a través de genai-connector: puntuaciones, identificadores de comprobaciones fallidas, rutas y títulos de páginas, recuentos. Nunca el contenido de las páginas.",
+        "privacy": "El modelo recibe las mediciones de este sitio a través del AI Assistant: puntuaciones, identificadores de comprobaciones fallidas, rutas y títulos de páginas, recuentos. Nunca el contenido de las páginas.",
         "generate": "Redactar el informe",
         "regenerate": "Volver a redactarlo",
         "generating": "Redactando…",
@@ -794,9 +794,8 @@
           "owner": "Responsable: {{owner}}",
           "effort": "Esfuerzo: {{effort}}"
         },
-        "notConfiguredTab": "No hay ningún modelo de IA disponible para usted en este sitio.",
         "noAccessTitle": "Sin acceso a la IA",
-        "noAccess": "No tiene acceso a la IA en este sitio. Un administrador del sitio concede el permiso genaiAccess."
+        "noAccess": "No tiene acceso a la IA en este sitio. Pídalo a un administrador del sitio."
       },
       "fetchError": {
         "ConnectException": "El servidor no pudo abrir una conexión con esa dirección ({{error}}). Un servidor de Jahia Cloud, por ejemplo, no puede acceder a su propia dirección pública: solicite que se permita o defina PUBLIC_BASE_URL con una dirección a la que el servidor pueda acceder.",
@@ -1053,13 +1052,10 @@
         "seo": "SEO",
         "links": "Enlaces",
         "jahia": "Jahia",
-        "ai": "Revisión por IA",
         "vitals": "Web Vitals",
         "readability": "Legibilidad",
         "ecodesign": "Ecodiseño",
-        "badgeTooltip": "{{count}} problemas por revisar",
-        "aiNotConfigured": "No hay ningún modelo de IA disponible en este servidor.",
-        "aiNoAccess": "No tiene acceso a la IA en este sitio (genaiAccess)."
+        "badgeTooltip": "{{count}} problemas por revisar"
       },
       "eco": {
         "score": "Criterios de página cumplidos",
@@ -1177,50 +1173,6 @@
           }
         }
       },
-      "copy": {
-        "action": "Copiar",
-        "done": "Copiado"
-      },
-      "ai": {
-        "intro": "Envía el texto de la página y los hallazgos de la auditoría a {{provider}} ({{model}}) a través de genai-connector, y devuelve recomendaciones priorizadas y fáciles de aplicar. Este módulo no guarda ninguna clave de API.",
-        "generate": "Generar la revisión por IA",
-        "regenerate": "Volver a generar",
-        "generating": "Analizando la página con IA… tarda unos segundos.",
-        "summary": "Valoración general",
-        "error": "La revisión por IA falló",
-        "poweredBy": "Generado por {{provider}} · {{model}}",
-        "usage": "Tokens: {{input}} de entrada / {{output}} de salida",
-        "truncated": "La respuesta alcanzó su límite de longitud. Pueden faltar algunas recomendaciones.",
-        "cost": "Coste estimado: ${{cost}}",
-        "disclaimer": "Sugerencias generadas por IA: revíselas antes de aplicarlas.",
-        "fix": "Corrección sugerida",
-        "categories": {
-          "content": "Contenido",
-          "seo": "SEO",
-          "accessibility": "Accesibilidad",
-          "performance": "Rendimiento",
-          "ux": "UX",
-          "proofreading": "Corrección de textos",
-          "factuality": "Exactitud de los hechos",
-          "consistency": "Coherencia",
-          "conversion": "Conversión",
-          "localization": "Localización",
-          "legal": "Aspectos legales",
-          "ecodesign": "Ecodiseño"
-        },
-        "errors": {
-          "unauthenticated": "Su sesión ha finalizado. Inicie sesión de nuevo y vuelva a intentarlo.",
-          "crossOrigin": "La petición se rechazó porque no procedía de este Jahia. Vuelva a cargar la página e inténtelo de nuevo.",
-          "noAccess": "Ya no puede leer esta página, por lo que la IA no puede revisarla.",
-          "switchedOff": "Un administrador del sitio ha desactivado esta función para este sitio.",
-          "notConfigured": "No hay ningún modelo de IA disponible en este servidor.",
-          "rateLimited": "Ha alcanzado el número de peticiones de IA permitidas en diez minutos. Vuelva a intentarlo un poco más tarde.",
-          "invalidRequest": "No se pudo leer la petición. Vuelva a cargar la página e inténtelo de nuevo.",
-          "upstream": "El proveedor de IA no respondió. Vuelva a intentarlo en un momento; si persiste, avise a un administrador del servidor.",
-          "budget": "El modelo de IA alcanzó su límite de longitud antes de terminar la respuesta. Vuelva a intentarlo; si persiste, avise a un administrador del servidor.",
-          "genaiAccess": "No tiene acceso a la IA en este sitio. Un administrador del sitio concede el permiso genaiAccess."
-        }
-      },
       "jahia": {
         "summary": "Resumen de la página",
         "pageStatus": "Estado de publicación de la página",
@@ -1273,26 +1225,6 @@
         "jsonLdValue": "{{count}} bloque(s), {{errors}} error(es)",
         "hreflangValue": "{{count}} enlace(s) de idioma alternativo",
         "imageAltValue": "{{missing}} de {{total}} imágenes sin alt",
-        "assist": {
-          "title": "Sugerencias de IA",
-          "intro": "Sugerencias de título, metadescripción, palabras clave y encabezados listas para pegar, escritas en el idioma de la página ({{language}}) por {{provider}} a partir de lo que la página dice realmente. Cópielas en las propiedades SEO de la página o en el contenido del encabezado - no se cambia nada automáticamente.",
-          "generate": "Sugerir con IA",
-          "regenerate": "Volver a generar las sugerencias",
-          "generating": "Redactando sugerencias… tarda unos segundos.",
-          "error": "Las sugerencias de IA fallaron",
-          "titles": "Etiqueta title",
-          "descriptions": "Metadescripción",
-          "social": "Redes sociales (Open Graph)",
-          "socialHint": "og:title y og:description para la tarjeta que se muestra en redes sociales y herramientas de mensajería - complételos en las propiedades sociales/SEO de la página.",
-          "keywords": "Palabras clave",
-          "keywordsHint": "Palabra clave principal (en oscuro) y términos complementarios para integrar en los encabezados y el texto. Los buscadores ignoran la etiqueta meta keywords - úselas para guiar la redacción, no como etiqueta.",
-          "focus": "Palabra clave principal",
-          "ctas": "Etiquetas de llamada a la acción",
-          "ctasHint": "Las etiquetas genéricas («Leer más», «Haga clic aquí», «Enviar») no dicen nada a los visitantes ni a los buscadores. Elija una etiqueta específica y asígnela al enlace o botón en Content Editor.",
-          "headings": "Reformulación de encabezados",
-          "headingsHint": "Los encabezados son contenido de la página: edite el componente de encabezado en Content Editor, no las propiedades SEO.",
-          "missingHeading": "No hay h1 en la página - propuesta:"
-        },
         "fields": {
           "title": "Título",
           "description": "Metadescripción",
@@ -1405,19 +1337,6 @@
         "items": "Hallazgos ({{count}})"
       },
       "a11y": {
-        "alt": {
-          "title": "Texto alternativo por IA",
-          "intro": "{{count}} imagen(es) no tienen atributo alt. Sugiera un texto alternativo escrito en el idioma de la página ({{language}}) a partir de la imagen y su contexto, y péguelo en el campo alt de la imagen en Content Editor. Las imágenes puramente decorativas se identifican para que pueda asignarles un alt vacío.",
-          "generate": "Sugerir texto alternativo",
-          "regenerate": "Volver a generar el texto alternativo",
-          "generating": "Describiendo las imágenes… tarda unos segundos.",
-          "error": "Las sugerencias de texto alternativo fallaron",
-          "decorative": "Decorativa - use un alt vacío",
-          "noPicture": "descrita solo a partir del contexto",
-          "noVision": "Nota: ningún modelo lee imágenes en este servidor, así que las sugerencias solo se basan en los nombres de archivo y el texto cercano. El nivel vision de genai-connector permite que un modelo vea la imagen.",
-          "noAnswer": "No se devolvió ninguna sugerencia para esta imagen.",
-          "more": "{{count}} imagen(es) más sin alt no se enviaron (8 por petición) - corrija primero estas, vuelva a ejecutar la auditoría y pida sugerencias de nuevo."
-        },
         "levels": {
           "A": "WCAG A",
           "AA": "WCAG AA",
@@ -1597,17 +1516,6 @@
         "failed": "Se detuvo con un error ({{message}}); las demás pestañas muestran sus resultados. Vuelva a ejecutar la auditoría."
       },
       "readability": {
-        "simplify": {
-          "title": "Reformulaciones en lenguaje claro por IA",
-          "intro": "La puntuación penaliza las frases largas ({{count}} de más de 25 palabras). Reformule en lenguaje claro ({{language}}) hasta 6 de las frases más difíciles de los párrafos - los mismos hechos, frases más cortas, palabras comunes - y pegue la reformulación sobre el original en Content Editor.",
-          "generate": "Reformular las frases más difíciles",
-          "regenerate": "Volver a generar las reformulaciones",
-          "generating": "Reformulando… tarda unos segundos.",
-          "error": "Las reformulaciones en lenguaje claro fallaron",
-          "words": "{{count}} palabras",
-          "noAnswer": "No se devolvió ninguna reformulación para esta frase.",
-          "more": "{{count}} frase(s) larga(s) más no se enviaron (6 por petición) - corrija primero estas, vuelva a ejecutar la auditoría y reformule de nuevo."
-        },
         "score": "Puntuación de legibilidad",
         "bands": {
           "veryEasy": "Muy fácil",
@@ -1686,14 +1594,13 @@
         }
       },
       "tabHelp": {
-        "accessibility": "Comprobaciones WCAG automáticas con axe-core: problemas por gravedad, lo que hay que verificar a mano y texto alternativo sugerido por IA para las imágenes que no lo tienen.",
-        "seo": "Título, metadescripción, indexación, dirección canónica, tarjeta para redes sociales, datos estructurados y textos de los enlaces, con redacción sugerida por IA.",
+        "accessibility": "Comprobaciones WCAG automáticas con axe-core: problemas por gravedad y lo que hay que verificar a mano.",
+        "seo": "Título, metadescripción, indexación, dirección canónica, tarjeta para redes sociales, datos estructurados y textos de los enlaces.",
         "vitals": "Cifras orientativas de carga de la vista previa de edición, y lo que hace pesada la página.",
-        "readability": "Lo fácil que es leer el texto en su idioma: puntuación, frases largas y encabezados, con reformulaciones más sencillas sugeridas por IA.",
+        "readability": "Lo fácil que es leer el texto en su idioma: puntuación, frases largas y encabezados.",
         "ecodesign": "Comprobaciones de ecodiseño del referencial francés RGESN: peso de la página, peticiones, imágenes, fuentes, multimedia y servicios de terceros.",
         "links": "Enlaces internos rotos, direcciones escritas completas, contenido mixto y enlaces que abren una ventana nueva sin protección.",
-        "jahia": "Comprobaciones que solo Jahia puede hacer: contenido no publicado en la página, traducciones que faltan, etiquetas sin traducir y textos provisionales, y las comprobaciones que añaden otros módulos.",
-        "ai": "Una revisión del texto de la página por el modelo de IA que proporciona genai-connector, con cada hallazgo y la redacción exacta que hay que cambiar."
+        "jahia": "Comprobaciones que solo Jahia puede hacer: contenido no publicado en la página, traducciones que faltan, etiquetas sin traducir y textos provisionales, y las comprobaciones que añaden otros módulos."
       }
     },
     "compliance": {
@@ -1821,11 +1728,6 @@
       }
     },
     "common": {
-      "ai": {
-        "generate": "Generar con IA",
-        "notConfigured": "La IA no está disponible en este servidor. Un administrador del servidor instala genai-connector y asigna un modelo a su nivel balanced.",
-        "noAccess": "No tiene acceso a la IA en este sitio. Un administrador del sitio concede el permiso genaiAccess."
-      },
       "sectionOff": {
         "title": "Desactivado para este sitio",
         "message": "Un administrador del sitio desactivó esta sección en Configuración del sitio, Gobernanza de contenidos."
@@ -1870,7 +1772,7 @@
       "nothingAvailable": "Ninguna sección de Gobernanza de contenidos puede usarse con este contenido.",
       "entryFailed": "Esta pestaña, añadida por otro módulo, no se pudo mostrar.",
       "sectionHelp": {
-        "audit": "Revisa la página que está editando: accesibilidad, SEO, velocidad, legibilidad, ecodiseño, enlaces y contenido Jahia, con sugerencias de IA a petición.",
+        "audit": "Revisa la página que está editando: accesibilidad, SEO, velocidad, legibilidad, ecodiseño, enlaces y contenido Jahia.",
         "geo": "Si los asistentes de IA y sus rastreadores pueden leer y citar la página publicada: puntuación, acceso de los rastreadores, archivos del sitio, datos estructurados y citas de IA.",
         "compliance": "Términos de los glosarios del sitio que esta página, y el contenido que muestra, no deben usar en este idioma."
       }
@@ -1881,7 +1783,6 @@
       "notEnabled": "Gobernanza de contenidos no está activado en este sitio, o usted no es administrador del sitio. Active el módulo en Configuración del sitio, Módulos.",
       "panelTab": {
         "features": "Funciones",
-        "ai": "Modelo de IA",
         "botrank": "BotRank"
       },
       "save": "Guardar",
@@ -1894,30 +1795,14 @@
       "saved": "Los editores verán el cambio la próxima vez que abran el panel lateral.",
       "intro": "Elija lo que los editores de este sitio encuentran en el panel lateral de Gobernanza de contenidos. Una sección desactivada también desactiva su panel del sitio (la entrada se mantiene y lo indica), y el servidor rechaza sus llamadas. Las pestañas conservan su propia configuración mientras su sección está desactivada.",
       "sectionHelp": {
-        "audit": "Accesibilidad, SEO, Web Vitals, legibilidad, ecodiseño, enlaces y controles Jahia de la página, medidos en el navegador, con una revisión por IA a petición.",
+        "audit": "Accesibilidad, SEO, Web Vitals, legibilidad, ecodiseño, enlaces y controles Jahia de la página, medidos en el navegador.",
         "geo": "Si los rastreadores de IA pueden leer la página, los archivos del sitio (robots.txt, llms.txt), los datos estructurados y las citas de IA de BotRank. También el panel Preparación GEO en Adicional, SEO.",
         "compliance": "Términos de los glosarios del sitio que la página y lo que muestra no pueden usar, por idioma. También el panel Cumplimiento en Adicional."
       },
       "sectionSwitch": "Sección {{section}}",
       "on": "Activado",
       "off": "Desactivado",
-      "needsAi": "IA no disponible",
-      "needsBotRank": "Requiere una conexión con BotRank",
-      "ai": {
-        "title": "Modelo de las funciones de IA",
-        "configured": "Configurado",
-        "notConfigured": "No disponible",
-        "provider": "Proveedor",
-        "model": "Modelo",
-        "images": "Lee imágenes (texto alternativo)",
-        "yes": "Sí",
-        "no": "No",
-        "howTo": "genai-connector proporciona el modelo de cada función de IA. Hasta que un administrador del servidor lo instale y asigne un modelo a su nivel balanced, todas las funciones de IA aparecen en gris y nada sale del servidor.",
-        "uses": "Lo usan la pestaña Revisión por IA, las asistencias de SEO, texto alternativo y lenguaje claro, y el informe escrito del panel Preparación GEO.",
-        "noAccess": "Sin acceso",
-        "howToAccess": "No tiene el permiso genaiAccess en este sitio, por eso las funciones de IA aparecen en gris para usted. Un administrador del sitio lo concede mediante un rol.",
-        "servedBy": "genai-connector guarda el proveedor, la clave y el modelo de cada nivel. Un administrador del servidor los define en su configuración, no en este módulo."
-      }
+      "needsBotRank": "Requiere una conexión con BotRank"
     }
   }
 }

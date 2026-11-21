@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jahia.community.contentgovernance.check.CheckServices;
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
-import org.jahia.community.contentgovernance.html.rules.HtmlRules;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.osgi.framework.BundleContext;
@@ -50,9 +49,6 @@ public class SeoChecks {
     private static final String ROBOTS = "robots";
     private static final String NOINDEX = "noindex";
     private static final String NOFOLLOW = "nofollow";
-    /** The labels that the AI assist rewrites at most. */
-    private static final int MAX_WEAK_CTAS = 10;
-    private static final int CONTEXT_CHARS = 300;
     private static final ObjectMapper JSON = new ObjectMapper();
     /** The label that the preview of Jahia puts before the title of a page in the edit workspace. */
     private static final Pattern PREVIEW_LABEL = Pattern.compile(
@@ -86,16 +82,15 @@ public class SeoChecks {
     }
 
     /**
-     * What the SEO tab of the drawer shows: the tags of the head, the images, and the links whose label
-     * says nothing, which the AI assist rewrites.
+     * What the SEO tab of the drawer shows: the tags of the head and the images.
      *
      * @param html     the HTML of a whole page
      * @param language the language of the content, such as {@code en}, or null
      * @return {@code title} and {@code description} as {@code {text, length}}, {@code robots} as
      *     {@code {content, noindex, nofollow}}, {@code canonical}, {@code og} as {@code {title, description,
      *     image, type}}, {@code twitterCard}, {@code jsonLd} as {@code {count, errors}}, {@code lang} as
-     *     {@code {htmlLang, expected}}, {@code hreflang}, {@code totalImages}, {@code imagesWithoutAlt} and
-     *     {@code weakCtas}; null for a tag that the page lacks
+     *     {@code {htmlLang, expected}}, {@code hreflang}, {@code totalImages} and {@code imagesWithoutAlt};
+     *     null for a tag that the page lacks
      */
     public static Map<String, Object> report(Document html, String language) {
         Map<String, Object> out = new LinkedHashMap<>();
@@ -128,7 +123,6 @@ public class SeoChecks {
         out.put("hreflang", html.select("link[rel=alternate][hreflang]").size());
         out.put("totalImages", html.select("img").size());
         out.put("imagesWithoutAlt", html.select("img:not([alt])").size());
-        out.put("weakCtas", weakCtas(html));
         return out;
     }
 
@@ -141,45 +135,6 @@ public class SeoChecks {
 
     private static String orNull(String text) {
         return text == null || text.isEmpty() ? null : text;
-    }
-
-    /**
-     * The links and buttons whose label says nothing, by label: the label as the page shows it, how often,
-     * the target of the first one, and the text of the block around it.
-     */
-    private static List<Map<String, Object>> weakCtas(Document html) {
-        Map<String, Map<String, Object>> byLabel = new LinkedHashMap<>();
-        for (Element control : html.select("a[href], button, input[type=submit], input[type=button]")) {
-            String raw = "input".equals(control.normalName()) ? control.attr("value") : control.text();
-            String label = raw.replaceAll("\\s+", " ").trim();
-            if (label.isEmpty() || !HtmlRules.vague(label)) {
-                continue;
-            }
-            String key = HtmlRules.label(label).toLowerCase(Locale.ROOT);
-            Map<String, Object> found = byLabel.get(key);
-            if (found != null) {
-                found.put(COUNT, (int) found.get(COUNT) + 1);
-            } else if (byLabel.size() < MAX_WEAK_CTAS) {
-                Map<String, Object> cta = new LinkedHashMap<>();
-                cta.put("text", label);
-                cta.put(COUNT, 1);
-                cta.put("target", control.attr("href"));
-                String context = block(control, label).text();
-                cta.put("context", context.length() > CONTEXT_CHARS ? context.substring(0, CONTEXT_CHARS) : context);
-                byLabel.put(key, cta);
-            }
-        }
-        return new ArrayList<>(byLabel.values());
-    }
-
-    /** The nearest parent that holds a text beyond the label, or the body. */
-    private static Element block(Element control, String label) {
-        Element block = control.parent();
-        while (block != null && block.parent() != null && !"body".equals(block.normalName())
-                && block.text().length() < label.length() + 40) {
-            block = block.parent();
-        }
-        return block == null ? control : block;
     }
 
     /** The title of the page, without the label of the preview. */

@@ -160,12 +160,12 @@ public final class HtmlRules {
      * @param name the text of a link or of a button
      * @return true when the text says nothing about the target, such as "Read more +"
      */
-    public static boolean vague(String name) {
+    private static boolean vague(String name) {
         return VAGUE_LINK_TEXTS.contains(label(name).toLowerCase(Locale.ROOT));
     }
 
     /** A link text without what decorates it at either end: "Read more +" gives "Read more". */
-    public static String label(String text) {
+    static String label(String text) {
         Matcher label = LABEL.matcher(text.replaceAll("\\s+", " "));
         return label.find() ? label.group() : "";
     }

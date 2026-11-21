@@ -18,8 +18,7 @@ const facts = change => ({
         lang: {htmlLang: 'fr', expected: 'en'},
         hreflang: 0,
         totalImages: 2,
-        imagesWithoutAlt: 1,
-        weakCtas: []
+        imagesWithoutAlt: 1
     },
     readability: {lang: 'en', spaced: true, empty: false, scored: true, scale: 'flesch', score: 42, band: 'difficult',
         words: 120, longSentences: 3, avgWordsPerParagraph: 90, h1Count: 2, outline: []},
