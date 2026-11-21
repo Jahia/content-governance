@@ -1,7 +1,7 @@
 /**
  * Elements injected into the preview render by editing/preview tooling -
  * NOT part of what visitors see, so they must never be audited. They are
- * removed from the iframe DOM before any analyzer runs, which cleans
+ * removed from the iframe DOM before any check of the browser runs, which cleans
  * accessibility, SEO, links, readability and content-health scans at once.
  *
  * Known sources:

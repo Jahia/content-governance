@@ -12,7 +12,7 @@ const selectorFor = path => {
     return [`a[href$="${escaped}.html"]`, `a[href*="${escaped}.html?"]`, `a[href*="${escaped}.html#"]`, `a[href$="${escaped}"]`].join(', ');
 };
 
-/** The links of the page, as the check of the server reads them, and the internal links a visitor cannot open. */
+/** The links of the page, as the rule links.broken reads them, and the internal links a visitor cannot open. */
 export function LinksTab({result, onHighlight}) {
     const {t} = useGovernanceTranslation('audit');
 
@@ -20,18 +20,22 @@ export function LinksTab({result, onHighlight}) {
         <div>
             <Recommendations items={result.recommendations} ns="links" tab="links"/>
 
-            <h4 className={styles.sectionTitle}>{t('links.summary')}</h4>
-            <ul className={styles.statList}>
-                <li>{t('links.total')}: <strong>{result.total}</strong></li>
-                <li>
-                    {t('links.internal')}: <strong>{result.internal}</strong>
-                    {result.checked !== null && <span> · {t('links.checked', {count: result.checked})}</span>}
-                    {result.skipped > 0 && <span> · {t('links.skipped', {count: result.skipped})}</span>}
-                </li>
-                <li>{t('links.external')}: <strong>{result.external}</strong> · <span className={styles.note}>{t('links.externalNote')}</span></li>
-            </ul>
+            {result.total !== undefined && (
+                <>
+                    <h4 className={styles.sectionTitle}>{t('links.summary')}</h4>
+                    <ul className={styles.statList}>
+                        <li>{t('links.total')}: <strong>{result.total}</strong></li>
+                        <li>
+                            {t('links.internal')}: <strong>{result.internal}</strong>
+                            {result.checked !== null && <span> · {t('links.checked', {count: result.checked})}</span>}
+                            {result.skipped > 0 && <span> · {t('links.skipped', {count: result.skipped})}</span>}
+                        </li>
+                        <li>{t('links.external')}: <strong>{result.external}</strong> · <span className={styles.note}>{t('links.externalNote')}</span></li>
+                    </ul>
+                </>
+            )}
 
-            {result.broken.length > 0 && (
+            {result.broken?.length > 0 && (
                 <>
                     <h4 className={styles.sectionTitle}>{t('links.broken')}</h4>
                     {result.broken.map(link => (
@@ -53,7 +57,8 @@ export function LinksTab({result, onHighlight}) {
 }
 
 LinksTab.propTypes = {
-    // The facts of the check of the server: {total, internal, external, checked, skipped, broken: [{path, reason}], recommendations}
+    // The values of the rule links.broken, none when the site turned it off: {total, internal, external, checked,
+    // skipped, broken: [{path, reason}]}, and the recommendations
     result: PropTypes.object.isRequired,
     onHighlight: PropTypes.func.isRequired
 };

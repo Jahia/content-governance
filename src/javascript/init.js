@@ -5,6 +5,7 @@ import {registry} from '@jahia/ui-extender';
 import {Header, LayoutContent, Loader} from '@jahia/moonstone';
 import {GovernanceAction} from './drawer/GovernanceAction';
 import {registerOwnTabs} from './drawer/ownTabs';
+import {registerChecks} from './checks/register';
 import {PublishCheckAction} from './publish/PublishCheckAction';
 import {SectionGate} from './common/SectionGate';
 import {NS} from './common/i18n';
@@ -95,6 +96,9 @@ function register() {
 
     // The tabs of the drawer: Page quality, GEO readiness and Compliance, before those of other modules
     registerOwnTabs();
+
+    // The checks that Page quality runs in the browser: axe-core, the web vitals and eco-design
+    registerChecks();
 
     // One button for every tab of the drawer. The component shows it only on a page or a main
     // resource of a site that enables the module and keeps at least one tab switched on.

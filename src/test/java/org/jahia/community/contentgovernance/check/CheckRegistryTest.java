@@ -1,6 +1,7 @@
 package org.jahia.community.contentgovernance.check;
 
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
+import org.jahia.community.contentgovernance.check.spi.CheckResult;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck;
 import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.community.contentgovernance.check.spi.Rule;
@@ -22,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -115,6 +117,65 @@ class CheckRegistryTest {
     }
 
     @Test
+    @DisplayName("the results give one per rule that ran, passed or failed, from the default method of a check")
+    void results_givePassesAndFailures() {
+        CheckRegistry registry = new CheckRegistry();
+        registry.bindCheck(PRICE, id("acme.erpPrice"));
+        ContentRules rules = withRule("acme.erpPrice", "acme.erpPrice").changed("acme.erpPrice", null, "critical", null, null);
+
+        assertThat(registry.results(rules, CheckInput.value(PAGE, "en", "Only 12.50 EUR"))).containsExactly(
+                new CheckResult("acme.erpPrice", false, Map.of(),
+                        List.of(new Finding("acme.erpPrice", "critical", "12.50 EUR", null))));
+        assertThat(registry.results(rules, CheckInput.value(PAGE, "en", "Free"))).containsExactly(
+                new CheckResult("acme.erpPrice", true, Map.of(), List.of()));
+        assertThat(registry.results(rules.changed("acme.erpPrice", false, null, null, null),
+                CheckInput.value(PAGE, "en", "Free"))).as("a rule that is off does not run").isEmpty();
+    }
+
+    @Test
+    @DisplayName("a result carries the values of its check, under the id of the rule that ran, and no null")
+    void results_carryTheValuesOfTheCheck() {
+        CheckRegistry registry = new CheckRegistry();
+        registry.bindCheck(new ContentCheck() {
+            @Override
+            public Set<Scope> scopes() {
+                return Set.of(Scope.VALUE);
+            }
+
+            @Override
+            public List<Finding> check(CheckInput input, Rule rule) {
+                return List.of();
+            }
+
+            @Override
+            public CheckResult result(CheckInput input, Rule rule) {
+                return new CheckResult("another.id", true, Map.of("length", input.text().length()), List.of());
+            }
+        }, id("acme.length"));
+        registry.bindCheck(new ContentCheck() {
+            @Override
+            public Set<Scope> scopes() {
+                return Set.of(Scope.VALUE);
+            }
+
+            @Override
+            public List<Finding> check(CheckInput input, Rule rule) {
+                return List.of();
+            }
+
+            @Override
+            public CheckResult result(CheckInput input, Rule rule) {
+                return null;
+            }
+        }, id("acme.none"));
+        ContentRules rules = withRule("acme.length", "acme.length").with(RuleValues.toRule(Map.of(
+                RuleValues.RULE_ID, "acme.none", RuleValues.EVALUATOR, "acme.none", RuleValues.SUBDOMAINS, List.of("writing"))));
+
+        assertThat(registry.results(rules, CheckInput.value(PAGE, "en", "Hello"))).containsExactly(
+                new CheckResult("acme.length", true, Map.of("length", 5), List.of()));
+    }
+
+    @Test
     @DisplayName("a run on some rules runs those rules only")
     void runRules_runsTheNamedRulesOnly() {
         CheckRegistry registry = new CheckRegistry();
@@ -127,7 +188,7 @@ class CheckRegistryTest {
     }
 
     @Test
-    @DisplayName("a run skips a rule that is off, an evaluator the caller applies, and a check of the browser")
+    @DisplayName("a run skips a rule that is off, an evaluator the caller applies, and a rule of the browser")
     void run_skips() {
         CheckRegistry registry = new CheckRegistry();
         registry.bindCheck(PRICE, id("acme.erpPrice"));
@@ -137,24 +198,28 @@ class CheckRegistryTest {
         assertThat(registry.run(rules.changed("acme.erpPrice", false, null, null, null), input, Set.of())).isEmpty();
         assertThat(registry.run(rules, input, Set.of("acme.erpPrice"))).isEmpty();
 
-        CheckRegistry browser = new CheckRegistry();
-        browser.bindCheck(PRICE, Map.of(ContentCheck.ID, "acme.erpPrice", CheckRegistry.RUNTIME, CheckRegistry.BROWSER));
-        assertThat(browser.has("acme.erpPrice")).isTrue();
-        assertThat(browser.run(rules, input, Set.of())).isEmpty();
+        ContentRules browser = ContentRules.base().with(inBrowser("acme.erpPrice", false));
+        assertThat(registry.run(browser, input, Set.of())).isEmpty();
     }
 
     @Test
-    @DisplayName("a rule of a check of the browser never blocks, even when its node sets blocking")
-    void blocking_isNeverTrueForTheBrowser() {
-        ContentRule rule = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.vitals", RuleValues.EVALUATOR, "acme.vitals",
-                RuleValues.BLOCKING, true));
-        CheckRegistry server = new CheckRegistry();
-        server.bindCheck(PRICE, id("acme.vitals"));
-        CheckRegistry browser = new CheckRegistry();
-        browser.bindCheck(PRICE, Map.of(ContentCheck.ID, "acme.vitals", CheckRegistry.RUNTIME, CheckRegistry.BROWSER));
+    @DisplayName("a rule of the browser is active with no check on the server, and never blocks, even when its node sets blocking")
+    void browserRule_isActiveAndNeverBlocks() {
+        CheckRegistry registry = new CheckRegistry();
+        ContentRule server = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.vitals", RuleValues.EVALUATOR, "acme.vitals",
+                RuleValues.SUBDOMAINS, List.of("ecodesign"), RuleValues.BLOCKING, true));
+        ContentRule browser = inBrowser("acme.vitals", true);
+        registry.bindCheck(PRICE, id("acme.vitals"));
 
-        assertThat(server.blocking(rule)).isTrue();
-        assertThat(browser.blocking(rule)).isFalse();
+        assertThat(registry.blocking(server)).isTrue();
+        assertThat(registry.blocking(browser)).isFalse();
+        assertThat(new CheckRegistry().status(browser)).isEqualTo(new CheckRegistry.Status(true, null, null));
+    }
+
+    /** A rule of the subdomain ecodesign that states {@code runtime: browser}, with its id as its evaluator. */
+    private static ContentRule inBrowser(String id, boolean blocking) {
+        return placed(Map.of(RuleValues.RULE_ID, id, RuleValues.EVALUATOR, id, RuleValues.SUBDOMAINS, List.of("ecodesign"),
+                RuleValues.BLOCKING, blocking, RuleValues.RUNTIME, ContentRule.BROWSER));
     }
 
     @Test
@@ -198,13 +263,57 @@ class CheckRegistryTest {
 
         assertThat(registry.run(withRule("acme.many", "acme.many"), CheckInput.value(PAGE, "en", "x"), Set.of()))
                 .hasSize(CheckRegistry.MAX_FINDINGS);
+        assertThat(registry.results(withRule("acme.many", "acme.many"), CheckInput.value(PAGE, "en", "x")))
+                .singleElement().satisfies(result -> assertThat(result.findings()).hasSize(CheckRegistry.MAX_FINDINGS));
+    }
+
+    /** A check of the scope VALUE whose result is the one that {@code result} builds for the rule. */
+    private static ContentCheck resultCheck(Function<Rule, CheckResult> result) {
+        return new ContentCheck() {
+            @Override
+            public Set<Scope> scopes() {
+                return Set.of(Scope.VALUE);
+            }
+
+            @Override
+            public List<Finding> check(CheckInput input, Rule rule) {
+                return List.of();
+            }
+
+            @Override
+            public CheckResult result(CheckInput input, Rule rule) {
+                return result.apply(rule);
+            }
+        };
     }
 
     @Test
-    @DisplayName("Content Governance registers a check for the evaluator of each rule that it ships")
+    @DisplayName("a result with a finding never passes, and a result whose values JSON cannot write gives no result")
+    void results_keepTheContractOfAResult() {
+        CheckRegistry registry = new CheckRegistry();
+        registry.bindCheck(resultCheck(rule -> new CheckResult(rule.id(), true, Map.of(), List.of(Finding.of(rule, "x")))),
+                id("acme.found"));
+        registry.bindCheck(resultCheck(rule -> new CheckResult(rule.id(), true, Map.of("opaque", new Object()), List.of())),
+                id("acme.opaque"));
+        registry.bindCheck(resultCheck(rule -> new CheckResult(rule.id(), false, Map.of(),
+                List.of(new Finding(rule.id(), "minor", "x", null, null, Map.of("opaque", new Object()))))),
+                id("acme.opaqueFinding"));
+        ContentRules rules = withRule("acme.found", "acme.found");
+        for (String id : List.of("acme.opaque", "acme.opaqueFinding")) {
+            rules = rules.with(RuleValues.toRule(Map.of(RuleValues.RULE_ID, id, RuleValues.EVALUATOR, id,
+                    RuleValues.SUBDOMAINS, List.of("writing"))));
+        }
+
+        assertThat(registry.results(rules, CheckInput.value(PAGE, "en", "x"))).singleElement().satisfies(result -> {
+            assertThat(result.ruleId()).isEqualTo("acme.found");
+            assertThat(result.passed()).isFalse();
+        });
+    }
+
+    @Test
+    @DisplayName("Content Governance registers a check for the evaluator of each rule of the server that it ships")
     void everyShippedRule_hasACheckOfThisModule() {
         Set<String> registered = new HashSet<>(List.of(ContentRule.PATTERN, ContentRule.THRESHOLD, ContentRule.PRESENCE));
-        registered.addAll(BrowserChecks.IDS);
         registered.addAll(GeoChecks.IDS);
         registered.addAll(SeoChecks.IDS);
         registered.addAll(ReadabilityChecks.IDS);
@@ -213,8 +322,9 @@ class CheckRegistryTest {
         Arrays.stream(HtmlRule.values()).map(HtmlRule::id).forEach(registered::add);
 
         List<String> missing = new ArrayList<>();
+        // The drawer registers the checks of the rules of the browser: drawerChecks.test.js tests them
         for (ContentRule rule : ContentRules.base().all()) {
-            if (!registered.contains(rule.evaluator())) {
+            if (!rule.inBrowser() && !registered.contains(rule.evaluator())) {
                 missing.add(rule.id() + " -> " + rule.evaluator());
             }
         }

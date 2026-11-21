@@ -9,7 +9,8 @@ Jahia health.
 These callers use the service, and get the same findings under the same rule ids for one page:
 
 - the GraphQL field `checkPage(path, language)`, which the drawer of **Page quality** reads: it gives
-  the findings, and the facts that the tabs SEO, Readability, Links and Jahia health show;
+  the result of each rule, with its findings and the values that the tabs SEO, Readability, Links and
+  Jahia health show;
 - the tool `frame.check`, with a `path` instead of a `text`;
 - the tool `audit.accessibility`;
 - the GraphQL field `checkText` with the scope `PAGE`, on an HTML text that the caller gives;

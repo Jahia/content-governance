@@ -5,6 +5,7 @@ package org.jahia.community.contentgovernance.html;
 
 import org.jahia.community.contentgovernance.check.CheckRegistry;
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
+import org.jahia.community.contentgovernance.check.spi.CheckResult;
 import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.community.contentgovernance.html.links.LinkCheck;
 import org.jahia.community.contentgovernance.html.render.ServerRender;
@@ -12,7 +13,6 @@ import org.jahia.community.contentgovernance.html.rules.HtmlRuleChecks;
 import org.jahia.community.contentgovernance.html.rules.Scope;
 import org.jahia.community.contentgovernance.page.HealthChecks;
 import org.jahia.community.contentgovernance.page.LinkChecks;
-import org.jahia.community.contentgovernance.page.PageFacts;
 import org.jahia.community.contentgovernance.page.ReadabilityChecks;
 import org.jahia.community.contentgovernance.page.SeoChecks;
 import org.jahia.community.contentgovernance.rules.ContentRules;
@@ -31,7 +31,6 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -42,8 +41,8 @@ import java.util.Set;
  * of the scope {@code PAGE} reads the HTML, with the rules of the site. A page gets every check, and an
  * item gets the checks of one item only. The GraphQL fields {@code checkPage} and {@code checkText}, and
  * the tools {@code frame.check} and {@code audit.accessibility} call it, so they give one page the same
- * findings under the same rule ids. The drawer reads {@code checkPage}, and GEO readiness runs the SEO
- * rules of the service on the HTML that a crawler gets.
+ * findings under the same rule ids. The drawer reads the results of {@code checkPage}, with their values,
+ * and GEO readiness runs the SEO rules of the service on the HTML that a crawler gets.
  *
  * <p>A render reads the workspace of the session, as its user: in {@code default}, the content that
  * is not published yet. The caller renders inside its session, then checks the HTML outside it. The
@@ -147,29 +146,39 @@ public class HtmlCheck {
      * @return the findings, in the order of the rules, at most 50 for each check
      */
     public List<Finding> findings(Rendered rendered, Locale language) {
+        return results(rendered, language).stream().flatMap(result -> result.findings().stream()).toList();
+    }
+
+    /**
+     * Runs the checks of the scope {@code PAGE} on the rules that the site of the node keeps on, and gives
+     * the result of each rule that ran, passed or failed, with its values: what the tabs of the drawer show.
+     *
+     * @param language the language of the content, such as {@code en}: the language of the page must match it
+     * @return the results, in the order of the rules, with at most 50 findings each
+     */
+    public List<CheckResult> results(Rendered rendered, Locale language) {
+        ContentRules rules = ContentRules.forPath(rendered.path());
         CheckInput input = input(rendered.path(), language == null ? null : language.getLanguage(), rendered.html(),
                 rendered.scope());
         for (Map.Entry<String, Object> fact : rendered.facts().entrySet()) {
             input = input.withFact(fact.getKey(), fact.getValue());
         }
-        return checks.run(input, Set.of()).stream().map(CheckRegistry.Checked::finding).toList();
+        Integer maxSentenceWords = maxSentenceWords(rules);
+        if (maxSentenceWords != null) {
+            input = input.withFact(ReadabilityChecks.LONG_SENTENCE_WORDS, maxSentenceWords);
+        }
+        return checks.results(rules, input);
     }
 
-    /**
-     * What the tabs of the drawer show beside the findings, as {@link PageFacts#of} states it.
-     *
-     * @param language the language of the content, such as {@code en}
-     */
-    public Map<String, Object> facts(Rendered rendered, Locale language) {
-        Integer maxSentenceWords = null;
+    /** The maximum of the rule {@code readability.longSentences} of the site, or null. */
+    private static Integer maxSentenceWords(ContentRules rules) {
         try {
-            Double maximum = ContentRules.forPath(rendered.path()).get(LONG_SENTENCES).maximum();
-            maxSentenceWords = maximum == null ? null : maximum.intValue();
+            Double maximum = rules.get(LONG_SENTENCES).maximum();
+            return maximum == null ? null : maximum.intValue();
         } catch (IllegalArgumentException e) {
             // A site with no such rule counts no long sentence.
+            return null;
         }
-        return PageFacts.of(rendered.html(), rendered.facts(), language == null ? null : language.getLanguage(),
-                maxSentenceWords);
     }
 
     /**
@@ -186,18 +195,16 @@ public class HtmlCheck {
      */
     public List<Finding> findings(ContentRules rules, String path, String language, Document html, Set<String> ruleIds) {
         // The thresholds of a whole page measure the SEO facts only: no readability is measured for these rules
-        CheckInput input = CheckInput.page(path, language, html.outerHtml())
+        CheckInput input = withSeo(CheckInput.page(path, language, html.outerHtml())
                 .withFact(HtmlRuleChecks.DOCUMENT, html)
-                .withFact(HtmlRuleChecks.HTML_SCOPE, Scope.PAGE);
-        for (Map.Entry<String, Object> fact : SeoChecks.facts(html).entrySet()) {
-            input = input.withFact(fact.getKey(), fact.getValue());
-        }
+                .withFact(HtmlRuleChecks.HTML_SCOPE, Scope.PAGE), html);
         return checks.runRules(rules, input, ruleIds).stream().map(CheckRegistry.Checked::finding).toList();
     }
 
     /**
-     * The input of the checks of the scope {@code PAGE}: the HTML, and the values that the thresholds of a
-     * page measure on it, such as the length of its title under {@code seo.title}.
+     * The input of the checks of the scope {@code PAGE}: the HTML, and the facts and the values that the
+     * thresholds of a page measure on it, such as the length of its title under {@code seo.title}, with its
+     * text as a value.
      *
      * @param path     the path of the page or of the item
      * @param language the language of the content, such as {@code en}, or null
@@ -205,17 +212,22 @@ public class HtmlCheck {
      * @param scope    what the HTML holds
      */
     public static CheckInput input(String path, String language, Document html, Scope scope) {
-        CheckInput input = CheckInput.page(path, language, html.outerHtml())
+        CheckInput input = ReadabilityChecks.withReadability(CheckInput.page(path, language, html.outerHtml())
                 .withFact(HtmlRuleChecks.DOCUMENT, html)
-                .withFact(HtmlRuleChecks.HTML_SCOPE, scope);
-        Map<String, Object> measured = new LinkedHashMap<>(ReadabilityChecks.facts(html, language));
-        if (scope == Scope.PAGE) {
-            measured.putAll(SeoChecks.facts(html));
+                .withFact(HtmlRuleChecks.HTML_SCOPE, scope), html, language);
+        return scope == Scope.PAGE ? withSeo(input, html) : input;
+    }
+
+    /** The input with the facts and the values of the SEO thresholds of a whole page. */
+    private static CheckInput withSeo(CheckInput input, Document html) {
+        CheckInput out = input;
+        for (Map.Entry<String, Object> fact : SeoChecks.facts(html).entrySet()) {
+            out = out.withFact(fact.getKey(), fact.getValue());
         }
-        for (Map.Entry<String, Object> fact : measured.entrySet()) {
-            input = input.withFact(fact.getKey(), fact.getValue());
+        for (Map.Entry<String, Map<String, Object>> values : SeoChecks.values(html).entrySet()) {
+            out = out.withValues(values.getKey(), values.getValue());
         }
-        return input;
+        return out;
     }
 
     /** The internal links of the HTML, read in the live workspace. Call it inside the session of the render. */

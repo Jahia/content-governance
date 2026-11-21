@@ -47,7 +47,8 @@ import java.util.function.BooleanSupplier;
  * <ul>
  *   <li>A rule that the site lacks is added. A deleted rule node comes back with its shipped values.</li>
  *   <li>A rule that nobody changed takes the new shipped values.</li>
- *   <li>A rule that the site changed keeps its values, and only gets the properties it lacks.</li>
+ *   <li>A rule that the site changed keeps its values, and only gets the properties it lacks. When its module
+ *       moves it to the browser, it also takes the shipped evaluator, {@link #browserEvaluator} states why.</li>
  *   <li>A rule that the module no longer ships is removed if nobody changed it, and marked
  *       {@value RuleNodes#RETIRED} if the site changed it.</li>
  * </ul>
@@ -345,6 +346,11 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
                 wrote = true;
             }
             case FILL -> {
+                String evaluator = browserEvaluator(RuleNodes.read(node), rule.values());
+                if (evaluator != null) {
+                    node.setProperty(RuleValues.EVALUATOR, evaluator);
+                    wrote = true;
+                }
                 wrote |= RuleNodes.fillMissing(node, rule.values());
                 // A node that holds the shipped values again is a node that nobody changed.
                 if (!shipped.equals(seeded) && RuleValues.digest(RuleNodes.read(node)).equals(shipped)) {
@@ -356,6 +362,25 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
             case NONE -> wrote |= RuleNodes.fillMissing(node, rule.values());
         }
         return wrote ? 1 : 0;
+    }
+
+    /**
+     * The evaluator that a rule changed by the site takes when its module moves the rule to the browser: the
+     * shipped one, since no check of the server applies the rule any more. Example: a site raised the maximum
+     * of {@code ecodesign.pageWeight}, whose evaluator was {@code threshold}; the node keeps its maximum and
+     * takes the evaluator {@code ecodesign.pageWeight} of the browser.
+     *
+     * @param node    the values of the node
+     * @param shipped the values that the module ships
+     * @return the shipped evaluator, or null when the node has a runtime already, the shipped rule runs on the
+     * server, or the node names the shipped evaluator
+     */
+    static String browserEvaluator(Map<String, Object> node, Map<String, Object> shipped) {
+        if (node.containsKey(RuleValues.RUNTIME) || !ContentRule.BROWSER.equals(shipped.get(RuleValues.RUNTIME))) {
+            return null;
+        }
+        Object evaluator = shipped.get(RuleValues.EVALUATOR);
+        return evaluator == null || evaluator.equals(node.get(RuleValues.EVALUATOR)) ? null : evaluator.toString();
     }
 
     private static boolean unretire(JCRNodeWrapper node) throws RepositoryException {

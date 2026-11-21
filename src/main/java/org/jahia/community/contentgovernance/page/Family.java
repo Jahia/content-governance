@@ -1,6 +1,7 @@
 package org.jahia.community.contentgovernance.page;
 
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
+import org.jahia.community.contentgovernance.check.spi.CheckResult;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck;
 import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.community.contentgovernance.check.spi.Rule;
@@ -17,7 +18,8 @@ import java.util.Set;
 import java.util.function.Function;
 
 /**
- * The checks of one domain of a page, one per check id, which share one reading of the input.
+ * The checks of one domain of a page, one per check id, which share one reading of the input. A check of
+ * a measure rule, such as {@code readability.statistics}, finds nothing and gives values only.
  *
  * <p>Thread safety: immutable. The shared reading lives in the input.</p>
  */
@@ -30,9 +32,10 @@ final class Family {
     record Hit(String text, String context, String locator) {
     }
 
-    /** What one reading of an input found, by check id. */
+    /** What one reading of an input found and measured, by check id. */
     static final class Found {
         private final Map<String, List<Hit>> byCheck = new LinkedHashMap<>();
+        private final Map<String, Map<String, Object>> values = new LinkedHashMap<>();
 
         Found add(String checkId, String text, String context) {
             return add(checkId, text, context, null);
@@ -43,8 +46,18 @@ final class Family {
             return this;
         }
 
+        /** The values of the result of a check, such as the link counts under {@code links.broken}. */
+        Found values(String checkId, Map<String, Object> measured) {
+            values.put(checkId, measured);
+            return this;
+        }
+
         List<Hit> of(String checkId) {
             return byCheck.getOrDefault(checkId, List.of());
+        }
+
+        Map<String, Object> valuesOf(String checkId) {
+            return values.getOrDefault(checkId, Map.of());
         }
     }
 
@@ -103,6 +116,12 @@ final class Family {
             return input.shared(shared, Found.class, () -> read.apply(input)).of(id).stream()
                     .map(hit -> Finding.at(rule, hit.text(), hit.context(), hit.locator()))
                     .toList();
+        }
+
+        @Override
+        public CheckResult result(CheckInput input, Rule rule) {
+            Found found = input.shared(shared, Found.class, () -> read.apply(input));
+            return CheckResult.of(rule, found.valuesOf(id), check(input, rule));
         }
     }
 }

@@ -4,8 +4,14 @@ import {useGovernanceTranslation} from '../../common/i18n';
 import {Recommendations} from './Recommendations';
 import styles from './Tabs.module.css';
 
+/** The SEO recommendations, and the sharing preview and the tag list that the rule seo.tags gives. */
 export function SeoTab({result}) {
     const {t} = useGovernanceTranslation('audit');
+
+    // A site that turns seo.tags off hides the preview and the tag list
+    if (!result.og) {
+        return <Recommendations items={result.recommendations} ns="seo" tab="seo"/>;
+    }
 
     const rows = [
         {key: 'title', ok: Boolean(result.title.text), value: result.title.text ? `${result.title.text} (${t('seo.chars', {count: result.title.length})})` : null},

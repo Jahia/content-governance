@@ -15,12 +15,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ShippedRulesTest {
 
     @Test
-    @DisplayName("the module ships 58 rules and one rule per check of axe-core, and each names its evaluator and declared subdomains")
+    @DisplayName("the module ships 62 rules, four of them measures, and one rule per check of axe-core, and each names its evaluator and declared subdomains")
     void ownRules_load() {
         ShippedRules.Shipment own = ShippedRules.own();
 
         assertThat(own.complete()).isTrue();
-        assertThat(own.rules().keySet().stream().filter(id -> !id.startsWith("axe."))).hasSize(58);
+        assertThat(own.rules().keySet().stream().filter(id -> !id.startsWith("axe."))).hasSize(62);
         assertThat(own.rules().keySet().stream().filter(id -> id.startsWith("axe."))).hasSize(96);
         assertThat(own.rules().values()).allSatisfy(rule -> {
             assertThat(rule.values()).containsKey(RuleValues.EVALUATOR);
@@ -33,6 +33,11 @@ class ShippedRulesTest {
                 .containsEntry(RuleValues.SEVERITY, "serious");
         assertThat(own.rules().values().stream().filter(rule -> !rule.id().startsWith("axe.")))
                 .allSatisfy(rule -> assertThat(rule.values()).containsKeys(RuleValues.TITLE, RuleValues.LABEL, RuleValues.TRANSLATIONS));
+        // axe-core, the web vitals and eco-design run in the browser, each eco-design measure under its own evaluator
+        assertThat(own.rules().values().stream().filter(rule -> rule.id().startsWith("axe.") || rule.id().startsWith("ecodesign.")))
+                .hasSize(108).allSatisfy(rule -> assertThat(RuleValues.toRule(rule.values()).inBrowser()).as(rule.id()).isTrue());
+        assertThat(own.rules().get("ecodesign.pageWeight").values()).containsEntry(RuleValues.EVALUATOR, "ecodesign.pageWeight");
+        assertThat(own.rules().values().stream().filter(rule -> RuleValues.toRule(rule.values()).inBrowser())).hasSize(108);
         ContentRule title = RuleValues.toRule(own.rules().get("seo.title").values());
         assertThat(title.evaluator()).isEqualTo(ContentRule.THRESHOLD);
         assertThat(title.subdomains()).containsExactly("seo", "geo.score");
@@ -156,5 +161,17 @@ class ShippedRulesTest {
         ContentRule canonical = site.get("seo.canonical");
         assertThat(canonical.enabled()).isFalse();
         assertThat(canonical.severity()).isEqualTo("minor");
+    }
+
+    @Test
+    @DisplayName("the rules that axe-core marks experimental ship switched off, and a site can switch them on")
+    void experimentalAxeRules_shipOff() {
+        ContentRules base = ContentRules.base();
+        for (String id : List.of("axe.css-orientation-lock", "axe.focus-order-semantics", "axe.hidden-content",
+                "axe.p-as-heading", "axe.table-fake-caption", "axe.td-has-header")) {
+            assertThat(base.get(id).enabled()).as(id).isFalse();
+            assertThat(base.changed(id, true, null, null, null).get(id).enabled()).as(id).isTrue();
+        }
+        assertThat(base.get("axe.image-alt").enabled()).isTrue();
     }
 }

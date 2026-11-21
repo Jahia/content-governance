@@ -24,7 +24,10 @@ import java.util.Map;
  * score, each with its own limit: {@code readability.flesch} (a Flesch Reading Ease adapted to the
  * language, where a higher score reads easier: a minimum) and {@code readability.lix} (the LIX of the
  * Nordic languages, where a higher score reads harder: a maximum). A text of fewer than 30 words gives no
- * finding.
+ * finding. The rule of the scale of the language carries the score with {@link #values}.
+ *
+ * <p>Two measure rules give what the Readability tab of the drawer shows: {@code readability.statistics},
+ * the statistics of the main text, and {@code readability.headings}, the outline of the headings.</p>
  */
 @Component(immediate = true)
 public class ReadabilityChecks {
@@ -36,8 +39,17 @@ public class ReadabilityChecks {
     static final String LONG_SENTENCES = "readability.longSentences";
     static final String LONG_PARAGRAPHS = "readability.longParagraphs";
     static final String THIN_CONTENT = "readability.thinContent";
-    /** The ids of the checks of their own: none, every rule of readability is a threshold on a fact. */
-    public static final List<String> IDS = List.of();
+    /** The measure rule of the statistics of the main text. */
+    public static final String STATISTICS = "readability.statistics";
+    /** The measure rule of the outline of the headings. */
+    public static final String HEADINGS = "readability.headings";
+    /** The ids of the checks of their own: the measure rules. Every other rule of readability is a threshold. */
+    public static final List<String> IDS = List.of(STATISTICS, HEADINGS);
+    /**
+     * The fact of the maximum of the rule {@code readability.longSentences} for the site, an {@link Integer}:
+     * the statistics count the sentences longer than it. With no such fact, they count none.
+     */
+    public static final String LONG_SENTENCE_WORDS = "content-governance:longSentenceWords";
 
     private static final String SHARED = "content-governance:readability";
     /** The parts of a page that are not its text. */
@@ -47,7 +59,7 @@ public class ReadabilityChecks {
 
     @Activate
     void activate(BundleContext context) {
-        services.open(context, Family.checks(IDS, SHARED, ReadabilityChecks::read), false);
+        services.open(context, Family.checks(IDS, SHARED, ReadabilityChecks::read));
     }
 
     @Deactivate
@@ -64,7 +76,31 @@ public class ReadabilityChecks {
      * @return the facts by rule id
      */
     public static Map<String, Object> facts(Document html, String language) {
+        return facts(measure(html, language), html);
+    }
+
+    /**
+     * The input with the facts of {@link #facts} and the values of the rule of the scale of the language,
+     * from one measure of the text.
+     *
+     * @param input    the input of the checks of the HTML
+     * @param html     the HTML of a page or of an item
+     * @param language the language of the content, or null for the language of the page
+     * @return the input with these facts and values
+     */
+    public static CheckInput withReadability(CheckInput input, Document html, String language) {
         Readability.Measure measure = measure(html, language);
+        CheckInput out = input;
+        for (Map.Entry<String, Object> fact : facts(measure, html).entrySet()) {
+            out = out.withFact(fact.getKey(), fact.getValue());
+        }
+        for (Map.Entry<String, Map<String, Object>> values : values(measure).entrySet()) {
+            out = out.withValues(values.getKey(), values.getValue());
+        }
+        return out;
+    }
+
+    private static Map<String, Object> facts(Readability.Measure measure, Document html) {
         Map<String, Object> out = new LinkedHashMap<>();
         if (!measure.measured()) {
             return out;
@@ -83,16 +119,34 @@ public class ReadabilityChecks {
     }
 
     /**
-     * What the Readability tab of the drawer shows: the statistics of the main text, its paragraphs, and
-     * the headings of the page.
+     * The values of the rule of the scale of the language, beside its fact: the score, the name of the
+     * formula and the band of the score. None for a text too short to measure, or in a language with no
+     * formula.
+     *
+     * @return {@code {score, formula, band}} under {@code readability.flesch} or {@code readability.lix}
+     */
+    private static Map<String, Map<String, Object>> values(Readability.Measure measure) {
+        if (!measure.measured() || measure.score() == null) {
+            return Map.of();
+        }
+        Map<String, Object> score = new LinkedHashMap<>();
+        score.put("score", measure.score());
+        score.put("formula", measure.formula());
+        score.put("band", Readability.camelCase(measure.band()));
+        return Map.of(Readability.LIX.equals(measure.formula()) ? LIX : FLESCH, score);
+    }
+
+    /**
+     * The values of the measure rule {@code readability.statistics}: the statistics of the main text and its
+     * paragraphs.
      *
      * @param html             the HTML of a page or of an item
      * @param language         the language of the content, or null for the language of the page
      * @param maxSentenceWords the maximum of the rule {@code readability.longSentences}, or null
-     * @return the keys of {@link Readability#statistics}, {@code longSentenceWords}, {@code paragraphs} and
-     *     {@code avgWordsPerParagraph} for a text long enough, and the keys of {@link HeadingOutline#of}
+     * @return the keys of {@link Readability#statistics}, {@code longSentenceWords}, and {@code paragraphs} and
+     *     {@code avgWordsPerParagraph} for a text long enough
      */
-    public static Map<String, Object> report(Document html, String language, Integer maxSentenceWords) {
+    public static Map<String, Object> statisticsValues(Document html, String language, Integer maxSentenceWords) {
         Map<String, Object> out = new LinkedHashMap<>(Readability.statistics(text(html), code(html, language),
                 maxSentenceWords));
         out.put("longSentenceWords", maxSentenceWords);
@@ -102,8 +156,17 @@ public class ReadabilityChecks {
             out.put("avgWordsPerParagraph", Boolean.TRUE.equals(out.get("spaced")) && !paragraphs.isEmpty()
                     ? average(paragraphs) : null);
         }
-        out.putAll(HeadingOutline.of(html, mainText(html)));
         return out;
+    }
+
+    /**
+     * The values of the measure rule {@code readability.headings}: the outline of the headings.
+     *
+     * @param html the HTML of a page or of an item
+     * @return the keys of {@link HeadingOutline#of}
+     */
+    public static Map<String, Object> headingsValues(Document html) {
+        return HeadingOutline.of(html, mainText(html));
     }
 
     /** The number of words of each paragraph of the main text that holds a text. */
@@ -121,7 +184,11 @@ public class ReadabilityChecks {
     }
 
     static Family.Found read(CheckInput input) {
-        return new Family.Found();
+        Document html = Family.document(input);
+        Integer maxSentenceWords = input.fact(LONG_SENTENCE_WORDS) instanceof Integer maximum ? maximum : null;
+        return new Family.Found()
+                .values(STATISTICS, statisticsValues(html, input.language(), maxSentenceWords))
+                .values(HEADINGS, headingsValues(html));
     }
 
     static Readability.Measure measure(Document html, String language) {

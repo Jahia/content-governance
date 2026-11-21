@@ -1,6 +1,7 @@
 ---
 id: ecodesign.heavyAssets
-evaluator: threshold
+evaluator: ecodesign.heavyAssets
+runtime: browser
 subdomains: [ecodesign]
 severity: moderate
 fixer: developer

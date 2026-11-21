@@ -31,7 +31,8 @@ import java.util.regex.Pattern;
  *
  * <p>The keys of the frontmatter are the properties of a {@value ContentRules#TYPE} node, with
  * {@code id} for {@code ruleId}. The body is the advice, or the criterion of a {@code model} rule. A rule
- * that names no {@code sites} applies to all sites.</p>
+ * that names no {@code sites} applies to all sites. A rule whose check runs in the browser states
+ * {@code runtime: browser}.</p>
  *
  * @param id     the id of the rule
  * @param values the values of the rule, keyed as {@link RuleValues} keys them
@@ -201,6 +202,7 @@ public record RuleFile(String id, Map<String, Object> values) {
         oneOf(id, RuleValues.FIXER, values, ContentRule.FIXERS);
         oneOf(id, RuleValues.KIND, values, KINDS);
         oneOf(id, RuleValues.MATCH_MODE, values, MATCH_MODES);
+        oneOf(id, RuleValues.RUNTIME, values, ContentRule.RUNTIMES);
         boolean limited = values.containsKey(RuleValues.MINIMUM) || values.containsKey(RuleValues.MAXIMUM);
         if (limited && !values.containsKey(RuleValues.UNIT)) {
             throw new IllegalArgumentException("The rule " + id + " has a limit and no unit");

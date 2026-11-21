@@ -1,6 +1,7 @@
 ---
 id: ecodesign.imageFormats
 evaluator: ecodesign.imageFormats
+runtime: browser
 subdomains: [ecodesign]
 severity: moderate
 fixer: editor

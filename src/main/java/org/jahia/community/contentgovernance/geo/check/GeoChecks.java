@@ -44,7 +44,7 @@ public class GeoChecks {
     void activate(BundleContext context) {
         Map<String, ContentCheck> checks = new LinkedHashMap<>();
         IDS.forEach(id -> checks.put(id, new Check(id)));
-        services.open(context, checks, false);
+        services.open(context, checks);
     }
 
     @Deactivate

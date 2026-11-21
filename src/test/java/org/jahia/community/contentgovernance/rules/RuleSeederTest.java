@@ -67,6 +67,25 @@ class RuleSeederTest {
     }
 
     @Test
+    @DisplayName("a rule that the site changed takes the shipped evaluator when its module moves it to the browser")
+    void browserEvaluator_followsTheMove() {
+        Map<String, Object> shipped = Map.of(RuleValues.RULE_ID, "ecodesign.pageWeight", RuleValues.EVALUATOR,
+                "ecodesign.pageWeight", RuleValues.RUNTIME, ContentRule.BROWSER);
+        Map<String, Object> changed = Map.of(RuleValues.RULE_ID, "ecodesign.pageWeight", RuleValues.EVALUATOR,
+                ContentRule.THRESHOLD, RuleValues.MAXIMUM, 2048.0);
+
+        assertThat(RuleSeeder.browserEvaluator(changed, shipped)).isEqualTo("ecodesign.pageWeight");
+        // Seeded since the move: the site chose its evaluator
+        Map<String, Object> moved = new HashMap<>(changed);
+        moved.put(RuleValues.RUNTIME, ContentRule.BROWSER);
+        assertThat(RuleSeeder.browserEvaluator(moved, shipped)).isNull();
+        // A rule of the server, or one whose evaluator stays, keeps its node
+        assertThat(RuleSeeder.browserEvaluator(changed, TITLE)).isNull();
+        assertThat(RuleSeeder.browserEvaluator(Map.of(RuleValues.EVALUATOR, "axe"),
+                Map.of(RuleValues.EVALUATOR, "axe", RuleValues.RUNTIME, ContentRule.BROWSER))).isNull();
+    }
+
+    @Test
     @DisplayName("a rule that the module no longer ships goes if nobody changed it, and stays marked if the site did")
     void retirement_followsTheFingerprint() {
         assertThat(RuleSeeder.retirementOf("a", "a")).isEqualTo(RuleSeeder.Retirement.REMOVE);

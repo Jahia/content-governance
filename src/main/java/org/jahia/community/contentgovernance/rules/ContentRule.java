@@ -47,6 +47,12 @@ public record ContentRule(String id, List<String> subdomains, String evaluator, 
     public static final String MODEL = "model";
     /** The evaluators that a rule names by a word. Any other evaluator is the id of a check of its own. */
     public static final List<String> EVALUATORS = List.of(PATTERN, THRESHOLD, PRESENCE, MODEL);
+    /** The check of the rule runs on the server: the default. */
+    public static final String SERVER = "server";
+    /** The check of the rule runs in the browser, on the preview of the page, where the drawer registers it. */
+    public static final String BROWSER = "browser";
+    /** The values of {@link RuleValues#RUNTIME}. */
+    public static final List<String> RUNTIMES = List.of(SERVER, BROWSER);
 
     public ContentRule {
         subdomains = List.copyOf(subdomains);
@@ -80,6 +86,14 @@ public record ContentRule(String id, List<String> subdomains, String evaluator, 
     public List<String> sites() {
         List<String> sites = RuleValues.strings(values, RuleValues.SITES);
         return sites.isEmpty() ? List.of(RuleValues.ALL_SITES) : sites;
+    }
+
+    /**
+     * True when the rule states {@code runtime: browser}: the drawer runs its check on the preview of the page,
+     * and the server never runs it.
+     */
+    public boolean inBrowser() {
+        return BROWSER.equals(values.get(RuleValues.RUNTIME));
     }
 
     /**

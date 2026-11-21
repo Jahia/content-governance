@@ -50,6 +50,11 @@ public final class RuleValues {
     /** The language of the pattern of a glossary term that the rule translates, such as {@code en}. */
     public static final String PATTERN_LANGUAGE = "patternLanguage";
     /**
+     * Where the check of the rule runs: {@value ContentRule#BROWSER} for a check that the drawer runs on the
+     * preview of the page, else on the server. The server never runs a rule of the browser.
+     */
+    public static final String RUNTIME = "runtime";
+    /**
      * Internationalized on the node: the title of a finding, with one line per plural form, such as
      * {@code one: {{count}} image has no text alternative}. The rules read and write its English value.
      */
@@ -78,7 +83,7 @@ public final class RuleValues {
     public static final List<String> KEYS = List.of(RULE_ID, EVALUATOR, ENABLED, SEVERITY, BLOCKING, FIXER,
             ADVICE, UNIT, MINIMUM, MAXIMUM, KIND, PATTERN, MATCH_MODE, REPLACEMENT, RULE_LANGUAGE, WRONG_EXAMPLES,
             RIGHT_EXAMPLES, OWNER, DECIDED_ON, VALID_FROM, VALID_UNTIL, PATTERN_FORMS, REPLACEMENT_FORMS,
-            PATTERN_LANGUAGE, TITLE, LABEL, SUBDOMAINS, SITES);
+            PATTERN_LANGUAGE, TITLE, LABEL, SUBDOMAINS, SITES, RUNTIME);
     /** The texts that a rule holds in each language. */
     public static final List<String> TRANSLATABLE = List.of(TITLE, LABEL, ADVICE);
     /** The plural forms of a title, as {@code Intl.PluralRules} and CLDR name them. */
