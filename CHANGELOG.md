@@ -1,5 +1,71 @@
 # Changelog
 
+## 2.0.0
+
+### Breaking Changes
+
+* Removed the AI features, which now come from the AI Assistant module: Content Governance calls no model.
+
+* Changed each Page quality finding to take its text from its rule, in the editor's language, and its tab from its domain.
+
+  The alt text, language and heading findings now show in Accessibility, and the Web Vitals findings in Ecodesign. Each axe-core check is a rule that a site can switch off or give another severity. Readability has two rules, `readability.flesch` and `readability.lix`, each with its own limit; they replace `readability.hardText` and `readability.veryHardText`. A rule file that a module ships must state its domain, such as `seo`, or the module skips it. If your site changed an `html.*` rule, set its domain to `accessibility`, or it stops running.
+
+* Changed Page quality and GEO readiness to report a page with the same rules as the server and AI agents.
+
+  The SEO, Readability, Links and Jahia health tabs now show the findings that an AI agent gets for the page, so the two always agree. GEO readiness judges the title, headings, meta description, canonical address, language, structured data and image alt texts with these rules too. A script that reads the GraphQL field `checkPage` now reads its findings under `checkPage { findings { ruleId severity text } }`. The rule `health.graphqlUnavailable` is removed: a site that changed it keeps it as retired, and can delete it.
+
+* A tab that another module adds to the drawer now gets a switch in the site settings, its serious findings in "Fix first" and a history of its findings. The GraphQL field `sections` of the site settings is removed: a tab is on unless `disabled` names it. The summary of a stored audit gives its counts in `counts { tab count }` instead of one field per tab.
+
+### New Features
+
+* Fixed a writing rule of the kind regular expression that missed a capitalised word.
+
+  A regular expression now matches in any case, as a term does, so the rule `\b(thou|verily)\b` reports "Verily" at the start of a sentence. A rule that must respect case starts with `(?-i)`. Review each regular expression of your sites that relies on case, such as `[A-Z]`, because it now matches lower case too.
+
+* Fixed the conversion of the rules and the glossaries of an older version, which ran on every node of a cluster at once.
+
+  Only the processing server converts them, and seeds the sites with the shipped rules, when the module starts. A browsing node shares its repository and writes nothing then, so it never reads a node that the processing server is writing.
+
+* Checked the Compliance terms and the glossary of the editorial frame as content rules of one model, so that the Compliance section and frame.check report the same terms.
+
+  Each team keeps its terms in a folder of rules with the permissions of that folder, so the legal team keeps terms that the brand team cannot change. Each finding names its rule id and its folder. A glossary term to translate is a replace rule of the language of the translation: "access token" becomes "jeton d'accès" in French. When the module starts, it converts the Compliance glossaries and the glossary terms of the frame into rules in place, with the same identifiers and permissions. The conversion is one-way. A term now ignores accents in every rule, and a star at its end or its start replaces the match modes of the Compliance terms.
+
+* Another module can add a content check: it registers a `ContentCheck` service under the id that the evaluator of its rule names. A rule whose check no module registers shows as inactive in `contentRules`, with the missing check. The 16 rules of the HTML check are now rules of the catalog, named `html.*`, and a site can switch each one off.
+
+* Fixed a name form of another language that passed the check, such as the French "Frodon" in a Spanish text.
+
+  The glossary rules of one term hold its form in each language. A text now gets a warning on a form that belongs to another language of the same term, with the form of the language of the text. Example: with "Frodo" in English and Spanish and "Frodon" in French, the Spanish text "Frodon Bolsón abandona la Comarca." gets a warning on "Frodon", with the replacement "Frodo".
+
+* Ran the SEO, readability, link and content health checks on the server, with one rule id for each practice.
+
+* Updated the build and test tools of the module to their latest patch and minor versions.
+
+* Added a way for other modules to add a tab to the drawer, or an action on a finding.
+
+* Added the editorial frame of a brand: its writing rules and its translation glossary, checked with no model.
+
+  The module editorial-frame held it before: uninstall that module first. The tool for AI agents needs the optional module mcp-server.
+
+* Improved the code of the rules and the link check of the HTML check on the server, with no change in its findings.
+
+* Improved the code that renders a page for the HTML check on the server, with no change in its findings.
+
+* Fixed a term rule that matched inside a longer name, such as "Baggins" inside "Sackville-Baggins".
+
+  When two term rules match at the same place, the longer match wins, and the shorter rule reports nothing there. With the rules "Baggins" to "Sacquet" and "Sackville-Baggins" to "Sacquet-de-Besace", the text "Lobelia Sackville-Baggins" gets one warning, with the replacement "Sacquet-de-Besace".
+
+* Improved the code quality of the content rule catalog, with no change to the checks or their findings.
+
+* Added a catalog of content rules, which a site changes as content, so that every check applies one value per rule.
+
+  Each finding shows the id of its rule, and each rule names what checks it. A site turns a rule off, or changes its severity or its limits, under Content folders > content-insights > content-governance > rules, and adds a rule of its own under Content folders > content-insights > site > rules. Another module ships rules with the manifest header Jahia-Content-Rules. A new version updates the rules that a site did not change. The writing rules of the editorial frame are content rules too. Some defaults changed: a GEO title now passes from 30 to 60 characters, and a GEO meta description must be 50 to 160 characters.
+
+* Added an HTML check on the server, which AI agents run on a page or a content item through mcp-server.
+
+### Bug Fixes
+
+* Fixed the tab Report of GEO readiness, which said "No AI model available" when the server refused or did not answer its status call, such as after a CSRF token mismatch. The tab now says that it could not reach the server and offers a retry, and a CSRF refusal that the guard answers with an error status is sent again with fresh tokens.
+
 ## 1.11.0
 
 ### New Features
