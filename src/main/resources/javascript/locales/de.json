@@ -1431,7 +1431,7 @@
             }
           }
         },
-        "serverRules": "Auf dem Server geprüfte HTML-Regeln",
+        "serverRules": "Auf dem Server geprüfte Regeln des Katalogs",
         "siteSeverity": "Website: {{severity}}",
         "siteSeverityHelp": "Der Schweregrad, den die Website dieser Regel in ihrem Katalog gibt",
         "axeImpactHelp": "Die Auswirkung, die axe-core dieser Prüfung gibt"

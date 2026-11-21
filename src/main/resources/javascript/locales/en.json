@@ -1431,7 +1431,7 @@
             }
           }
         },
-        "serverRules": "HTML rules checked on the server",
+        "serverRules": "Rules of the catalog checked on the server",
         "siteSeverity": "Site: {{severity}}",
         "siteSeverityHelp": "The severity that the site gives this rule in its catalog",
         "axeImpactHelp": "The impact that axe-core gives this check"

@@ -24,7 +24,8 @@ function wordCheck(check, rules, t) {
     if (!rule) {
         return {label: t(`score.check.${check.id}.label`), fix: check.passed ? null : t(`score.check.${check.id}.fix`, {min: check.min, max: check.max})};
     }
-    const value = check.value === null || check.value === undefined ? '' : check.value;
+    // A check that measured nothing, such as the length of a description the page lacks, measured 0
+    const value = check.value === null || check.value === undefined || check.value === '' ? 0 : check.value;
     const worded = rules.word(check.rule, {count: Number(value) || 1, value, min: check.min, max: check.max});
     if (check.passed) {
         return {label: worded.label, fix: null};

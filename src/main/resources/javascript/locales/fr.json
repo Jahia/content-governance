@@ -1431,7 +1431,7 @@
             }
           }
         },
-        "serverRules": "Règles HTML vérifiées sur le serveur",
+        "serverRules": "Règles du catalogue vérifiées sur le serveur",
         "siteSeverity": "Site : {{severity}}",
         "siteSeverityHelp": "La gravité que le site donne à cette règle dans son catalogue",
         "axeImpactHelp": "L'impact qu'axe-core donne à ce contrôle"
