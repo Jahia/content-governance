@@ -1,7 +1,8 @@
 import {lazy} from 'react';
 import {registry} from '@jahia/ui-extender';
 import {NS} from '../common/i18n';
-import {TAB_TARGET, TAB_TYPE} from './entries';
+import {GOVERNANCE_PANEL} from '../common/module';
+import {drawerTabs, PANEL_TYPE, TAB_TARGET, TAB_TYPE} from './entries';
 
 const named = (load, name) => lazy(() => load().then(module => ({default: module[name]})));
 
@@ -53,5 +54,27 @@ export function registerOwnTabs() {
         requirePage: true,
         requireWrite: true,
         component: named(() => import('../compliance/ComplianceSection'), 'ComplianceSection')
+    });
+}
+
+/** The governance panel is available where the site keeps at least one of its tabs on. */
+const useGovernanceAvailable = ({isOn}) => drawerTabs().some(entry => isOn(entry.key));
+
+/**
+ * The governance panel of the drawer, which holds the tabs. It registers as the panel of another
+ * module does, first: a panel of another module takes an order of 10 or more. Its code loads the
+ * first time the drawer shows it.
+ *
+ * @param {object} buttonIcon the icon of its button in the header of jContent
+ */
+export function registerOwnPanel(buttonIcon) {
+    registry.add(PANEL_TYPE, GOVERNANCE_PANEL, {
+        label: `${NS}:drawer.title`,
+        buttonLabel: `${NS}:drawer.action`,
+        buttonIcon,
+        order: 0,
+        settingsHelp: `${NS}:settings.panelHelp.governance`,
+        useAvailable: useGovernanceAvailable,
+        component: named(() => import('./GovernancePanel'), 'GovernancePanel')
     });
 }

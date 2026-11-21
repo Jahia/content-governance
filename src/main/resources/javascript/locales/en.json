@@ -1770,6 +1770,7 @@
       "title": "Content governance",
       "close": "Close panel",
       "sections": "Sections",
+      "panels": "Panels",
       "section": {
         "audit": "Page quality",
         "geo": "GEO readiness",
@@ -1782,6 +1783,7 @@
       "resize": "Resize the panel: drag, or use the left and right arrow keys",
       "nothingAvailable": "No section of Content governance can be used on this content.",
       "entryFailed": "This tab, added by another module, could not be shown.",
+      "panelFailed": "This panel, added by another module, could not be shown.",
       "sectionHelp": {
         "audit": "Checks the page you are editing: accessibility, SEO, speed, readability, eco-design, links and Jahia content.",
         "geo": "Whether AI assistants and their crawlers can read and cite the published page: score, crawler access, site files, structured data and AI citations.",
@@ -1804,13 +1806,17 @@
       "loadError": "The settings could not be read. Reload the page to try again.",
       "savedTitle": "Saved",
       "saved": "Editors see the change the next time they open the drawer.",
-      "intro": "Choose what editors of this site find in the Content governance drawer. A section switched off also switches its site dashboard off (the entry stays and says so), and the server refuses its calls. Tabs keep their own setting while their section is off.",
+      "intro": "Choose what editors of this site find in the drawer of Content governance. Each panel of the drawer has its own button in the header. A section switched off also switches its site dashboard off (the entry stays and says so), and the server refuses its calls. Tabs keep their own setting while their section or panel is off.",
       "sectionHelp": {
         "audit": "Accessibility, SEO, Web Vitals, readability, eco-design, links and Jahia checks of the page, measured in the browser.",
         "geo": "Whether AI crawlers can read the page, the site files (robots.txt, llms.txt), structured data and AI citations from BotRank. Also the GEO readiness dashboard under Additional, SEO.",
         "compliance": "Terms from the site glossaries that the page and what it shows may not use, per language. Also the Compliance dashboard under Additional."
       },
+      "panelHelp": {
+        "governance": "Page quality, GEO readiness, Compliance and the tabs that other modules add. Switched off, it switches off every tab below with their site dashboards. The tabs keep their own setting."
+      },
       "sectionSwitch": "{{section}} section",
+      "panelSwitch": "{{panel}} panel",
       "on": "On",
       "off": "Off",
       "needsBotRank": "Needs a BotRank connection"

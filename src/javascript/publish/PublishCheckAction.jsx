@@ -4,9 +4,10 @@ import {useSelector} from 'react-redux';
 import {gql, useApolloClient} from '@apollo/client';
 import {useNodeChecks} from '@jahia/data-helper';
 import {useSiteSettings} from '../common/useSiteSettings';
-import {MODULE, OPEN_DRAWER_EVENT} from '../common/module';
+import {GOVERNANCE_PANEL, MODULE} from '../common/module';
 import {NS} from '../common/i18n';
 import {collectRenderedPaths} from '../compliance/renderedPaths';
+import {openPanel} from '../drawer/drawerApi';
 
 const AUDIT_SUMMARY = gql`
     query ContentGovernancePublishAudit($path: String!, $language: String!) {
@@ -101,7 +102,7 @@ export const PublishCheckAction = ({path, language, render: Render, ...rest}) =>
         <Render {...rest}
                 buttonLabel={`${NS}:publishCheck.${labelKey(notAudited, auditOn, termsOn && terms > 0)}`}
                 buttonLabelParams={{issues, serious, terms}}
-                onClick={() => globalThis.dispatchEvent(new CustomEvent(OPEN_DRAWER_EVENT, {detail: {path, section}}))}/>
+                onClick={() => openPanel(GOVERNANCE_PANEL, {section}, path)}/>
     );
 };
 

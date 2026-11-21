@@ -51,4 +51,14 @@ class FeaturesTest {
         assertThat(SiteFeatures.isOn(Set.of("geo"), "geo.score")).isFalse();
         assertThat(SiteFeatures.isOn(Set.of("geo"), "audit.seo")).isTrue();
     }
+
+    @Test
+    void everyTabIsOffWhenTheGovernancePanelIsOff() {
+        assertThat(Features.isTab(Features.GOVERNANCE)).isTrue();
+        assertThat(SiteFeatures.isOn(Set.of("governance"), "geo")).isFalse();
+        assertThat(SiteFeatures.isOn(Set.of("governance"), "geo.citations")).isFalse();
+        assertThat(SiteFeatures.isOn(Set.of("governance"), "aiAssistantReview")).isFalse();
+        // The panel of another module is off on its own, and leaves the tabs on
+        assertThat(SiteFeatures.isOn(Set.of("chat"), "geo")).isTrue();
+    }
 }
