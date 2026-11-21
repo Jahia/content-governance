@@ -2,7 +2,7 @@
 id: axe.link-in-text-block
 evaluator: axe
 runtime: browser
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

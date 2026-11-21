@@ -1,7 +1,7 @@
 ---
 id: html.formLabelMissing
 evaluator: html.formLabelMissing
-domain: accessibility
+subdomains: [accessibility]
 severity: critical
 fixer: developer
 label:

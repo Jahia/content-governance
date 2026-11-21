@@ -2,7 +2,7 @@
 id: axe.landmark-no-duplicate-contentinfo
 evaluator: axe
 runtime: browser
-domain: accessibility
+subdomains: [accessibility]
 severity: moderate
 fixer: developer
 ---

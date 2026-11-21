@@ -2,6 +2,7 @@ package org.jahia.community.contentgovernance.compliance.service.internal;
 
 import org.jahia.community.contentgovernance.compliance.model.Glossary;
 import org.jahia.community.contentgovernance.rules.ContentRule;
+import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jahia.community.contentgovernance.rules.RuleValues;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +24,8 @@ class ComplianceRulesTest {
         Map<String, Object> values = new HashMap<>(Map.of(RuleValues.RULE_ID, id, RuleValues.KIND, "forbidden",
                 RuleValues.PATTERN, id.substring(id.indexOf('.') + 1)));
         values.putAll(more);
-        return RuleValues.toRule(values).inFolder(folder);
+        // Placed as a site places it: a term with no subdomain goes to terms.
+        return ContentRules.base().with(RuleValues.toRule(values)).get(id).inFolder(folder);
     }
 
     private static ComplianceRules of(String language, ContentRule... rules) {

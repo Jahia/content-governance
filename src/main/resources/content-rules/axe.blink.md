@@ -2,7 +2,7 @@
 id: axe.blink
 evaluator: axe
 runtime: browser
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

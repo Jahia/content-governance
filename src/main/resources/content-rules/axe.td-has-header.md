@@ -3,7 +3,7 @@ id: axe.td-has-header
 evaluator: axe
 runtime: browser
 enabled: false
-domain: accessibility
+subdomains: [accessibility]
 severity: critical
 fixer: developer
 ---

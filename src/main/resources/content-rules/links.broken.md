@@ -1,7 +1,7 @@
 ---
 id: links.broken
 evaluator: links.broken
-domain: links
+subdomains: [links]
 severity: critical
 fixer: editor
 label:

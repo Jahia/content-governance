@@ -1,7 +1,7 @@
 ---
 id: seo.indexable
 evaluator: seo.indexable
-domain: seo
+subdomains: [seo]
 severity: critical
 fixer: editor
 label:

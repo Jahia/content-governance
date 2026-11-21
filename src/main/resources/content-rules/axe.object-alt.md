@@ -2,7 +2,7 @@
 id: axe.object-alt
 evaluator: axe
 runtime: browser
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: editor
 ---

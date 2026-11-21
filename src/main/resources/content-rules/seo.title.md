@@ -1,7 +1,7 @@
 ---
 id: seo.title
 evaluator: threshold
-domain: seo
+subdomains: [seo, geo.score]
 severity: serious
 fixer: editor
 unit: characters

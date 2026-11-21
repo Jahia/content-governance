@@ -43,7 +43,6 @@ public class GlossarySeeder extends DefaultEventListener {
 
     static final String FOLDER = "compliance-glossaries";
     static final String SEEDED = "glossarySeeded";
-    private static final String COMPLIANCE = "compliance";
     private static final String INSTALLED_MODULES = "j:installedModules";
     private static final String EDIT_WORKSPACE = "default";
     private static final String TITLE = "jcr:title";
@@ -139,7 +138,7 @@ public class GlossarySeeder extends DefaultEventListener {
 
     /**
      * True when the site keeps compliance terms: the folder of the example, a glossary of an older version,
-     * or a rule of the domain {@code compliance} anywhere under its contents.
+     * or a rule of the subdomain {@value ContentRules#TERMS} anywhere under its contents.
      */
     private static boolean hasTerms(JCRSessionWrapper session, String sitePath) throws RepositoryException {
         if (session.nodeExists(sitePath + CONTENTS + "/" + FOLDER)) {
@@ -148,7 +147,7 @@ public class GlossarySeeder extends DefaultEventListener {
         String root = (sitePath + CONTENTS).replace("'", "''");
         return found(session, "SELECT * FROM [ccs:glossary] AS g WHERE ISDESCENDANTNODE(g, '" + root + "')")
                 || found(session, "SELECT * FROM [" + ContentRules.TYPE + "] AS r WHERE ISDESCENDANTNODE(r, '" + root
-                + "') AND r.[" + RuleValues.DOMAIN + "] = '" + COMPLIANCE + "'");
+                + "') AND r.[" + RuleValues.SUBDOMAINS + "] = '" + ContentRules.TERMS + "'");
     }
 
     private static boolean found(JCRSessionWrapper session, String sql) throws RepositoryException {
@@ -179,7 +178,7 @@ public class GlossarySeeder extends DefaultEventListener {
         JCRNodeWrapper rule = list.addNode("example-term", ContentRules.TYPE);
         rule.setProperty(RuleValues.RULE_ID, "compliance.example-term");
         rule.setProperty(RuleValues.EVALUATOR, ContentRule.PATTERN);
-        rule.setProperty(RuleValues.DOMAIN, COMPLIANCE);
+        rule.setProperty(RuleValues.SUBDOMAINS, new String[]{ContentRules.TERMS});
         rule.setProperty(RuleValues.SEVERITY, "serious");
         rule.setProperty(RuleValues.KIND, "replace");
         rule.setProperty(RuleValues.PATTERN, text.getString("seed.term"));

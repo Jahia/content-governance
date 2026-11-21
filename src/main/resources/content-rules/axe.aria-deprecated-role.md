@@ -2,7 +2,7 @@
 id: axe.aria-deprecated-role
 evaluator: axe
 runtime: browser
-domain: accessibility
+subdomains: [accessibility]
 severity: minor
 fixer: developer
 ---

@@ -1,7 +1,7 @@
 ---
 id: acme.erpPrice
 evaluator: acme.erpPrice
-domain: writing
+subdomains: [writing]
 severity: serious
 fixer: editor
 label:

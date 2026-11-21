@@ -2,7 +2,7 @@
 id: axe.heading-order
 evaluator: axe
 runtime: browser
-domain: accessibility
+subdomains: [accessibility]
 severity: moderate
 fixer: editor
 ---

@@ -394,7 +394,7 @@ the rule as active. The file of the rule of the example is `acme.brandContrast.m
 id: acme.brandContrast
 evaluator: acme.contrast
 runtime: browser
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 label:
   en: "Contrast of the brand colors"
@@ -420,8 +420,8 @@ Java code ships its rules and its check this way.
 | `signal` | An `AbortSignal`. The drawer aborts it when the time limit of the check is over. |
 
 The drawer runs the checks one after the other, in the order that the modules added them. A check
-runs only when the site keeps at least one rule of its evaluator on, and keeps on the tab of the domain of
-that rule. A rule of a domain that no tab shows never runs.
+runs only when the site keeps at least one rule of its evaluator on, and keeps on the tab of the subdomain of
+that rule. A rule of a subdomain that no tab shows never runs.
 
 Before the first check, the drawer sets the performance mark `contentGovernanceChecks` in the preview.
 A check that measures what the page loaded leaves out the resources after that mark, because other
@@ -446,7 +446,7 @@ checks added them. The script of axe-core is one of them.
 | `locator` | An optional CSS selector of the element in the preview. With it, the finding offers "Highlight on the page". |
 
 The drawer merges these results with those of the server. A failed result shows in the tab of the
-domain of its rule, worded by its rule, like a finding of the server. Its count is the number of its
+subdomain of its rule, worded by its rule, like a finding of the server. Its count is the number of its
 findings, unless `values` gives `count`.
 
 ### Time limit and failure
@@ -458,7 +458,7 @@ audit.
 ### Not checked
 
 A rule of the browser that no check gave a result for shows under **Not checked** in the tab of its
-domain. No started module registers a check of its evaluator, or the check left the rule out. Such a
+subdomain. No started module registers a check of its evaluator, or the check left the rule out. Such a
 rule is neither passed nor failed.
 
 ## Limits

@@ -2,7 +2,7 @@
 id: axe.link-name
 evaluator: axe
 runtime: browser
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: editor
 ---

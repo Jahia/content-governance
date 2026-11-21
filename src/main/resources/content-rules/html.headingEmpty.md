@@ -1,7 +1,7 @@
 ---
 id: html.headingEmpty
 evaluator: html.headingEmpty
-domain: accessibility
+subdomains: [accessibility]
 severity: minor
 fixer: editor
 label:

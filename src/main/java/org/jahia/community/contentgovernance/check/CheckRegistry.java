@@ -52,12 +52,12 @@ public class CheckRegistry {
      *                     runs in the browser, where the drawer finds its check
      * @param missingCheck the id of the check that no module registers, or null for an active rule
      * @param needs        the module that registers the missing check, or null when it is not known
-     * @param unknownDomain the domain of the rule when it is not one of {@code RuleDomains.ALL} (empty for no
-     *                      domain), or null for a rule of a known domain
+     * @param unknownSubdomains the subdomains of a rule that no module and no node declares (empty when the
+     *                      rule names none), or null for a rule placed in a subdomain of the site
      */
-    public record Status(boolean active, String missingCheck, String needs, String unknownDomain) {
+    public record Status(boolean active, String missingCheck, String needs, List<String> unknownSubdomains) {
 
-        /** The status of a rule of a known domain. */
+        /** The status of a rule placed in a subdomain of the site. */
         public Status(boolean active, String missingCheck, String needs) {
             this(active, missingCheck, needs, null);
         }
@@ -109,9 +109,9 @@ public class CheckRegistry {
      * browser is active: the server cannot see the checks that the drawer registers.
      */
     public Status status(ContentRule rule) {
-        if (!rule.hasKnownDomain()) {
-            // A finding of a rule whose domain is unknown has no place in the drawer: the rule does not run
-            return new Status(false, null, null, rule.domain() == null ? "" : rule.domain());
+        if (!rule.placed()) {
+            // A finding of a rule whose subdomains are unknown has no place in the drawer: the rule does not run
+            return new Status(false, null, null, rule.subdomains());
         }
         if (rule.inBrowser() || has(rule.evaluator())) {
             return new Status(true, null, null, null);
@@ -182,7 +182,7 @@ public class CheckRegistry {
         Scope scope = input.scope();
         List<Ran> out = new ArrayList<>();
         for (ContentRule rule : rules.all()) {
-            boolean wanted = rule.enabled() && rule.hasKnownDomain() && !rule.inBrowser()
+            boolean wanted = rule.enabled() && rule.placed() && !rule.inBrowser()
                     && !skipped.contains(rule.evaluator()) && (ruleIds == null || ruleIds.contains(rule.id()));
             Registered registered = wanted ? find(rule.evaluator()) : null;
             if (registered == null || !registered.check().scopes().contains(scope)) {

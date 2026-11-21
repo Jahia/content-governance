@@ -2,7 +2,7 @@
 id: axe.label-content-name-mismatch
 evaluator: axe
 runtime: browser
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

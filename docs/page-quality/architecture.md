@@ -43,7 +43,7 @@ jContent / Page Builder header
 | `src/javascript/audit/AuditSection.jsx` | The section. It holds the check of the server, the preview frame and the run of the checks of the browser. It also holds the cache, the staleness probe, the export, the tab bar and the badges. |
 | `src/javascript/audit/pageCheck.js` | Calls `checkPage`, and turns the findings and the values of its results into the results of the tabs SEO, Readability, Links and Jahia health, and the HTML rules of the Accessibility tab. |
 | `src/javascript/audit/runChecks.js` | Runs the checks of the browser on the preview, one after the other, each with its time limit. It gives the results, the checks that did not finish, and the rules that no check gave a result for. |
-| `src/javascript/audit/browserResults.js` | Turns the results of the checks of the browser into what each tab shows. These are the recommendations by domain, the view of axe-core, the figures of the web vitals and the criteria of eco-design. |
+| `src/javascript/audit/browserResults.js` | Turns the results of the checks of the browser into what each tab shows. These are the recommendations by subdomain, the view of axe-core, the figures of the web vitals and the criteria of eco-design. |
 | `src/javascript/audit/tooling.js`, `timeLimit.js` | The cleanup of the editing tooling in the DOM, and the time limit of a step (`runStep`). |
 | `src/javascript/checks/` | The checks of the browser of Content Governance. `register.js` adds them to the registry, as another module does. The checks are `webVitals.js`, `ecodesign.js` with one evaluator per measure, and `axe.js`. `pageMeasure.js` measures the page for the first two, and `cssPath.js` gives the selector that a highlight finds an element by. |
 | `src/main/java/org/jahia/community/contentgovernance/page/` | The checks of the server for each domain (`SeoChecks`, `ReadabilityChecks`, `LinkChecks`, `HealthChecks`), with the values each one measures, and the checks of the measure rules `seo.tags`, `readability.statistics` and `readability.headings`. |
@@ -114,7 +114,7 @@ schema is measured again: 6 dropped the audits from before the check of the serv
      (`PAGE_LIMIT_MS`), and each check of the browser has 60 s (`CHECK_LIMIT_MS`). A step that fails
      or runs out of time is left out. Its tabs show `IncompleteStep` (why, and **Re-run**) from
      `results.incomplete[<result key>]`: the check of the server for SEO, Readability, Links and
-     Jahia health, and a check of the browser for the tabs of the domains of its rules. The other tabs
+     Jahia health, and a check of the browser for the tabs of the subdomains of its rules. The other tabs
      show their results, and such a partial audit is never cached. The late answer of a stopped step
      is ignored, and a check of the browser gets an aborted `signal`.
 - When results come from the cache, the frame still loads (preview and highlight target) but the
@@ -165,9 +165,10 @@ A measure rule has no limit: it always passes, and carries values only. Each oth
 carries its values too, such as the score under `readability.flesch` or the Open Graph tags under
 `seo.openGraph`, for what the drawer shows later.
 
-Each finding goes to the tab of the domain of its rule (`tabOf`, `DOMAIN_TABS`): `accessibility`,
-`seo`, `readability` (and `writing`), `links`, `health` for Jahia health, and `ecodesign`. No list
-names the tab of one rule, so a check that another module registers lands like a built-in one. A
+Each finding goes to the tab of the first subdomain of its rule that has one (`tabOf`,
+`DOMAIN_TABS`): `accessibility`, `seo`, `readability` (and `writing`), `links`, `health` for Jahia
+health, and `ecodesign`. No list names the tab of one rule, so a check that another module registers
+lands like a built-in one. A
 tab shows one recommendation per rule `{key, rule, severity, params, items, title, detail, label}`:
 `items` holds each finding of the rule, with its `locator` when the check gave one. The texts come
 from the rule (`audit/ruleText.js`), in the language of the interface of the editor: the plural form
@@ -191,14 +192,15 @@ the results of the server. A rule of the browser never runs on the server, and i
 
 `browserResults.js` turns the results into what the tabs show:
 
-- A failed result becomes a recommendation of the tab of the domain of its rule (`tabOf`), worded by
-  its rule. Its texts take the limits of the rule and the values of the result, such as `size`.
+- A failed result becomes a recommendation of the tab of the first subdomain of its rule that has
+  one (`tabOf`), worded by its rule. Its texts take the limits of the rule and the values of the
+  result, such as `size`.
   They also take `count`, the number of its findings, and `value`, the text of its first finding.
 - The results of the evaluator `axe` give the Accessibility tab its level cards, its violations and
   its checks to review.
 - The result of the evaluator `webVitals` gives the Web Vitals tab its figures.
 - Each result of the Ecodesign tab with a `family` in its values is a criterion of that tab.
-- A rule that no check gave a result for shows under **Not checked** in the tab of its domain. The
+- A rule that no check gave a result for shows under **Not checked** in the tab of its subdomain. The
   result of the tab keeps such rules in `notChecked`.
 
 The built-in checks:

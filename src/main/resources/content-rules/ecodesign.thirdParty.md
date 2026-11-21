@@ -2,7 +2,7 @@
 id: ecodesign.thirdParty
 evaluator: ecodesign.thirdParty
 runtime: browser
-domain: ecodesign
+subdomains: [ecodesign]
 severity: moderate
 fixer: developer
 unit: hosts

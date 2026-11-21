@@ -2,7 +2,7 @@
 id: ecodesign.pageWeight
 evaluator: ecodesign.pageWeight
 runtime: browser
-domain: ecodesign
+subdomains: [ecodesign]
 severity: moderate
 fixer: developer
 unit: kilobytes

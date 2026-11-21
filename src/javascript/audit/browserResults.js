@@ -5,7 +5,7 @@ import {browserRules, VITALS} from './runChecks';
 /**
  * The Page quality tabs from the results of the checks of the browser (runChecks.js): what each tab shows,
  * in the shape that it shows today. A failed result of any rule becomes a recommendation of the tab of its
- * domain, worded by its rule. Two evaluators also feed a view of their own: `axe` the WCAG level cards and
+ * subdomain, worded by its rule. Two evaluators also feed a view of their own: `axe` the WCAG level cards and
  * violations of the Accessibility tab, and `webVitals` the figures of the Web Vitals tab.
  */
 
@@ -120,7 +120,7 @@ export function accessibilityOf(results, rules) {
 
 /**
  * The view of the Web Vitals tab: the figures of the measure of the web vitals, or none when the site turned
- * its rule off. Its findings are rules of the domain ecodesign, which the Ecodesign tab shows.
+ * its rule off. Its findings are rules of the subdomain ecodesign, which the Ecodesign tab shows.
  *
  * @param {Array<object>} results the results of the checks
  * @param {object} rules the rules of the site
@@ -157,7 +157,7 @@ export function ecodesignOf(results, rules, diagnostics) {
     };
 }
 
-/** The rules of some ids by the tab of their domain, each with its label: `{rule, label}`. */
+/** The rules of some ids by the tab of their subdomain, each with its label: `{rule, label}`. */
 function labelsByTab(ids, rules) {
     const out = {};
     ids.forEach(id => {
@@ -200,7 +200,7 @@ export function browserTabs({results, incomplete, notChecked}, rules) {
 
 /**
  * The results of each tab: those of the server, with the recommendations of the checks of the browser of
- * the domain of the tab, and the rules of the tab that no check of the browser gave a result for. One rule
+ * the subdomain of the tab, and the rules of the tab that no check of the browser gave a result for. One rule
  * gives one recommendation, so a rule that the server and the browser both report shows once.
  */
 export function withBrowserResults(checked, browser) {
@@ -209,7 +209,7 @@ export function withBrowserResults(checked, browser) {
         return recommendations.filter(rec => !seen.has(rec.rule) && seen.add(rec.rule));
     };
     const measured = {
-        // The rules of the domain accessibility that the server checks go with the checks of axe-core
+        // The rules of the subdomain accessibility that the server checks go with the checks of axe-core
         a11y: browser.accessibility && {...browser.accessibility,
             recommendations: [...(checked?.accessibility || []), ...browser.recommendations.accessibility]},
         vitals: browser.vitals,

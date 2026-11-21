@@ -13,7 +13,8 @@ properties.
 |---|---|
 | `ruleId` | The name of the rule, such as `seo.title`. Each finding of the rule shows it. One rule of a site has it. |
 | `evaluator` | What checks the rule. The next table lists the values. |
-| `domain` | The group of the rule, which names the tab of its findings: `accessibility`, `seo`, `readability`, `writing`, `links`, `health`, `ecodesign`, `geo`, `compliance` or `glossary`. Empty: the part of the id before the first dot when it is one of them, else `compliance` for a rule of the evaluator `pattern`. A rule of another domain never runs. |
+| `subdomains` | The ids of the subdomains of the rule, such as `seo` and `geo.score`. The findings of the rule show in each. [Domains and subdomains](#domains-and-subdomains) lists them. A rule with no subdomain takes the subdomain of the part of its id before the first dot, when a module declares it. Else a rule of the evaluator `pattern` takes `terms`. A rule whose subdomains nobody declares never runs. |
+| `sites` | The keys of the sites that the rule applies to, or `*` for all sites, the default. jContent shows `*` as "All sites". |
 | `severity` | `critical`, `serious`, `moderate` or `minor`. |
 | `blocking` | A finding of a blocking rule stops the publication of the content. |
 | `enabled` | On or off. A rule that is off reports nothing. |
@@ -49,7 +50,7 @@ shows `active: false`, `missingCheck: "model"` and `needs: "ai-assistant"` in th
 ```text
 contents/content-insights/
     content-governance/rules/     the rules of this module
-        seo.title                 ruleId, evaluator, severity, minimum, maximum, advice...
+        seo.title                 ruleId, evaluator, subdomains, sites, severity, minimum, maximum, advice...
         ...
     <module>/rules/               the rules of another module
     site/rules/                   the rules that the site adds
@@ -72,6 +73,7 @@ of that folder is one rule. This module ships its rules in `src/main/resources/c
 ---
 id: seo.title
 evaluator: threshold
+subdomains: [seo, geo.score]
 severity: serious
 fixer: editor
 unit: characters
@@ -81,9 +83,13 @@ maximum: 60
 Give the page a title, with the main subject first, inside the length range.
 ```
 
-The frontmatter holds the properties of the node, with `id` for `ruleId`. The body is the advice in
-English. A file with an unknown key, no evaluator, no domain, an unknown domain or an unknown
-severity is skipped with a warning in the log.
+The frontmatter holds the properties of the node, with `id` for `ruleId`, and a list for
+`subdomains` and `sites`, such as `subdomains: [seo, geo.score]`. The body is the advice in
+English. The module skips a file with a warning in the log when the file has one of these defects:
+
+- An unknown key. The key `domain` of a version before 2.0.0 is an unknown key.
+- No evaluator, or an unknown severity.
+- No subdomain, or a subdomain that no started module declares.
 
 The texts of a rule take a map of languages. The drawer shows them in the language of the
 interface of the editor, and in English when the rule has none in that language:
@@ -129,8 +135,8 @@ Create a **Content rule** in jContent, under **Content folders > content-insight
 Give it a rule id, an evaluator, a severity and an advice. For example, the rule `acme.tone` has the
 evaluator `model`, the severity `minor` and the advice "Write in a friendly tone."
 
-The id is free. Give the rule a domain, such as `writing` for `acme.tone`, so that its findings
-have a tab. A term with no domain, such as `brand.seamless`, takes `compliance`. jContent refuses a
+The id is free, but give the rule a subdomain, such as `writing` for `acme.tone`, so that its
+findings have a tab. A term with no subdomain, such as `brand.seamless`, takes `terms`. jContent refuses a
 rule whose id another rule of the site already has: "The rule seo.title already exists at
 /sites/...".
 
@@ -161,11 +167,121 @@ Content-governance converts the rules of an earlier version once, when it starts
 - The folder `contents/content-insights/jahia` becomes `contents/content-insights/content-governance`.
   A rule that the site changed keeps its values and gets its evaluator and its advice.
 - Each `efnt:writingRule` of the editorial frame becomes a `ccs:contentRule` in place, in the edit
-  and the live workspace, with the same identifier. Its id is `writing.<node name>`, and its domain is
+  and the live workspace, with the same identifier. Its id is `writing.<node name>`, its subdomain is
   `writing`, and its evaluator is `pattern`. The severity `warning` becomes `moderate`, and
   `blocking` becomes `serious` with `blocking` set. A rule of the kind `style` is `minor`, so that it
   stays a soft rule. The justification of each language becomes the advice of that language. Every
   other value stays.
+
+Version 2.0.0 replaces the property `domain` of a rule with `subdomains`. When content-governance
+starts on the processing server, before it writes the rules:
+
+- A rule that the module ships takes the subdomains of its file. Example: `geo.fetched` held
+  `domain: geo`, and takes `subdomains: [geo.crawlers]`.
+- Another rule takes its domain as its subdomain, and `compliance` becomes `terms`. When no module
+  declares that subdomain, such as `geo` for a rule that a site wrote, the rule shows with its
+  unknown subdomain: an administrator picks one of the declared subdomains on the rule node.
+- The property `domain` goes.
+- A rule that nobody changed keeps a fingerprint that says so, and then takes the new values of its
+  file.
+
+No release before 2.0.0 holds the type `ccs:contentRule`, so a 1.x instance needs nothing. An
+instance that runs a 1.12.0-SNAPSHOT build refuses the new definition, because it removes `domain`.
+On such an instance, install 2.0.0 once with `ignoreChecks: true` on the `installOrUpgradeBundle`
+entry of the provisioning.
+
+## Domains and subdomains
+
+The drawer shows the findings in a hierarchy: drawer › panel › domain › subdomain › rule. A panel is
+a screen of the drawer, such as the governance panel. A domain is a main tab of a panel, such as Page
+quality, and a subdomain is a tab of a domain, such as SEO. A rule names its subdomains, and a
+subdomain names its domain.
+
+Example: an administrator changes the domain of the subdomain `seo` from `geo` to `quality`. The SEO
+tab then moves with all its rules, and no rule changes.
+
+Content-governance ships this layout:
+
+| Domain | Subdomains, in order |
+|---|---|
+| `quality` Page quality | `health` Jahia health, `links` Links, `accessibility` Accessibility, `vitals` Web Vitals, `ecodesign` Ecodesign |
+| `geo` SEO & GEO | `geo.citations` AI citations, `seo` SEO, `geo.score` Score, `geo.content` Content, `geo.files` Site files, `geo.schema` Structured data, `geo.crawlers` Crawler access |
+| `compliance` Compliance | `readability` Readability, `terms` Terms, `glossary` Glossary, `writing` Writing |
+
+A rule can name several subdomains. Example: `seo.title` names `seo` and `geo.score`, because the
+GEO score counts it.
+
+### What a domain and a subdomain hold
+
+A domain is a node of type `ccs:contentDomain`, and a subdomain a node of type
+`ccs:contentSubdomain`.
+
+| Property | What it means |
+|---|---|
+| `domainId`, `subdomainId` | The id, such as `quality` or `seo`. The ids are flat and unique. A module prefixes its own, such as `acme.prices`. |
+| `domain` | The id of the domain of a subdomain. |
+| `panel` | The panel of a domain: `governance`, the default, or a panel of another module. |
+| `order` | The place among its siblings. A lower order comes first. |
+| `sites` | The keys of the sites that it applies to, or `*` for all sites, the default. |
+| `label`, `help` | The name of the tab and what it checks, one text per language. |
+| `retired` | Set by the module on a node that an administrator changed and that its module no longer ships. |
+
+### How a module ships domains and subdomains
+
+A module ships them beside its rules, under the same manifest header. Each one is a Markdown file in
+the subfolder `domains` or `subdomains` of the rule folder. The body is the help in English:
+
+```markdown
+---
+id: acme.prices
+domain: compliance
+order: 50
+label:
+  en: "Prices"
+  fr: "Prix"
+help:
+  fr: "Les prix que l'ERP donne."
+---
+The prices that the ERP gives.
+```
+
+A subdomain names a domain, and a rule names subdomains, that the same module, content-governance or
+another started module declares. Another file is skipped with a warning in the log.
+When another module starts and declares domains or subdomains, content-governance reads the skipped
+files again. Example: a rule of `acme-rules` names the subdomain `acme.prices` of `acme-subdomains`.
+The rule applies once `acme-subdomains` starts, even when `acme-rules` started first.
+
+The module writes them in the system site, which every site reads:
+
+```text
+/sites/systemsite/contents/content-insights/
+    content-governance/domains/       quality, geo, compliance
+    content-governance/subdomains/    health, links, accessibility, seo...
+    <module>/domains/, <module>/subdomains/
+```
+
+The copy keeps what an administrator changed, as for the rules. A node that nobody changed takes the
+new values, and a node that an administrator changed keeps its values.
+
+### Which rules apply to a site
+
+A rule applies to a site when all of these are true:
+
+- The `sites` of the rule include the site.
+- One of its subdomains, and the domain of that subdomain, include the site.
+- The site installs the module that ships the rule. A rule that the site adds needs no module.
+
+Example: an administrator sets the `sites` of the domain `geo` to `digitall`. The site `luxe` then
+loses the SEO & GEO tabs and their rules, such as `seo.title` and `geo.fetched`. The rule
+`html.imageAltMissing` names `accessibility` and `geo.score`, so it stays on `luxe`, in Accessibility.
+
+A site adds a domain or a subdomain with a node of its own anywhere under its `contents`. A node of
+the site with the id of a node of the system site replaces it for that site.
+
+The GraphQL field `contentDomains(siteKey, language)` gives the domains of a site by order, each with
+its subdomains, and their labels and help in the language. The field `contentRules` gives the
+`subdomains` and the `sites` of each rule. The drawer keeps its tabs for now: it places a finding
+in the tab of the first subdomain of its rule that has one.
 
 ## How a module adds a check
 
@@ -351,7 +467,7 @@ important. `minor` shows as advisory.
 
 The rules `html.*` are the rules of the HTML check, and
 [`html-rules.md`](../page-quality/html-rules.md) lists them. Each rule names a check of its own id,
-and takes the domain `accessibility`.
+and takes the subdomain `accessibility`.
 
 Every rule whose id starts with `axe.` or `ecodesign.` runs in the browser. Each eco-design rule
 names the check of one measure. A site that adds a rule of the same evaluator with another limit

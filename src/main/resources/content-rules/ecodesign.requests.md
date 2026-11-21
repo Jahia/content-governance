@@ -2,7 +2,7 @@
 id: ecodesign.requests
 evaluator: ecodesign.requests
 runtime: browser
-domain: ecodesign
+subdomains: [ecodesign]
 severity: moderate
 fixer: developer
 unit: requests

@@ -1,7 +1,7 @@
 ---
 id: html.tableHeaderMissing
 evaluator: html.tableHeaderMissing
-domain: accessibility
+subdomains: [accessibility]
 severity: moderate
 fixer: editor
 label:

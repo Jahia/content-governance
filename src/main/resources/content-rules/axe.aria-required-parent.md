@@ -2,7 +2,7 @@
 id: axe.aria-required-parent
 evaluator: axe
 runtime: browser
-domain: accessibility
+subdomains: [accessibility]
 severity: critical
 fixer: developer
 ---

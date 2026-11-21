@@ -1,7 +1,7 @@
 ---
 id: html.pageLanguageMissing
 evaluator: html.pageLanguageMissing
-domain: accessibility
+subdomains: [accessibility, geo.score]
 severity: serious
 fixer: developer
 label:

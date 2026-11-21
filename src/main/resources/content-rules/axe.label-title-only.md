@@ -2,7 +2,7 @@
 id: axe.label-title-only
 evaluator: axe
 runtime: browser
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

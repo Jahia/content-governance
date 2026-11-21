@@ -2,7 +2,7 @@
 id: ecodesign.webFonts
 evaluator: ecodesign.webFonts
 runtime: browser
-domain: ecodesign
+subdomains: [ecodesign]
 severity: minor
 fixer: developer
 unit: files

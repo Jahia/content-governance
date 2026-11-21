@@ -1,7 +1,7 @@
 ---
 id: geo.contentInInitialHtml
 evaluator: threshold
-domain: geo
+subdomains: [geo.content]
 severity: critical
 fixer: developer
 unit: words

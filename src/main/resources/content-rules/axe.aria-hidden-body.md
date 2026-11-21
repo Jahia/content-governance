@@ -2,7 +2,7 @@
 id: axe.aria-hidden-body
 evaluator: axe
 runtime: browser
-domain: accessibility
+subdomains: [accessibility]
 severity: critical
 fixer: developer
 ---

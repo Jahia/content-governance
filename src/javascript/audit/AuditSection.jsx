@@ -209,7 +209,7 @@ const pageFactsOf = seo => ({
  * Measures the page for the tabs the site keeps on. The check of the server gives the tabs SEO,
  * Readability, Links and Jahia health, with the findings that `frame.check` gives for the page. The
  * checks that modules register in the browser run on the preview frame: axe-core, the web vitals and
- * eco-design, and those of other modules. Their results join the tab of the domain of each rule, and a
+ * eco-design, and those of other modules. Their results join the tab of the subdomain of each rule, and a
  * rule that no check gave a result for is listed as not checked in its tab. The frame is refused when it
  * shows an error page, and its editing tooling is stripped first.
  *

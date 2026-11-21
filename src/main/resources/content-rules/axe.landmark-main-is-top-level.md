@@ -2,7 +2,7 @@
 id: axe.landmark-main-is-top-level
 evaluator: axe
 runtime: browser
-domain: accessibility
+subdomains: [accessibility]
 severity: moderate
 fixer: developer
 ---
