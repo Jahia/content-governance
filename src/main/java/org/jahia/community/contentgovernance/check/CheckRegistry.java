@@ -1,6 +1,7 @@
 package org.jahia.community.contentgovernance.check;
 
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
+import org.jahia.community.contentgovernance.check.spi.CheckResult;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck.Scope;
 import org.jahia.community.contentgovernance.check.spi.Finding;
@@ -59,6 +60,10 @@ public class CheckRegistry {
         public Status(boolean active, String missingCheck, String needs) {
             this(active, missingCheck, needs, null);
         }
+    }
+
+    /** The result of one rule, with the rule as the site applies it. */
+    private record Ran(ContentRule rule, CheckResult result) {
     }
 
     /**
@@ -135,6 +140,18 @@ public class CheckRegistry {
     }
 
     /**
+     * Runs on the input each check of a rule of the site that it keeps on, as {@link #run(CheckInput, Set)}
+     * does, and gives one result per rule that ran, passed or failed.
+     *
+     * @param rules the rules of the site of the input
+     * @param input what to check
+     * @return the results, in the order of the rules, each with at most {@value #MAX_FINDINGS} findings
+     */
+    public List<CheckResult> results(ContentRules rules, CheckInput input) {
+        return apply(rules, input, Set.of(), null).stream().map(Ran::result).toList();
+    }
+
+    /**
      * {@link #run(CheckInput, Set)} on some rules of the site only, such as the SEO rules that GEO
      * readiness reports on each page of a site.
      *
@@ -150,10 +167,19 @@ public class CheckRegistry {
         return run(rules, input, skipped, null);
     }
 
-    /** The run on the rules of the site whose id {@code ruleIds} holds, or on every rule when it is null. */
+    /** The findings of {@link #apply}, each with its rule. */
     private List<Checked> run(ContentRules rules, CheckInput input, Set<String> skipped, Set<String> ruleIds) {
-        Scope scope = input.scope();
         List<Checked> out = new ArrayList<>();
+        for (Ran ran : apply(rules, input, skipped, ruleIds)) {
+            ran.result().findings().forEach(finding -> out.add(new Checked(ran.rule(), finding)));
+        }
+        return out;
+    }
+
+    /** The run on the rules of the site whose id {@code ruleIds} holds, or on every rule when it is null. */
+    private List<Ran> apply(ContentRules rules, CheckInput input, Set<String> skipped, Set<String> ruleIds) {
+        Scope scope = input.scope();
+        List<Ran> out = new ArrayList<>();
         for (ContentRule rule : rules.all()) {
             boolean wanted = rule.enabled() && rule.hasKnownDomain() && !skipped.contains(rule.evaluator())
                     && (ruleIds == null || ruleIds.contains(rule.id()));
@@ -162,8 +188,14 @@ public class CheckRegistry {
                 continue;
             }
             try {
-                List<Finding> found = registered.check().check(input, rule);
-                found.stream().limit(MAX_FINDINGS).forEach(finding -> out.add(new Checked(rule, finding)));
+                CheckResult result = registered.check().result(input, rule);
+                if (result == null) {
+                    logger.warn("The check {} gave no result on the rule {} at {}", registered.id(), rule.id(), input.path());
+                    continue;
+                }
+                // The result belongs to the rule that ran, whatever id the check wrote
+                List<Finding> found = result.findings().stream().limit(MAX_FINDINGS).toList();
+                out.add(new Ran(rule, new CheckResult(rule.id(), result.passed(), result.values(), found)));
             } catch (RuntimeException e) {
                 logger.warn("The check {} failed on the rule {} at {}", registered.id(), rule.id(), input.path(), e);
             }

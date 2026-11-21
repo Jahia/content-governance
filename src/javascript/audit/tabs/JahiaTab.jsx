@@ -17,7 +17,7 @@ export function JahiaTab({result, onHighlightText}) {
                 {result.pageStatus && (
                     <li>{t('jahia.pageStatus')}: <strong>{t(`jahia.statuses.${result.pageStatus}`, result.pageStatus)}</strong></li>
                 )}
-                <li>{t('jahia.scanned', {count: result.scanned})}</li>
+                {result.scanned !== null && <li>{t('jahia.scanned', {count: result.scanned})}</li>}
                 {result.activeLanguages.length > 0 && (
                     <li>{t('jahia.languages')}: <strong>{result.activeLanguages.join(', ')}</strong></li>
                 )}

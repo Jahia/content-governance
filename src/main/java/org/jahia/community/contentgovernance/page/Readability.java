@@ -206,7 +206,7 @@ public final class Readability {
     }
 
     /** VERY_EASY gives veryEasy, the key of the band in the texts of the drawer. */
-    private static String camelCase(Band band) {
+    static String camelCase(Band band) {
         String[] parts = band.name().toLowerCase(Locale.ROOT).split("_");
         StringBuilder out = new StringBuilder(parts[0]);
         for (int i = 1; i < parts.length; i++) {

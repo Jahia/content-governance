@@ -1,5 +1,9 @@
 package org.jahia.community.contentgovernance.check.spi;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 /**
  * One place where a content breaks a rule.
  *
@@ -10,11 +14,20 @@ package org.jahia.community.contentgovernance.check.spi;
  * @param locator  a CSS selector of the element that breaks the rule in the rendered page, such as
  *                 {@code main > p:nth-child(3) > img}, or null when the finding has no element. The drawer
  *                 marks the element with it, and says "Item not found" when the page has no such element.
+ * @param values   what the check measured at this place, by name, such as the contrast ratio of a text,
+ *                 empty when it measured nothing. The values of the whole rule are on {@link CheckResult}.
  */
-public record Finding(String ruleId, String severity, String text, String context, String locator) {
+public record Finding(String ruleId, String severity, String text, String context, String locator,
+                      Map<String, Object> values) {
 
     public Finding {
         text = text == null ? "" : text;
+        values = values == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(values));
+    }
+
+    /** A finding with no value. */
+    public Finding(String ruleId, String severity, String text, String context, String locator) {
+        this(ruleId, severity, text, context, locator, Map.of());
     }
 
     /** A finding with no element to mark. */

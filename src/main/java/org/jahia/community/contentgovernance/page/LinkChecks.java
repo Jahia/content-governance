@@ -22,7 +22,8 @@ import java.util.regex.Pattern;
 
 /**
  * The link checks of a page or of a content item. {@code links.broken} reads the internal links that the
- * caller resolved in the repository, the fact {@link #BROKEN}. With no such fact, it finds nothing.
+ * caller resolved in the repository, the fact {@link #BROKEN}. With no such fact, it finds nothing. Its
+ * result carries the links of the page, from {@link #values}, which the Links tab of the drawer shows.
  */
 @Component(immediate = true)
 public class LinkChecks {
@@ -57,7 +58,10 @@ public class LinkChecks {
     }
 
     static Family.Found read(CheckInput input) {
-        Family.Found found = new Family.Found();
+        Document html = Family.document(input);
+        Set<String> localHosts = localHosts(input);
+        LinkCheck.InternalLinks internal = input.fact(INTERNAL) instanceof LinkCheck.InternalLinks links ? links : null;
+        Family.Found found = new Family.Found().values(BROKEN_LINKS, values(html, localHosts, internal));
         if (input.fact(BROKEN) instanceof List<?> broken) {
             for (Object item : broken) {
                 if (item instanceof LinkCheck.BrokenPath path) {
@@ -65,8 +69,7 @@ public class LinkChecks {
                 }
             }
         }
-        Set<String> localHosts = localHosts(input);
-        for (Element link : Family.document(input).select("a[href]")) {
+        for (Element link : html.select("a[href]")) {
             String href = link.attr("href").trim();
             if (!href.isEmpty() && !NOT_A_PAGE.matcher(href).find()) {
                 read(link, href, localHosts, found);
@@ -90,7 +93,8 @@ public class LinkChecks {
     }
 
     /**
-     * What the Links tab of the drawer shows. The broken internal links come from the fact {@link #INTERNAL}.
+     * The values of the rule {@code links.broken}, which the Links tab of the drawer shows. The broken
+     * internal links come from the fact {@link #INTERNAL}.
      *
      * @param html       the HTML of a page or of an item
      * @param localHosts the lower-case host names of this Jahia and of the site, or null
@@ -100,7 +104,7 @@ public class LinkChecks {
      *     repository, such as a vanity URL, both null with no resolution; and {@code broken}, as
      *     {@code {path, reason}}
      */
-    public static Map<String, Object> report(Document html, Set<String> localHosts, LinkCheck.InternalLinks internal) {
+    public static Map<String, Object> values(Document html, Set<String> localHosts, LinkCheck.InternalLinks internal) {
         Set<String> hosts = localHosts == null ? DEFAULT_HOSTS : localHosts;
         int total = 0;
         int external = 0;

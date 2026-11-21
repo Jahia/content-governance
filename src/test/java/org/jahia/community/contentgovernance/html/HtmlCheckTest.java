@@ -4,10 +4,12 @@ import org.jahia.community.contentgovernance.check.CheckRegistry;
 import org.jahia.community.contentgovernance.check.Registries;
 import org.jahia.community.contentgovernance.check.ThresholdCheck;
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
+import org.jahia.community.contentgovernance.check.spi.CheckResult;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck;
 import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.community.contentgovernance.html.rules.HtmlRuleChecks;
 import org.jahia.community.contentgovernance.html.rules.Scope;
+import org.jahia.community.contentgovernance.page.ReadabilityChecks;
 import org.jahia.community.contentgovernance.rules.ContentRule;
 import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jsoup.Jsoup;
@@ -24,8 +26,8 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,21 +38,25 @@ class HtmlCheckTest {
     void findings_runTheChecksOfAPage() {
         CheckRegistry registry = mock(CheckRegistry.class);
         Finding finding = new Finding("html.imageAltMissing", "critical", "<img src=\"a.png\">", null);
-        when(registry.run(any(CheckInput.class), eq(Set.of())))
-                .thenReturn(List.of(new CheckRegistry.Checked(ContentRules.base().get("html.imageAltMissing"), finding)));
+        CheckResult failed = new CheckResult("html.imageAltMissing", false, Map.of(), List.of(finding));
+        CheckResult passed = new CheckResult("seo.tags", true, Map.of("totalImages", 1), List.of());
+        when(registry.results(any(ContentRules.class), any(CheckInput.class))).thenReturn(List.of(failed, passed));
         Document html = Jsoup.parse("<p><img src=\"a.png\"></p>");
         HtmlCheck.Rendered rendered = new HtmlCheck.Rendered("/sites/digitall/home/main/intro", "jnt:text", Scope.ITEM,
                 html, Set.of("localhost"), Map.of());
 
+        assertThat(new HtmlCheck(registry).results(rendered, Locale.FRENCH)).containsExactly(failed, passed);
         assertThat(new HtmlCheck(registry).findings(rendered, Locale.FRENCH)).containsExactly(finding);
 
         ArgumentCaptor<CheckInput> input = ArgumentCaptor.forClass(CheckInput.class);
-        verify(registry).run(input.capture(), eq(Set.of()));
+        verify(registry, times(2)).results(any(ContentRules.class), input.capture());
         assertThat(input.getValue().scope()).isEqualTo(ContentCheck.Scope.PAGE);
         assertThat(input.getValue().siteKey()).isEqualTo("digitall");
         assertThat(input.getValue().language()).isEqualTo("fr");
         assertThat(input.getValue().fact(HtmlRuleChecks.DOCUMENT)).isSameAs(html);
         assertThat(input.getValue().fact(HtmlRuleChecks.HTML_SCOPE)).isEqualTo(Scope.ITEM);
+        assertThat(input.getValue().fact(ReadabilityChecks.LONG_SENTENCE_WORDS))
+                .as("the maximum of readability.longSentences, which the statistics count against").isEqualTo(25);
     }
 
     @Test
