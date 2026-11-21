@@ -79,6 +79,9 @@
  - validUntil (date, datepicker)
  // The file an import of the editorial frame read the rule from, so that a new import of that file replaces it.
  - source (string)
+ // Where the check of the rule runs. browser: the drawer runs it on the preview of the page, the server
+ // never runs it and never blocks a publication on it. Empty: server.
+ - runtime (string, choicelist[resourceBundle]) nofulltext < 'server', 'browser'
  // Set by the seeder on a rule that the site changed and that its module no longer ships.
  - retired (boolean)
  // The fingerprint of the values that the seeder last wrote, so that it tells a rule that the site changed.

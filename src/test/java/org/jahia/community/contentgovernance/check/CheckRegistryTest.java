@@ -119,7 +119,7 @@ class CheckRegistryTest {
     }
 
     @Test
-    @DisplayName("a run skips a rule that is off, an evaluator the caller applies, and a check of the browser")
+    @DisplayName("a run skips a rule that is off, an evaluator the caller applies, and a rule of the browser")
     void run_skips() {
         CheckRegistry registry = new CheckRegistry();
         registry.bindCheck(PRICE, id("acme.erpPrice"));
@@ -129,24 +129,28 @@ class CheckRegistryTest {
         assertThat(registry.run(rules.changed("acme.erpPrice", false, null, null, null), input, Set.of())).isEmpty();
         assertThat(registry.run(rules, input, Set.of("acme.erpPrice"))).isEmpty();
 
-        CheckRegistry browser = new CheckRegistry();
-        browser.bindCheck(PRICE, Map.of(ContentCheck.ID, "acme.erpPrice", CheckRegistry.RUNTIME, CheckRegistry.BROWSER));
-        assertThat(browser.has("acme.erpPrice")).isTrue();
-        assertThat(browser.run(rules, input, Set.of())).isEmpty();
+        ContentRules browser = ContentRules.base().with(inBrowser("acme.erpPrice", false));
+        assertThat(registry.run(browser, input, Set.of())).isEmpty();
     }
 
     @Test
-    @DisplayName("a rule of a check of the browser never blocks, even when its node sets blocking")
-    void blocking_isNeverTrueForTheBrowser() {
-        ContentRule rule = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.vitals", RuleValues.EVALUATOR, "acme.vitals",
-                RuleValues.BLOCKING, true));
-        CheckRegistry server = new CheckRegistry();
-        server.bindCheck(PRICE, id("acme.vitals"));
-        CheckRegistry browser = new CheckRegistry();
-        browser.bindCheck(PRICE, Map.of(ContentCheck.ID, "acme.vitals", CheckRegistry.RUNTIME, CheckRegistry.BROWSER));
+    @DisplayName("a rule of the browser is active with no check on the server, and never blocks, even when its node sets blocking")
+    void browserRule_isActiveAndNeverBlocks() {
+        CheckRegistry registry = new CheckRegistry();
+        ContentRule server = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.vitals", RuleValues.EVALUATOR, "acme.vitals",
+                RuleValues.DOMAIN, "ecodesign", RuleValues.BLOCKING, true));
+        ContentRule browser = inBrowser("acme.vitals", true);
+        registry.bindCheck(PRICE, id("acme.vitals"));
 
-        assertThat(server.blocking(rule)).isTrue();
-        assertThat(browser.blocking(rule)).isFalse();
+        assertThat(registry.blocking(server)).isTrue();
+        assertThat(registry.blocking(browser)).isFalse();
+        assertThat(new CheckRegistry().status(browser)).isEqualTo(new CheckRegistry.Status(true, null, null));
+    }
+
+    /** A rule of the domain ecodesign that states {@code runtime: browser}, with its id as its evaluator. */
+    private static ContentRule inBrowser(String id, boolean blocking) {
+        return RuleValues.toRule(Map.of(RuleValues.RULE_ID, id, RuleValues.EVALUATOR, id, RuleValues.DOMAIN, "ecodesign",
+                RuleValues.BLOCKING, blocking, RuleValues.RUNTIME, ContentRule.BROWSER));
     }
 
     @Test
@@ -193,10 +197,9 @@ class CheckRegistryTest {
     }
 
     @Test
-    @DisplayName("Content Governance registers a check for the evaluator of each rule that it ships")
+    @DisplayName("Content Governance registers a check for the evaluator of each rule of the server that it ships")
     void everyShippedRule_hasACheckOfThisModule() {
         Set<String> registered = new HashSet<>(List.of(ContentRule.PATTERN, ContentRule.THRESHOLD, ContentRule.PRESENCE));
-        registered.addAll(BrowserChecks.IDS);
         registered.addAll(GeoChecks.IDS);
         registered.addAll(SeoChecks.IDS);
         registered.addAll(ReadabilityChecks.IDS);
@@ -205,8 +208,9 @@ class CheckRegistryTest {
         Arrays.stream(HtmlRule.values()).map(HtmlRule::id).forEach(registered::add);
 
         List<String> missing = new ArrayList<>();
+        // The drawer registers the checks of the rules of the browser: drawerChecks.test.js tests them
         for (ContentRule rule : ContentRules.base().all()) {
-            if (!registered.contains(rule.evaluator())) {
+            if (!rule.inBrowser() && !registered.contains(rule.evaluator())) {
                 missing.add(rule.id() + " -> " + rule.evaluator());
             }
         }

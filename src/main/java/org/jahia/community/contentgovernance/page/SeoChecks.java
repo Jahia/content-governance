@@ -59,7 +59,7 @@ public class SeoChecks {
 
     @Activate
     void activate(BundleContext context) {
-        services.open(context, Family.checks(IDS, SHARED, SeoChecks::read), false);
+        services.open(context, Family.checks(IDS, SHARED, SeoChecks::read));
     }
 
     @Deactivate

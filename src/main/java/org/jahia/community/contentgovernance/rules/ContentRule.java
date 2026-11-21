@@ -45,6 +45,12 @@ public record ContentRule(String id, String domain, String evaluator, String sev
     public static final String MODEL = "model";
     /** The evaluators that a rule names by a word. Any other evaluator is the id of a check of its own. */
     public static final List<String> EVALUATORS = List.of(PATTERN, THRESHOLD, PRESENCE, MODEL);
+    /** The check of the rule runs on the server: the default. */
+    public static final String SERVER = "server";
+    /** The check of the rule runs in the browser, on the preview of the page, where the drawer registers it. */
+    public static final String BROWSER = "browser";
+    /** The values of {@link RuleValues#RUNTIME}. */
+    public static final List<String> RUNTIMES = List.of(SERVER, BROWSER);
 
     public ContentRule {
         values = Collections.unmodifiableMap(new HashMap<>(values));
@@ -71,6 +77,14 @@ public record ContentRule(String id, String domain, String evaluator, String sev
         }
         Object english = values.get(key);
         return english == null || english.toString().isBlank() ? null : english.toString();
+    }
+
+    /**
+     * True when the rule states {@code runtime: browser}: the drawer runs its check on the preview of the page,
+     * and the server never runs it.
+     */
+    public boolean inBrowser() {
+        return BROWSER.equals(values.get(RuleValues.RUNTIME));
     }
 
     /** True when the domain of the rule is one of {@link RuleDomains#ALL}: only then does a finding have a place. */

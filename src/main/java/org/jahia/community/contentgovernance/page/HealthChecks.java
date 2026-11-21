@@ -100,7 +100,7 @@ public class HealthChecks {
 
     @Activate
     void activate(BundleContext context) {
-        services.open(context, Family.checks(IDS, SHARED, HealthChecks::read), false);
+        services.open(context, Family.checks(IDS, SHARED, HealthChecks::read));
     }
 
     @Deactivate

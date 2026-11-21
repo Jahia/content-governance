@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
-import {runStep} from '../../javascript/audit/analyzers/timeLimit.js';
+import {runStep} from '../../javascript/audit/timeLimit.js';
 
 const after = (ms, value) => new Promise(resolve => {
     setTimeout(() => resolve(value), ms);

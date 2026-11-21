@@ -1434,7 +1434,7 @@
             }
           }
         },
-        "serverRules": "Règles du catalogue vérifiées sur le serveur",
+        "otherRules": "Autres règles du catalogue",
         "siteSeverity": "Site : {{severity}}",
         "siteSeverityHelp": "La gravité que le site donne à cette règle dans son catalogue",
         "axeImpactHelp": "L'impact qu'axe-core donne à ce contrôle"
@@ -1525,6 +1525,10 @@
         "timedOut": "Il a duré plus de {{seconds}} secondes et a été arrêté ; les autres onglets affichent leurs résultats. Relancez l'analyse. Si cela se reproduit, la page charge peut-être une ressource qui ne répond jamais.",
         "failedTitle": "Ce contrôle a échoué",
         "failed": "Il s'est arrêté sur une erreur ({{message}}) ; les autres onglets affichent leurs résultats. Relancez l'analyse."
+      },
+      "notChecked": {
+        "title": "Non vérifiées ({{count}})",
+        "note": "Ces règles s'exécutent dans le navigateur, et aucun contrôle n'a donné de résultat pour elles : aucun module de ce Jahia n'enregistre de contrôle pour leur évaluateur. Elles ne sont ni réussies ni en échec."
       },
       "readability": {
         "score": "Score de lisibilité",

@@ -10,8 +10,9 @@ The checks of SEO, readability, links and Jahia health run on the server: the Gr
 it, and gives the facts that these tabs show. `frame.check` gives an agent the same findings for the
 same path. The checks that need a browser run in the editor's browser: the section loads
 `/cms/render/default/{lang}{path}.html` in a same-origin iframe, waits for it to settle, strips
-editing tooling from its DOM, and runs axe-core, the web vitals and eco-design against the frame's
-document and performance entries. Results are kept
+editing tooling from its DOM, and runs each check of the registry type `contentGovernanceCheck`
+against the frame's document and performance entries. axe-core, the web vitals and eco-design are
+such checks. Results are kept
 in the editor's `localStorage` and, once complete, stored on the site for every editor (see
 [Shared audits](#shared-audits-and-the-site-dashboard)). The section calls no model. When the
 module ai-assistant is installed, it adds its own AI review tab to the drawer
@@ -24,7 +25,7 @@ jContent / Page Builder header
       AuditSection
         GraphQL checkPage (HtmlCheck)  -> seo, readability, links, jahia, HTML rules
         iframe  /cms/render/default/{lang}{path}.html?pageAuditRun=N
-          removeToolingElements -> webVitals -> ecodesign -> accessibility (axe-core injected)
+          removeToolingElements -> runChecks: webVitals, ecodesign.*, axe (axe-core injected), checks of other modules
         localStorage  content-governance:audit:{lang}:{path}
 ```
 
@@ -37,9 +38,12 @@ jContent / Page Builder header
 | `src/javascript/drawer/FixFirst.jsx`, `findings.js` | "Fix first": each section reports `{key, section, tab, severity, title}` findings through `onFindings` (Page quality: violations by impact and every tab's recommendations, `auditFindings`; GEO: one per tab with a count, score and crawler serious, the others moderate; Compliance: one serious per term, `complianceFindings`). The drawer keeps them per section (an identical list changes nothing), `rankFindings` keeps the five most serious, ties in section order, and **Open** selects the section and passes `requestedTab` `{tab, at}`. |
 | `src/javascript/drawer/GovernanceDrawer.jsx` | The drawer: header, one section tab per switched-on section with its count badge, sections mounted on first show and kept mounted while the drawer is open. |
 | `src/javascript/drawer/useDock.js` | Docks the drawer beside the page under edit, under jContent's header, and resizes it from its left edge (see the drawer notes below). |
-| `src/javascript/audit/AuditSection.jsx` | The section: the check of the server, preview frame, analyzer pipeline, cache, staleness probe, export, tab bar and badges. |
+| `src/javascript/audit/AuditSection.jsx` | The section. It holds the check of the server, the preview frame and the run of the checks of the browser. It also holds the cache, the staleness probe, the export, the tab bar and the badges. |
 | `src/javascript/audit/pageCheck.js` | Calls `checkPage`, and turns its findings and facts into the results of the tabs SEO, Readability, Links and Jahia health, and the HTML rules of the Accessibility tab. |
-| `src/javascript/audit/analyzers/` | The analyzers of the browser (`webVitals.js`, `ecodesign.js`, `accessibility.js`), plus `tooling.js` (DOM cleanup) and `cssPath.js` (the selector a highlight finds an element by). |
+| `src/javascript/audit/runChecks.js` | Runs the checks of the browser on the preview, one after the other, each with its time limit. It gives the results, the checks that did not finish, and the rules that no check gave a result for. |
+| `src/javascript/audit/browserResults.js` | Turns the results of the checks of the browser into what each tab shows. These are the recommendations by domain, the view of axe-core, the figures of the web vitals and the criteria of eco-design. |
+| `src/javascript/audit/tooling.js`, `timeLimit.js` | The cleanup of the editing tooling in the DOM, and the time limit of a step (`runStep`). |
+| `src/javascript/checks/` | The checks of the browser of Content Governance. `register.js` adds them to the registry, as another module does. The checks are `webVitals.js`, `ecodesign.js` with one evaluator per measure, and `axe.js`. `pageMeasure.js` measures the page for the first two, and `cssPath.js` gives the selector that a highlight finds an element by. |
 | `src/main/java/org/jahia/community/contentgovernance/page/` | The checks of the server for each domain (`SeoChecks`, `ReadabilityChecks`, `LinkChecks`, `HealthChecks`), with the facts each one measures, and `PageFacts`, which gathers them for `checkPage`. |
 | `src/javascript/audit/tabs/` | One component per tab, the shared `Recommendations` list, the two manual checklists. |
 | `src/javascript/common/useSiteSettings.js`, `settings.gql.js` | Site switches, from `contentGovernance.siteSettings`. |
@@ -72,9 +76,9 @@ jContent / Page Builder header
 - `AuditSection` receives `isOn(tab)` for the `audit` section. `TAB_IDS` (`accessibility`, `seo`,
   `vitals`, `readability`, `ecodesign`, `links`, `jahia`) is filtered by it.
 
-A tab switched off is not measured. Its analyzer does not run, and its result is not cached or
-exported (`keepEnabled` in `AuditSection.jsx`). Web Vitals still runs as the input of Ecodesign, and
-the check of the server runs while a tab that reads it is on, Accessibility included, and gives the
+A tab switched off is not shown. Its result is not cached or exported (`keepEnabled` in
+`AuditSection.jsx`). A check of the browser runs while the site keeps a rule of its evaluator on,
+whatever tab shows the rule. The check of the server runs while a tab that reads it is on, Accessibility included, and gives the
 page facts kept with each audit: `results.page` holds the title, the meta description and the number
 of images without alt. Neither result is kept when its own tab is off. A run whose check of the
 server did not finish, or whose server could not read the state of the content (Jahia health and
@@ -102,16 +106,17 @@ schema is measured again: 6 dropped the audits from before the check of the serv
      `responseStatus >= 400`, so a 404 or 500 render is refused instead of scored;
   2. calls `removeToolingElements(doc)`, which removes `[id^="tst-"]`, `[class*="tst-"]` and
      `#personas_panel` (jExperience persona preview, injected by `wem.js` in authoring contexts),
-     before any analyzer reads the DOM;
-  3. starts the check of the server, then runs the analyzers of the browser in order. Each step goes
-     through `runStep` (`analyzers/timeLimit.js`) with `STEP_LIMITS_MS`: the check of the server
-     60 s, vitals 15 s, accessibility 60 s. A step that fails or runs out of time is left out: its
-     tabs show `IncompleteStep` (why, and **Re-run**) from `results.incomplete[<result key>]`, the
-     check of the server for SEO, Readability, Links and Jahia health, eco-design after vitals. The
-     other tabs show their results, and such a partial audit is never cached. The late answer of a
-     stopped step is ignored, not cancelled.
+     before any check reads the DOM;
+  3. starts the check of the server, then runs the checks of the browser one after the other. Each
+     step goes through `runStep` (`timeLimit.js`): the check of the server has 60 s
+     (`PAGE_LIMIT_MS`), and each check of the browser has 60 s (`CHECK_LIMIT_MS`). A step that fails
+     or runs out of time is left out. Its tabs show `IncompleteStep` (why, and **Re-run**) from
+     `results.incomplete[<result key>]`: the check of the server for SEO, Readability, Links and
+     Jahia health, and a check of the browser for the tabs of the domains of its rules. The other tabs
+     show their results, and such a partial audit is never cached. The late answer of a stopped step
+     is ignored, and a check of the browser gets an aborted `signal`.
 - When results come from the cache, the frame still loads (preview and highlight target) but the
-  analyzers do not run (`cacheHitRef`).
+  checks do not run (`cacheHitRef`).
 - Highlight (`audit/editFrame.js`): the audit always runs in the preview, a plain render of the page;
   the outline goes to Page Builder's active frame (`iframe[data-sel-role="page-builder-frame-active"]`)
   when it shows the audited page and language (`/<lang><path>.html` ends its path). `highlight(selector)`
@@ -126,7 +131,7 @@ schema is measured again: 6 dropped the audits from before the check of the serv
 - Hidden preview: beside Page Builder `previewCollapsed` starts true. Hidden is not folded: the
   preview sits behind the results at the size of the whole section (`position: absolute; inset: 0;
   z-index: -1` in the drawer section's isolated stacking context, every band above it opaque,
-  `inert`, `aria-hidden`), because the analyzers read the frame's viewport and paint (LCP, images
+  `inert`, `aria-hidden`), because the checks read the frame's viewport and paint (LCP, images
   above the fold) and a frame with no height measures nothing. A re-run keeps the editor's choice.
 
 ## The check of the server
@@ -156,26 +161,43 @@ and `max`, and its advice. A finding with a locator offers "Highlight on the pag
 not found" when the preview has no such element. An audit stored before this version keeps its old
 texts (`audit.<ns>.recs.<key>`), and the drawer offers "Run again".
 
-## The analyzers of the browser
+## The checks of the browser
 
-Each analyzer gets the rules of the site, which `audit/rules.js` reads at the start of the audit
-through the GraphQL field `contentRules(siteKey, language)` ([the catalog](../content-rules/catalog.md)).
-A finding is `{key, rule, severity, params, title, detail}`: `rule` is the id of its rule, `severity`
-is the severity of the rule, `params` holds the values of its texts, and the texts come from the
-rule. axe-core skips each check whose rule `axe.<id>` the site turned off, and each violation keeps
-the impact of axe-core beside the severity of the site. The findings of the web vitals are rules of
-the domain `ecodesign`: the Ecodesign tab shows them. A rule that the site
-turned off gives no finding. These rules are browser rules: the server registers their ids and never
-runs them, and they never block.
+A check of the browser is an entry of the registry type `contentGovernanceCheck`, with an
+`evaluator` and a `run` function. [`drawer-entries.md`](../drawer-entries.md#add-a-check-that-runs-in-the-browser)
+states the contract. Content Governance registers its own checks in `checks/register.js`, and their
+code loads the first time the drawer runs them.
 
-Run in this order in `handleFrameLoad`. Each returns a result object with a `recommendations` array
-of these findings.
+`runChecks` gives each check the enabled rules of its evaluator that state `runtime: browser`.
+`audit/rules.js` reads these rules at the start of the audit, through the GraphQL field
+`contentRules(siteKey, language)` ([the catalog](../content-rules/catalog.md)). Each check returns one
+result per rule: `{ruleId, passed, values, findings: [{text, context, locator, values}]}`, the shape of
+the results of the server. A rule of the browser never runs on the server, and it never blocks.
 
-| Analyzer | File | Reads | Notes |
+`browserResults.js` turns the results into what the tabs show:
+
+- A failed result becomes a recommendation of the tab of the domain of its rule (`tabOf`), worded by
+  its rule. Its texts take the limits of the rule and the values of the result, such as `size`.
+  They also take `count`, the number of its findings, and `value`, the text of its first finding.
+- The results of the evaluator `axe` give the Accessibility tab its level cards, its violations and
+  its checks to review.
+- The result of the evaluator `webVitals` gives the Web Vitals tab its figures.
+- Each result of the Ecodesign tab with a `family` in its values is a criterion of that tab.
+- A rule that no check gave a result for shows under **Not checked** in the tab of its domain. The
+  result of the tab keeps such rules in `notChecked`.
+
+The built-in checks:
+
+| Check | Evaluator | File | What it does |
 |---|---|---|---|
-| Web Vitals | `webVitals.js` | Buffered `PerformanceObserver` (`largest-contentful-paint`, `layout-shift`, 700 ms window), navigation and resource entries, `doc.images` | Runs first so axe is not in the resource stats. LCP falls back to the `responseEnd` of the largest in-viewport image, else `domContentLoadedEventEnd` (`lcpApprox`). INP is always `null`. The timings are indicative figures: no band, no finding (they are measured on the editing preview in the editor's browser and cannot match the live site); `buildVitalsRecommendations` reads the diagnostics only, and `audit/vitalsFindings.js` drops the `slowLcp`, `highCls` and `slowTtfb` findings of audits stored before 1.11 where the dashboard shows them (`auditFindings`). The counts stored with those audits keep them, as history. Size is `transferSize`, else `encodedBodySize` (HTTP cache hits). |
-| Ecodesign | `ecodesign.js` | Vitals diagnostics, resource entries, DOM | 10 criteria, each under the rule `ecodesign.<criterion>` of the catalog, whose maximum it reads: weight, requests, DOM size, below-the-fold images without `loading="lazy"`, fonts (WOFF2 only), autoplay media, legacy-format images over 30 kB, oversized images, missing dimensions, third-party origins. A criterion passes when its rule has no finding. Not an RGESN conformity score; `ecoChecklist.js` lists 8 whole-service criteria. |
-| Accessibility | `accessibility.js` | Whole frame document | Injects axe-core (below) and runs tags `wcag2a, wcag21a, wcag2aa, wcag21aa, wcag22aa, wcag2aaa, best-practice` by tag, not by rule list, so an axe-core update brings its new rules. Keeps 25 nodes per rule. A card's percentage is passes / (passes + violations), floored; `incomplete` is outside the ratio. `a11yChecklist.js` lists 14 manual criteria. The tab also lists the HTML rules of the server that no other tab words. |
+| Web Vitals | `webVitals` | `webVitals.js` | It applies the measure rule `ecodesign.webVitals`, which always passes. Its values hold the figures of the Web Vitals tab. It reads the buffered `PerformanceObserver` entries (`largest-contentful-paint`, `layout-shift`, 700 ms window) and the measure of the page. LCP falls back to the `responseEnd` of the largest in-viewport image, else `domContentLoadedEventEnd` (`lcpApprox`). INP is always `null`. The timings are indicative figures and never a finding, because the editing preview in the editor's browser cannot match the live site. `audit/vitalsFindings.js` drops the `slowLcp`, `highCls` and `slowTtfb` findings of audits stored before 1.11 where the dashboard shows them (`auditFindings`). |
+| Eco-design | `ecodesign.<measure>` | `ecodesign.js` | There are 11 checks, one per measure. They measure the weight, the requests, the DOM size and the fonts, which must be WOFF2. They also count the heavy scripts and stylesheets, the autoplay media and the third-party origins. The last five count images: below the fold without `loading="lazy"`, in a legacy format over 30 kB, oversized, or with no dimensions. The rule gives the limit, in its `maximum`. A measure of elements passes with no element, and gives one finding per element, with its locator. The result is not an RGESN conformity score. `ecoChecklist.js` lists 8 whole-service criteria. |
+| Accessibility | `axe` | `axe.js` | It injects axe-core (below) and runs the checks of the enabled rules `axe.<id>`, by rule. A rule whose check the version of axe-core lacks gives no result. A check that fails on one element fails, and one with an element to review passes with the outcome `incomplete`. The result keeps 25 elements. A card's percentage is passes / (passes + violations), floored, and `incomplete` is outside the ratio. `a11yChecklist.js` lists 14 manual criteria. The tab also lists the HTML rules of the server that no other tab words. |
+
+`checks/pageMeasure.js` measures the page once per document for the web vitals and eco-design.
+`runChecks` sets the performance mark `contentGovernanceChecks` before the first check. The measure
+leaves out each resource after that mark, so the script of axe-core is not in the statistics. The size of a resource is
+`transferSize`, else `encodedBodySize` (HTTP cache hits).
 
 ### axe-core injection
 
@@ -300,5 +322,6 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
 
 Facts from the merge that a maintainer may trip on:
 
-- Web Vitals runs before axe is injected and before the link checks, or their requests would count
-  in the page's own statistics; `webVitals.js` also filters `/modules/content-governance/`.
+- The measure of the page leaves out the resources after the performance mark
+  `contentGovernanceChecks`, so the script of axe-core and the requests of other checks do not count
+  in the page's own statistics.
