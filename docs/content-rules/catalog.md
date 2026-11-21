@@ -178,7 +178,9 @@ starts on the processing server, before it writes the rules:
 
 - A rule that the module ships takes the subdomains of its file. Example: `geo.fetched` held
   `domain: geo`, and takes `subdomains: [geo.crawlers]`.
-- Another rule takes its domain as its subdomain, and `compliance` becomes `terms`.
+- Another rule takes its domain as its subdomain, and `compliance` becomes `terms`. When no module
+  declares that subdomain, such as `geo` for a rule that a site wrote, the rule shows with its
+  unknown subdomain: an administrator picks one of the declared subdomains on the rule node.
 - The property `domain` goes.
 - A rule that nobody changed keeps a fingerprint that says so, and then takes the new values of its
   file.
