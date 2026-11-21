@@ -25,8 +25,9 @@ import java.util.Locale;
  * </ul>
  * <p>A text property is a {@code STRING} property shown in Content Editor as text, text area or rich
  * text, with no value constraint (choicelists and tokens are technical values). Rich text is read as
- * the text a visitor sees. The rules are those of the domains {@code compliance}, {@code glossary} and
- * {@code writing} that the site keeps on and that a check runs on a value. A rule of the evaluator
+ * the text a visitor sees. The rules are those of the subdomains of the domain {@code compliance}, such
+ * as {@code terms}, {@code glossary} and {@code writing}, except {@code readability}, that the site keeps
+ * on and that a check runs on a value. A rule of the evaluator
  * {@code pattern} also applies on the day and to the language of the session, and is not a mandatory
  * mention, which needs a whole page.</p>
  *

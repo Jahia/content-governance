@@ -126,7 +126,7 @@ come pages first in path order, then content items; rules are ranked by uses.
 
 The scan runs each value through `CheckRegistry.runRules`, with the rules of Compliance.
 `frame.check` runs a text through `CheckRegistry.run`, so both give the same findings for the same
-text. `ValueFindingsTest` checks this on a rich text and on a plain text, in three languages.
+text.
 
 An issue takes four things from its finding: the matched text, its place (`start` and `end`), the
 term and the replacement. It takes the id, the severity, the advice and the folder from its rule. A
