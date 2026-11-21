@@ -1,7 +1,7 @@
 ---
 id: axe.landmark-no-duplicate-banner
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: moderate
 fixer: developer
 ---

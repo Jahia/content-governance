@@ -1,7 +1,7 @@
 ---
 id: links.mixedContent
 evaluator: links.mixedContent
-domain: links
+subdomains: [links]
 severity: serious
 fixer: developer
 label:

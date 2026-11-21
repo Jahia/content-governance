@@ -1,7 +1,7 @@
 ---
 id: axe.html-xml-lang-mismatch
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: moderate
 fixer: developer
 ---

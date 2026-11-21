@@ -1,7 +1,7 @@
 ---
 id: health.placeholderText
 evaluator: health.placeholderText
-domain: health
+subdomains: [health]
 severity: serious
 fixer: editor
 label:

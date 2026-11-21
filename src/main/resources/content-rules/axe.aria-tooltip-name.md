@@ -1,7 +1,7 @@
 ---
 id: axe.aria-tooltip-name
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

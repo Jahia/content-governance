@@ -1,7 +1,7 @@
 ---
 id: axe.aria-text
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

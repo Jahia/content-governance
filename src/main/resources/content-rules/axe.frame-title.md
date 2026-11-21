@@ -1,7 +1,7 @@
 ---
 id: axe.frame-title
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

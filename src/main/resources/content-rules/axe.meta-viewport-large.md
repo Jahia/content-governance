@@ -1,7 +1,7 @@
 ---
 id: axe.meta-viewport-large
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: minor
 fixer: developer
 ---

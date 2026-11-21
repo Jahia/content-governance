@@ -1,7 +1,7 @@
 ---
 id: geo.reachable
 evaluator: geo.reachable
-domain: geo
+subdomains: [geo.crawlers]
 severity: critical
 fixer: administrator
 label:

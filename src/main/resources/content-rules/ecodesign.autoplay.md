@@ -1,7 +1,7 @@
 ---
 id: ecodesign.autoplay
 evaluator: ecodesign.autoplay
-domain: ecodesign
+subdomains: [ecodesign]
 severity: moderate
 fixer: editor
 label:

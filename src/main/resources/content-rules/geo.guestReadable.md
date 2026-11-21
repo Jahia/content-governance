@@ -1,7 +1,7 @@
 ---
 id: geo.guestReadable
 evaluator: geo.guestReadable
-domain: geo
+subdomains: [geo.crawlers]
 severity: critical
 fixer: administrator
 label:

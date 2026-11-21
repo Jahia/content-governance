@@ -1,7 +1,7 @@
 ---
 id: ecodesign.imageFormats
 evaluator: ecodesign.imageFormats
-domain: ecodesign
+subdomains: [ecodesign]
 severity: moderate
 fixer: editor
 label:

@@ -1,7 +1,7 @@
 ---
 id: geo.sameContentForCrawlers
 evaluator: threshold
-domain: geo
+subdomains: [geo.content]
 severity: critical
 fixer: administrator
 unit: ratio

@@ -1,7 +1,7 @@
 ---
 id: axe.role-img-alt
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: editor
 ---

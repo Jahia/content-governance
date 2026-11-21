@@ -1,7 +1,7 @@
 ---
 id: geo.robotsPresent
 evaluator: geo.robotsPresent
-domain: geo
+subdomains: [geo.files]
 severity: serious
 fixer: administrator
 label:

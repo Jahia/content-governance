@@ -1,7 +1,7 @@
 ---
 id: axe.definition-list
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

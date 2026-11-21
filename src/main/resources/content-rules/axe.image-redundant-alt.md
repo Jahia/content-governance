@@ -1,7 +1,7 @@
 ---
 id: axe.image-redundant-alt
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: minor
 fixer: editor
 ---

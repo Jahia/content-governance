@@ -1,7 +1,7 @@
 ---
 id: axe.summary-name
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

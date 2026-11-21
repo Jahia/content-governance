@@ -1,7 +1,7 @@
 ---
 id: geo.dateModified
 evaluator: geo.dateModified
-domain: geo
+subdomains: [geo.content]
 severity: minor
 fixer: developer
 label:

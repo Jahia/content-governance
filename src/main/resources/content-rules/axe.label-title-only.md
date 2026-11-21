@@ -1,7 +1,7 @@
 ---
 id: axe.label-title-only
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

@@ -1,7 +1,7 @@
 ---
 id: axe.empty-table-header
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: minor
 fixer: editor
 ---

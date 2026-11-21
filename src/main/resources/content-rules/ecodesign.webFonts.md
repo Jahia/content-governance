@@ -1,7 +1,7 @@
 ---
 id: ecodesign.webFonts
 evaluator: threshold
-domain: ecodesign
+subdomains: [ecodesign]
 severity: minor
 fixer: developer
 unit: files

@@ -1,7 +1,7 @@
 ---
 id: axe.aria-required-children
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: critical
 fixer: developer
 ---

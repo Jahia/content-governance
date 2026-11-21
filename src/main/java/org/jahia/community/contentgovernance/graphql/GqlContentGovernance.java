@@ -16,6 +16,7 @@ import org.jahia.community.contentgovernance.check.spi.CheckInput;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck;
 import org.jahia.community.contentgovernance.html.HtmlCheck;
 import org.jahia.community.contentgovernance.html.rules.Scope;
+import org.jahia.community.contentgovernance.rules.ContentDomains;
 import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.modules.graphql.provider.dxm.DataFetchingException;
@@ -141,6 +142,31 @@ public class GqlContentGovernance {
         SiteAccess.site(siteKey);
         return ContentRules.forSite(siteKey).all().stream()
                 .map(rule -> new GqlContentRule(rule, checks.status(rule), checks.blocking(rule), language))
+                .toList();
+    }
+
+    /**
+     * The domains of a site, each with its subdomains: the hierarchy drawer › panel › domain › subdomain that
+     * the rules name. Any signed-in user who can read the site may ask: the drawer of every editor needs it.
+     *
+     * @param siteKey  key of the site
+     * @param language the language of the labels and the help, or null for English
+     * @return the domains that apply to the site, by order, with the subdomains that apply to it
+     */
+    @GraphQLField
+    @GraphQLName("contentDomains")
+    @GraphQLNonNull
+    @GraphQLDescription("The domains of the drawer that apply to a site, by order, each with its subdomains")
+    public List<GqlContentDomain> contentDomains(
+            @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey,
+            @GraphQLName("language") @GraphQLDescription("The language of the labels and the help, such as fr: the interface language of the editor. English when null, and for a text with no translation") String language) {
+        if (language != null && !LANGUAGE.matcher(language).matches()) {
+            throw new DataFetchingException("Invalid language");
+        }
+        SiteAccess.site(siteKey);
+        ContentDomains hierarchy = ContentDomains.forSite(siteKey);
+        return hierarchy.domains().stream()
+                .map(domain -> new GqlContentDomain(domain, hierarchy, language))
                 .toList();
     }
 

@@ -1,7 +1,7 @@
 ---
 id: axe.aria-treeitem-name
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

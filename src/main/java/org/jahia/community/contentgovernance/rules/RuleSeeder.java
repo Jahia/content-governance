@@ -50,7 +50,8 @@ import java.util.function.BooleanSupplier;
  *   <li>A rule that the module no longer ships is removed if nobody changed it, and marked
  *       {@value RuleNodes#RETIRED} if the site changed it.</li>
  * </ul>
- * <p>The nodes stay unpublished: {@link ContentRules} reads the edit workspace.</p>
+ * <p>The nodes stay unpublished: {@link ContentRules} reads the edit workspace. The domains and the
+ * subdomains that a module ships go to the system site, through {@link DomainSeeder}.</p>
  */
 @Component(service = DefaultEventListener.class, immediate = true)
 public class RuleSeeder extends DefaultEventListener implements BundleTrackerCustomizer<String> {
@@ -87,9 +88,9 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
     }
 
     /**
-     * Converts the rules and the glossary terms of an older version, then tracks the modules that ship
-     * rules. The tracker seeds every site with the rules of each module, this module included, as it finds
-     * them. The nodes of a cluster share one repository and start the module at the same time, so only the
+     * Converts the rules, the glossary terms and the domains of an older version, then tracks the modules
+     * that ship rules. The tracker seeds the system site with the domains and the subdomains of each module,
+     * and every site with its rules, this module included, as it finds them. The nodes of a cluster share one repository and start the module at the same time, so only the
      * processing server converts and seeds: a browsing node never reads a node that the processing server
      * writes in the same second.
      */
@@ -99,6 +100,8 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
         if (processingServer) {
             LegacyRules.migrate();
             LegacyTerms.migrate();
+            // Before the seeder: it tells a node that nobody changed by the fingerprint that the conversion keeps.
+            LegacyDomains.migrate();
         } else {
             logger.debug("A browsing node leaves the conversions and the seeding to the processing server");
         }
@@ -120,8 +123,10 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
             return null;
         }
         ShippedRules.put(shipment);
-        logger.info("Read {} content rules from the module {}", shipment.rules().size(), shipment.module());
+        logger.info("Read {} content rules, {} domains and {} subdomains from the module {}", shipment.rules().size(),
+                shipment.domains().size(), shipment.subdomains().size(), shipment.module());
         if (processingServer) {
+            DomainSeeder.seed(shipment);
             seedSites(shipment.module());
         }
         return shipment.module();

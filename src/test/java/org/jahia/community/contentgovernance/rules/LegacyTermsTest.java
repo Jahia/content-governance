@@ -21,7 +21,7 @@ class LegacyTermsTest {
 
         assertThat(values).containsEntry(RuleValues.RULE_ID, "compliance.free")
                 .containsEntry(RuleValues.EVALUATOR, ContentRule.PATTERN)
-                .containsEntry(RuleValues.DOMAIN, "compliance")
+                .containsEntry(RuleValues.SUBDOMAINS, List.of("terms"))
                 .containsEntry(RuleValues.SEVERITY, "serious")
                 .containsEntry(RuleValues.KIND, "forbidden")
                 .containsEntry(RuleValues.PATTERN, "free")
@@ -51,7 +51,7 @@ class LegacyTermsTest {
     void anApprovedTranslationIsAReplaceRuleOfTheLanguageOfTheTranslation() {
         Map<String, Object> values = LegacyTerms.glossaryRule("glossary.access-token", ACCESS_TOKEN, null);
 
-        assertThat(values).containsEntry(RuleValues.DOMAIN, "glossary")
+        assertThat(values).containsEntry(RuleValues.SUBDOMAINS, List.of("glossary"))
                 .containsEntry(RuleValues.SEVERITY, "moderate")
                 .containsEntry(RuleValues.KIND, "replace")
                 .containsEntry(RuleValues.RULE_LANGUAGE, "fr")
@@ -94,9 +94,9 @@ class LegacyTermsTest {
     @Test
     void theNewPropertiesComeLastSoThatTheDigestOfARuleThatLacksThemStaysTheSame() {
         // The digest reads the keys in order and skips an absent one: a seeded rule keeps its fingerprint.
-        assertThat(RuleValues.KEYS.subList(RuleValues.KEYS.size() - 5, RuleValues.KEYS.size()))
+        assertThat(RuleValues.KEYS.subList(RuleValues.KEYS.size() - 7, RuleValues.KEYS.size()))
                 .containsExactly(RuleValues.PATTERN_FORMS, RuleValues.REPLACEMENT_FORMS, RuleValues.PATTERN_LANGUAGE,
-                        RuleValues.TITLE, RuleValues.LABEL);
+                        RuleValues.TITLE, RuleValues.LABEL, RuleValues.SUBDOMAINS, RuleValues.SITES);
     }
 
     @Test

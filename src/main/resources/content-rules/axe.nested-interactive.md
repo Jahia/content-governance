@@ -1,7 +1,7 @@
 ---
 id: axe.nested-interactive
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

@@ -1,7 +1,7 @@
 ---
 id: ecodesign.oversizedImages
 evaluator: ecodesign.oversizedImages
-domain: ecodesign
+subdomains: [ecodesign]
 severity: moderate
 fixer: editor
 label:

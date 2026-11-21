@@ -1,7 +1,7 @@
 ---
 id: axe.p-as-heading
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: editor
 ---

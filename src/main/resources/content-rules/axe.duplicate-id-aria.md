@@ -1,7 +1,7 @@
 ---
 id: axe.duplicate-id-aria
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: critical
 fixer: developer
 ---

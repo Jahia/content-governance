@@ -1,7 +1,7 @@
 ---
 id: html.headingH1Multiple
 evaluator: html.headingH1Multiple
-domain: accessibility
+subdomains: [accessibility, geo.score]
 severity: moderate
 fixer: editor
 label:

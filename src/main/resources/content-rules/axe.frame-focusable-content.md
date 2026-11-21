@@ -1,7 +1,7 @@
 ---
 id: axe.frame-focusable-content
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

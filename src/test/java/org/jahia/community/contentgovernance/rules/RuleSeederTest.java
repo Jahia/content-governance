@@ -33,7 +33,7 @@ class RuleSeederTest {
         node.put(RuleValues.ENABLED, true);
         node.put(RuleValues.BLOCKING, false);
         node.put(RuleValues.FIXER, "editor");
-        node.put(RuleValues.DOMAIN, "seo");
+        node.put(RuleValues.SITES, List.of("*"));
 
         assertThat(RuleValues.digest(node)).isEqualTo(RuleValues.digest(TITLE));
     }
@@ -69,7 +69,7 @@ class RuleSeederTest {
     void writingRule_mapsToAContentRule() {
         assertThat(LegacyRules.ruleOf("writing.a", "forbidden", "warning"))
                 .containsEntry(RuleValues.EVALUATOR, "pattern").containsEntry(RuleValues.SEVERITY, "moderate")
-                .containsEntry(RuleValues.BLOCKING, false).containsEntry(RuleValues.DOMAIN, "writing");
+                .containsEntry(RuleValues.BLOCKING, false).containsEntry(RuleValues.SUBDOMAINS, List.of("writing"));
         assertThat(LegacyRules.ruleOf("writing.b", "replace", "blocking"))
                 .containsEntry(RuleValues.SEVERITY, "serious").containsEntry(RuleValues.BLOCKING, true);
         assertThat(LegacyRules.ruleOf("writing.c", "style", "warning"))
@@ -85,29 +85,33 @@ class RuleSeederTest {
     }
 
     @Test
-    @DisplayName("only the processing server converts the rules and the terms of an older version")
+    @DisplayName("only the processing server converts the rules, the terms and the domains of an older version")
     void activate_convertsOnTheProcessingServerOnly() {
         for (boolean processing : List.of(false, true)) {
             try (MockedStatic<LegacyRules> rules = mockStatic(LegacyRules.class);
-                 MockedStatic<LegacyTerms> terms = mockStatic(LegacyTerms.class)) {
+                 MockedStatic<LegacyTerms> terms = mockStatic(LegacyTerms.class);
+                 MockedStatic<LegacyDomains> domains = mockStatic(LegacyDomains.class)) {
                 RuleSeeder seeder = seeder(processing);
 
                 seeder.activate(mock(BundleContext.class));
 
                 rules.verify(LegacyRules::migrate, processing ? times(1) : never());
                 terms.verify(LegacyTerms::migrate, processing ? times(1) : never());
+                domains.verify(LegacyDomains::migrate, processing ? times(1) : never());
                 seeder.deactivate();
             }
         }
     }
 
     @Test
-    @DisplayName("every node reads the rules that a module ships, and only the processing server seeds the sites")
+    @DisplayName("every node reads the rules that a module ships, and only the processing server seeds the system site and the sites")
     void addingBundle_seedsOnTheProcessingServerOnly() throws RepositoryException {
         ShippedRules.Shipment shipment = new ShippedRules.Shipment("acme", Map.of(), true);
         for (boolean processing : List.of(false, true)) {
             try (MockedStatic<LegacyRules> rules = mockStatic(LegacyRules.class);
                  MockedStatic<LegacyTerms> terms = mockStatic(LegacyTerms.class);
+                 MockedStatic<LegacyDomains> domains = mockStatic(LegacyDomains.class);
+                 MockedStatic<DomainSeeder> domainSeeder = mockStatic(DomainSeeder.class);
                  MockedStatic<ShippedRules> shipped = mockStatic(ShippedRules.class);
                  MockedStatic<JCRTemplate> jcr = mockStatic(JCRTemplate.class)) {
                 Bundle bundle = mock(Bundle.class);
@@ -121,6 +125,7 @@ class RuleSeederTest {
                 assertThat(seeder.addingBundle(bundle, null)).isEqualTo("acme");
 
                 shipped.verify(() -> ShippedRules.put(shipment));
+                domainSeeder.verify(() -> DomainSeeder.seed(shipment), processing ? times(1) : never());
                 jcr.verify(JCRTemplate::getInstance, processing ? times(1) : never());
                 seeder.deactivate();
             }

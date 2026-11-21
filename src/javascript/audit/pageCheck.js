@@ -27,9 +27,11 @@ export const PAGE_CHECK = gql`
 `;
 
 /**
- * The Page quality tab of each domain of rules (Jahia/content-governance#142). No list names the tab of a
- * rule: a finding goes to the tab of the domain of its rule, built-in or of another module. A rule of the
- * domain `geo` or `compliance` shows in its own section, and a rule of an unknown domain never runs.
+ * The Page quality tab of each subdomain of rules (Jahia/content-governance#151). No list names the tab of a
+ * rule: a finding goes to the tab of the first subdomain of its rule that has one, built-in or of another
+ * module. A rule of the subdomains of SEO & GEO (but `seo`) or of Compliance (but `readability` and
+ * `writing`) shows in its own section, and a rule of unknown subdomains never runs. A later issue builds
+ * the tabs from the hierarchy that `contentDomains` gives.
  */
 export const DOMAIN_TABS = {
     accessibility: 'accessibility',
@@ -44,12 +46,12 @@ export const DOMAIN_TABS = {
 /**
  * The tab that shows the findings of a rule.
  *
- * @param {object} [rule] the rule of the site, whose `domain` names its tab
+ * @param {object} [rule] the rule of the site, whose `subdomains` name its tabs
  * @returns {?string} `accessibility`, `seo`, `readability`, `links`, `jahia` or `ecodesign`, or null for a
  *     rule that no Page quality tab shows
  */
 export function tabOf(rule) {
-    return DOMAIN_TABS[rule?.domain] || null;
+    return (rule?.subdomains || []).map(subdomain => DOMAIN_TABS[subdomain]).find(Boolean) || null;
 }
 
 /**
@@ -81,7 +83,7 @@ export function recommendationsByTab(findings, rules) {
         const rule = rules.find(ruleId);
         const tab = tabOf(rule);
         if (!tab) {
-            console.warn(`[content-governance] the rule ${ruleId} has the domain ${rule?.domain}, which no Page quality tab shows`);
+            console.warn(`[content-governance] the rule ${ruleId} has the subdomains ${rule?.subdomains}, which no Page quality tab shows`);
             return;
         }
         const params = {...(rule ? limits(rule) : {}), count: items.length, value: items[0].text};

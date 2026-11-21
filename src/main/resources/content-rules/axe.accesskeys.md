@@ -1,7 +1,7 @@
 ---
 id: axe.accesskeys
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

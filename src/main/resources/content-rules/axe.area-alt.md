@@ -1,7 +1,7 @@
 ---
 id: axe.area-alt
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: critical
 fixer: editor
 ---

@@ -1,7 +1,7 @@
 ---
 id: axe.presentation-role-conflict
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: minor
 fixer: developer
 ---

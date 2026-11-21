@@ -1,7 +1,7 @@
 ---
 id: axe.aria-braille-equivalent
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

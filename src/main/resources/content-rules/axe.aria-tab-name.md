@@ -1,7 +1,7 @@
 ---
 id: axe.aria-tab-name
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

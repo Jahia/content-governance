@@ -1,7 +1,7 @@
 ---
 id: axe.input-image-alt
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: critical
 fixer: editor
 ---

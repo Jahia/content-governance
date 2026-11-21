@@ -1,7 +1,7 @@
 ---
 id: axe.select-name
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: critical
 fixer: developer
 ---

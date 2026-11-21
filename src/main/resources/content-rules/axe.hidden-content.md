@@ -1,7 +1,7 @@
 ---
 id: axe.hidden-content
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: minor
 fixer: developer
 ---

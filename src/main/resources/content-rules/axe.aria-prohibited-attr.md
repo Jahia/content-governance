@@ -1,7 +1,7 @@
 ---
 id: axe.aria-prohibited-attr
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

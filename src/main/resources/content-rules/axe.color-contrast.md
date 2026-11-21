@@ -1,7 +1,7 @@
 ---
 id: axe.color-contrast
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

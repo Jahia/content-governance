@@ -145,9 +145,10 @@ schema is measured again: 6 dropped the audits from before the check of the serv
   broken ones (`missing` or `not_published`). `jahia`: the status of the page, the content items
   read (400 at most), what is not published in the language, and what lacks an active language.
 
-Each finding goes to the tab of the domain of its rule (`tabOf`, `DOMAIN_TABS`): `accessibility`,
-`seo`, `readability` (and `writing`), `links`, `health` for Jahia health, and `ecodesign`. No list
-names the tab of one rule, so a check that another module registers lands like a built-in one. A
+Each finding goes to the tab of the first subdomain of its rule that has one (`tabOf`,
+`DOMAIN_TABS`): `accessibility`, `seo`, `readability` (and `writing`), `links`, `health` for Jahia
+health, and `ecodesign`. No list names the tab of one rule, so a check that another module registers
+lands like a built-in one. A
 tab shows one recommendation per rule `{key, rule, severity, params, items, title, detail, label}`:
 `items` holds each finding of the rule, with its `locator` when the check gave one. The texts come
 from the rule (`audit/ruleText.js`), in the language of the interface of the editor: the plural form
@@ -164,7 +165,7 @@ A finding is `{key, rule, severity, params, title, detail}`: `rule` is the id of
 is the severity of the rule, `params` holds the values of its texts, and the texts come from the
 rule. axe-core skips each check whose rule `axe.<id>` the site turned off, and each violation keeps
 the impact of axe-core beside the severity of the site. The findings of the web vitals are rules of
-the domain `ecodesign`: the Ecodesign tab shows them. A rule that the site
+the subdomain `ecodesign`: the Ecodesign tab shows them. A rule that the site
 turned off gives no finding. These rules are browser rules: the server registers their ids and never
 runs them, and they never block.
 

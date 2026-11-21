@@ -1,7 +1,7 @@
 ---
 id: seo.followLinks
 evaluator: seo.followLinks
-domain: seo
+subdomains: [seo]
 severity: moderate
 fixer: editor
 label:

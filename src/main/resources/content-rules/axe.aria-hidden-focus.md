@@ -1,7 +1,7 @@
 ---
 id: axe.aria-hidden-focus
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

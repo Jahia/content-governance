@@ -1,7 +1,7 @@
 ---
 id: axe.dlitem
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

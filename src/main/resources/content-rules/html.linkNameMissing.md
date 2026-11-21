@@ -1,7 +1,7 @@
 ---
 id: html.linkNameMissing
 evaluator: html.linkNameMissing
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: editor
 label:

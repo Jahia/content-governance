@@ -1,7 +1,7 @@
 ---
 id: axe.region
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: moderate
 fixer: developer
 ---

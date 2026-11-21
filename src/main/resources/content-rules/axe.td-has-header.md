@@ -1,7 +1,7 @@
 ---
 id: axe.td-has-header
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: critical
 fixer: developer
 ---

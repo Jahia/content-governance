@@ -1,7 +1,7 @@
 ---
 id: ecodesign.domSize
 evaluator: threshold
-domain: ecodesign
+subdomains: [ecodesign]
 severity: moderate
 fixer: developer
 unit: elements

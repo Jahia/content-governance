@@ -1,7 +1,7 @@
 ---
 id: axe.page-has-heading-one
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: moderate
 fixer: editor
 ---

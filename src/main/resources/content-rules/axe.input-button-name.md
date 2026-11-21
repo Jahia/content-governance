@@ -1,7 +1,7 @@
 ---
 id: axe.input-button-name
 evaluator: axe
-domain: accessibility
+subdomains: [accessibility]
 severity: critical
 fixer: developer
 ---
