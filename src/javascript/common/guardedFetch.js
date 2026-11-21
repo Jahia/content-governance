@@ -6,9 +6,12 @@
  * - each request sends the page token of its address, or the master token the first time, and keeps
  *   the page token the guard answers with (the master token stops working for an address once it has
  *   one);
- * - a refusal (a redirect to /error.html) rotates every token of the session: the tokens are loaded
- *   again, other tabs are told to drop theirs, and the request is sent once more. A second refusal
- *   comes back as a 403, which callers already report as an error.
+ * - a refusal rotates every token of the session: the tokens are loaded again, other tabs are told to
+ *   drop theirs, and the request is sent once more. The guard refuses with a redirect to /error.html,
+ *   or with an error status and an HTML page when it is set to answer with an error, as a Jahia Cloud
+ *   node answered 503. The servlets of this module always answer in JSON, so an error that is not
+ *   JSON reads as a refusal too. A second redirect comes back as a 403, and a second error as itself,
+ *   which callers report as an error.
  *
  * Page tokens do not change between requests, so parallel requests share them safely.
  */
@@ -103,7 +106,11 @@ async function send(url, init) {
             }
         });
         if (res.type === 'opaqueredirect') {
-            return {sent};
+            return {sent, refused: true};
+        }
+
+        if (!res.ok && !(res.headers.get('Content-Type') || '').includes('json')) {
+            return {sent, res, refused: true};
         }
 
         remember(sent, address, res);
@@ -118,7 +125,7 @@ async function send(url, init) {
 
 export async function guardedFetch(url, init = {}) {
     const first = await send(url, init);
-    if (first.res) {
+    if (!first.refused) {
         return first.res;
     }
 

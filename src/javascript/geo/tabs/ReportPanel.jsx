@@ -29,9 +29,11 @@ export const ReportPanel = ({path, language, reportLanguage, siteKey, siteName})
     const [report, setReport] = useState(null);
     const [phase, setPhase] = useState('loading');
     const [error, setError] = useState('');
+    const [attempt, setAttempt] = useState(0);
 
     useEffect(() => {
         let alive = true;
+        setPhase('loading');
         (async () => {
             try {
                 const [s, r] = await Promise.all([
@@ -44,19 +46,20 @@ export const ReportPanel = ({path, language, reportLanguage, siteKey, siteName})
                     setPhase('idle');
                 }
             } catch (e) {
-                // Either call failing means the tab cannot offer anything, so it
-                // renders as unconfigured. The reason still belongs in the console.
+                // A failed call says nothing about the model: the server refused or
+                // did not answer. The tab says so and offers to ask again. Only the
+                // answer of the server says whether a model writes the report.
                 console.warn('geo-readiness: the report status could not be read', e);
                 if (alive) {
-                    setStatus({enabled: false});
-                    setPhase('idle');
+                    setStatus(null);
+                    setPhase('unreachable');
                 }
             }
         })();
         return () => {
             alive = false;
         };
-    }, [path, language]);
+    }, [path, language, attempt]);
 
     const generate = useCallback(async () => {
         setPhase('generating');
@@ -110,6 +113,15 @@ export const ReportPanel = ({path, language, reportLanguage, siteKey, siteName})
                     <Meta items={[{key: 'provider', text: t('report.provider', {provider: status.provider, model: status.model})}]}/>
                 )}
             </PanelHeader>
+
+            {phase === 'unreachable' && (
+                <Banner variant="danger" title={t('report.unreachableTitle')}>
+                    {t('report.unreachable')}
+                    <Actions>
+                        <Button label={t('report.retry')} onClick={() => setAttempt(n => n + 1)}/>
+                    </Actions>
+                </Banner>
+            )}
 
             {status && !status.enabled && status.reason === 'noAccess' && (
                 <Banner variant="info" title={t('report.noAccessTitle')}>

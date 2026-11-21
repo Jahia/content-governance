@@ -719,6 +719,9 @@
       "report": {
         "title": "The written report",
         "intro": "Everything else on this dashboard is measured and says so. This tab asks a model to read those measurements and write what they add up to: where the site stands for AI crawlers, what to fix first, who can fix it, and in what order. It answers only when you ask, because each answer is paid for and takes a while.",
+        "unreachableTitle": "The report tab could not reach the server",
+        "unreachable": "The server refused or did not answer the status of the report. This says nothing about the AI model. Retry, or reload the page.",
+        "retry": "Retry",
         "notConfiguredTitle": "No AI model available",
         "notConfigured": "The written report comes from the AI Assistant module. Install it and give it a model to enable this tab. Nothing leaves the server until then.",
         "provider": "Written by {{provider}} · {{model}}",

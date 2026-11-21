@@ -719,6 +719,9 @@
       "report": {
         "title": "Der schriftliche Bericht",
         "intro": "Alles andere auf diesem Dashboard ist gemessen und wird als solches gekennzeichnet. Diese Registerkarte lässt ein Modell diese Messungen lesen und zusammenfassen, was sie ergeben: wo die Website für KI-Crawler steht, was zuerst zu beheben ist, wer es beheben kann und in welcher Reihenfolge. Sie antwortet nur auf Anfrage, da jede Antwort kostenpflichtig ist und eine Weile dauert.",
+        "unreachableTitle": "Der Berichts-Tab hat den Server nicht erreicht",
+        "unreachable": "Der Server hat die Statusabfrage des Berichts abgelehnt oder nicht beantwortet. Das sagt nichts über das KI-Modell. Versuchen Sie es erneut oder laden Sie die Seite neu.",
+        "retry": "Erneut versuchen",
         "notConfiguredTitle": "Kein KI-Modell verfügbar",
         "notConfigured": "Der schriftliche Bericht kommt vom Modul AI Assistant. Installieren Sie es und weisen Sie ihm ein Modell zu, um diese Registerkarte zu aktivieren. Bis dahin verlässt nichts den Server.",
         "provider": "Erstellt von {{provider}} · {{model}}",

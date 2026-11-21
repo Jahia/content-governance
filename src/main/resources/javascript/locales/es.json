@@ -719,6 +719,9 @@
       "report": {
         "title": "El informe redactado",
         "intro": "Todo lo demás en este panel está medido y así lo indica. Esta pestaña pide a un modelo que lea esas mediciones y redacte la conclusión: en qué situación está el sitio frente a los rastreadores de IA, qué corregir primero, quién puede corregirlo y en qué orden. Solo responde cuando usted lo pide, porque cada respuesta tiene un coste y tarda un tiempo.",
+        "unreachableTitle": "La pestaña del informe no pudo contactar con el servidor",
+        "unreachable": "El servidor rechazó o no respondió la consulta del estado del informe. Esto no indica nada sobre el modelo de IA. Vuelva a intentarlo o recargue la página.",
+        "retry": "Reintentar",
         "notConfiguredTitle": "Ningún modelo de IA disponible",
         "notConfigured": "El informe redactado viene del módulo AI Assistant. Instálelo y asígnele un modelo para activar esta pestaña. Hasta entonces, nada sale del servidor.",
         "provider": "Redactado por {{provider}} · {{model}}",
