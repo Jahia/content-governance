@@ -719,6 +719,9 @@
       "report": {
         "title": "Le rapport rédigé",
         "intro": "Tout le reste de ce tableau de bord est mesuré, et le dit. Cet onglet demande à un modèle de lire ces mesures et d'écrire ce qu'elles signifient : où en est le site pour les robots d'IA, quoi corriger d'abord, qui peut le faire, et dans quel ordre. Il ne répond que sur demande, car chaque réponse est payante et prend du temps.",
+        "unreachableTitle": "L'onglet du rapport n'a pas joint le serveur",
+        "unreachable": "Le serveur a refusé ou n'a pas répondu à la demande d'état du rapport. Cela ne dit rien du modèle d'IA. Réessayez, ou rechargez la page.",
+        "retry": "Réessayer",
         "notConfiguredTitle": "Aucun modèle d'IA disponible",
         "notConfigured": "Le rapport rédigé vient du module AI Assistant. Installez-le et donnez-lui un modèle pour activer cet onglet. Rien ne quitte le serveur d'ici là.",
         "provider": "Rédigé par {{provider}} · {{model}}",

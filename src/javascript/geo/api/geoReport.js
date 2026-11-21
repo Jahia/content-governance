@@ -25,8 +25,10 @@ export async function fetchReportStatus({path, language}) {
     const query = `?path=${encodeURIComponent(path)}&language=${encodeURIComponent(language)}`;
     const res = await guardedFetch(ENDPOINT + query, {credentials: 'same-origin'});
     if (!res.ok) {
+        const detail = await res.json().then(body => body.error || '', () => '');
         const err = new Error('report');
-        err.code = res.status;
+        // A refusal of the CSRF guard is no answer of the server about access.
+        err.code = detail === 'refused' ? 'refused' : res.status;
         throw err;
     }
 
@@ -49,7 +51,7 @@ async function post(body) {
         const detail = await res.json().then(body => body.error || '', () => '');
 
         const err = new Error(detail || 'report');
-        err.code = res.status;
+        err.code = detail === 'refused' ? 'refused' : res.status;
         throw err;
     }
 

@@ -17,6 +17,7 @@ import {SchemaPanel} from '../tabs/SchemaPanel';
 import {ReportPanel} from '../tabs/ReportPanel';
 import {CITATION_VIEWS, SiteCitationsPanel} from '../tabs/SiteCitationsPanel';
 import {fetchReportStatus} from '../api/geoReport';
+import {tabOfferedAfter} from '../util/reportStatus';
 import {scanStatus} from '../api/siteScore';
 import {exportCsv, exportJson} from './exportScan';
 import {languageLabel} from '../util/languageFlag';
@@ -70,7 +71,9 @@ export const GeoDashboard = ({isOn}) => {
     // Asked per site rather than once, because the server now resolves the site
     // to decide whether this caller may be told at all (JAHIA-SEC-432). A
     // caller without `publish` on it gets a 403, which the catch below reads the
-    // same way as "no provider": the tab is not offered.
+    // same way as "no provider": the tab is not offered. Any other failure says
+    // nothing about the provider, so the tab stays, and says that it could not
+    // reach the server.
     useEffect(() => {
         if (!siteKey) {
             return undefined;
@@ -78,7 +81,7 @@ export const GeoDashboard = ({isOn}) => {
         let alive = true;
         fetchReportStatus({path: `/sites/${siteKey}`, language})
             .then(s => alive && setReportEnabled(Boolean(s && s.enabled)))
-            .catch(() => alive && setReportEnabled(false));
+            .catch(e => alive && setReportEnabled(tabOfferedAfter(e)));
         return () => {
             alive = false;
         };

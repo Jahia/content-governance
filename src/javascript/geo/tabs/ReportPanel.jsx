@@ -5,6 +5,7 @@ import {Banner, Button, Chip, Loader, Typography} from '@jahia/moonstone';
 import {fetchReportStatus, generateReport, readReport} from '../api/geoReport';
 import {jcontentUrl} from '../util/jcontentUrl';
 import {downloadText, reportFilename, reportToJson, reportToMarkdown} from '../util/exportReport';
+import {panelStateAfter} from '../util/reportStatus';
 import {Actions, Card, Meta, Note, Panel, PanelHeader} from '../dashboard/Layout';
 import styles from './Tabs.module.css';
 import {withKeys} from '../../common/keys';
@@ -29,9 +30,13 @@ export const ReportPanel = ({path, language, reportLanguage, siteKey, siteName})
     const [report, setReport] = useState(null);
     const [phase, setPhase] = useState('loading');
     const [error, setError] = useState('');
+    const [attempt, setAttempt] = useState(0);
 
     useEffect(() => {
         let alive = true;
+        setStatus(null);
+        setReport(null);
+        setPhase('loading');
         (async () => {
             try {
                 const [s, r] = await Promise.all([
@@ -44,19 +49,18 @@ export const ReportPanel = ({path, language, reportLanguage, siteKey, siteName})
                     setPhase('idle');
                 }
             } catch (e) {
-                // Either call failing means the tab cannot offer anything, so it
-                // renders as unconfigured. The reason still belongs in the console.
                 console.warn('geo-readiness: the report status could not be read', e);
                 if (alive) {
-                    setStatus({enabled: false});
-                    setPhase('idle');
+                    const next = panelStateAfter(e);
+                    setStatus(next.status);
+                    setPhase(next.phase);
                 }
             }
         })();
         return () => {
             alive = false;
         };
-    }, [path, language]);
+    }, [path, language, attempt]);
 
     const generate = useCallback(async () => {
         setPhase('generating');
@@ -110,6 +114,15 @@ export const ReportPanel = ({path, language, reportLanguage, siteKey, siteName})
                     <Meta items={[{key: 'provider', text: t('report.provider', {provider: status.provider, model: status.model})}]}/>
                 )}
             </PanelHeader>
+
+            {phase === 'unreachable' && (
+                <Banner variant="danger" title={t('report.unreachableTitle')}>
+                    {t('report.unreachable')}
+                    <Actions>
+                        <Button label={t('report.retry')} onClick={() => setAttempt(n => n + 1)}/>
+                    </Actions>
+                </Banner>
+            )}
 
             {status && !status.enabled && status.reason === 'noAccess' && (
                 <Banner variant="info" title={t('report.noAccessTitle')}>
