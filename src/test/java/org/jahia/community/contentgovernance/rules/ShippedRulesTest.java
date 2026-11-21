@@ -14,13 +14,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ShippedRulesTest {
 
     @Test
-    @DisplayName("the module ships 58 rules, and each names its evaluator")
+    @DisplayName("the module ships 58 rules and one rule per check of axe-core, and each names its evaluator and a known domain")
     void ownRules_load() {
         ShippedRules.Shipment own = ShippedRules.own();
 
         assertThat(own.complete()).isTrue();
-        assertThat(own.rules()).hasSize(58);
-        assertThat(own.rules().values()).allSatisfy(rule -> assertThat(rule.values()).containsKey(RuleValues.EVALUATOR));
+        assertThat(own.rules().keySet().stream().filter(id -> !id.startsWith("axe."))).hasSize(58);
+        assertThat(own.rules().keySet().stream().filter(id -> id.startsWith("axe."))).hasSize(96);
+        assertThat(own.rules().values()).allSatisfy(rule -> {
+            assertThat(rule.values()).containsKey(RuleValues.EVALUATOR);
+            assertThat(RuleDomains.known(rule.values().get(RuleValues.DOMAIN))).isTrue();
+        });
+        assertThat(own.rules().get("html.imageAltMissing").values()).containsEntry(RuleValues.DOMAIN, "accessibility");
+        assertThat(own.rules().get("axe.color-contrast").values()).containsEntry(RuleValues.EVALUATOR, "axe")
+                .containsEntry(RuleValues.SEVERITY, "serious");
+        assertThat(own.rules().values().stream().filter(rule -> !rule.id().startsWith("axe.")))
+                .allSatisfy(rule -> assertThat(rule.values()).containsKeys(RuleValues.TITLE, RuleValues.LABEL, RuleValues.TRANSLATIONS));
         ContentRule title = RuleValues.toRule(own.rules().get("seo.title").values());
         assertThat(title.evaluator()).isEqualTo(ContentRule.THRESHOLD);
         assertThat(title.domain()).isEqualTo("seo");
@@ -40,7 +49,7 @@ class ShippedRulesTest {
     @Test
     @DisplayName("a folder with a file that fails, or two files with one id, is not complete")
     void badFile_makesTheShipmentIncomplete(@TempDir Path folder) throws IOException {
-        String rule = "---\nid: acme.price\nevaluator: erp.price\nseverity: serious\n---\nCheck the price.\n";
+        String rule = "---\nid: acme.price\nevaluator: erp.price\ndomain: writing\nseverity: serious\n---\nCheck the price.\n";
         Files.writeString(folder.resolve("price.md"), rule);
         Files.writeString(folder.resolve("price-again.md"), rule);
         Files.writeString(folder.resolve("broken.md"), "---\nseverity: serious\n---\n");

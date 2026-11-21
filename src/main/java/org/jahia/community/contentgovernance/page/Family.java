@@ -26,8 +26,8 @@ final class Family {
     private Family() {
     }
 
-    /** A text that breaks a rule, and the text around it or null. */
-    record Hit(String text, String context) {
+    /** A text that breaks a rule, the text around it or null, and a CSS selector of its element or null. */
+    record Hit(String text, String context, String locator) {
     }
 
     /** What one reading of an input found, by check id. */
@@ -35,7 +35,11 @@ final class Family {
         private final Map<String, List<Hit>> byCheck = new LinkedHashMap<>();
 
         Found add(String checkId, String text, String context) {
-            byCheck.computeIfAbsent(checkId, ignored -> new ArrayList<>()).add(new Hit(text, context));
+            return add(checkId, text, context, null);
+        }
+
+        Found add(String checkId, String text, String context, String locator) {
+            byCheck.computeIfAbsent(checkId, ignored -> new ArrayList<>()).add(new Hit(text, context, locator));
             return this;
         }
 
@@ -74,6 +78,15 @@ final class Family {
         return cut(element.clone().empty().outerHtml(), 160);
     }
 
+    /** A CSS selector of the element, or null when jsoup cannot build one. */
+    static String locator(Element element) {
+        try {
+            return element.cssSelector();
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     static String cut(String text, int length) {
         return text.length() > length ? text.substring(0, length) + "…" : text;
     }
@@ -88,7 +101,7 @@ final class Family {
         @Override
         public List<Finding> check(CheckInput input, Rule rule) {
             return input.shared(shared, Found.class, () -> read.apply(input)).of(id).stream()
-                    .map(hit -> Finding.of(rule, hit.text(), hit.context()))
+                    .map(hit -> Finding.at(rule, hit.text(), hit.context(), hit.locator()))
                     .toList();
         }
     }

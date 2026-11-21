@@ -79,13 +79,13 @@ public class LinkChecks {
         String lower = href.toLowerCase(Locale.ROOT);
         boolean http = lower.startsWith("http://");
         if ((http || lower.startsWith("https://")) && localHosts.contains(host(href))) {
-            found.add(HARDCODED, href, null);
+            found.add(HARDCODED, href, null, Family.locator(link));
         }
         if (http) {
-            found.add(MIXED, href, null);
+            found.add(MIXED, href, null, Family.locator(link));
         }
         if ("_blank".equals(link.attr("target")) && !link.attr("rel").toLowerCase(Locale.ROOT).contains("noopener")) {
-            found.add(BLANK_NOOPENER, Family.tag(link), null);
+            found.add(BLANK_NOOPENER, Family.tag(link), null, Family.locator(link));
         }
     }
 

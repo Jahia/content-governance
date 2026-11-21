@@ -7,11 +7,19 @@ package org.jahia.community.contentgovernance.check.spi;
  * @param severity the severity of the rule as the site applies it: critical, serious, moderate or minor
  * @param text     the text that breaks the rule, such as a matched term, an HTML tag or a measured value
  * @param context  the text around the match, or null
+ * @param locator  a CSS selector of the element that breaks the rule in the rendered page, such as
+ *                 {@code main > p:nth-child(3) > img}, or null when the finding has no element. The drawer
+ *                 marks the element with it, and says "Item not found" when the page has no such element.
  */
-public record Finding(String ruleId, String severity, String text, String context) {
+public record Finding(String ruleId, String severity, String text, String context, String locator) {
 
     public Finding {
         text = text == null ? "" : text;
+    }
+
+    /** A finding with no element to mark. */
+    public Finding(String ruleId, String severity, String text, String context) {
+        this(ruleId, severity, text, context, null);
     }
 
     /**
@@ -31,5 +39,16 @@ public record Finding(String ruleId, String severity, String text, String contex
      */
     public static Finding of(Rule rule, String text, String context) {
         return new Finding(rule.id(), rule.severity(), text, context);
+    }
+
+    /**
+     * @param rule    the rule that the text breaks
+     * @param text    the text that breaks the rule
+     * @param context the text around the match, or null
+     * @param locator a CSS selector of the element in the rendered page, or null
+     * @return a finding with the id and the severity of the rule
+     */
+    public static Finding at(Rule rule, String text, String context, String locator) {
+        return new Finding(rule.id(), rule.severity(), text, context, locator);
     }
 }

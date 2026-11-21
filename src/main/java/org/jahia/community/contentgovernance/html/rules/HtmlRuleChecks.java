@@ -67,7 +67,7 @@ public class HtmlRuleChecks {
         public List<Finding> check(CheckInput input, Rule rule) {
             return input.shared(SHARED, Found.class, () -> found(input)).findings().stream()
                     .filter(finding -> finding.rule() == htmlRule)
-                    .map(finding -> Finding.of(rule, finding.element()))
+                    .map(finding -> Finding.at(rule, finding.element(), null, finding.locator()))
                     .toList();
         }
     }

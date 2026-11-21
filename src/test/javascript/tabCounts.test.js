@@ -55,7 +55,9 @@ describe('Web Vitals findings', () => {
             metrics: {lcp: 100, cls: 0, ttfb: 10},
             diagnostics: {...diagnostics, missingDims: 2, totalBytes: 3 * 1024 * 1024, requests: 120, domNodes: 2000}
         }, BASE_RULES);
-        expect(recs.map(rec => rec.key)).toEqual(['missingDims', 'heavyPage', 'manyRequests', 'largeDom']);
+        expect(recs.map(rec => rec.key)).toEqual(['ecodesign.imageDimensions', 'ecodesign.pageWeight', 'ecodesign.requests', 'ecodesign.domSize']);
+        expect(recs.map(rec => rec.title)).toEqual(['2 images have no width and height', 'The page weighs 3.0 MB (limit 1024 KB)',
+            'The page makes 120 requests (limit 70)', 'The page has 2000 elements (limit 1500)']);
     });
 
     it('drops the timing findings of an audit stored before 1.11, on the tab and in the lists', () => {

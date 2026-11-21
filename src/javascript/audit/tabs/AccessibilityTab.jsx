@@ -32,19 +32,25 @@ function levelScore(level, summary, violations) {
     };
 }
 
-function RuleDetails({rule, chip, onHighlight, findingKey}) {
+function RuleDetails({rule, chip, onHighlight, findingKey, siteSeverity}) {
     const {t} = useGovernanceTranslation('audit');
 
     return (
         <details className={styles.violation}>
             <summary className={styles.violationSummary}>
                 {chip}
+                {siteSeverity && (
+                    <span className={`${impactClass(siteSeverity)} ${styles.siteSeverity}`} title={t('a11y.siteSeverityHelp')}>
+                        {t('a11y.siteSeverity', {severity: t(`a11y.impacts.${siteSeverity}`)})}
+                    </span>
+                )}
                 <span className={styles.levelChip}>{rule.level}</span>
-                <span className={styles.violationHelp}>{rule.help}</span>
+                <span className={styles.violationHelp}>{rule.title || rule.help}</span>
                 <span className={styles.nodeCount}>{rule.totalNodes}</span>
             </summary>
             <div className={styles.violationBody}>
                 <p>{rule.description} (<a href={rule.helpUrl} target="_blank" rel="noreferrer">{rule.id}</a>)</p>
+                {rule.rule && <code className={styles.recRule}>{rule.rule}</code>}
                 {findingKey && <FindingActions findingKey={findingKey}/>}
                 {rule.nodes.map((node, i) => (
                     /* eslint-disable-next-line react/no-array-index-key */
@@ -71,7 +77,9 @@ RuleDetails.propTypes = {
     chip: PropTypes.node.isRequired,
     onHighlight: PropTypes.func.isRequired,
     // The key of the finding of a violation, for the actions other modules add to it
-    findingKey: PropTypes.string
+    findingKey: PropTypes.string,
+    // The severity that the site gives the rule axe.<id>, shown beside the impact of axe-core
+    siteSeverity: PropTypes.string
 };
 
 export function AccessibilityTab({result, onHighlight}) {
@@ -127,10 +135,11 @@ export function AccessibilityTab({result, onHighlight}) {
                     key={v.id}
                     rule={v}
                     chip={
-                        <span className={impactClass(v.impact)}>
+                        <span className={impactClass(v.impact)} title={t('a11y.axeImpactHelp')}>
                             {t(`a11y.impacts.${v.impact}`)}
                         </span>
                     }
+                    siteSeverity={v.rule ? v.severity : null}
                     onHighlight={onHighlight}
                     findingKey={auditFindingKey('a11y', v.id)}
                 />

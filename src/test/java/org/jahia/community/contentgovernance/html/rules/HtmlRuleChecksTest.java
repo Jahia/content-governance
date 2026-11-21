@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 class HtmlRuleChecksTest {
 
@@ -23,7 +24,8 @@ class HtmlRuleChecksTest {
         CheckInput input = CheckInput.page("/sites/digitall/home", "en", PAGE);
 
         assertThat(new HtmlRuleChecks.Check(HtmlRule.IMAGE_ALT_MISSING).check(input, imageAlt))
-                .containsExactly(new Finding("html.imageAltMissing", "critical", "<img src=\"a.png\">", null));
+                .extracting(Finding::ruleId, Finding::text, Finding::locator)
+                .containsExactly(tuple("html.imageAltMissing", "<img src=\"a.png\">", "html > body > img"));
         assertThat(new HtmlRuleChecks.Check(HtmlRule.PAGE_LANGUAGE_MISSING).check(input, language)).isEmpty();
     }
 

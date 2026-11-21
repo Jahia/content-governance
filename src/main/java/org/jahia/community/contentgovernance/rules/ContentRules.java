@@ -120,8 +120,11 @@ public final class ContentRules {
             if (id == null || !seen.add(id.toString())) {
                 continue;
             }
-            Map<String, Object> merged = new LinkedHashMap<>(shippedValues(shipments, id.toString()));
+            Map<String, Object> shippedValues = shippedValues(shipments, id.toString());
+            Map<String, Object> merged = new LinkedHashMap<>(shippedValues);
             merged.putAll(values);
+            merged.put(RuleValues.TRANSLATIONS, RuleValues.mergeTranslations(shippedValues.get(RuleValues.TRANSLATIONS),
+                    values.get(RuleValues.TRANSLATIONS)));
             out.put(id.toString(), RuleValues.toRule(merged).inFolder(node.getParent().getPath()));
         }
         return new ContentRules(out);

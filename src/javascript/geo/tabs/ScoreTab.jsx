@@ -1,7 +1,10 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import PropTypes from 'prop-types';
+import {useApolloClient} from '@apollo/client';
 import {useGovernanceTranslation} from '../../common/i18n';
 import {Chip, Typography} from '@jahia/moonstone';
+import {fetchRules} from '../../audit/rules';
+import {passedOf} from '../../audit/ruleText';
 import styles from './Tabs.module.css';
 
 const GROUPS = ['access', 'content', 'files'];
@@ -12,19 +15,55 @@ function llmsKey(llms) {
 }
 
 /**
+ * The texts of a GEO check, from the rule it reports, in the editor's interface language: the neutral
+ * label of the rule, and for a failed check the title and the advice of its finding. Without the rules
+ * (they are loading, or could not be read), the texts of the interface stand in.
+ */
+function wordCheck(check, rules, t) {
+    const rule = check.rule && rules?.find(check.rule);
+    if (!rule) {
+        return {label: t(`score.check.${check.id}.label`), fix: check.passed ? null : t(`score.check.${check.id}.fix`, {min: check.min, max: check.max})};
+    }
+    // A check that measured nothing, such as the length of a description the page lacks, measured 0
+    const value = check.value === null || check.value === undefined || check.value === '' ? 0 : check.value;
+    const worded = rules.word(check.rule, {count: Number(value) || 1, value, min: check.min, max: check.max});
+    if (check.passed) {
+        return {label: worded.label, fix: null};
+    }
+    const end = /[.!?]$/.test(worded.title) ? ' ' : '. ';
+    return {label: worded.label, fix: worded.detail ? `${worded.title}${end}${worded.detail}` : worded.title};
+}
+
+/**
  * The score is a count of checks, not a rating out of 100. Every row names the
  * fact it read, so an editor can disagree with a specific line rather than with
- * a number they cannot see inside.
+ * a number they cannot see inside. Each row is the pass/fail result of a rule, worded by that rule, and
+ * the counts come from the rows: a rule of the domain geo of another module counts the same way.
  */
-export const ScoreTab = ({report}) => {
-    const {t} = useGovernanceTranslation('geo');
+export const ScoreTab = ({report, path}) => {
+    const {t, i18n} = useGovernanceTranslation('geo');
+    const client = useApolloClient();
+    const [rules, setRules] = useState(null);
+    const uiLanguage = i18n?.language || 'en';
+    useEffect(() => {
+        let live = true;
+        if (path) {
+            fetchRules(client, path, uiLanguage).then(book => live && setRules(book)).catch(() => live && setRules(null));
+        }
+        return () => {
+            live = false;
+        };
+    }, [client, path, uiLanguage]);
     const score = report.score;
 
     if (!score) {
         return null;
     }
 
-    const {passed, total, criticalFailed, importantFailed, checks = []} = score;
+    const checks = (score.checks || []).map(check => ({...check, ...wordCheck(check, rules, t)}));
+    const {passed, total} = passedOf(checks);
+    const criticalFailed = checks.filter(check => !check.passed && check.severity === 'critical').length;
+    const importantFailed = checks.filter(check => !check.passed && check.severity === 'important').length;
     // GEO-18. Checks the last site scan blames on this page's template, so an
     // author is not sent to fix something that is not theirs to fix.
     const rollup = report.templateRollup || {};
@@ -110,11 +149,11 @@ export const ScoreTab = ({report}) => {
                                     </span>
                                     <span className={styles.checkText}>
                                         <Typography variant="body" className={styles.checkLabel}>
-                                            {t(`score.check.${c.id}.label`)}
+                                            {c.label}
                                         </Typography>
-                                        {!c.passed && (
+                                        {c.fix && (
                                             <Typography variant="caption" className={styles.checkFix}>
-                                                {t(`score.check.${c.id}.fix`, {min: c.min, max: c.max})}
+                                                {c.fix}
                                             </Typography>
                                         )}
                                         {c.rule && (
@@ -153,5 +192,7 @@ export const ScoreTab = ({report}) => {
 };
 
 ScoreTab.propTypes = {
-    report: PropTypes.object.isRequired
+    report: PropTypes.object.isRequired,
+    // The page, whose site gives the rules
+    path: PropTypes.string
 };

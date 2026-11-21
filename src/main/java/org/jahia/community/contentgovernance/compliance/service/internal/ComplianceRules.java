@@ -63,7 +63,8 @@ record ComplianceRules(Map<String, ContentRule> rules, List<WritingRule> writing
         List<WritingRule> writing = new ArrayList<>();
         Map<String, Integer> counts = new LinkedHashMap<>();
         for (ContentRule rule : all) {
-            WritingRule pattern = rule.enabled() && ContentRule.PATTERN.equals(rule.evaluator())
+            // A rule of an unknown domain runs nowhere, as in the check registry
+            WritingRule pattern = rule.enabled() && rule.hasKnownDomain() && ContentRule.PATTERN.equals(rule.evaluator())
                     ? PatternCheck.writingRule(rule) : null;
             if (pattern == null || pattern.kind() == WritingRule.Kind.MANDATORY || !pattern.inForceOn(day)) {
                 continue;

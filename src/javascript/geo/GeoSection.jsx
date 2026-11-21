@@ -374,7 +374,7 @@ export const GeoSection = ({path, language, isOn, onCount, onFindings, requested
                         aria-labelledby={`geo-drawer-tab-${activeTab}`}
                         tabIndex={0}
                     >
-                        {reportTabs && activeTab === 'score' && <ScoreTab report={report}/>}
+                        {reportTabs && activeTab === 'score' && <ScoreTab report={report} path={path}/>}
                         {reportTabs && activeTab === 'crawler' && <CrawlerTab report={report}/>}
                         {reportTabs && activeTab === 'files' && <SiteFilesTab report={report}/>}
                         {reportTabs && activeTab === 'schema' && <SchemaTab report={report}/>}

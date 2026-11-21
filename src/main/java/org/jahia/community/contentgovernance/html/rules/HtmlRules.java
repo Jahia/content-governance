@@ -199,6 +199,18 @@ public final class HtmlRules {
         return "\"" + id.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 
+    /** A CSS selector of the element, which the drawer marks in its preview; null for no element. */
+    static String locatorOf(Element element) {
+        if (element == null) {
+            return null;
+        }
+        try {
+            return element.cssSelector();
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     /** The findings of one check: the rules of the scope only, up to the maximum. */
     private static final class Findings {
         private final Scope scope;
@@ -216,7 +228,7 @@ public final class HtmlRules {
             if (snippet.length() > SNIPPET_CHARS) {
                 snippet = snippet.substring(0, SNIPPET_CHARS) + "…";
             }
-            list.add(new HtmlFinding(rule, snippet));
+            list.add(new HtmlFinding(rule, snippet, locatorOf(element)));
         }
     }
 }

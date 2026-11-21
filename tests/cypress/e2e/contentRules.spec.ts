@@ -56,6 +56,7 @@ describe('Content Governance - content rules', () => {
                     name: 'acme-tone', primaryNodeType: 'ccs:contentRule', properties: [
                         {name: 'ruleId', value: 'acme.tone'},
                         {name: 'evaluator', value: 'model'},
+                        {name: 'domain', value: 'writing'},
                         {name: 'severity', value: 'minor'},
                         {name: 'blocking', value: 'true'},
                         {name: 'advice', value: 'Write in a friendly tone.', language: 'en'}

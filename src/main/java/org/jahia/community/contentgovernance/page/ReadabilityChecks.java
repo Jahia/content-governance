@@ -18,21 +18,26 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * The readability checks of the main text of a page or of a content item. The rules
- * {@code readability.longSentences}, {@code readability.longParagraphs} and
- * {@code readability.thinContent} are thresholds on the values that {@link #facts} measures. A text of
- * fewer than 30 words gives no finding.
+ * The readability checks of the main text of a page or of a content item. Every rule of readability is a
+ * threshold on a value that {@link #facts} measures: {@code readability.longSentences},
+ * {@code readability.longParagraphs}, {@code readability.thinContent}, and one rule per scale of the
+ * score, each with its own limit: {@code readability.flesch} (a Flesch Reading Ease adapted to the
+ * language, where a higher score reads easier: a minimum) and {@code readability.lix} (the LIX of the
+ * Nordic languages, where a higher score reads harder: a maximum). A text of fewer than 30 words gives no
+ * finding.
  */
 @Component(immediate = true)
 public class ReadabilityChecks {
 
-    static final String VERY_HARD = "readability.veryHardText";
-    static final String HARD = "readability.hardText";
+    /** The score of a text in a language with a Flesch-type formula. */
+    static final String FLESCH = "readability.flesch";
+    /** The score of a text in a language whose formula is the LIX. */
+    static final String LIX = "readability.lix";
     static final String LONG_SENTENCES = "readability.longSentences";
     static final String LONG_PARAGRAPHS = "readability.longParagraphs";
     static final String THIN_CONTENT = "readability.thinContent";
-    /** The ids of the checks, which are the ids of their rules. */
-    public static final List<String> IDS = List.of(VERY_HARD, HARD);
+    /** The ids of the checks of their own: none, every rule of readability is a threshold on a fact. */
+    public static final List<String> IDS = List.of();
 
     private static final String SHARED = "content-governance:readability";
     /** The parts of a page that are not its text. */
@@ -66,6 +71,10 @@ public class ReadabilityChecks {
         }
         out.put(LONG_SENTENCES, measure.longestSentence());
         out.put(THIN_CONTENT, measure.words());
+        if (measure.score() != null) {
+            // Only the rule of the scale of the language reads the score: the other rule has no fact and passes
+            out.put(Readability.LIX.equals(measure.formula()) ? LIX : FLESCH, measure.score());
+        }
         List<Integer> paragraphs = paragraphLengths(html);
         if (!paragraphs.isEmpty()) {
             out.put(LONG_PARAGRAPHS, average(paragraphs));
@@ -112,13 +121,6 @@ public class ReadabilityChecks {
     }
 
     static Family.Found read(CheckInput input) {
-        Readability.Measure measure = measure(Family.document(input), input.language());
-        if (measure.band() == Readability.Band.VERY_DIFFICULT) {
-            return new Family.Found().add(VERY_HARD, String.valueOf(measure.score()), measure.formula());
-        }
-        if (measure.band() == Readability.Band.DIFFICULT) {
-            return new Family.Found().add(HARD, String.valueOf(measure.score()), measure.formula());
-        }
         return new Family.Found();
     }
 

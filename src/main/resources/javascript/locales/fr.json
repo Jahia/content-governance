@@ -1045,7 +1045,10 @@
         "loading": "Chargement de l'aperçu…",
         "analyzing": "Analyse de la page…",
         "error": "L'analyse a échoué",
-        "staleTitle": "Page modifiée depuis cet audit"
+        "staleTitle": "Page modifiée depuis cet audit",
+        "legacyTitle": "Audit enregistré par une version antérieure",
+        "legacy": "Cet audit date d'avant que chaque constat prenne son texte de sa règle : il montre ses anciens textes. Relancez-le pour lire les textes des règles.",
+        "runAgain": "Relancer"
       },
       "tabs": {
         "accessibility": "Accessibilité",
@@ -1334,7 +1337,8 @@
         "title": "Recommandations",
         "none": "Rien à améliorer dans cette catégorie.",
         "rule": "Règle {{rule}} ({{count}})",
-        "items": "Constats ({{count}})"
+        "items": "Constats ({{count}})",
+        "notFound": "Élément introuvable"
       },
       "a11y": {
         "levels": {
@@ -1427,7 +1431,10 @@
             }
           }
         },
-        "serverRules": "Règles HTML vérifiées sur le serveur"
+        "serverRules": "Règles du catalogue vérifiées sur le serveur",
+        "siteSeverity": "Site : {{severity}}",
+        "siteSeverityHelp": "La gravité que le site donne à cette règle dans son catalogue",
+        "axeImpactHelp": "L'impact qu'axe-core donne à ce contrôle"
       },
       "vitals": {
         "labNote": "Chiffres indicatifs : la page est mesurée sur son aperçu d'édition, dans votre navigateur et avec votre session ; ils ne correspondent donc pas au site en ligne (ni cache, ni CDN). Utilisez-les pour comparer avant et après une modification. Ce qui alourdit la page, ci-dessous, est identique sur le site en ligne.",
@@ -1474,7 +1481,8 @@
             "title": "{{count}} fichiers très lourds (ex. {{name}})",
             "detail": "Minifiez, compressez ou découpez ces ressources, ou chargez-les uniquement là où elles servent."
           }
-        }
+        },
+        "findingsInEcodesign": "Les constats sur le poids, les requêtes et les images s'affichent dans l'onglet Écoconception."
       },
       "dashboard": {
         "navLabel": "Qualité de la page",

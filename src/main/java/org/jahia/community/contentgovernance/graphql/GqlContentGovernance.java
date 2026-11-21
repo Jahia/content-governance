@@ -124,7 +124,8 @@ public class GqlContentGovernance {
      * The rules of a site, as the checks apply them. Any signed-in user who can read the site may ask:
      * the drawer of every editor needs them.
      *
-     * @param siteKey key of the site
+     * @param siteKey  key of the site
+     * @param language the language of the texts of the rules, or null for English
      * @return every rule of the catalog, with what the site changed, in the order of the catalog
      */
     @GraphQLField
@@ -132,10 +133,14 @@ public class GqlContentGovernance {
     @GraphQLNonNull
     @GraphQLDescription("The rules of the catalog as a site applies them")
     public List<GqlContentRule> contentRules(
-            @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey) {
+            @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey,
+            @GraphQLName("language") @GraphQLDescription("The language of the texts of the rules, such as fr: the interface language of the editor. English when null, and for a rule with no text in that language") String language) {
+        if (language != null && !LANGUAGE.matcher(language).matches()) {
+            throw new DataFetchingException("Invalid language");
+        }
         SiteAccess.site(siteKey);
         return ContentRules.forSite(siteKey).all().stream()
-                .map(rule -> new GqlContentRule(rule, checks.status(rule), checks.blocking(rule)))
+                .map(rule -> new GqlContentRule(rule, checks.status(rule), checks.blocking(rule), language))
                 .toList();
     }
 

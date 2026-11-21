@@ -48,7 +48,8 @@ public final class Readability {
             "it", new Formula("Franchina-Vacca", (asl, asw) -> 206 - asl - 65 * asw),
             "nl", new Formula("Douma", (asl, asw) -> 206.835 - 0.93 * asl - 77 * asw),
             "pt", new Formula("Martins", (asl, asw) -> 248.835 - 1.015 * asl - 84.6 * asw));
-    private static final String LIX = "LIX";
+    /** The name of the formula of the languages whose score is a LIX, where a higher score reads harder. */
+    static final String LIX = "LIX";
     private static final Set<String> LIX_LANGUAGES = Set.of("sv", "da", "nb", "nn", "no");
     private static final Set<String> UNSPACED = Set.of("ja", "zh", "th", "lo", "km", "my");
 

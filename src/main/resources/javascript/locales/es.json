@@ -1045,7 +1045,10 @@
         "loading": "Cargando la vista previa de la página…",
         "analyzing": "Analizando la página…",
         "error": "El análisis falló",
-        "staleTitle": "Página modificada después de esta auditoría"
+        "staleTitle": "Página modificada después de esta auditoría",
+        "legacyTitle": "Auditoría guardada por una versión anterior",
+        "legacy": "Esta auditoría es anterior a que cada hallazgo tomara su texto de su regla: muestra sus textos antiguos. Vuelva a ejecutarla para leer los textos de las reglas.",
+        "runAgain": "Volver a ejecutar"
       },
       "tabs": {
         "accessibility": "Accesibilidad",
@@ -1334,7 +1337,8 @@
         "title": "Recomendaciones",
         "none": "Nada que mejorar en esta categoría.",
         "rule": "Regla {{rule}} ({{count}})",
-        "items": "Hallazgos ({{count}})"
+        "items": "Hallazgos ({{count}})",
+        "notFound": "Elemento no encontrado"
       },
       "a11y": {
         "levels": {
@@ -1427,7 +1431,10 @@
             }
           }
         },
-        "serverRules": "Reglas HTML comprobadas en el servidor"
+        "serverRules": "Reglas del catálogo comprobadas en el servidor",
+        "siteSeverity": "Sitio: {{severity}}",
+        "siteSeverityHelp": "La gravedad que el sitio da a esta regla en su catálogo",
+        "axeImpactHelp": "El impacto que axe-core da a esta comprobación"
       },
       "vitals": {
         "labNote": "Cifras orientativas: la página se mide en su vista previa de edición, en su navegador y con su sesión, por lo que no coinciden con el sitio publicado (sin caché ni CDN). Úselas para comparar antes y después de un cambio. Lo que hace pesada la página, abajo, es igual en el sitio publicado.",
@@ -1474,7 +1481,8 @@
             "title": "{{count}} archivos muy grandes (p. ej., {{name}})",
             "detail": "Minifique, comprima o divida estos recursos, o cárguelos solo donde realmente se usan."
           }
-        }
+        },
+        "findingsInEcodesign": "Los hallazgos sobre peso, solicitudes e imágenes aparecen en la pestaña Ecodiseño."
       },
       "dashboard": {
         "navLabel": "Calidad de la página",

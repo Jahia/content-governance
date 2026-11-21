@@ -22,10 +22,13 @@ import java.util.Set;
 @Component(immediate = true)
 public class BrowserChecks {
 
-    /** The ids of the checks that {@code webVitals.js} and {@code ecodesign.js} run. */
+    /**
+     * The ids of the checks that {@code webVitals.js} and {@code ecodesign.js} run, and {@code axe}: axe-core in
+     * the preview of the drawer, which applies each rule {@code axe.<axe-core rule id>} of the site.
+     */
     static final List<String> IDS = List.of(
             "ecodesign.autoplay", "ecodesign.imageDimensions", "ecodesign.imageFormats", "ecodesign.lazyLoading",
-            "ecodesign.oversizedImages");
+            "ecodesign.oversizedImages", "axe");
 
     private final CheckServices services = new CheckServices();
 
