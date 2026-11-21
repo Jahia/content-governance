@@ -1,7 +1,7 @@
 ---
 id: readability.longParagraphs
 evaluator: threshold
-domain: readability
+subdomains: [readability]
 severity: moderate
 fixer: editor
 unit: words

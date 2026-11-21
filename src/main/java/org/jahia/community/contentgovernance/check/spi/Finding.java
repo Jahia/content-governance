@@ -18,7 +18,8 @@ import java.util.Map;
  *                 empty when it measured nothing. A check of a value names the place of its finding with
  *                 {@value #START} and {@value #END}, and a term rule adds {@value #TERM} and
  *                 {@value #REPLACEMENT}: {@code {start: 4, end: 14, term: "click here", replacement: "select"}}.
- *                 The Compliance section and {@code frame.check} read them.
+ *                 The Compliance section and {@code frame.check} read them. The values of the whole rule
+ *                 are on {@link CheckResult}.
  */
 public record Finding(String ruleId, String severity, String text, String context, String locator,
                       Map<String, Object> values) {

@@ -28,7 +28,7 @@ class ScanLimitsTest {
     private static final ContentRule CLICK = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "compliance.click-here",
             RuleValues.PATTERN, "click here", RuleValues.REPLACEMENT, "select"));
     private static final ContentRule PRICE = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.erpPrice",
-            RuleValues.EVALUATOR, "acme.erpPrice", RuleValues.DOMAIN, "writing", RuleValues.LABEL, "Prices from the ERP"));
+            RuleValues.EVALUATOR, "acme.erpPrice", RuleValues.SUBDOMAINS, List.of("writing"), RuleValues.LABEL, "Prices from the ERP"));
 
     private static ComplianceScanServiceImpl.Scan scan(int maxIssues) {
         return new ComplianceScanServiceImpl.Scan(new ComplianceRules(ContentRules.base(), Set.of(), true, List.of()),

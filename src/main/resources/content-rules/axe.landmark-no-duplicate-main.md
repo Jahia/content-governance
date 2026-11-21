@@ -1,7 +1,8 @@
 ---
 id: axe.landmark-no-duplicate-main
 evaluator: axe
-domain: accessibility
+runtime: browser
+subdomains: [accessibility]
 severity: moderate
 fixer: developer
 ---

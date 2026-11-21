@@ -1,7 +1,8 @@
 ---
 id: axe.aria-allowed-role
 evaluator: axe
-domain: accessibility
+runtime: browser
+subdomains: [accessibility]
 severity: minor
 fixer: developer
 ---

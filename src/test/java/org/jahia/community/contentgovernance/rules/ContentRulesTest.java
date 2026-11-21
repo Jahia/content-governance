@@ -19,7 +19,7 @@ class ContentRulesTest {
     /** A module that the site may enable, and that ships one rule. */
     private static final ShippedRules.Shipment ACME = new ShippedRules.Shipment("acme", Map.of("acme.erpPrice",
             new RuleFile("acme.erpPrice", Map.of(RuleValues.RULE_ID, "acme.erpPrice", RuleValues.EVALUATOR, "acme.erpPrice",
-                    RuleValues.DOMAIN, "writing"))), true);
+                    RuleValues.SUBDOMAINS, List.of("writing")))), true);
 
     private static final List<ContentRules.RuleNode> PLATFORM_NODES = List.of(
             new ContentRules.RuleNode(Map.of(RuleValues.RULE_ID, "brand.noClickHere", RuleValues.PATTERN, "click here"), PLATFORM),
@@ -31,11 +31,15 @@ class ContentRulesTest {
             new ContentRules.RuleNode(Map.of(RuleValues.RULE_ID, "seo.title", RuleValues.MAXIMUM, 70.0), SITE));
 
     private static ContentRules merge(ShippedRules.Shipment... enabled) {
+        return merge(SITE_NODES, enabled);
+    }
+
+    private static ContentRules merge(List<ContentRules.RuleNode> siteNodes, ShippedRules.Shipment... enabled) {
         Set<String> shippedIds = new HashSet<>(ShippedRules.own().rules().keySet());
         shippedIds.addAll(ACME.rules().keySet());
         List<ShippedRules.Shipment> shipments = new ArrayList<>(List.of(ShippedRules.own()));
         shipments.addAll(List.of(enabled));
-        return ContentRules.merge(shipments, shippedIds, PLATFORM_NODES, SITE_NODES);
+        return ContentRules.merge(shipments, shippedIds, PLATFORM_NODES, siteNodes, ContentDomains.base());
     }
 
     @Test
@@ -70,5 +74,15 @@ class ContentRulesTest {
         ContentRule price = merge(ACME).get("acme.erpPrice");
         assertThat(price.severity()).isEqualTo("critical");
         assertThat(price.folder()).isEqualTo(PLATFORM);
+    }
+
+    @Test
+    void aNodeOfTheSite_ofARuleThatAModuleShips_appliesOnlyWhereTheSiteEnablesTheModule() {
+        // The seeded node stays on the site when the site removes the module
+        List<ContentRules.RuleNode> seeded = List.of(
+                new ContentRules.RuleNode(Map.of(RuleValues.RULE_ID, "acme.erpPrice", RuleValues.SEVERITY, "minor"), SITE));
+
+        assertThat(merge(seeded).all()).extracting(ContentRule::id).doesNotContain("acme.erpPrice");
+        assertThat(merge(seeded, ACME).get("acme.erpPrice").severity()).isEqualTo("minor");
     }
 }

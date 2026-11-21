@@ -1,7 +1,7 @@
 ---
 id: html.duplicateId
 evaluator: html.duplicateId
-domain: accessibility
+subdomains: [accessibility]
 severity: minor
 fixer: developer
 label:

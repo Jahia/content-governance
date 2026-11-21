@@ -50,7 +50,7 @@ export function titleFor(forms, count, language) {
  *
  * @param {{id: string, title: ?Array, label: ?string, advice: ?string}} rule the rule, with its texts in `language`
  * @param {object} values the values of the finding: `count` (how many findings), `value` (what the first one
- *     measured or matched), the limits of the rule, and what an analyzer of the browser measured
+ *     measured or matched), the limits of the rule, and what a check of the browser measured
  * @param {string} language the editor's interface language
  * @returns {{title: string, label: string, detail: string}} the texts; with no title, the label or the id
  */

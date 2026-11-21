@@ -4,8 +4,9 @@ import {limits} from './rules';
 /**
  * The page check service of the server for the Page quality tabs SEO, Readability, Links and Jahia
  * health: `checkPage` renders the page as the editor, in the edit workspace, runs every check of the
- * server on it, and measures the facts these tabs show. `frame.check` gives the same findings for the
- * same path. Each finding lands in one tab, under the id of its rule.
+ * server on it, and gives the result of each rule that ran, `{ruleId, passed, values, findings}`.
+ * `frame.check` gives the same findings for the same path. Each finding lands in one tab, under the id
+ * of its rule, and each tab shows the values of the results that feed it.
  */
 
 export const PAGE_CHECK = gql`
@@ -13,23 +14,49 @@ export const PAGE_CHECK = gql`
         contentGovernance {
             checkPage(path: $path, language: $language) {
                 path
-                findings {
+                results {
                     ruleId
-                    severity
-                    text
-                    context
-                    locator
+                    passed
+                    values
+                    findings {
+                        ruleId
+                        severity
+                        text
+                        context
+                        locator
+                        values
+                    }
                 }
-                facts
             }
         }
     }
 `;
 
 /**
- * The Page quality tab of each domain of rules (Jahia/content-governance#142). No list names the tab of a
- * rule: a finding goes to the tab of the domain of its rule, built-in or of another module. A rule of the
- * domain `geo` or `compliance` shows in its own section, and a rule of an unknown domain never runs.
+ * The rules whose results feed the blocks of the tabs, beside their findings. A rule that the site turned
+ * off gives no result, and its block is left out: `readability.statistics` and `readability.headings`
+ * feed the Readability tab, `seo.tags` the tag list and the sharing preview of SEO, `links.broken` the
+ * links of Links, `health.unpublishedChanges` and `health.missingTranslations` the state of the content
+ * of Jahia health.
+ */
+const FEEDS = {
+    tags: 'seo.tags',
+    statistics: 'readability.statistics',
+    headings: 'readability.headings',
+    links: 'links.broken',
+    unpublished: 'health.unpublishedChanges',
+    untranslated: 'health.missingTranslations'
+};
+
+/** The SEO tab with no tag list: the texts of the page facts kept with each audit are empty. */
+const NO_TAGS = {title: {text: null, length: 0}, description: {text: null, length: 0}};
+
+/**
+ * The Page quality tab of each subdomain of rules (Jahia/content-governance#151). No list names the tab of a
+ * rule: a finding goes to the tab of the first subdomain of its rule that has one, built-in or of another
+ * module. A rule of the subdomains of SEO & GEO (but `seo`) or of Compliance (but `readability` and
+ * `writing`) shows in its own section, and a rule of unknown subdomains never runs. A later issue builds
+ * the tabs from the hierarchy that `contentDomains` gives.
  */
 export const DOMAIN_TABS = {
     accessibility: 'accessibility',
@@ -44,12 +71,12 @@ export const DOMAIN_TABS = {
 /**
  * The tab that shows the findings of a rule.
  *
- * @param {object} [rule] the rule of the site, whose `domain` names its tab
+ * @param {object} [rule] the rule of the site, whose `subdomains` name its tabs
  * @returns {?string} `accessibility`, `seo`, `readability`, `links`, `jahia` or `ecodesign`, or null for a
  *     rule that no Page quality tab shows
  */
 export function tabOf(rule) {
-    return DOMAIN_TABS[rule?.domain] || null;
+    return (rule?.subdomains || []).map(subdomain => DOMAIN_TABS[subdomain]).find(Boolean) || null;
 }
 
 /**
@@ -81,7 +108,7 @@ export function recommendationsByTab(findings, rules) {
         const rule = rules.find(ruleId);
         const tab = tabOf(rule);
         if (!tab) {
-            console.warn(`[content-governance] the rule ${ruleId} has the domain ${rule?.domain}, which no Page quality tab shows`);
+            console.warn(`[content-governance] the rule ${ruleId} has the subdomains ${rule?.subdomains}, which no Page quality tab shows`);
             return;
         }
         const params = {...(rule ? limits(rule) : {}), count: items.length, value: items[0].text};
@@ -110,56 +137,77 @@ const resolved = (address, pageUrl) => {
 };
 
 /**
- * The tabs whose facts the server could not read in the repository, though it rendered the page: Jahia
- * health with no state of the content, Links with no resolution of the internal links.
+ * The tabs whose values the server could not read in the repository, though it rendered the page and ran
+ * their rules: Jahia health with no state of the content, Links with no resolution of the internal links.
  */
-const unreadTabs = ({links, jahia}) => [
-    ...(links.checked === null || links.checked === undefined ? ['links'] : []),
-    ...(jahia.scanned === undefined ? ['jahia'] : [])
+const unreadTabs = values => [
+    ...(values.has(FEEDS.links) && (values.get(FEEDS.links).checked ?? null) === null ? ['links'] : []),
+    ...([FEEDS.unpublished, FEEDS.untranslated].some(id => values.has(id) && values.get(id).scanned === undefined) ? ['jahia'] : [])
 ];
 
 /** A path under the page, as the Jahia health tab lists it: `/main/intro`, or `/` for the page itself. */
 const under = (path, pagePath) => (path.startsWith(pagePath) ? path.slice(pagePath.length) || '/' : path);
 
 /**
+ * The state of the content of Jahia health, from the values of its two rules. `scanned` is null when
+ * neither rule ran.
+ */
+const contentState = (values, pagePath) => {
+    const unpublished = values.get(FEEDS.unpublished) || {};
+    const untranslated = values.get(FEEDS.untranslated) || {};
+    return {
+        pageStatus: unpublished.pageStatus ? unpublished.pageStatus.toUpperCase() : null,
+        activeLanguages: untranslated.activeLanguages || [],
+        scanned: unpublished.scanned ?? untranslated.scanned ?? null,
+        unpublished: (unpublished.unpublished || []).map(node => ({...node, path: under(node.path, pagePath), status: node.status.toUpperCase()})),
+        untranslated: (untranslated.untranslated || []).map(node => ({...node, path: under(node.path, pagePath)}))
+    };
+};
+
+/**
  * The results of the tabs SEO, Readability, Links and Jahia health, and the recommendations of the
- * Accessibility tab, from one answer of the service.
+ * Accessibility tab, from the results of the service. Each block of a tab reads the values of the rule
+ * that feeds it (`FEEDS`), and is left out when that rule did not run.
  *
- * @param {{findings: Array<object>, facts: object}} check the answer of `checkPage`
+ * @param {Array<{ruleId: string, passed: boolean, values: object, findings: Array<object>}>} results the
+ *     results of `checkPage`, with their values parsed
  * @param {{get: function(string): object, find: function(string): ?object}} rules the rules of the site
  * @param {string} pagePath the path of the page
  * @param {string} pageUrl the address of the render of the page, which a relative address of the page is under
  * @returns {{seo: object, readability: object, links: object, jahia: object, accessibility: Array<object>,
- *     unread: Array<string>}} `unread` names the result key of each tab whose repository facts are missing
+ *     unread: Array<string>}} `unread` names the result key of each tab whose repository values are missing
  */
-export function tabResults({findings, facts}, rules, pagePath, pageUrl) {
-    const recs = recommendationsByTab(findings, rules);
+export function tabResults(results, rules, pagePath, pageUrl) {
+    const recs = recommendationsByTab(results.flatMap(result => result.findings), rules);
     const itemsOf = ruleId => recs.jahia.find(rec => rec.rule === ruleId)?.items || [];
-    const {seo, readability, links, jahia} = facts;
+    const values = new Map(results.map(result => [result.ruleId, result.values]));
+    const tags = values.get(FEEDS.tags);
     return {
         seo: {
-            ...seo,
-            ogImageResolved: seo.og.image ? resolved(seo.og.image, pageUrl) : null,
+            ...(tags ? {...tags, ogImageResolved: tags.og.image ? resolved(tags.og.image, pageUrl) : null} : NO_TAGS),
             ranges: {title: limits(rules.get('seo.title')), description: limits(rules.get('seo.metaDescription'))},
             recommendations: recs.seo
         },
-        readability: {...readability, recommendations: recs.readability},
-        links: {...links, recommendations: recs.links},
+        readability: {...values.get(FEEDS.statistics), ...values.get(FEEDS.headings), recommendations: recs.readability},
+        links: {...values.get(FEEDS.links), recommendations: recs.links},
         jahia: {
-            pageStatus: jahia.pageStatus ? jahia.pageStatus.toUpperCase() : null,
-            activeLanguages: jahia.activeLanguages || [],
-            scanned: jahia.scanned || 0,
-            unpublished: (jahia.unpublished || []).map(node => ({...node, path: under(node.path, pagePath), status: node.status.toUpperCase()})),
-            untranslated: (jahia.untranslated || []).map(node => ({...node, path: under(node.path, pagePath)})),
+            ...contentState(values, pagePath),
             rawKeys: {count: itemsOf('health.rawI18nKeys').length, samples: itemsOf('health.rawI18nKeys').map(item => ({key: item.text, text: item.context || ''}))},
             placeholders: {count: itemsOf('health.placeholderText').length, samples: itemsOf('health.placeholderText').map(item => ({match: item.text, text: item.context || ''}))},
             recommendations: recs.jahia
         },
         accessibility: recs.accessibility,
         ecodesign: recs.ecodesign,
-        unread: unreadTabs(facts)
+        unread: unreadTabs(values)
     };
 }
+
+/** A result of the service with its values, and the values of its findings, read from their JSON. */
+const parsed = result => ({
+    ...result,
+    values: JSON.parse(result.values),
+    findings: result.findings.map(finding => ({...finding, values: JSON.parse(finding.values)}))
+});
 
 /**
  * Checks the page with the service of the server.
@@ -174,6 +222,5 @@ export async function checkPage(client, path, language, rules) {
     const {data} = await client.query({query: PAGE_CHECK, variables: {path, language}, fetchPolicy: 'no-cache'});
     const check = data.contentGovernance.checkPage;
     const render = `${globalThis.contextJsParameters?.contextPath || ''}/cms/render/default/${language}${check.path}.html`;
-    return tabResults({findings: check.findings, facts: JSON.parse(check.facts)}, rules, check.path,
-        new URL(render, globalThis.location.href).href);
+    return tabResults(check.results.map(parsed), rules, check.path, new URL(render, globalThis.location.href).href);
 }

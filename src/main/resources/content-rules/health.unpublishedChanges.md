@@ -1,7 +1,7 @@
 ---
 id: health.unpublishedChanges
 evaluator: health.unpublishedChanges
-domain: health
+subdomains: [health]
 severity: serious
 fixer: editor
 label:

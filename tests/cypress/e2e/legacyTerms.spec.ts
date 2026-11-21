@@ -178,7 +178,7 @@ describe('Content Governance - example rule of a site that keeps terms', () => {
             name: 'legal', type: 'jnt:contentFolder', children: [{
                 name: 'free', primaryNodeType: 'ccs:contentRule', properties: [
                     {name: 'ruleId', value: 'compliance.free'},
-                    {name: 'domain', value: 'compliance'},
+                    {name: 'subdomains', values: ['terms']},
                     {name: 'pattern', value: 'free'}
                 ]
             }]

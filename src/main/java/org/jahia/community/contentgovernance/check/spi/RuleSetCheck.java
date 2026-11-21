@@ -8,8 +8,10 @@ import java.util.List;
  * and where a glossary rule of another language reports a form of its term.
  *
  * <p>Content Governance calls {@link #check(CheckInput, List)} once per input, with every rule of the check
- * that runs on the input, and gives each finding to the rule that it names. A check that throws a runtime
- * exception gives no finding for any of these rules, and the other checks still run.</p>
+ * that runs on the input, and gives each finding to the rule that it names. Each of these rules gets a
+ * result with no value, which passes when the rule has no finding: the registry does not call
+ * {@link #result} on this check. A check that throws a runtime exception gives no result for any of these
+ * rules, and the other checks still run.</p>
  */
 public interface RuleSetCheck extends ContentCheck {
 

@@ -1,7 +1,7 @@
 # How the Compliance section works
 
 The Compliance section is one of the three sections of the Content Governance bundle. Its parts: the
-rules of the domains `compliance`, `glossary` and `writing`, a Java service that scans, GraphQL
+rules of the subdomains `terms`, `glossary` and `writing`, a Java service that scans, GraphQL
 fields that expose it, a
 per-site switch checked on the server, and two React 18 entry points of the module's UI extension
 (the **Compliance** section of the drawer and the jContent dashboard).
@@ -34,7 +34,7 @@ Shared with the other sections:
 | `org.jahia.community.contentgovernance.text` | `PlainText` (rich text to text), which the check `pattern` reads too, `FoldedText` and `TermPattern` |
 | `org.jahia.community.contentgovernance.check` | `CheckRegistry`, which runs the checks of every module, and `PatternCheck`, the check of the evaluator `pattern` |
 | `org.jahia.community.contentgovernance.settings` | `Features` (section and tab ids: the Compliance section is `compliance`, with no tabs) and `SiteFeatures` (the server-side gate) |
-| `src/javascript/drawer/` | `GovernanceAction` (the header button, its node checks) and `GovernanceDrawer` (tabs, badges, sections mounted on first visit) |
+| `src/javascript/drawer/` | `GovernanceAction` (a header button per panel, their node checks), `GovernanceDrawer` (the panels and their switch) and `GovernancePanel` (tabs, badges, sections mounted on first visit) |
 | `src/javascript/compliance/` | `ComplianceSection.jsx`, `scan.gql.js`, `renderedPaths.js` (frame paths), `dashboard/` (dashboard, `scanSite.gql.js`, CSV and JSON exports) |
 | `src/javascript/common/SectionGate.jsx` | Shows the dashboard only while the site keeps the section on |
 
@@ -45,8 +45,11 @@ A term is a `ccs:contentRule` of the evaluator `pattern`, which
 folder of rules, with the permissions of that folder.
 
 Since [content-governance#154](https://github.com/Jahia/content-governance/issues/154), the scan
-applies each rule of the domains `compliance`, `glossary` and `writing` that the check registry runs
-on a value. Two kinds of rules qualify:
+applies each rule of the domain `compliance` that the check registry runs on a value. A rule belongs to
+the domain through one of its subdomains, as the site places them: `terms`, `glossary`, `writing`, and
+a subdomain that an administrator adds under Compliance. The subdomain `readability` is the exception:
+its rules measure a whole page, and the Readability tab of the page shows them. Two kinds of rules
+qualify:
 
 - A rule of the evaluator `pattern` that the site keeps on, that applies on the day, and that is not a
   mandatory mention. A rule of another language stays, because a glossary rule reports a form of its
@@ -54,7 +57,8 @@ on a value. Two kinds of rules qualify:
 - A rule whose check another module registers for the scope `VALUE`, such as `acme.erpPrice` of the
   test module. Its findings show like the findings of a term.
 
-A pattern rule of another domain, such as `seo`, shows in its own tab, not in Compliance. A rule of
+A pattern rule of another domain, such as one of the subdomain `seo`, shows in its own tab, not in
+Compliance. A rule of
 the evaluator `model` runs on a whole page only, so the scan never calls a model.
 
 `ccs:glossary` and `ccs:glossaryTerm` stay declared in `src/main/resources/META-INF/definitions.cnd`,
@@ -68,7 +72,7 @@ glossary becomes a content folder.
 
 **Drawer.** `GovernanceAction` (header action `headerPrimaryActions`) shows the **Content governance**
 button on a `jnt:page` or a `jmix:mainResource` of a site that enables the module, once the site's
-settings (`contentGovernance.siteSettings`) list at least one section switched on. The Compliance tab
+settings (`contentGovernance.siteSettings`) keep the governance panel and at least one section switched on. The Compliance tab
 is listed only when `compliance` is on, and greyed out (`drawer.unavailable.notPage`,
 `drawer.unavailable.noWrite`) when the node is not a `jnt:page` or the user lacks `jcr:write` on it
 (`useNodeChecks`). `ComplianceSection` mounts the first time its tab is shown and runs `scanPage`

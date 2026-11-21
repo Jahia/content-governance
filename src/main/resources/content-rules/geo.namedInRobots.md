@@ -1,7 +1,7 @@
 ---
 id: geo.namedInRobots
 evaluator: geo.namedInRobots
-domain: geo
+subdomains: [geo.crawlers]
 severity: minor
 fixer: administrator
 label:

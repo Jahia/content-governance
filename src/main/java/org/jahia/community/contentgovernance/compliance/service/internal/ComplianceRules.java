@@ -4,8 +4,10 @@ import org.jahia.community.contentgovernance.check.CheckRegistry;
 import org.jahia.community.contentgovernance.check.PatternCheck;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck.Scope;
 import org.jahia.community.contentgovernance.compliance.model.Glossary;
+import org.jahia.community.contentgovernance.rules.ContentDomains;
 import org.jahia.community.contentgovernance.rules.ContentRule;
 import org.jahia.community.contentgovernance.rules.ContentRules;
+import org.jahia.community.contentgovernance.rules.Domain;
 import org.jahia.pm.modules.editorialframe.api.WritingRule;
 import org.jahia.pm.modules.editorialframe.internal.frame.RuleChecker;
 import org.jahia.services.content.JCRNodeWrapper;
@@ -15,6 +17,7 @@ import javax.jcr.RepositoryException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -24,7 +27,7 @@ import java.util.function.Predicate;
 
 /**
  * The rules that the Compliance section applies to the texts of one language of a site: each rule of a
- * domain of Compliance ({@link #DOMAINS}) that the check registry runs on a value, of every check. A rule of
+ * subdomain of the domain {@value #DOMAIN} that the check registry runs on a value, of every check. A rule of
  * the evaluator {@code pattern} must also apply on the day, and one text must be able to break it: a
  * mandatory mention needs a whole page, so it is left out. Example: the rule {@code compliance.click-here} of
  * the folder of the legal team, the rule {@code glossary.access-token}, which replaces "access token" with
@@ -43,10 +46,12 @@ import java.util.function.Predicate;
 record ComplianceRules(ContentRules site, Set<String> ids, boolean applies, List<Glossary> folders) {
 
     /**
-     * The domains whose rules show in the Compliance section: the terms of the folders of the teams, the
-     * glossary, and the writing rules.
+     * The domain whose subdomains show in the Compliance section, as the site places them: the terms of the
+     * folders of the teams, the glossary and the writing rules.
      */
-    static final Set<String> DOMAINS = Set.of("compliance", "glossary", "writing");
+    static final String DOMAIN = "compliance";
+    /** The subdomain of {@value #DOMAIN} whose rules measure a whole page: the Readability tab of the page shows them. */
+    static final String READABILITY = "readability";
 
     /**
      * @param session  the session of the scan, which reads the title of each folder
@@ -81,8 +86,9 @@ record ComplianceRules(ContentRules site, Set<String> ids, boolean applies, List
         List<WritingRule> patterns = new ArrayList<>();
         boolean others = false;
         Map<String, Integer> counts = new LinkedHashMap<>();
+        Set<String> subdomains = subdomains(site.hierarchy());
         for (ContentRule rule : site.all()) {
-            if (!inScan(rule, runs, day)) {
+            if (!inScan(rule, subdomains, runs, day)) {
                 continue;
             }
             boolean ofLanguage = true;
@@ -109,17 +115,37 @@ record ComplianceRules(ContentRules site, Set<String> ids, boolean applies, List
         return new ComplianceRules(site, Set.copyOf(ids), applies, List.copyOf(applied));
     }
 
-    /** True when the findings of the rule show in the Compliance section. */
-    static boolean inCompliance(ContentRule rule) {
-        return rule.domain() != null && DOMAINS.contains(rule.domain());
+    /**
+     * @param hierarchy the domains and the subdomains of the site
+     * @return the subdomains whose rules show in the Compliance section: those of the domain {@value #DOMAIN}
+     * that have a place on the site, but {@value #READABILITY}. Example: {@code terms}, {@code glossary},
+     * {@code writing}, and a subdomain that an administrator adds under Compliance.
+     */
+    static Set<String> subdomains(ContentDomains hierarchy) {
+        Set<String> out = new HashSet<>();
+        for (Domain subdomain : hierarchy.subdomainsOf(DOMAIN)) {
+            if (!READABILITY.equals(subdomain.id()) && hierarchy.places(subdomain.id())) {
+                out.add(subdomain.id());
+            }
+        }
+        return out;
+    }
+
+    /**
+     * True when the findings of the rule show in the Compliance section.
+     *
+     * @param subdomains the subdomains of Compliance on the site, as {@link #subdomains} gives them
+     */
+    static boolean inCompliance(ContentRule rule, Set<String> subdomains) {
+        return rule.subdomains().stream().anyMatch(subdomains::contains);
     }
 
     /**
      * True when the scan runs the rule: a rule of Compliance that the check registry runs on a value. A rule
      * of the evaluator {@code pattern} must also apply on the day, and must not be a mandatory mention.
      */
-    private static boolean inScan(ContentRule rule, Predicate<ContentRule> runs, LocalDate day) {
-        if (!inCompliance(rule) || !runs.test(rule)) {
+    private static boolean inScan(ContentRule rule, Set<String> subdomains, Predicate<ContentRule> runs, LocalDate day) {
+        if (!inCompliance(rule, subdomains) || !runs.test(rule)) {
             return false;
         }
         if (!ContentRule.PATTERN.equals(rule.evaluator())) {

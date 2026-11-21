@@ -1,7 +1,7 @@
 ---
 id: seo.canonical
 evaluator: seo.canonical
-domain: seo
+subdomains: [seo, geo.score]
 severity: moderate
 fixer: developer
 label:

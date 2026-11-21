@@ -5,12 +5,16 @@ import {ruleBook} from '../../javascript/audit/rules.js';
 const FOLDER = fileURLToPath(new URL('../../main/resources/content-rules/', import.meta.url));
 
 /**
- * A value of a frontmatter line: a quoted text, a flag, a number, or the text itself.
+ * A value of a frontmatter line: a quoted text, a list such as `[seo, geo.score]`, a flag, a number, or the
+ * text itself.
  *
  * @param {string} text the text after the colon
- * @returns {boolean|number|string} the value
+ * @returns {boolean|number|string|Array<string>} the value
  */
 const valueOf = text => {
+    if (text.startsWith('[')) {
+        return text.slice(1, -1).split(',').map(item => item.trim()).filter(Boolean);
+    }
     if (text.startsWith('"')) {
         return JSON.parse(text);
     }

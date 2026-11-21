@@ -21,7 +21,9 @@ import java.util.regex.Pattern;
 /**
  * The SEO checks of a whole page: robots directives, canonical link, Open Graph card and structured
  * data. A rendered content item gets none of them. The rules {@code seo.title} and
- * {@code seo.metaDescription} are thresholds on the lengths that {@link #facts} measures.
+ * {@code seo.metaDescription} are thresholds on the lengths that {@link #facts} measures, with the values
+ * of {@link #values}. The measure rule {@code seo.tags} gives the tags of the head and the images, on a
+ * page or an item: the SEO tab of the drawer shows them.
  */
 @Component(immediate = true)
 public class SeoChecks {
@@ -34,9 +36,11 @@ public class SeoChecks {
     static final String OPEN_GRAPH = "seo.openGraph";
     static final String STRUCTURED_DATA = "seo.structuredData";
     static final String STRUCTURED_DATA_VALID = "seo.structuredDataValid";
+    /** The measure rule of the tags of the page. */
+    public static final String TAGS = "seo.tags";
     /** The ids of the checks, which are the ids of their rules. */
     public static final List<String> IDS = List.of(INDEXABLE, FOLLOW_LINKS, CANONICAL, OPEN_GRAPH, STRUCTURED_DATA,
-            STRUCTURED_DATA_VALID);
+            STRUCTURED_DATA_VALID, TAGS);
 
     private static final String SHARED = "content-governance:seo";
     private static final String HEAD = "<head>";
@@ -49,6 +53,10 @@ public class SeoChecks {
     private static final String ROBOTS = "robots";
     private static final String NOINDEX = "noindex";
     private static final String NOFOLLOW = "nofollow";
+    private static final String CANONICAL_KEY = "canonical";
+    private static final String HREF = "href";
+    private static final String OG = "og";
+    private static final String JSON_LD = "jsonLd";
     private static final ObjectMapper JSON = new ObjectMapper();
     /** The label that the preview of Jahia puts before the title of a page in the edit workspace. */
     private static final Pattern PREVIEW_LABEL = Pattern.compile(
@@ -59,7 +67,7 @@ public class SeoChecks {
 
     @Activate
     void activate(BundleContext context) {
-        services.open(context, Family.checks(IDS, SHARED, SeoChecks::read), false);
+        services.open(context, Family.checks(IDS, SHARED, SeoChecks::read));
     }
 
     @Deactivate
@@ -82,9 +90,23 @@ public class SeoChecks {
     }
 
     /**
-     * What the SEO tab of the drawer shows: the tags of the head and the images.
+     * The values of the thresholds of a whole page, beside their facts: the text and the length of the
+     * title and of the meta description.
      *
-     * @param html     the HTML of a whole page
+     * @param html the HTML of a whole page
+     * @return {@code {text, length}} by rule id, with a null text for a meta description that the page lacks
+     */
+    public static Map<String, Map<String, Object>> values(Document html) {
+        Element description = tag(html, NAME, DESCRIPTION_KEY);
+        return Map.of(TITLE, textAndLength(title(html)),
+                DESCRIPTION, textAndLength(description == null ? null : description.attr(CONTENT).trim()));
+    }
+
+    /**
+     * The values of the measure rule {@code seo.tags}, which the SEO tab of the drawer shows: the tags of
+     * the head and the images.
+     *
+     * @param html     the HTML of a page or of an item
      * @param language the language of the content, such as {@code en}, or null
      * @return {@code title} and {@code description} as {@code {text, length}}, {@code robots} as
      *     {@code {content, noindex, nofollow}}, {@code canonical}, {@code og} as {@code {title, description,
@@ -92,12 +114,11 @@ public class SeoChecks {
      *     {@code {htmlLang, expected}}, {@code hreflang}, {@code totalImages} and {@code imagesWithoutAlt};
      *     null for a tag that the page lacks
      */
-    public static Map<String, Object> report(Document html, String language) {
+    public static Map<String, Object> tagsValues(Document html, String language) {
         Map<String, Object> out = new LinkedHashMap<>();
-        String title = title(html);
-        out.put(TITLE_KEY, textAndLength(title));
-        Element description = tag(html, NAME, DESCRIPTION_KEY);
-        out.put(DESCRIPTION_KEY, textAndLength(description == null ? null : description.attr(CONTENT).trim()));
+        Map<String, Map<String, Object>> thresholds = values(html);
+        out.put(TITLE_KEY, thresholds.get(TITLE));
+        out.put(DESCRIPTION_KEY, thresholds.get(DESCRIPTION));
         String robots = orNull(meta(html, NAME, ROBOTS).toLowerCase(Locale.ROOT));
         Map<String, Object> directives = new LinkedHashMap<>();
         directives.put(CONTENT, robots);
@@ -105,15 +126,15 @@ public class SeoChecks {
         directives.put(NOFOLLOW, robots != null && robots.contains(NOFOLLOW));
         out.put(ROBOTS, directives);
         Element canonical = html.selectFirst("link[rel=canonical]");
-        out.put("canonical", canonical == null ? null : canonical.attr("href").trim());
+        out.put(CANONICAL_KEY, canonical == null ? null : canonical.attr(HREF).trim());
         Map<String, Object> og = new LinkedHashMap<>();
         for (String property : List.of(TITLE_KEY, DESCRIPTION_KEY, "image", "type")) {
             og.put(property, orNull(meta(html, "property", "og:" + property)));
         }
-        out.put("og", og);
+        out.put(OG, og);
         out.put("twitterCard", orNull(meta(html, NAME, "twitter:card")));
         List<Element> blocks = html.select(LD_JSON);
-        out.put("jsonLd", Map.of(COUNT, blocks.size(), "errors", invalidBlocks(blocks).size()));
+        out.put(JSON_LD, Map.of(COUNT, blocks.size(), "errors", invalidBlocks(blocks).size()));
         Element root = html.selectFirst("html");
         Map<String, Object> lang = new LinkedHashMap<>();
         lang.put("htmlLang", root == null ? null : orNull(root.attr("lang").trim().toLowerCase(Locale.ROOT)));
@@ -133,6 +154,13 @@ public class SeoChecks {
         return out;
     }
 
+    /** A map of one entry, whose value may be null. */
+    private static Map<String, Object> mapOf(String key, Object value) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put(key, value);
+        return out;
+    }
+
     private static String orNull(String text) {
         return text == null || text.isEmpty() ? null : text;
     }
@@ -142,12 +170,21 @@ public class SeoChecks {
         return PREVIEW_LABEL.matcher(html.title().trim()).replaceFirst("");
     }
 
+    // The parts of the tags are the maps that tags() builds
+    @SuppressWarnings("unchecked")
     static Family.Found read(CheckInput input) {
-        if (!Family.wholePage(input)) {
-            return new Family.Found();
-        }
         Document html = Family.document(input);
-        Family.Found found = new Family.Found();
+        Map<String, Object> tags = tagsValues(html, input.language());
+        Family.Found found = new Family.Found().values(TAGS, tags);
+        if (!Family.wholePage(input)) {
+            return found;
+        }
+        found.values(INDEXABLE, (Map<String, Object>) tags.get(ROBOTS))
+                .values(FOLLOW_LINKS, (Map<String, Object>) tags.get(ROBOTS))
+                .values(CANONICAL, mapOf(HREF, tags.get(CANONICAL_KEY)))
+                .values(OPEN_GRAPH, (Map<String, Object>) tags.get(OG))
+                .values(STRUCTURED_DATA, (Map<String, Object>) tags.get(JSON_LD))
+                .values(STRUCTURED_DATA_VALID, (Map<String, Object>) tags.get(JSON_LD));
         String robots = meta(html, NAME, ROBOTS).toLowerCase(Locale.ROOT);
         if (robots.contains(NOINDEX)) {
             found.add(INDEXABLE, robots, null);

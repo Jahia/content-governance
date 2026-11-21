@@ -7,8 +7,9 @@ export const CONTENT_RULES = gql`
         contentGovernance {
             contentRules(siteKey: $siteKey, language: $language) {
                 id
-                domain
+                subdomains
                 evaluator
+                runtime
                 title {
                     form
                     text
@@ -28,14 +29,15 @@ export const CONTENT_RULES = gql`
 /**
  * The rules of a site by id, from the list that the GraphQL API or the catalog file gives.
  *
- * @param {Array<{id: string, severity: string, enabled: boolean, minimum: ?number, maximum: ?number}>} list the rules
+ * @param {Array<{id: string, severity: string, enabled: boolean, runtime: ?string, minimum: ?number, maximum: ?number}>} list the
+ *     rules; a rule with no `runtime` runs on the server
  * @param {string} [language] the language of their texts: the editor's interface language
  * @returns {{get: function(string): object, find: function(string): ?object, all: function(): Array<object>,
  *     language: string, word: function(string, object): object}} `get` throws on an id the catalog does not
  *     know, and `find` answers undefined; `word(id, values)` gives the texts of a finding of a rule
  */
 export function ruleBook(list, language = 'en') {
-    const byId = new Map(list.map(rule => [rule.id, {enabled: true, minimum: null, maximum: null, title: [], ...rule}]));
+    const byId = new Map(list.map(rule => [rule.id, {enabled: true, runtime: 'server', minimum: null, maximum: null, title: [], ...rule}]));
     return {
         language,
         get(id) {
@@ -88,37 +90,4 @@ export function limits(rule) {
         out.max = rule.maximum;
     }
     return out;
-}
-
-/**
- * True when a value is inside the limits that a rule has.
- *
- * @param {object} rule a rule of the book
- * @param {number} value the measured value
- * @returns {boolean} whether the value passes
- */
-export function accepts(rule, value) {
-    return (rule.minimum === null || value >= rule.minimum) && (rule.maximum === null || value <= rule.maximum);
-}
-
-/**
- * A list of findings and the function that adds one. A finding carries the id of its rule, the
- * severity of the rule, its limits, and its texts worded from the rule; a rule the site turned off adds
- * nothing.
- *
- * @param {{get: function(string): object, word: function(string, object): object}} rules the rules of the site
- * @returns {{recs: Array<{key: string, rule: string, severity: string, params: object, title: string,
- *     detail: string, label: string}>, push: Function}} `push(ruleId, key, params)`; `key` stays for the
- *     actions that other modules add to a finding
- */
-export function findings(rules) {
-    const recs = [];
-    const push = (ruleId, key, params) => {
-        const rule = rules.get(ruleId);
-        if (rule.enabled) {
-            const values = {...limits(rule), ...params};
-            recs.push({key: ruleId, rule: ruleId, severity: rule.severity, params: values, ...rules.word(ruleId, values)});
-        }
-    };
-    return {recs, push};
 }

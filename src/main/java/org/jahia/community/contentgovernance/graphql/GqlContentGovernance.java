@@ -1,7 +1,5 @@
 package org.jahia.community.contentgovernance.graphql;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.annotations.annotationTypes.GraphQLDescription;
 import graphql.annotations.annotationTypes.GraphQLField;
 import graphql.annotations.annotationTypes.GraphQLName;
@@ -16,6 +14,7 @@ import org.jahia.community.contentgovernance.check.spi.CheckInput;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck;
 import org.jahia.community.contentgovernance.html.HtmlCheck;
 import org.jahia.community.contentgovernance.html.rules.Scope;
+import org.jahia.community.contentgovernance.rules.ContentDomains;
 import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.modules.graphql.provider.dxm.DataFetchingException;
@@ -41,7 +40,6 @@ public class GqlContentGovernance {
     /** The longest text that checkText takes. */
     static final int MAX_TEXT = 200_000;
     static final String INVALID_PATH = "Invalid path";
-    private static final ObjectMapper JSON = new ObjectMapper();
     private static final Pattern LANGUAGE = Pattern.compile("^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8}){0,3}$");
 
     // graphql-java-annotations injects OSGi services into fields only (@GraphQLOsgiService)
@@ -145,6 +143,31 @@ public class GqlContentGovernance {
     }
 
     /**
+     * The domains of a site, each with its subdomains: the hierarchy drawer › panel › domain › subdomain that
+     * the rules name. Any signed-in user who can read the site may ask: the drawer of every editor needs it.
+     *
+     * @param siteKey  key of the site
+     * @param language the language of the labels and the help, or null for English
+     * @return the domains that apply to the site, by order, with the subdomains that apply to it
+     */
+    @GraphQLField
+    @GraphQLName("contentDomains")
+    @GraphQLNonNull
+    @GraphQLDescription("The domains of the drawer that apply to a site, by order, each with its subdomains")
+    public List<GqlContentDomain> contentDomains(
+            @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey,
+            @GraphQLName("language") @GraphQLDescription("The language of the labels and the help, such as fr: the interface language of the editor. English when null, and for a text with no translation") String language) {
+        if (language != null && !LANGUAGE.matcher(language).matches()) {
+            throw new DataFetchingException("Invalid language");
+        }
+        SiteAccess.site(siteKey);
+        ContentDomains hierarchy = ContentDomains.forSite(siteKey);
+        return hierarchy.domains().stream()
+                .map(domain -> new GqlContentDomain(domain, hierarchy, language))
+                .toList();
+    }
+
+    /**
      * Runs on a text every registered check of the scope, with the rules of the site of the path. Any
      * signed-in user who can read the path may ask.
      *
@@ -177,18 +200,19 @@ public class GqlContentGovernance {
 
     /**
      * Renders a page or a content item as the current user, in the edit workspace, and runs every check
-     * of the server on it: the findings that {@code frame.check} gives for the same path, and the facts
-     * that the tabs of the drawer show. Any signed-in user who can read the path may ask.
+     * of the server on it: the result of each rule that ran, with the values that the tabs of the drawer
+     * show, and the findings that {@code frame.check} gives for the same path. Any signed-in user who can
+     * read the path may ask.
      *
      * @param path     the path of a page or of a content item
      * @param language the language of the content, such as en
-     * @return the findings, in the order of the rules, and the facts
+     * @return the results, in the order of the rules
      */
     @GraphQLField
     @GraphQLName("checkPage")
     @GraphQLNonNull
-    @GraphQLDescription("The findings of every check of the server on a page or a content item, rendered in the edit "
-            + "workspace, and the facts that the drawer shows")
+    @GraphQLDescription("The result of each rule that every check of the server ran on a page or a content item, "
+            + "rendered in the edit workspace: passed or failed, its values and its findings")
     public GqlPageCheck checkPage(
             @GraphQLName("path") @GraphQLNonNull @GraphQLDescription("Path of the page or of the content item") String path,
             @GraphQLName("language") @GraphQLNonNull @GraphQLDescription("Language of the content, such as en") String language) {
@@ -209,12 +233,7 @@ public class GqlContentGovernance {
         if (!(outcome instanceof HtmlCheck.Rendered rendered)) {
             throw new DataFetchingException("Jahia could not render " + path);
         }
-        List<GqlCheckFinding> findings = pages.findings(rendered, locale).stream().map(GqlCheckFinding::new).toList();
-        try {
-            return new GqlPageCheck(rendered.path(), findings, JSON.writeValueAsString(pages.facts(rendered, locale)));
-        } catch (JsonProcessingException e) {
-            throw new DataFetchingException("The facts of " + path + " could not be written");
-        }
+        return new GqlPageCheck(rendered.path(), pages.results(rendered, locale).stream().map(GqlCheckResult::new).toList());
     }
 
     /**

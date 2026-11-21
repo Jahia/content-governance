@@ -1,7 +1,8 @@
 ---
 id: axe.aria-valid-attr
 evaluator: axe
-domain: accessibility
+runtime: browser
+subdomains: [accessibility]
 severity: critical
 fixer: developer
 ---

@@ -8,6 +8,7 @@ import org.jahia.community.contentgovernance.check.spi.ContentCheck;
 import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.community.contentgovernance.check.spi.Rule;
 import org.jahia.community.contentgovernance.compliance.model.Glossary;
+import org.jahia.community.contentgovernance.rules.ContentDomains;
 import org.jahia.community.contentgovernance.rules.ContentRule;
 import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jahia.community.contentgovernance.rules.RuleValues;
@@ -46,13 +47,14 @@ class ComplianceRulesTest {
         Map<String, Object> values = new HashMap<>(Map.of(RuleValues.RULE_ID, id, RuleValues.KIND, "forbidden",
                 RuleValues.PATTERN, id.substring(id.indexOf('.') + 1)));
         values.putAll(more);
-        return RuleValues.toRule(values).inFolder(folder);
+        // Placed as a site places it: a term with no subdomain goes to terms.
+        return ContentRules.base().with(RuleValues.toRule(values)).get(id).inFolder(folder);
     }
 
     /** A rule of the check acme.erpPrice, which another module registers. */
     private static ContentRule price(String id, String evaluator) {
         return RuleValues.toRule(Map.of(RuleValues.RULE_ID, id, RuleValues.EVALUATOR, evaluator,
-                RuleValues.DOMAIN, "writing")).inFolder(ACME);
+                RuleValues.SUBDOMAINS, List.of("writing"))).inFolder(ACME);
     }
 
     private static ComplianceRules of(String language, ContentRule... rules) {
@@ -122,6 +124,12 @@ class ComplianceRulesTest {
         assertThat(of("en", frodon).applies()).isTrue();
         assertThat(of("en", frodon).folders()).isEmpty();
         assertThat(of("de", frodon).applies()).isFalse();
+    }
+
+    @Test
+    void takesTheSubdomainsOfCompliance_butReadability() {
+        // Readability measures a whole page: the Readability tab of the page shows its rules
+        assertThat(ComplianceRules.subdomains(ContentDomains.base())).containsExactlyInAnyOrder("terms", "glossary", "writing");
     }
 
     @Test

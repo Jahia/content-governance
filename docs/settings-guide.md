@@ -9,28 +9,37 @@ The screen has two tabs: **Features** and **BotRank**.
 
 ## Features
 
-One card per section of the drawer (**Page quality**, **GEO readiness**, **Compliance**), each with
-a switch for the section and, under it, one switch per tab with a line saying what the tab is for.
-A section that another module adds to the drawer, such as the AI review of the AI assistant, has its
-card too, after the sections of Content Governance.
+The screen shows one card per panel of the drawer, each with a switch. A panel is a whole screen of
+the drawer with its own button in the header of jContent. The **Content governance** panel is first.
+A panel that another module adds, such as the chat of the AI assistant, has its card too.
+
+Under the **Content governance** panel, the screen shows one card per section of that panel
+(**Page quality**, **GEO readiness**, **Compliance**). Each card has a switch for the section and,
+under it, one switch per tab with a line saying what the tab is for. A section that another module
+adds to the drawer, such as the AI review of the AI assistant, has its card too, after the sections
+of Content Governance.
 Everything is on until you switch it off. Changes apply when you click **Save**; editors see them the
 next time they open the drawer.
 
 | You switch off | Editors of the site | The server |
 |---|---|---|
+| The **Content governance** panel | No longer see the **Content governance** button. Every section is off, and its dashboard says so. | Refuses every call of the sections |
+| A panel of another module | No longer see the button of that panel, nor the panel in the drawer | Depends on the module of the panel |
 | A section | No longer see that section in the drawer. Its dashboard stays listed under **Additional** and says it is switched off for this site. | Refuses the section's calls (GEO checks, compliance scans) |
 | A tab | No longer see that tab in the drawer | Refuses the calls of that tab |
 | Every section | No longer see the **Content governance** button | Refuses every call |
 
 A tab keeps its own switch while its section is off, so switching the section back on brings back the
-tabs as they were.
+tabs as they were. A section keeps its own switch while the **Content governance** panel is off, in
+the same way.
 
 **AI citations** (GEO readiness) also depends on something outside the site. Its switch shows the
 chip **Needs a BotRank connection**, and the tab stays greyed out in the drawer until the site is
 connected in the **BotRank** tab.
 
 What each switch is stored as: the ids switched off, in the `disabledFeatures` property of the
-site's `content-governance` node (`/sites/<key>/content-governance`, never published). Section ids are
+site's `content-governance` node (`/sites/<key>/content-governance`, never published). Panel ids are
+`governance`, or the key that another module gives its panel, such as `chat`. Section ids are
 `audit`, `geo` and `compliance`, or the key that another module gives its section. Tab ids are
 `<section>.<tab>`, for example `geo.citations` or `audit.vitals`. A script sets them with the
 `saveSiteSettings` mutation (see the root `README.md`).

@@ -1,7 +1,8 @@
 ---
 id: ecodesign.requests
-evaluator: threshold
-domain: ecodesign
+evaluator: ecodesign.requests
+runtime: browser
+subdomains: [ecodesign]
 severity: moderate
 fixer: developer
 unit: requests

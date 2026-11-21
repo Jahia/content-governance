@@ -1,7 +1,8 @@
 ---
 id: axe.document-title
 evaluator: axe
-domain: accessibility
+runtime: browser
+subdomains: [accessibility]
 severity: serious
 fixer: editor
 ---

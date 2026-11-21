@@ -1,7 +1,7 @@
 ---
 id: health.rawI18nKeys
 evaluator: health.rawI18nKeys
-domain: health
+subdomains: [health]
 severity: critical
 fixer: developer
 label:

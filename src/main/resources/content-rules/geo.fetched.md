@@ -1,7 +1,7 @@
 ---
 id: geo.fetched
 evaluator: geo.fetched
-domain: geo
+subdomains: [geo.crawlers]
 severity: critical
 fixer: administrator
 label:

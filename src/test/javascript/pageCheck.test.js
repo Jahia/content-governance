@@ -1,14 +1,14 @@
 import {describe, expect, it} from 'vitest';
-import {recommendationsByTab, tabOf, tabResults} from '../../javascript/audit/pageCheck.js';
+import {checkPage, recommendationsByTab, tabOf, tabResults} from '../../javascript/audit/pageCheck.js';
 import {auditFindings, recommendationText} from '../../javascript/drawer/findings.js';
 import {BASE_RULES, rulesIn} from './baseRules.js';
 import {ruleBook} from '../../javascript/audit/rules.js';
 
 const t = (key, params) => `${key}${params ? JSON.stringify(params) : ''}`;
 
-/** The facts of a page, as checkPage gives them, with what a test changes. */
-const facts = change => ({
-    seo: {
+/** The values of the rules that feed the tabs, by rule id, with what a test changes: null for a rule that is off. */
+const values = change => ({
+    'seo.tags': {
         title: {text: 'Home', length: 4},
         description: {text: null, length: 0},
         robots: {content: null, noindex: false, nofollow: false},
@@ -21,24 +21,42 @@ const facts = change => ({
         totalImages: 2,
         imagesWithoutAlt: 1
     },
-    readability: {lang: 'en', spaced: true, empty: false, scored: true, scale: 'flesch', score: 42, band: 'difficult',
-        words: 120, longSentences: 3, avgWordsPerParagraph: 90, h1Count: 2, outline: []},
-    links: {total: 3, internal: 2, external: 1, checked: 2, skipped: 0, broken: [{path: '/sites/digitall/gone', reason: 'missing'}]},
-    jahia: {
+    'readability.statistics': {lang: 'en', spaced: true, empty: false, scored: true, scale: 'flesch', score: 42, band: 'difficult',
+        words: 120, longSentences: 3, avgWordsPerParagraph: 90},
+    'readability.headings': {h1Count: 2, headingSkips: 0, headingCount: 0, outline: []},
+    'links.broken': {total: 3, internal: 2, external: 1, checked: 2, skipped: 0, broken: [{path: '/sites/digitall/gone', reason: 'missing'}]},
+    'health.unpublishedChanges': {
         pageStatus: 'modified',
-        activeLanguages: ['en', 'fr'],
         scanned: 4,
         unpublished: [{path: '/sites/digitall/home', type: 'jnt:page', status: 'modified'},
-            {path: '/sites/digitall/home/main/intro', type: 'jnt:text', status: 'not_published'}],
+            {path: '/sites/digitall/home/main/intro', type: 'jnt:text', status: 'not_published'}]
+    },
+    'health.missingTranslations': {
+        activeLanguages: ['en', 'fr'],
+        scanned: 4,
         untranslated: [{path: '/sites/digitall/home/main/intro', type: 'jnt:text', missing: ['fr']}]
     },
     ...change
 });
 
+/**
+ * The results of checkPage on a page, with their values parsed: one per rule that feeds a tab, which
+ * passes, and one per rule of the findings, which fails.
+ */
+const pageResults = (findings = [], change = {}) => {
+    const byRule = new Map(Object.entries(values(change)).filter(([, measured]) => measured)
+        .map(([ruleId, measured]) => [ruleId, {ruleId, passed: true, values: measured, findings: []}]));
+    findings.forEach(item => {
+        const result = byRule.get(item.ruleId) || {ruleId: item.ruleId, values: {}, findings: []};
+        byRule.set(item.ruleId, {...result, passed: false, findings: [...result.findings, item]});
+    });
+    return [...byRule.values()];
+};
+
 const finding = (ruleId, text, context, severity = 'moderate') => ({ruleId, severity, text, context: context || null});
 
 describe('tabOf', () => {
-    it('puts a rule in the tab of its domain, and nowhere else', () => {
+    it('puts a rule in the tab of its subdomain, and nowhere else', () => {
         expect(tabOf(BASE_RULES.get('seo.canonical'))).toBe('seo');
         expect(tabOf(BASE_RULES.get('links.broken'))).toBe('links');
         expect(tabOf(BASE_RULES.get('health.placeholderText'))).toBe('jahia');
@@ -51,11 +69,18 @@ describe('tabOf', () => {
         expect(tabOf(BASE_RULES.get('html.linkTextVague'))).toBe('accessibility');
     });
 
-    it('puts a rule of another module in the tab of its domain, and a rule of an unknown domain in none', () => {
-        expect(tabOf({id: 'acme.erpPrice', domain: 'writing'})).toBe('readability');
-        expect(tabOf({id: 'voice.tone', domain: 'seo'})).toBe('seo');
-        expect(tabOf({id: 'brand.tone', domain: 'brand'})).toBeNull();
+    it('puts a rule of another module in the tab of its subdomain, and a rule of unknown subdomains in none', () => {
+        expect(tabOf({id: 'acme.erpPrice', subdomains: ['writing']})).toBe('readability');
+        expect(tabOf({id: 'voice.tone', subdomains: ['seo']})).toBe('seo');
+        expect(tabOf({id: 'brand.tone', subdomains: ['brand']})).toBeNull();
+        expect(tabOf({id: 'brand.none'})).toBeNull();
         expect(tabOf(BASE_RULES.get('geo.reachable'))).toBeNull();
+    });
+
+    it('puts a rule of two subdomains in the tab of the first that has one', () => {
+        expect(BASE_RULES.get('seo.title').subdomains).toEqual(['seo', 'geo.score']);
+        expect(tabOf(BASE_RULES.get('seo.title'))).toBe('seo');
+        expect(tabOf({id: 'acme.score', subdomains: ['geo.score', 'accessibility']})).toBe('accessibility');
     });
 });
 
@@ -95,9 +120,9 @@ describe('recommendationsByTab', () => {
     });
 
     it('words a rule of another module the same way, and its id when it has no text', () => {
-        const rules = ruleBook([...BASE_RULES.all(), {id: 'acme.erpPrice', domain: 'writing', severity: 'serious',
+        const rules = ruleBook([...BASE_RULES.all(), {id: 'acme.erpPrice', subdomains: ['writing'], severity: 'serious',
             title: [{form: 'one', text: '{{count}} price typed, such as {{value}}'}], advice: 'Insert the product.'},
-        {id: 'acme.bare', domain: 'health', severity: 'minor', title: [], advice: ''}]);
+        {id: 'acme.bare', subdomains: ['health'], severity: 'minor', title: [], advice: ''}]);
         const recs = recommendationsByTab([finding('acme.erpPrice', '12.50 EUR'), finding('acme.bare', 'x')], rules);
 
         expect(recs.readability[0]).toMatchObject({title: '1 price typed, such as 12.50 EUR', detail: 'Insert the product.'});
@@ -121,37 +146,36 @@ describe('recommendationsByTab', () => {
 });
 
 describe('tabResults', () => {
-    it('gives each tab its facts and its recommendations', () => {
-        const results = tabResults({findings: [finding('seo.canonical', '<head>'), finding('html.duplicateId', '<div id="x">')],
-            facts: facts()}, BASE_RULES, '/sites/digitall/home');
+    it('gives each tab the values of its rules and its recommendations', () => {
+        const results = tabResults(pageResults([finding('seo.canonical', '<head>'), finding('html.duplicateId', '<div id="x">')]),
+            BASE_RULES, '/sites/digitall/home');
 
         expect(results.seo).toMatchObject({title: {text: 'Home'}, imagesWithoutAlt: 1,
             ranges: {title: {min: 30, max: 60}}, recommendations: [{key: 'seo.canonical', title: 'The page declares no canonical URL'}]});
         expect(results.seo.ogImageResolved).toMatch(/\/files\/card\.png$/);
-        expect(results.readability).toMatchObject({score: 42, recommendations: []});
+        expect(results.readability).toMatchObject({score: 42, h1Count: 2, outline: [], recommendations: []});
         expect(results.links).toMatchObject({broken: [{path: '/sites/digitall/gone', reason: 'missing'}]});
         expect(results.accessibility.map(rec => rec.rule)).toEqual(['html.duplicateId']);
     });
 
     it('resolves a relative image of the sharing card against the address of the page', () => {
-        const page = facts();
-        const results = tabResults({findings: [], facts: {...page, seo: {...page.seo, og: {...page.seo.og, image: 'images/card.png'}}}},
+        const tags = values()['seo.tags'];
+        const results = tabResults(pageResults([], {'seo.tags': {...tags, og: {...tags.og, image: 'images/card.png'}}}),
             BASE_RULES, '/sites/digitall/home', 'http://jahia.test/cms/render/default/en/sites/digitall/home.html');
 
         expect(results.seo.ogImageResolved).toBe('http://jahia.test/cms/render/default/en/sites/digitall/images/card.png');
     });
 
     it('names the tabs whose state of the content the server could not read', () => {
-        expect(tabResults({findings: [], facts: facts()}, BASE_RULES, '/sites/digitall/home').unread).toEqual([]);
-        const unread = tabResults({findings: [], facts: {...facts(), links: {...facts().links, checked: null}, jahia: {}}},
-            BASE_RULES, '/sites/digitall/home').unread;
+        expect(tabResults(pageResults(), BASE_RULES, '/sites/digitall/home').unread).toEqual([]);
+        const unread = tabResults(pageResults([], {'links.broken': {...values()['links.broken'], checked: null},
+            'health.unpublishedChanges': {}, 'health.missingTranslations': {}}), BASE_RULES, '/sites/digitall/home').unread;
         expect(unread).toEqual(['links', 'jahia']);
     });
 
     it('lists the content of the page under its path, with the status of the drawer', () => {
-        const results = tabResults({findings: [finding('health.rawI18nKeys', 'jnt:text.title', 'jnt:text.title here'),
-            finding('health.placeholderText', 'lorem ipsum', 'Lorem ipsum dolor')], facts: facts()}, BASE_RULES,
-        '/sites/digitall/home');
+        const results = tabResults(pageResults([finding('health.rawI18nKeys', 'jnt:text.title', 'jnt:text.title here'),
+            finding('health.placeholderText', 'lorem ipsum', 'Lorem ipsum dolor')]), BASE_RULES, '/sites/digitall/home');
 
         expect(results.jahia).toMatchObject({
             pageStatus: 'MODIFIED',
@@ -164,8 +188,8 @@ describe('tabResults', () => {
     });
 
     it('gives the Fix first list of the drawer each rule of the server once, with its count', () => {
-        const results = tabResults({findings: [finding('links.mixedContent', 'http://a'), finding('links.mixedContent', 'http://b'),
-            finding('html.buttonNameMissing', '<button></button>', null, 'serious')], facts: facts()}, BASE_RULES, '/sites/digitall/home');
+        const results = tabResults(pageResults([finding('links.mixedContent', 'http://a'), finding('links.mixedContent', 'http://b'),
+            finding('html.buttonNameMissing', '<button></button>', null, 'serious')]), BASE_RULES, '/sites/digitall/home');
         const found = auditFindings({links: results.links, a11y: {violations: [], recommendations: results.accessibility}}, t);
 
         expect(found.map(item => [item.rule, item.tab, item.count])).toEqual([
@@ -173,5 +197,43 @@ describe('tabResults', () => {
             ['links.mixedContent', 'links', 2]
         ]);
         expect(found[0].key).toBe('audit.a11y.html.buttonNameMissing');
+    });
+
+    it('reads the findings of a failed result, and the values of a result that failed', () => {
+        const results = tabResults(pageResults([finding('links.broken', '/sites/digitall/gone', 'missing', 'critical')]),
+            BASE_RULES, '/sites/digitall/home');
+
+        expect(results.links).toMatchObject({total: 3, broken: [{path: '/sites/digitall/gone'}],
+            recommendations: [{rule: 'links.broken', items: [{text: '/sites/digitall/gone', context: 'missing'}]}]});
+    });
+
+    it('leaves out the block of each rule that the site turned off, and marks no tab as unread', () => {
+        const results = tabResults(pageResults([finding('seo.canonical', '<head>')], {'seo.tags': null, 'readability.statistics': null,
+            'links.broken': null, 'health.unpublishedChanges': null, 'health.missingTranslations': null}), BASE_RULES, '/sites/digitall/home');
+
+        expect(results.seo).toMatchObject({title: {text: null, length: 0}, recommendations: [{rule: 'seo.canonical'}]});
+        expect(results.seo.og).toBeUndefined();
+        expect(results.readability.spaced).toBeUndefined();
+        expect(results.readability.outline).toEqual([]);
+        expect(results.links.total).toBeUndefined();
+        expect(results.jahia).toMatchObject({scanned: null, pageStatus: null, unpublished: [], untranslated: []});
+        expect(results.unread).toEqual([]);
+    });
+});
+
+describe('checkPage', () => {
+    it('asks for the results of the page, and reads the values of each result and of each finding', async () => {
+        globalThis.location = {href: 'http://jahia.test/jahia/jcontent/digitall/en/pages/home'};
+        const client = {query: async () => ({data: {contentGovernance: {checkPage: {path: '/sites/digitall/home', results: [
+            {ruleId: 'readability.statistics', passed: true, values: JSON.stringify(values()['readability.statistics']), findings: []},
+            {ruleId: 'seo.title', passed: false, values: '{"length":4,"text":"Home"}',
+                findings: [{...finding('seo.title', '4'), locator: null, values: '{}'}]}
+        ]}}}})};
+
+        const results = await checkPage(client, '/sites/digitall/home', 'en', BASE_RULES);
+
+        expect(results.readability).toMatchObject({words: 120, score: 42});
+        expect(results.seo.recommendations).toMatchObject([{rule: 'seo.title', title: 'The title has 4 characters (keep 30 to 60)'}]);
+        delete globalThis.location;
     });
 });

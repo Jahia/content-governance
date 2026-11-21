@@ -92,7 +92,7 @@ class ValueFindingsTest {
                         RuleValues.MATCH_MODE, "term", RuleValues.PATTERN, "Frodo", RuleValues.PATTERN_LANGUAGE, "en",
                         RuleValues.REPLACEMENT, "Frodo", RuleValues.RULE_LANGUAGE, "es")))
                 .with(rule(ACME, Map.of(RuleValues.RULE_ID, "acme.erpPrice", RuleValues.EVALUATOR, "acme.erpPrice",
-                        RuleValues.DOMAIN, "writing", RuleValues.SEVERITY, "serious", RuleValues.LABEL, "Prices from the ERP")));
+                        RuleValues.SUBDOMAINS, List.of("writing"), RuleValues.SEVERITY, "serious", RuleValues.LABEL, "Prices from the ERP")));
     }
 
     @BeforeEach

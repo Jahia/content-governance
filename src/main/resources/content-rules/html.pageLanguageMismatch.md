@@ -1,7 +1,7 @@
 ---
 id: html.pageLanguageMismatch
 evaluator: html.pageLanguageMismatch
-domain: accessibility
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 label:

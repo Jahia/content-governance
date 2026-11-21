@@ -1,7 +1,8 @@
 ---
 id: axe.no-autoplay-audio
 evaluator: axe
-domain: accessibility
+runtime: browser
+subdomains: [accessibility]
 severity: moderate
 fixer: developer
 ---

@@ -1,7 +1,8 @@
 ---
 id: axe.td-headers-attr
 evaluator: axe
-domain: accessibility
+runtime: browser
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

@@ -1,6 +1,7 @@
 package org.jahia.community.contentgovernance.check;
 
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
+import org.jahia.community.contentgovernance.check.spi.CheckResult;
 import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.community.contentgovernance.rules.ContentRule;
 import org.jahia.community.contentgovernance.rules.RuleValues;
@@ -35,6 +36,24 @@ class BuiltInChecksTest {
         assertThat(check.check(page.withFact("seo.title", 45), title)).isEmpty();
         assertThat(check.check(page, title)).as("nothing measured, nothing found").isEmpty();
         assertThat(ThresholdCheck.text(0.5)).isEqualTo("0.5");
+    }
+
+    @Test
+    @DisplayName("a threshold result carries the values that the caller measured, else the measured number")
+    void threshold_resultCarriesTheValues() {
+        ContentRule title = rule(Map.of(RuleValues.RULE_ID, "seo.title", RuleValues.EVALUATOR, "threshold",
+                RuleValues.SEVERITY, "serious", RuleValues.MINIMUM, 30.0, RuleValues.MAXIMUM, 60.0));
+        ThresholdCheck check = new ThresholdCheck();
+        CheckInput page = CheckInput.page(PATH, "en", "<html></html>").withFact("seo.title", 72);
+
+        CheckResult measured = check.result(page.withValues("seo.title", Map.of("length", 72, "text", "Annual report")), title);
+        assertThat(measured.passed()).isFalse();
+        assertThat(measured.values()).containsExactlyInAnyOrderEntriesOf(Map.of("length", 72, "text", "Annual report"));
+        assertThat(measured.findings()).extracting(Finding::text).containsExactly("72");
+        assertThat(check.result(page, title).values()).containsExactlyEntriesOf(Map.of("value", 72));
+        assertThat(check.result(CheckInput.page(PATH, "en", ""), title))
+                .as("nothing measured: the rule passes with no value")
+                .isEqualTo(new CheckResult("seo.title", true, Map.of(), List.of()));
     }
 
     @Test

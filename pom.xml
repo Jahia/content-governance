@@ -316,7 +316,8 @@
                              methods that moved to ai-assistant, so a reader of 0.1.0, which imports
                              [0.1,1), no longer wires to it. check.spi and geo.spi are what another
                              module implements: a content check, and the writer of the GEO report. check.spi 1.1.0
-                             adds the values of a finding and RuleSetCheck, a check that applies its rules together. -->
+                             adds the result of a rule (CheckResult), which a check of 1.0.0 gives through a default
+                             method, the values of a finding, and RuleSetCheck, a check that applies its rules together. -->
                         <Export-Package>
                             org.jahia.community.contentgovernance.compliance.model,
                             org.jahia.community.contentgovernance.compliance.service.spi,

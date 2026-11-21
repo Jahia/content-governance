@@ -40,6 +40,9 @@ export const SETTINGS_FIELDS = 'siteKey moduleEnabled canEdit disabled';
  */
 export const TEST_TAB = 'cgTestTab';
 
+/** The panel that the test module adds to the drawer, which no code of Content Governance names. */
+export const TEST_PANEL = 'cgTestPanel';
+
 export function asRoot(): TestUser {
     return {username: 'root', password: Cypress.env('SUPER_USER_PASSWORD') || 'root1234'};
 }

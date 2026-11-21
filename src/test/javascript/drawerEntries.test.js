@@ -7,7 +7,11 @@ import {registerOwnTabs} from '../../javascript/drawer/ownTabs.js';
 import {entryFindings} from '../../javascript/drawer/findings.js';
 import {DrawerEntryContext} from '../../javascript/drawer/DrawerEntryContext.js';
 import {FindingActions} from '../../javascript/drawer/FindingActions.jsx';
-import {GovernanceDrawer} from '../../javascript/drawer/GovernanceDrawer.jsx';
+import {GovernanceSections} from '../../javascript/drawer/GovernancePanel.jsx';
+import {onPanelRequest} from '../../javascript/drawer/drawerApi.js';
+
+// The governance panel reads the node checks of jContent, which need its Apollo client
+vi.mock('@jahia/data-helper', () => ({useNodeChecks: () => ({checksResult: true, loading: false})}));
 
 const h = React.createElement;
 
@@ -19,8 +23,7 @@ const drawerProps = {
     language: 'en',
     settings: {ai: {}},
     isOn: () => true,
-    onClose: () => {},
-    onReopen: () => {}
+    onClose: () => {}
 };
 
 // The section bar of the drawer: the id of each tab, in order
@@ -151,11 +154,11 @@ describe('FindingActions', () => {
     });
 });
 
-describe('GovernanceDrawer', () => {
+describe('GovernanceSections', () => {
     const tab = (id, component = () => null) => ({id, entry: {key: id, label: id, component}});
 
     it('shows the tabs it is given, in their order', () => {
-        const markup = renderToStaticMarkup(h(GovernanceDrawer, {...drawerProps, tabs: [tab('geo'), tab('compliance')], initialSection: 'compliance'}));
+        const markup = renderToStaticMarkup(h(GovernanceSections, {...drawerProps, tabs: [tab('geo'), tab('compliance')], request: {section: 'compliance'}}));
         expect(sectionTabs(markup)).toEqual(['geo', 'compliance']);
     });
 
@@ -167,7 +170,7 @@ describe('GovernanceDrawer', () => {
             return h('p', null, 'the AI review');
         });
 
-        const markup = renderToStaticMarkup(h(GovernanceDrawer, {...drawerProps, isOn, tabs: [tab('geo'), review], initialSection: 'aiReview'}));
+        const markup = renderToStaticMarkup(h(GovernanceSections, {...drawerProps, isOn, tabs: [tab('geo'), review], request: {section: 'aiReview'}}));
 
         expect(sectionTabs(markup)).toEqual(['geo', 'aiReview']);
         expect(markup).toContain('the AI review');
@@ -182,8 +185,25 @@ describe('GovernanceDrawer', () => {
         expect(isOn).toHaveBeenCalledWith('aiReview', 'summary');
     });
 
+    it('reopens the governance panel of the page on the tab', () => {
+        const received = [];
+        const requests = [];
+        const stop = onPanelRequest(request => requests.push(request) > 0);
+        renderToStaticMarkup(h(GovernanceSections, {
+            ...drawerProps,
+            tabs: [tab('compliance', props => {
+                received.push(props);
+                return null;
+            })]
+        }));
+
+        expect(received[0].onReopen()).toBe(true);
+        stop();
+        expect(requests).toEqual([{panel: 'governance', context: {section: 'compliance'}, path: '/sites/digitall/home'}]);
+    });
+
     it('greys out a tab the page cannot use', () => {
-        const markup = renderToStaticMarkup(h(GovernanceDrawer, {...drawerProps, tabs: [tab('geo'), {...tab('compliance'), unavailable: 'notPage'}]}));
+        const markup = renderToStaticMarkup(h(GovernanceSections, {...drawerProps, tabs: [tab('geo'), {...tab('compliance'), unavailable: 'notPage'}]}));
         expect(markup).toContain('disabled="" id="content-governance-section-compliance"');
     });
 });

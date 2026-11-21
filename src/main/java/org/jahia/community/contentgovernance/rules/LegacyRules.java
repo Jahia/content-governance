@@ -37,7 +37,7 @@ import java.util.Set;
 final class LegacyRules {
 
     static final String WRITING_RULE = "efnt:writingRule";
-    static final String WRITING_DOMAIN = "writing";
+    static final String WRITING = "writing";
     private static final String LEGACY_FOLDER = ContentRules.ROOT + "/jahia";
     private static final String CONTRIBUTE_TYPES = "j:contributeTypes";
     private static final String JUSTIFICATION = "justification";
@@ -119,9 +119,9 @@ final class LegacyRules {
     /** {@code writing.<node name>}, or that id with a part of the identifier when the site has it already. */
     private static String freeId(JCRSessionWrapper session, Node node, Map<String, Set<String>> taken) throws RepositoryException {
         Set<String> ids = taken.computeIfAbsent(sitePathOf(node.getPath()), site -> ruleIds(session, site));
-        String id = WRITING_DOMAIN + "." + node.getName();
+        String id = WRITING + "." + node.getName();
         if (!RuleFile.ID_PATTERN.matcher(id).matches() || ids.contains(id)) {
-            id = WRITING_DOMAIN + "." + node.getIdentifier().substring(0, 8);
+            id = WRITING + "." + node.getIdentifier().substring(0, 8);
         }
         ids.add(id);
         return id;
@@ -163,7 +163,7 @@ final class LegacyRules {
         Map<String, Object> values = new HashMap<>();
         values.put(RuleValues.RULE_ID, id);
         values.put(RuleValues.EVALUATOR, ContentRule.PATTERN);
-        values.put(RuleValues.DOMAIN, WRITING_DOMAIN);
+        values.put(RuleValues.SUBDOMAINS, List.of(WRITING));
         values.put(RuleValues.SEVERITY, "style".equals(kind) ? "minor" : rank);
         values.put(RuleValues.BLOCKING, blocking);
         values.put(RuleValues.ENABLED, true);
