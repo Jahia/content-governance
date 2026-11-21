@@ -2,9 +2,10 @@ import {registry} from '@jahia/ui-extender';
 
 /**
  * The entries of the drawer in jContent's registry: its panels, the tabs of the governance panel,
- * and the actions on a finding. The module registers its own panel and tabs there too
- * (drawer/ownTabs.js), so every panel gets the same button and site switch, and every tab the same
- * site switch, "Fix first" rank and history. `docs/drawer-entries.md` states the contract.
+ * the actions on a finding, and the checks that run in the browser. The module registers its own
+ * panel, tabs and checks there too (drawer/ownTabs.js, checks/register.js), so every panel gets the
+ * same button and site switch, every tab the same site switch, "Fix first" rank and history, and
+ * every check the same run. `docs/drawer-entries.md` states the contract.
  */
 
 /** The registry type of a panel: a whole screen of the drawer, opened by its own button. */
@@ -93,3 +94,29 @@ export const tabParts = entry => (Array.isArray(entry.tabs) ? entry.tabs.filter(
 
 /** The actions on a finding that other modules added, in the order of their priority. */
 export const findingActions = () => registry.find({type: 'action', target: FINDING_ACTIONS_TARGET});
+
+/** The registry type of a check that the drawer runs in the browser, on the preview of the page. */
+export const CHECK_TYPE = 'contentGovernanceCheck';
+
+/**
+ * The name of the performance mark that the drawer sets in the preview before the first check runs. A
+ * check that measures what the page loaded leaves out the resources after it, which other checks added,
+ * such as the script of axe-core.
+ */
+export const CHECKS_MARK = 'contentGovernanceChecks';
+
+/**
+ * The checks that run in the browser, in the order that the modules added them. A check with no
+ * evaluator or no `run` function is left out.
+ *
+ * @returns {Array<{key: string, evaluator: string, run: Function}>} the registry entries
+ */
+export function browserChecks() {
+    return registry.find({type: CHECK_TYPE}).filter(entry => {
+        const valid = typeof entry.evaluator === 'string' && entry.evaluator !== '' && typeof entry.run === 'function';
+        if (!valid) {
+            console.warn(`[content-governance] the check "${entry.key}" has no evaluator or no run function, and is left out`);
+        }
+        return valid;
+    });
+}

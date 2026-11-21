@@ -72,6 +72,21 @@ class RuleFileTest {
         assertThatThrownBy(() -> RuleFile.parse("---\nid: a/b\nevaluator: threshold\ndomain: seo\nseverity: minor\n---\n", "x.md"))
                 .hasMessageContaining("a/b");
         assertThatThrownBy(() -> RuleFile.parse("No frontmatter", "a.b.md")).hasMessageContaining("frontmatter");
+        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: axe\ndomain: accessibility\nseverity: minor\nruntime: client\n---\n", "a.b.md"))
+                .hasMessageContaining("unknown runtime client");
+    }
+
+    @Test
+    @DisplayName("a rule states that its check runs in the browser, and runs on the server by default")
+    void runtime_isBrowserOrServer() {
+        ContentRule browser = RuleValues.toRule(RuleFile.parse(
+                "---\nevaluator: acme.brandContrast\ndomain: accessibility\nseverity: serious\nruntime: browser\n---\n",
+                "acme.brandContrast.md").values());
+        ContentRule server = RuleValues.toRule(RuleFile.parse(
+                "---\nevaluator: threshold\ndomain: seo\nseverity: minor\n---\n", "seo.x.md").values());
+
+        assertThat(browser.inBrowser()).isTrue();
+        assertThat(server.inBrowser()).isFalse();
     }
 
     @Test

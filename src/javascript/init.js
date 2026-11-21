@@ -6,6 +6,7 @@ import {Header, LayoutContent, Loader} from '@jahia/moonstone';
 import {GovernanceAction} from './drawer/GovernanceAction';
 import {registerOwnPanel, registerOwnTabs} from './drawer/ownTabs';
 import {registerDrawerApi} from './drawer/drawerApi';
+import {registerChecks} from './checks/register';
 import {PublishCheckAction} from './publish/PublishCheckAction';
 import {SectionGate} from './common/SectionGate';
 import {NS} from './common/i18n';
@@ -101,6 +102,9 @@ function register() {
     registerOwnTabs();
     // openPanel(id, context) for other modules, such as an action on a finding that opens the chat
     registerDrawerApi();
+
+    // The checks that Page quality runs in the browser: axe-core, the web vitals and eco-design
+    registerChecks();
 
     // One button per panel of the drawer, on a site that enables the module and keeps the panel
     // switched on. The governance panel shows on a page or a main resource that it can check, while

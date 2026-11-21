@@ -19,8 +19,8 @@
     white-space: nowrap;
 }
 
-/* Preview iframe. Collapsed: zero height but the iframe stays mounted - analyzers and element
-   highlighting still need its document. */
+/* Preview iframe. Collapsed: zero height but the iframe stays mounted - the checks of the browser
+   and element highlighting still need its document. */
 .preview {
     flex-shrink: 0;
     height: 34%;
@@ -32,9 +32,9 @@
 }
 
 /* Hidden: behind the results at the size of the whole section, not folded to no height. The
-   analyzers read the frame's viewport and its paint (LCP, images above the fold): a frame with no
-   height measures nothing. The drawer's section isolates the stacking, and every band above it is
-   opaque. */
+   checks of the browser read the frame's viewport and its paint (LCP, images above the fold): a
+   frame with no height measures nothing. The drawer's section isolates the stacking, and every band
+   above it is opaque. */
 .previewCollapsed {
     position: absolute;
     inset: 0;

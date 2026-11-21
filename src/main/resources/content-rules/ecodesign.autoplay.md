@@ -1,6 +1,7 @@
 ---
 id: ecodesign.autoplay
 evaluator: ecodesign.autoplay
+runtime: browser
 domain: ecodesign
 severity: moderate
 fixer: editor

@@ -1,6 +1,7 @@
 ---
 id: ecodesign.webFonts
-evaluator: threshold
+evaluator: ecodesign.webFonts
+runtime: browser
 domain: ecodesign
 severity: minor
 fixer: developer
