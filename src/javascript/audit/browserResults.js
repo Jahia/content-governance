@@ -11,7 +11,6 @@ import {browserRules, VITALS} from './runChecks';
 
 /** The evaluator of axe-core, whose violations the Accessibility tab lists with their elements. */
 export const AXE = 'axe';
-export {VITALS} from './runChecks';
 
 /** The tabs that list recommendations of rules. */
 const RECOMMENDATION_TABS = ['accessibility', 'seo', 'readability', 'links', 'jahia', 'ecodesign'];

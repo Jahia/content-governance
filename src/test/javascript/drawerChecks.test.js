@@ -12,6 +12,7 @@ import {BASE_RULES} from './baseRules.js';
 afterEach(() => {
     registry.clear();
     vi.restoreAllMocks();
+    vi.useRealTimers();
 });
 
 /** A preview with no page: what runChecks gives a check, and the marks it set. */
