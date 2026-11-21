@@ -248,11 +248,6 @@ public final class ContentRules {
         return new ContentRules(out, hierarchy);
     }
 
-    /** The domains and the subdomains that place these rules. */
-    public ContentDomains hierarchy() {
-        return hierarchy;
-    }
-
     /**
      * @param id the id of a rule
      * @return the rule as the site applies it

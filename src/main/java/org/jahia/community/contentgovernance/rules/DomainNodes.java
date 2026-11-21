@@ -22,16 +22,6 @@ final class DomainNodes {
     private DomainNodes() {
     }
 
-    /** The level of a node, or null when it is neither a domain nor a subdomain. */
-    static Level levelOf(JCRNodeWrapper node) throws RepositoryException {
-        for (Level level : Level.values()) {
-            if (node.isNodeType(level.type())) {
-                return level;
-            }
-        }
-        return null;
-    }
-
     /** The values that the node holds, with its texts in the languages other than English. */
     static Map<String, Object> read(JCRNodeWrapper node, Level level) throws RepositoryException {
         Map<String, Object> values = new LinkedHashMap<>();
