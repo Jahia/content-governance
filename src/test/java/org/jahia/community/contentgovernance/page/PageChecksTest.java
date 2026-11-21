@@ -48,6 +48,9 @@ class PageChecksTest {
     }
 
     private static void bind(CheckRegistry registry, List<String> ids, Function<CheckInput, Family.Found> read) {
+        if (ids.isEmpty()) {
+            return;
+        }
         Family.checks(ids, "test:" + ids.get(0), read).forEach((id, check) -> Registries.bind(registry, check, id));
     }
 
@@ -154,14 +157,25 @@ class PageChecksTest {
         }
 
         @Test
-        @DisplayName("a hard text and its thresholds give findings, and a short text gives none")
+        @DisplayName("the score is the fact of the rule of the scale of the language: flesch, or lix for Swedish")
+        void theScore_isTheFactOfItsScale() {
+            String text = "<html><body><main><p>" + sentences("information", 3, 12) + "</p></main></body></html>";
+
+            assertThat(ReadabilityChecks.facts(Jsoup.parse(text), "en")).containsKey("readability.flesch")
+                    .doesNotContainKey("readability.lix");
+            assertThat(ReadabilityChecks.facts(Jsoup.parse(text), "sv")).containsKey("readability.lix")
+                    .doesNotContainKey("readability.flesch");
+        }
+
+        @Test
+        @DisplayName("a hard text breaks the rule of its scale and the thresholds, and a short text gives none")
         void aHardText_givesFindings() {
             String hard = sentences("internationalisation", 2, 30);
             List<Finding> found = run(page("<html lang='en'>" + GOOD_HEAD + "<body><h1>T</h1><main><p>" + hard
                     + "</p></main></body></html>"));
 
-            assertThat(rules(found)).contains("readability.veryHardText", "readability.longSentences",
-                    "readability.thinContent").doesNotContain("readability.hardText", "readability.longParagraphs");
+            assertThat(rules(found)).contains("readability.flesch", "readability.longSentences",
+                    "readability.thinContent").doesNotContain("readability.lix", "readability.longParagraphs");
             assertThat(found).filteredOn(finding -> finding.ruleId().equals("readability.longSentences"))
                     .extracting(Finding::text).containsExactly("30");
             assertThat(rules(run(page("<html lang='en'><body><p>Five words are not enough.</p></body></html>"))))
@@ -355,7 +369,7 @@ class PageChecksTest {
     @Test
     @DisplayName("each page check is a check of the scope PAGE, under the id of a shipped rule")
     void eachCheck_isShipped() {
-        for (List<String> ids : List.of(SeoChecks.IDS, ReadabilityChecks.IDS, LinkChecks.IDS, HealthChecks.IDS)) {
+        for (List<String> ids : List.of(SeoChecks.IDS, LinkChecks.IDS, HealthChecks.IDS)) {
             Family.checks(ids, "x", input -> new Family.Found()).forEach((id, check) -> {
                 assertThat(check.scopes()).containsExactly(ContentCheck.Scope.PAGE);
                 assertThat(ContentRules.base().get(id).evaluator()).isEqualTo(id);

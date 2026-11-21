@@ -63,3 +63,12 @@ export function wordFinding(rule, values, language) {
         detail: interpolate(rule.advice || '', values)
     };
 }
+
+/**
+ * How many results of rules passed, out of all: the score of any list of pass/fail results, such as the
+ * checks of GEO readiness.
+ *
+ * @param {Array<{passed: boolean}>} results the results
+ * @returns {{passed: number, total: number}} the counts
+ */
+export const passedOf = results => ({passed: results.filter(result => result.passed).length, total: results.length});
