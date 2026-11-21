@@ -116,7 +116,7 @@ class RuleFileTest {
         assertThat(rule.values()).containsEntry(RuleValues.LABEL, "Text alternatives of images")
                 .containsEntry(RuleValues.TITLE, "one: {{count}} image has no text alternative\nother: {{count}} images have no text alternative")
                 .containsEntry(RuleValues.ADVICE, "Give every image an alt attribute.");
-        assertThat(rule.values().get(RuleValues.TRANSLATIONS)).isEqualTo(Map.of("fr", Map.of(
+        assertThat(rule.values()).containsEntry(RuleValues.TRANSLATIONS, Map.of("fr", Map.of(
                 RuleValues.LABEL, "Alternatives textuelles des images",
                 RuleValues.TITLE, "{{count}} image(s) sans alternative textuelle",
                 RuleValues.ADVICE, "Donnez à chaque image un attribut alt.")));

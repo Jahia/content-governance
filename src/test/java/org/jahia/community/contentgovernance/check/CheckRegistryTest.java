@@ -230,4 +230,16 @@ class CheckRegistryTest {
         CheckInput input = CheckInput.value("/sites/digitall/home/main/intro", "en", "Only 12.50 EUR");
         assertThat(registry.run(ContentRules.base().with(brand).with(other), input, Set.of())).isEmpty();
     }
+
+    @Test
+    void theRulesThatTheModuleAndAiAssistantWrite_haveAKnownDomain() {
+        // LegacyTerms and the import of ai-assistant write glossary.* rules with the domain glossary
+        for (String domain : List.of("writing", "compliance", "glossary")) {
+            ContentRule rule = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "x.y", RuleValues.EVALUATOR, "pattern",
+                    RuleValues.DOMAIN, domain));
+            assertThat(rule.hasKnownDomain()).as(domain).isTrue();
+        }
+        assertThat(RuleValues.toRule(Map.of(RuleValues.RULE_ID, "glossary.access-token", RuleValues.EVALUATOR, "pattern"))
+                .domain()).isEqualTo("glossary");
+    }
 }

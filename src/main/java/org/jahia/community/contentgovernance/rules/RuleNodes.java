@@ -70,16 +70,23 @@ final class RuleNodes {
         while (found != null && found.hasNext()) {
             Node translation = found.nextNode();
             String language = translation.hasProperty("jcr:language") ? translation.getProperty("jcr:language").getString() : null;
-            if (language == null || "en".equals(language)) {
-                continue;
-            }
-            for (String key : RuleValues.TRANSLATABLE) {
-                if (translation.hasProperty(key)) {
-                    String text = translation.getProperty(key).getString();
-                    if (!text.isBlank()) {
-                        out.computeIfAbsent(language, ignored -> new TreeMap<>()).put(key, text);
-                    }
+            if (language != null && !"en".equals(language)) {
+                Map<String, String> texts = texts(translation);
+                if (!texts.isEmpty()) {
+                    out.put(language, texts);
                 }
+            }
+        }
+        return out;
+    }
+
+    /** The title, the label and the advice that one translation node holds, by key. */
+    private static Map<String, String> texts(Node translation) throws RepositoryException {
+        Map<String, String> out = new TreeMap<>();
+        for (String key : RuleValues.TRANSLATABLE) {
+            String text = translation.hasProperty(key) ? translation.getProperty(key).getString() : "";
+            if (!text.isBlank()) {
+                out.put(key, text);
             }
         }
         return out;

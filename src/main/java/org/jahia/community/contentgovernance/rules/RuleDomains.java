@@ -10,14 +10,15 @@ import java.util.List;
  *   <li>{@code accessibility}, {@code seo}, {@code readability}, {@code links}, {@code health} and
  *       {@code ecodesign}: the tabs of Page quality.</li>
  *   <li>{@code writing}: the Readability tab, for a rule on how a text is written.</li>
- *   <li>{@code geo}: GEO readiness. {@code compliance}: Compliance.</li>
+ *   <li>{@code geo}: GEO readiness. {@code compliance} and {@code glossary}: Compliance. A glossary rule
+ *       replaces a term of one language with the term of the site, such as {@code glossary.access-token}.</li>
  * </ul>
  */
 public final class RuleDomains {
 
     /** Every domain, in the order of the drawer. */
     public static final List<String> ALL = List.of("accessibility", "seo", "readability", "writing", "links", "health",
-            "ecodesign", "geo", "compliance");
+            "ecodesign", "geo", "compliance", "glossary");
 
     private RuleDomains() {
     }
