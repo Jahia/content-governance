@@ -1774,6 +1774,7 @@
       "title": "Gobernanza de contenidos",
       "close": "Cerrar el panel",
       "sections": "Secciones",
+      "panels": "Vistas",
       "section": {
         "audit": "Calidad de la página",
         "geo": "Preparación GEO",
@@ -1786,6 +1787,7 @@
       "resize": "Cambiar el ancho del panel: arrastre, o use las flechas izquierda y derecha",
       "nothingAvailable": "Ninguna sección de Gobernanza de contenidos puede usarse con este contenido.",
       "entryFailed": "Esta pestaña, añadida por otro módulo, no se pudo mostrar.",
+      "panelFailed": "Esta vista, añadida por otro módulo, no se pudo mostrar.",
       "sectionHelp": {
         "audit": "Revisa la página que está editando: accesibilidad, SEO, velocidad, legibilidad, ecodiseño, enlaces y contenido Jahia.",
         "geo": "Si los asistentes de IA y sus rastreadores pueden leer y citar la página publicada: puntuación, acceso de los rastreadores, archivos del sitio, datos estructurados y citas de IA.",
@@ -1808,13 +1810,17 @@
       "loadError": "No se pudo leer la configuración. Vuelva a cargar la página para intentarlo de nuevo.",
       "savedTitle": "Guardado",
       "saved": "Los editores verán el cambio la próxima vez que abran el panel lateral.",
-      "intro": "Elija lo que los editores de este sitio encuentran en el panel lateral de Gobernanza de contenidos. Una sección desactivada también desactiva su panel del sitio (la entrada se mantiene y lo indica), y el servidor rechaza sus llamadas. Las pestañas conservan su propia configuración mientras su sección está desactivada.",
+      "intro": "Elija lo que los editores de este sitio encuentran en el panel lateral de Gobernanza de contenidos. Cada vista del panel lateral tiene su propio botón en la cabecera. Una sección desactivada también desactiva su panel del sitio (la entrada se mantiene y lo indica), y el servidor rechaza sus llamadas. Las pestañas conservan su propia configuración mientras su sección o su vista está desactivada.",
       "sectionHelp": {
         "audit": "Accesibilidad, SEO, Web Vitals, legibilidad, ecodiseño, enlaces y controles Jahia de la página, medidos en el navegador.",
         "geo": "Si los rastreadores de IA pueden leer la página, los archivos del sitio (robots.txt, llms.txt), los datos estructurados y las citas de IA de BotRank. También el panel Preparación GEO en Adicional, SEO.",
         "compliance": "Términos de los glosarios del sitio que la página y lo que muestra no pueden usar, por idioma. También el panel Cumplimiento en Adicional."
       },
+      "panelHelp": {
+        "governance": "Calidad de página, Preparación GEO, Cumplimiento y las pestañas que añaden otros módulos. Desactivada, desactiva todas las pestañas de abajo con sus paneles del sitio. Las pestañas conservan su propia configuración."
+      },
       "sectionSwitch": "Sección {{section}}",
+      "panelSwitch": "Vista {{panel}}",
       "on": "Activado",
       "off": "Desactivado",
       "needsBotRank": "Requiere una conexión con BotRank"

@@ -1774,6 +1774,7 @@
       "title": "Gouvernance des contenus",
       "close": "Fermer le panneau",
       "sections": "Sections",
+      "panels": "Volets",
       "section": {
         "audit": "Qualité de la page",
         "geo": "Préparation GEO",
@@ -1786,6 +1787,7 @@
       "resize": "Redimensionner le panneau : faites glisser, ou utilisez les flèches gauche et droite",
       "nothingAvailable": "Aucune section de Gouvernance des contenus ne peut être utilisée sur ce contenu.",
       "entryFailed": "Cet onglet, ajouté par un autre module, n'a pas pu s'afficher.",
+      "panelFailed": "Ce volet, ajouté par un autre module, n'a pas pu s'afficher.",
       "sectionHelp": {
         "audit": "Contrôle la page que vous modifiez : accessibilité, SEO, vitesse, lisibilité, écoconception, liens et contenus Jahia.",
         "geo": "Si les assistants IA et leurs robots peuvent lire et citer la page publiée : score, accès des robots, fichiers du site, données structurées et citations par les IA.",
@@ -1808,13 +1810,17 @@
       "loadError": "Les réglages n'ont pas pu être lus. Rechargez la page pour réessayer.",
       "savedTitle": "Enregistré",
       "saved": "Les contributeurs voient le changement à la prochaine ouverture du panneau.",
-      "intro": "Choisissez ce que les contributeurs de ce site trouvent dans le panneau Gouvernance des contenus. Une section désactivée désactive aussi son tableau de bord (l'entrée reste et l'indique), et le serveur refuse ses appels. Les onglets gardent leur réglage tant que leur section est désactivée.",
+      "intro": "Choisissez ce que les contributeurs de ce site trouvent dans le panneau Gouvernance des contenus. Chaque volet du panneau a son propre bouton dans l'en-tête. Une section désactivée désactive aussi son tableau de bord (l'entrée reste et l'indique), et le serveur refuse ses appels. Les onglets gardent leur réglage tant que leur section ou leur volet est désactivé.",
       "sectionHelp": {
         "audit": "Accessibilité, SEO, Web Vitals, lisibilité, écoconception, liens et contrôles Jahia de la page, mesurés dans le navigateur.",
         "geo": "Si les robots des IA peuvent lire la page, les fichiers du site (robots.txt, llms.txt), les données structurées et les citations par les IA issues de BotRank. Aussi le tableau de bord Préparation GEO, sous Supplémentaire, SEO.",
         "compliance": "Les termes des glossaires du site que la page et ce qu'elle affiche ne doivent pas employer, par langue. Aussi le tableau de bord Conformité, sous Supplémentaire."
       },
+      "panelHelp": {
+        "governance": "Qualité de page, Lisibilité IA, Conformité et les onglets ajoutés par d'autres modules. Désactivé, il désactive tous les onglets ci-dessous avec leurs tableaux de bord. Les onglets gardent leur réglage."
+      },
       "sectionSwitch": "Section {{section}}",
+      "panelSwitch": "Volet {{panel}}",
       "on": "Activée",
       "off": "Désactivée",
       "needsBotRank": "Nécessite une connexion BotRank"

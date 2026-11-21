@@ -20,13 +20,14 @@ module ai-assistant is installed, it adds its own AI review tab to the drawer
 
 ```
 jContent / Page Builder header
-  GovernanceAction (headerPrimaryActions:890)
+  GovernanceAction (headerPrimaryActions:890, one button per panel)
     GovernanceDrawer  (portal into document.body)
-      AuditSection
-        GraphQL checkPage (HtmlCheck)  -> one result per rule: seo, readability, links, jahia, HTML rules
-        iframe  /cms/render/default/{lang}{path}.html?pageAuditRun=N
-          removeToolingElements -> runChecks: webVitals, ecodesign.*, axe (axe-core injected), checks of other modules
-        localStorage  content-governance:audit:{lang}:{path}
+      GovernancePanel
+        AuditSection
+          GraphQL checkPage (HtmlCheck)  -> one result per rule: seo, readability, links, jahia, HTML rules
+          iframe  /cms/render/default/{lang}{path}.html?pageAuditRun=N
+            removeToolingElements -> runChecks: webVitals, ecodesign.*, axe (axe-core injected), checks of other modules
+          localStorage  content-governance:audit:{lang}:{path}
 ```
 
 ## Where the code lives
@@ -34,9 +35,10 @@ jContent / Page Builder header
 | Path | Role |
 |---|---|
 | `src/javascript/init.js` | Loads the editor's language file (only that one: `en` or `fr`, English otherwise), then registers the `contentGovernance` action on `headerPrimaryActions:890`, label `drawer.action` ("Content governance"), and the routes. Everything else loads on first use: the GEO and Compliance dashboards and the settings panel through `React.lazy` with a Moonstone loader, the drawer from `GovernanceAction`. jContent's start loads about 105 kB of the module (622 kB up to 1.4.0); the drawer spec fails above 200 kB. |
-| `src/javascript/drawer/GovernanceAction.jsx` | Shows the button on `jnt:page` and `jmix:mainResource` of a site that enables the module (`useNodeChecks`, `requireModuleInstalledOnSite`), reads the site settings, opens the drawer. The drawer and its three sections are one lazy chunk, fetched when the browser is idle once the button shows (`requestIdleCallback`, else after 2 s), at the latest on the first click. |
+| `src/javascript/drawer/GovernanceAction.jsx` | Shows one button per panel of the registry (`contentGovernancePanel`, `drawer/entries.js`) on a site that enables the module (`useNodeChecks`, `requireModuleInstalledOnSite`) and keeps the panel on. A panel shows on `jnt:page` and `jmix:mainResource` unless its entry names other node types. It reads the site settings, holds which panel the one drawer shows (`drawer/drawerState.js`), and listens to `openPanel` (`drawer/drawerApi.js`). The drawer is one lazy chunk, fetched when the browser is idle once a button shows (`requestIdleCallback`, else after 2 s), at the latest on the first click. The governance panel and its sections load on first show. |
 | `src/javascript/drawer/FixFirst.jsx`, `findings.js` | "Fix first": each section reports `{key, section, tab, severity, title}` findings through `onFindings` (Page quality: violations by impact and every tab's recommendations, `auditFindings`; GEO: one per tab with a count, score and crawler serious, the others moderate; Compliance: one serious per term, `complianceFindings`). The drawer keeps them per section (an identical list changes nothing), `rankFindings` keeps the five most serious, ties in section order, and **Open** selects the section and passes `requestedTab` `{tab, at}`. |
-| `src/javascript/drawer/GovernanceDrawer.jsx` | The drawer: header, one section tab per switched-on section with its count badge, sections mounted on first show and kept mounted while the drawer is open. |
+| `src/javascript/drawer/GovernanceDrawer.jsx` | The drawer: header with the label of the panel in view, a switch between the panels, panels mounted on first show and kept mounted while the drawer is open. |
+| `src/javascript/drawer/GovernancePanel.jsx` | The governance panel: one section tab per switched-on section with its count badge, "Fix first", sections mounted on first show and kept mounted while the drawer is open. |
 | `src/javascript/drawer/useDock.js` | Docks the drawer beside the page under edit, under jContent's header, and resizes it from its left edge (see the drawer notes below). |
 | `src/javascript/audit/AuditSection.jsx` | The section. It holds the check of the server, the preview frame and the run of the checks of the browser. It also holds the cache, the staleness probe, the export, the tab bar and the badges. |
 | `src/javascript/audit/pageCheck.js` | Calls `checkPage`, and turns the findings and the values of its results into the results of the tabs SEO, Readability, Links and Jahia health, and the HTML rules of the Accessibility tab. |
@@ -58,7 +60,7 @@ jContent / Page Builder header
   the language jContent is in.
 - `useSiteSettings(siteKey)` runs `ContentGovernanceSiteSettings` with `fetchPolicy: 'network-only'`
   on every mount, so a switch changed by an administrator applies the next time the drawer opens. It
-  returns `isOn(section, tab)`.
+  returns `isOn(section, tab)`, off with the governance panel too, and `isPanelOn(panel)`.
 - The drawer is a non-modal `<dialog open>` (not `showModal()`, which would make it modal, in the top
   layer above Content Editor and jContent's menus) rendered by a portal into `document.body`.
   `drawer/useDock.js` docks it in jContent's content area (`main .moonstone-layoutContent`), under
@@ -304,8 +306,8 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
     nothing was found.
   - jContent writes action labels as HTML (`dangerouslySetInnerHTML`), so `buttonLabelParams` holds
     numbers only.
-  - The click dispatches `content-governance:open` (`OPEN_DRAWER_EVENT`); `GovernanceAction` opens
-    the drawer on that section for its page.
+  - The click calls `openPanel('governance', {section}, path)` (`drawer/drawerApi.js`);
+    `GovernanceAction` opens the drawer of its page on the governance panel and that section.
 - **Dashboard:** `audit/dashboard/AuditDashboard.jsx`, jContent app `contentGovernancePageQuality`
   (`jcontent:89`, `jContentAccess`, `SectionGate` on `audit`, lazy).
   - Moonstone `DataTable`: page, last audit, issues by tab as chips (tabs with issues only), total

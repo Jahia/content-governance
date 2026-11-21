@@ -1,8 +1,10 @@
 /*
- * Adds a tab to the drawer of Content Governance, as another module does (docs/drawer-entries.md).
- * Content Governance names this tab nowhere: the Cypress suite checks that it still gets a site
- * switch, a "Fix first" rank and a history. app-shell loads this file when jContent starts, without a
- * build, so it takes React from the share scope of jContent.
+ * Adds a tab, a panel and an action on a finding to the drawer of Content Governance, as another
+ * module does (docs/drawer-entries.md). Content Governance names them nowhere: the Cypress suite
+ * checks that the tab still gets a site switch, a "Fix first" rank and a history, and that the panel
+ * gets a button, a site switch, and the context of the finding that the action opens it with, as the
+ * chat of AI Assistant does. app-shell loads this file when jContent starts, without a build, so it
+ * takes React from the share scope of jContent.
  */
 (function () {
     const jahia = globalThis.jahia;
@@ -13,7 +15,8 @@
     ];
 
     jahia.i18n.addResourceBundle('en', NS, {
-        tab: {label: 'Test tab', help: 'A tab that the test module adds', summary: 'Summary'}
+        tab: {label: 'Test tab', help: 'A tab that the test module adds', summary: 'Summary'},
+        panel: {label: 'Test panel', button: 'Test panel', help: 'A panel that the test module adds', open: 'Open in the test panel'}
     }, true, true);
 
     function register(React) {
@@ -48,6 +51,30 @@
             help: `${NS}:tab.help`,
             tabs: [{id: 'summary', label: `${NS}:tab.summary`}],
             component: TestTab
+        });
+
+        function TestPanel({path, language, context}) {
+            const finding = context && context.finding;
+            return h('div', {'data-cg-test-panel': path},
+                h('p', null, 'The panel of the test module'),
+                finding && h('p', {'data-cg-test-context': finding.rule, 'data-cg-test-language': language},
+                    `Opened on ${finding.title}`));
+        }
+
+        jahia.uiExtender.registry.add('contentGovernancePanel', 'cgTestPanel', {
+            label: `${NS}:panel.label`,
+            buttonLabel: `${NS}:panel.button`,
+            order: 50,
+            settingsHelp: `${NS}:panel.help`,
+            component: TestPanel
+        });
+
+        // Opens the test panel with the finding, as "Fix with the assistant" opens the chat
+        jahia.uiExtender.registry.add('action', 'cgTestOpenPanel', {
+            targets: ['contentGovernanceFindingActions:50'],
+            buttonLabel: `${NS}:panel.open`,
+            onClick: ({path, language, finding}) => jahia.uiExtender.registry.get('contentGovernanceApi', 'drawer')
+                .openPanel('cgTestPanel', {finding, path, language})
         });
     }
 

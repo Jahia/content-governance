@@ -1774,6 +1774,7 @@
       "title": "Content-Governance",
       "close": "Panel schließen",
       "sections": "Bereiche",
+      "panels": "Ansichten",
       "section": {
         "audit": "Seitenqualität",
         "geo": "GEO-Bereitschaft",
@@ -1786,6 +1787,7 @@
       "resize": "Panelbreite ändern: ziehen oder die Pfeiltasten links und rechts verwenden",
       "nothingAvailable": "Kein Bereich von Content-Governance ist für diesen Inhalt verfügbar.",
       "entryFailed": "Dieser Reiter eines anderen Moduls konnte nicht angezeigt werden.",
+      "panelFailed": "Diese Ansicht eines anderen Moduls konnte nicht angezeigt werden.",
       "sectionHelp": {
         "audit": "Prüft die Seite, die Sie bearbeiten: Barrierefreiheit, SEO, Geschwindigkeit, Lesbarkeit, Ökodesign, Links und Jahia-Inhalte.",
         "geo": "Ob KI-Assistenten und ihre Crawler die veröffentlichte Seite lesen und zitieren können: Score, Crawler-Zugriff, Website-Dateien, strukturierte Daten und KI-Zitate.",
@@ -1808,13 +1810,17 @@
       "loadError": "Die Einstellungen konnten nicht gelesen werden. Laden Sie die Seite neu, um es erneut zu versuchen.",
       "savedTitle": "Gespeichert",
       "saved": "Redakteure sehen die Änderung, wenn sie das Panel das nächste Mal öffnen.",
-      "intro": "Legen Sie fest, was Redakteure dieser Website im Content-Governance-Panel finden. Ein deaktivierter Bereich deaktiviert auch sein Website-Dashboard (der Eintrag bleibt bestehen und weist darauf hin), und der Server lehnt seine Aufrufe ab. Registerkarten behalten ihre eigene Einstellung, solange ihr Bereich deaktiviert ist.",
+      "intro": "Legen Sie fest, was Redakteure dieser Website im Content-Governance-Panel finden. Jede Ansicht des Panels hat ihre eigene Schaltfläche in der Kopfzeile. Ein deaktivierter Bereich deaktiviert auch sein Website-Dashboard (der Eintrag bleibt bestehen und weist darauf hin), und der Server lehnt seine Aufrufe ab. Registerkarten behalten ihre eigene Einstellung, solange ihr Bereich oder ihre Ansicht deaktiviert ist.",
       "sectionHelp": {
         "audit": "Barrierefreiheit, SEO, Web Vitals, Lesbarkeit, Ökodesign, Links und Jahia-Prüfungen der Seite, im Browser gemessen.",
         "geo": "Ob KI-Crawler die Seite lesen können, die Website-Dateien (robots.txt, llms.txt), strukturierte Daten und KI-Zitate aus BotRank. Außerdem das Dashboard GEO-Bereitschaft unter Zusätzlich, SEO.",
         "compliance": "Begriffe aus den Glossaren der Website, die die Seite und das, was sie anzeigt, nicht verwenden dürfen, je Sprache. Außerdem das Compliance-Dashboard unter Zusätzlich."
       },
+      "panelHelp": {
+        "governance": "Seitenqualität, GEO-Bereitschaft, Compliance und die Registerkarten anderer Module. Deaktiviert schaltet sie alle Registerkarten darunter mit ihren Website-Dashboards ab. Die Registerkarten behalten ihre eigene Einstellung."
+      },
       "sectionSwitch": "Bereich {{section}}",
+      "panelSwitch": "Ansicht {{panel}}",
       "on": "An",
       "off": "Aus",
       "needsBotRank": "Erfordert eine BotRank-Verbindung"
