@@ -82,15 +82,12 @@ record ComplianceRules(ContentRules site, Set<String> ids, boolean applies, List
         boolean others = false;
         Map<String, Integer> counts = new LinkedHashMap<>();
         for (ContentRule rule : site.all()) {
-            if (!inCompliance(rule) || !runs.test(rule)) {
+            if (!inScan(rule, runs, day)) {
                 continue;
             }
             boolean ofLanguage = true;
             if (ContentRule.PATTERN.equals(rule.evaluator())) {
                 WritingRule pattern = PatternCheck.writingRule(rule);
-                if (pattern == null || pattern.kind() == WritingRule.Kind.MANDATORY || !pattern.inForceOn(day)) {
-                    continue;
-                }
                 patterns.add(pattern);
                 ofLanguage = pattern.appliesTo(language);
             } else {
@@ -115,6 +112,21 @@ record ComplianceRules(ContentRules site, Set<String> ids, boolean applies, List
     /** True when the findings of the rule show in the Compliance section. */
     static boolean inCompliance(ContentRule rule) {
         return rule.domain() != null && DOMAINS.contains(rule.domain());
+    }
+
+    /**
+     * True when the scan runs the rule: a rule of Compliance that the check registry runs on a value. A rule
+     * of the evaluator {@code pattern} must also apply on the day, and must not be a mandatory mention.
+     */
+    private static boolean inScan(ContentRule rule, Predicate<ContentRule> runs, LocalDate day) {
+        if (!inCompliance(rule) || !runs.test(rule)) {
+            return false;
+        }
+        if (!ContentRule.PATTERN.equals(rule.evaluator())) {
+            return true;
+        }
+        WritingRule pattern = PatternCheck.writingRule(rule);
+        return pattern != null && pattern.kind() != WritingRule.Kind.MANDATORY && pattern.inForceOn(day);
     }
 
     private static Glossary folder(JCRSessionWrapper session, String path) {

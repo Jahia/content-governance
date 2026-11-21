@@ -45,41 +45,50 @@ public final class PlainText {
                 i++;
                 continue;
             }
-            if (html.startsWith("<!--", i)) {
-                int end = html.indexOf("-->", i + 4);
-                if (end < 0) {
-                    break;
-                }
-                out.append(' ');
-                i = end + 3;
-                continue;
-            }
-            int close = html.indexOf('>', i + 1);
-            if (close < 0) {
-                // No > follows, so no tag starts here or after
-                out.append(html, i, n);
-                break;
-            }
-            String name = tagName(lower, i + 1, close);
-            if (("script".equals(name) || "style".equals(name)) && lower.charAt(i + 1) != '/') {
-                int end = lower.indexOf("</" + name, close + 1);
-                if (end < 0) {
-                    break;
-                }
-                int endClose = html.indexOf('>', end);
-                if (endClose < 0) {
-                    break;
-                }
-                out.append(' ');
-                i = endClose + 1;
-                continue;
-            }
-            if (BLOCK_TAGS.contains(name)) {
-                out.append(' ');
-            }
-            i = close + 1;
+            i = skipMarkup(html, lower, i, out);
         }
         return collapse(StringEscapeUtils.unescapeHtml4(out.toString()));
+    }
+
+    /**
+     * Skips the markup that starts at {@code from}, a {@code <}, and appends what it stands for in the text: a
+     * space for a comment, a script, a style or a block tag, and the rest of the value when no {@code >} follows.
+     *
+     * @return the index after the markup, or the length of the value when the markup takes the rest of it
+     */
+    private static int skipMarkup(String html, String lower, int from, StringBuilder out) {
+        int n = html.length();
+        if (html.startsWith("<!--", from)) {
+            int end = html.indexOf("-->", from + 4);
+            if (end < 0) {
+                return n;
+            }
+            out.append(' ');
+            return end + 3;
+        }
+        int close = html.indexOf('>', from + 1);
+        if (close < 0) {
+            // No > follows, so no tag starts here or after
+            out.append(html, from, n);
+            return n;
+        }
+        String name = tagName(lower, from + 1, close);
+        if (("script".equals(name) || "style".equals(name)) && lower.charAt(from + 1) != '/') {
+            int end = lower.indexOf("</" + name, close + 1);
+            if (end < 0) {
+                return n;
+            }
+            int endClose = html.indexOf('>', end);
+            if (endClose < 0) {
+                return n;
+            }
+            out.append(' ');
+            return endClose + 1;
+        }
+        if (BLOCK_TAGS.contains(name)) {
+            out.append(' ');
+        }
+        return close + 1;
     }
 
     /** The element name of the tag between {@code from} (after {@code <}) and {@code to} (the {@code >}). */

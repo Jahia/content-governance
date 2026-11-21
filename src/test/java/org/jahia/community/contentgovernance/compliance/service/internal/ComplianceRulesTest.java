@@ -88,7 +88,7 @@ class ComplianceRulesTest {
         assertThat(applied.applies()).isTrue();
         assertThat(applied.folders()).extracting(Glossary::path, Glossary::termCount)
                 .containsExactly(tuple(BRAND, 1), tuple(LEGAL, 1), tuple(ACME, 1));
-        assertThat(BRAND.compareTo(ACME)).as("compliance-glossaries comes before content-insights").isNegative();
+        assertThat(BRAND).as("compliance-glossaries comes before content-insights").isLessThan(ACME);
     }
 
     @Test
