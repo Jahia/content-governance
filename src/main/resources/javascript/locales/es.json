@@ -1211,10 +1211,6 @@
           "placeholderText": {
             "title": "{{count}} textos de relleno en la página",
             "detail": "Todavía se ve texto Lorem ipsum / TODO. Sustitúyalo por el contenido definitivo antes de publicar."
-          },
-          "graphqlUnavailable": {
-            "title": "No se pudieron ejecutar las comprobaciones del repositorio",
-            "detail": "La consulta GraphQL falló, por lo que se omitieron las comprobaciones de publicación y traducción. Las comprobaciones de la página anteriores siguen siendo válidas."
           }
         }
       },
@@ -1308,11 +1304,13 @@
         "internal": "Internos",
         "external": "Externos",
         "checked": "{{count}} verificados",
-        "skipped": "{{count}} omitidos (inicio/cierre de sesión/acciones)",
-        "truncated": "{{count}} sin verificar (límite alcanzado)",
-        "externalNote": "los enlaces externos no se verifican (restricción de origen cruzado del navegador)",
+        "skipped": "{{count}} sin comprobar (sin ruta de página, como una URL vanity)",
+        "externalNote": "los enlaces externos no se comprueban aquí",
         "broken": "Enlaces rotos",
-        "statusError": "error",
+        "reasons": {
+          "missing": "No existe",
+          "not_published": "No publicado"
+        },
         "recs": {
           "brokenLinks": {
             "title": "{{count}} enlaces internos rotos",
@@ -1323,8 +1321,8 @@
             "detail": "Los enlaces escritos con el http(s)://host completo se rompen cuando el sitio cambia de entorno o de dominio. Use en su lugar enlaces a páginas internas."
           },
           "mixedContent": {
-            "title": "{{count}} enlaces http:// en una página https",
-            "detail": "Los navegadores señalan o bloquean el contenido mixto. Cambie estas URL a https."
+            "title": "{{count}} enlaces en http://",
+            "detail": "Un navegador señala o bloquea una dirección http:// en una página servida en https, y la conexión del visitante no está cifrada. Cambie estas direcciones a https."
           },
           "blankNoopener": {
             "title": "{{count}} enlaces target=\"_blank\" sin rel=\"noopener\"",
@@ -1334,7 +1332,9 @@
       },
       "recs": {
         "title": "Recomendaciones",
-        "none": "Nada que mejorar en esta categoría."
+        "none": "Nada que mejorar en esta categoría.",
+        "rule": "Regla {{rule}} ({{count}})",
+        "items": "Hallazgos ({{count}})"
       },
       "a11y": {
         "levels": {
@@ -1426,7 +1426,8 @@
               "detail": "Los formularios complejos ofrecen ayuda o instrucciones en línea donde el usuario las necesita (WCAG 3.3.5)."
             }
           }
-        }
+        },
+        "serverRules": "Reglas HTML comprobadas en el servidor"
       },
       "vitals": {
         "labNote": "Cifras orientativas: la página se mide en su vista previa de edición, en su navegador y con su sesión, por lo que no coinciden con el sitio publicado (sin caché ni CDN). Úselas para comparar antes y después de un cambio. Lo que hace pesada la página, abajo, es igual en el sitio publicado.",
@@ -1599,7 +1600,7 @@
         "readability": "Lo fácil que es leer el texto en su idioma: puntuación, frases largas y encabezados.",
         "ecodesign": "Comprobaciones de ecodiseño del referencial francés RGESN: peso de la página, peticiones, imágenes, fuentes, multimedia y servicios de terceros.",
         "links": "Enlaces internos rotos, direcciones escritas completas, contenido mixto y enlaces que abren una ventana nueva sin protección.",
-        "jahia": "Comprobaciones que solo Jahia puede hacer: contenido sin publicar en la página, traducciones que faltan, etiquetas sin traducir y texto de relleno."
+        "jahia": "Comprobaciones que solo Jahia puede hacer: contenido no publicado en la página, traducciones que faltan, etiquetas sin traducir y textos provisionales, y las comprobaciones que añaden otros módulos."
       }
     },
     "compliance": {

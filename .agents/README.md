@@ -121,9 +121,10 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   `pom.xml`). With them the read of the rule files fails with a `LinkageError`, on a Jahia that
   exports snakeyaml (8.2.4.0 does). Check the jar after a change of the parent or of the plugin.
 - **A readability score uses a formula published for the page language** (2026-10-31): one entry
-  per language in `FORMULAS` (`audit/analyzers/readability.js`), an adaptation of Flesch on its
-  0-100 scale so the bands and advice stay shared, its vowels in `VOWELS`, its source in the file
-  comment, and a hand-computed case in `src/test/javascript/readability.test.js`. A language without
+  per language in `FORMULAS` (`page/Readability.java`, which the server runs for the drawer and the
+  agents), an adaptation of Flesch on its 0-100 scale so the bands and advice stay shared, its
+  vowels in `VOWELS`, its source in the class comment, and a hand-computed case in
+  `src/test/java/org/jahia/community/contentgovernance/page/PageChecksTest.java`. A language without
   one gets no score, never another language's; a language written without spaces gets no word count.
   A scale that reads the other way round (LIX) sets `scale` and is judged by `band`, never by
   comparing the raw score with Flesch thresholds.

@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.geo.servlet;
 
+import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.community.contentgovernance.geo.check.AiCrawlers;
 import org.jahia.community.contentgovernance.geo.check.GeoScore;
@@ -19,6 +20,7 @@ import org.jahia.community.contentgovernance.geo.check.SiteFilesChecker;
 import org.jahia.community.contentgovernance.geo.config.GeoReadinessConfigService;
 import org.jahia.community.contentgovernance.geo.util.PublicUrls;
 import org.jahia.community.contentgovernance.geo.util.SiteScope;
+import org.jahia.community.contentgovernance.html.HtmlCheck;
 import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jahia.community.contentgovernance.settings.Features;
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
@@ -28,6 +30,7 @@ import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.usermanager.JahiaUser;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.jsoup.Jsoup;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -46,6 +49,7 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -110,6 +114,7 @@ public class CrawlerCheckServlet extends GeoServlet {
     private static final String RAW_BODY = "rawBody";
     /** The per-agent results array, the report's own key for it. */
     private static final String AGENTS = "agents";
+    private static final String STATUS = "status";
 
     /** Set by the site-files check when the file was actually served. */
     private static final String PRESENT = "present";
@@ -128,10 +133,13 @@ public class CrawlerCheckServlet extends GeoServlet {
      * the container shares between threads holds nothing mutable.
      */
     private final transient GeoReadinessConfigService config;
+    /** The page check service, which checks the SEO rules of the page as the control got it. */
+    private final transient HtmlCheck pages;
 
     @Activate
-    public CrawlerCheckServlet(@Reference GeoReadinessConfigService config) {
+    public CrawlerCheckServlet(@Reference GeoReadinessConfigService config, @Reference HtmlCheck pages) {
         this.config = config;
+        this.pages = pages;
     }
 
     /**
@@ -295,7 +303,8 @@ public class CrawlerCheckServlet extends GeoServlet {
         RobotsRules rules = rulesOf(siteFiles);
         out.put("siteFiles", siteFiles);
 
-        tally(out, probeAgents(publicUrl, target.base), rules, target.pagePath);
+        ConcurrentSkipListMap<Integer, String> bodies = new ConcurrentSkipListMap<>();
+        tally(out, probeAgents(publicUrl, target.base, bodies), rules, target.pagePath);
 
         // GEO-19 for this one page. A crawler served a login form gets a cheerful
         // 200, so the fetch above cannot tell the difference. The repository can.
@@ -306,7 +315,9 @@ public class CrawlerCheckServlet extends GeoServlet {
         }
 
         // The score reads only what is already in the report. It adds no requests.
-        JSONObject score = GeoScore.compute(out, ContentRules.forPath(path));
+        ContentRules contentRules = ContentRules.forPath(path);
+        addPageFindings(out, path, language, bodies, contentRules);
+        JSONObject score = GeoScore.compute(out, contentRules);
         out.put("score", score);
 
         boolean storedScanAllowed = mayReadStoredScan(path, language);
@@ -315,6 +326,24 @@ public class CrawlerCheckServlet extends GeoServlet {
         }
         addSchema(out, path, language, req, storedScanAllowed);
         return out;
+    }
+
+    /**
+     * The rules of the page check service that the HTML of the control breaks, under
+     * {@link GeoScore#PAGE_FINDINGS}. The control is the first agent, in the order of the probes, that got
+     * the page with a 200, as GeoScore reads it: the first entry of {@code bodies}. None when no agent got
+     * it, so that GeoScore fails these checks.
+     */
+    private void addPageFindings(JSONObject out, String path, String language, ConcurrentSkipListMap<Integer, String> bodies,
+                                 ContentRules contentRules) {
+        Map.Entry<Integer, String> control = bodies.firstEntry();
+        if (control == null) {
+            return;
+        }
+        JSONArray ids = new JSONArray();
+        pages.findings(contentRules, path, language, Jsoup.parse(control.getValue()), GeoScore.PAGE_RULES).stream()
+                .map(Finding::ruleId).distinct().forEach(ids::put);
+        out.put(GeoScore.PAGE_FINDINGS, ids);
     }
 
     /**
@@ -369,12 +398,14 @@ public class CrawlerCheckServlet extends GeoServlet {
     }
 
     /**
-     * One probe per bot user agent.
+     * One probe per bot user agent. The body of the first agent that got the page with a 200 lands in
+     * {@code bodies}, by the rank of the agent: a later rank is dropped, so that one body at a time stays in
+     * memory, beside the probes still running.
      *
      * Fetched a few at a time, but returned strictly in submission order: the
      * control agent must stay first, because it is where controlWords comes from.
      */
-    private List<JSONObject> probeAgents(String publicUrl, String origin) {
+    private List<JSONObject> probeAgents(String publicUrl, String origin, ConcurrentSkipListMap<Integer, String> bodies) {
         Map<String, String> toFetch = agents();
         List<String> names = new ArrayList<>(toFetch.keySet());
         List<JSONObject> probed = new ArrayList<>(names.size());
@@ -382,11 +413,11 @@ public class CrawlerCheckServlet extends GeoServlet {
                 Math.min(FETCH_CONCURRENCY, Math.max(1, names.size())));
         try {
             List<Future<JSONObject>> futures = new ArrayList<>(names.size());
-            for (String name : names) {
+            for (int i = 0; i < names.size(); i++) {
+                String name = names.get(i);
                 String ua = toFetch.get(name);
-                futures.add(pool.submit((Callable<JSONObject>) () -> PageFetch.probe(
-                        publicUrl, origin, name, ua,
-                        config.getFetchTimeoutMs(), config.getMaxBodyBytes())));
+                int rank = i;
+                futures.add(pool.submit((Callable<JSONObject>) () -> probe(publicUrl, origin, name, ua, rank, bodies)));
             }
             for (int i = 0; i < futures.size(); i++) {
                 probed.add(resultOf(futures.get(i), names.get(i)));
@@ -395,6 +426,19 @@ public class CrawlerCheckServlet extends GeoServlet {
             pool.shutdownNow();
         }
         return probed;
+    }
+
+    /** One probe, which keeps its body in {@code bodies} when it answered 200 ahead of every kept body. */
+    private JSONObject probe(String publicUrl, String origin, String name, String ua, int rank,
+                             ConcurrentSkipListMap<Integer, String> bodies) {
+        String[] body = new String[1];
+        JSONObject result = PageFetch.probe(publicUrl, origin, name, ua, config.getFetchTimeoutMs(),
+                config.getMaxBodyBytes(), html -> body[0] = html);
+        if (result.optInt(STATUS, 0) == 200 && body[0] != null) {
+            bodies.put(rank, body[0]);
+            bodies.tailMap(bodies.firstKey(), false).clear();
+        }
+        return result;
     }
 
     /** One agent's result, or a synthetic failure: one agent must not lose the rest. */
@@ -409,7 +453,7 @@ public class CrawlerCheckServlet extends GeoServlet {
             }
             JSONObject r = new JSONObject();
             r.put("name", name);
-            r.put("status", JSONObject.NULL);
+            r.put(STATUS, JSONObject.NULL);
             r.put("ms", 0);
             r.put("bytes", 0);
             r.put(ERROR, "FetchFailed");
@@ -438,7 +482,7 @@ public class CrawlerCheckServlet extends GeoServlet {
         int reachableButDisallowed = 0;
 
         for (JSONObject r : probed) {
-            int status = r.optInt("status", 0);
+            int status = r.optInt(STATUS, 0);
             if (controlWords < 0 && status == 200) {
                 controlWords = wordsOf(r);
             }

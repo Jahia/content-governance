@@ -271,6 +271,26 @@
     font-size: 11px;
 }
 
+.recItems {
+    margin-top: 6px;
+    font-size: 12px;
+}
+
+.recItems summary {
+    cursor: pointer;
+    color: #6b7a86;
+}
+
+.recItems ul {
+    margin: 4px 0 0;
+    padding-left: 16px;
+}
+
+.recItems li {
+    margin: 2px 0;
+    word-break: break-word;
+}
+
 .okMark {
     color: #1b7d3e;
     font-weight: 700;

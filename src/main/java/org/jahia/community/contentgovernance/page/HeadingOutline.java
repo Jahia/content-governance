@@ -1,0 +1,101 @@
+package org.jahia.community.contentgovernance.page;
+
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * The headings of a page as the Readability tab of the drawer lists them: one row per heading of the main
+ * text, in page order, with the level it skips from and whether it has no text. Each row carries a CSS
+ * selector, which the drawer reads in its preview of the page to show the heading. The counts of H1 and of
+ * skipped levels cover the whole page, as the rules {@code html.headingH1Missing},
+ * {@code html.headingH1Multiple} and {@code html.headingLevelSkipped} read it.
+ *
+ * <p>Thread safety: stateless.</p>
+ */
+final class HeadingOutline {
+
+    /** The headings listed: a longer page keeps its counts, and the list stops there. */
+    static final int MAX_HEADINGS = 200;
+    /** The characters of a heading kept in the list. */
+    static final int MAX_HEADING_CHARS = 160;
+    private static final String LEVEL = "level";
+    private static final String HEADINGS = "h1, h2, h3, h4, h5, h6";
+
+    private HeadingOutline() {
+    }
+
+    /**
+     * @param html the whole HTML, whose H1 headings and skipped levels are counted
+     * @param main the main text, whose headings are listed
+     * @return {@code h1Count} and {@code headingSkips} for the whole page, {@code headingCount}, the headings of
+     *     the main text, and {@code outline}, the first {@link #MAX_HEADINGS} of them as
+     *     {@code {level, text, selector, skippedFrom?, empty?}}
+     */
+    static Map<String, Object> of(Document html, Element main) {
+        List<Map<String, Object>> outline = new ArrayList<>();
+        int previous = 0;
+        List<Element> headings = main.select(HEADINGS);
+        for (Element heading : headings) {
+            int level = level(heading);
+            boolean skipped = previous > 0 && level > previous + 1;
+            if (outline.size() < MAX_HEADINGS) {
+                outline.add(row(heading, level, skipped ? previous : 0));
+            }
+            previous = level;
+        }
+        int skips = 0;
+        previous = 0;
+        for (Element heading : html.select(HEADINGS)) {
+            int level = level(heading);
+            if (previous > 0 && level > previous + 1) {
+                skips++;
+            }
+            previous = level;
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("h1Count", html.select("h1").size());
+        out.put("headingSkips", skips);
+        out.put("headingCount", headings.size());
+        out.put("outline", outline);
+        return out;
+    }
+
+    private static int level(Element heading) {
+        return heading.normalName().charAt(1) - '0';
+    }
+
+    private static Map<String, Object> row(Element heading, int level, int skippedFrom) {
+        String text = text(heading);
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put(LEVEL, level);
+        row.put("text", text.length() > MAX_HEADING_CHARS ? text.substring(0, MAX_HEADING_CHARS) : text);
+        // A unique selector in the render, which the preview of the drawer resolves to the same heading
+        row.put("selector", heading.cssSelector());
+        if (skippedFrom > 0) {
+            row.put("skippedFrom", skippedFrom);
+        }
+        if (text.isEmpty()) {
+            row.put("empty", true);
+        }
+        return row;
+    }
+
+    /** What a heading says: its text, else what stands for it, an aria-label or the alt of an image. */
+    private static String text(Element heading) {
+        String text = heading.text().trim();
+        if (!text.isEmpty()) {
+            return text;
+        }
+        String label = heading.attr("aria-label").trim();
+        if (!label.isEmpty()) {
+            return label;
+        }
+        Element image = heading.selectFirst("img[alt]");
+        return image == null ? "" : image.attr("alt").trim();
+    }
+}

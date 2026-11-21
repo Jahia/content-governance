@@ -1211,10 +1211,6 @@
           "placeholderText": {
             "title": "{{count}} placeholder texts on the page",
             "detail": "Lorem ipsum / TODO text is still visible. Replace it with final content before publishing."
-          },
-          "graphqlUnavailable": {
-            "title": "Repository checks could not run",
-            "detail": "The GraphQL query failed, so publication and translation checks were skipped. The on-page checks above remain valid."
           }
         }
       },
@@ -1308,11 +1304,13 @@
         "internal": "Internal",
         "external": "External",
         "checked": "{{count}} verified",
-        "skipped": "{{count}} skipped (login/logout/actions)",
-        "truncated": "{{count}} not verified (limit reached)",
-        "externalNote": "external links are not verified (browser cross-origin restriction)",
+        "skipped": "{{count}} not checked (no page path, such as a vanity URL)",
+        "externalNote": "external links are not checked here",
         "broken": "Broken links",
-        "statusError": "error",
+        "reasons": {
+          "missing": "Missing",
+          "not_published": "Not published"
+        },
         "recs": {
           "brokenLinks": {
             "title": "{{count}} broken internal links",
@@ -1323,8 +1321,8 @@
             "detail": "Links written with the full http(s)://host break when the site moves environment or domain. Use internal page links instead."
           },
           "mixedContent": {
-            "title": "{{count}} http:// links on an https page",
-            "detail": "Browsers flag or block mixed content. Switch these URLs to https."
+            "title": "{{count}} links over http://",
+            "detail": "A browser flags or blocks an http:// address on a page served over https, and a visitor's connection to it is not encrypted. Switch these addresses to https."
           },
           "blankNoopener": {
             "title": "{{count}} target=\"_blank\" links without rel=\"noopener\"",
@@ -1334,7 +1332,9 @@
       },
       "recs": {
         "title": "Recommendations",
-        "none": "Nothing to improve in this category."
+        "none": "Nothing to improve in this category.",
+        "rule": "Rule {{rule}} ({{count}})",
+        "items": "Findings ({{count}})"
       },
       "a11y": {
         "levels": {
@@ -1426,7 +1426,8 @@
               "detail": "Complex forms offer inline help or instructions where the user needs them (WCAG 3.3.5)."
             }
           }
-        }
+        },
+        "serverRules": "HTML rules checked on the server"
       },
       "vitals": {
         "labNote": "Indicative figures: the page is measured on its editing preview, in your browser and with your session, so they do not match the live site (no cache, no CDN). Use them to compare before and after a change. What weighs the page down, below, is the same on the live site.",
@@ -1599,7 +1600,7 @@
         "readability": "How easy the text is to read in its language: score, long sentences and headings.",
         "ecodesign": "Eco-design checks from the French RGESN referential: page weight, requests, images, fonts, media and third parties.",
         "links": "Broken internal links, addresses written in full, mixed content and links opening a new window without protection.",
-        "jahia": "Checks only Jahia can make: unpublished content on the page, missing translations, raw labels and placeholder text."
+        "jahia": "Checks only Jahia can make: unpublished content on the page, missing translations, raw labels and placeholder text, and the checks that other modules add."
       }
     },
     "compliance": {

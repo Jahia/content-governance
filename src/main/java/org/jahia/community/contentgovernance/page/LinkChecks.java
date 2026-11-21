@@ -3,6 +3,7 @@ package org.jahia.community.contentgovernance.page;
 import org.jahia.community.contentgovernance.check.CheckServices;
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
 import org.jahia.community.contentgovernance.html.links.LinkCheck;
+import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
@@ -11,8 +12,11 @@ import org.osgi.service.component.annotations.Deactivate;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -27,6 +31,8 @@ public class LinkChecks {
     public static final String BROKEN = "content-governance:brokenLinks";
     /** The fact of the lower-case host names of this Jahia and of the site, a set of strings. */
     public static final String LOCAL_HOSTS = "content-governance:localHosts";
+    /** The fact of the internal links that the caller resolved in the repository, a {@link LinkCheck.InternalLinks}. */
+    public static final String INTERNAL = "content-governance:internalLinks";
     static final String BROKEN_LINKS = "links.broken";
     static final String HARDCODED = "links.hardcodedUrls";
     static final String MIXED = "links.mixedContent";
@@ -81,6 +87,45 @@ public class LinkChecks {
         if ("_blank".equals(link.attr("target")) && !link.attr("rel").toLowerCase(Locale.ROOT).contains("noopener")) {
             found.add(BLANK_NOOPENER, Family.tag(link), null);
         }
+    }
+
+    /**
+     * What the Links tab of the drawer shows. The broken internal links come from the fact {@link #INTERNAL}.
+     *
+     * @param html       the HTML of a page or of an item
+     * @param localHosts the lower-case host names of this Jahia and of the site, or null
+     * @param internal   the internal links that the caller resolved, or null when it could not
+     * @return {@code total}, {@code internal} and {@code external}, the links to a page; {@code checked}, the
+     *     internal links resolved in the repository, and {@code skipped}, the ones with no path of the
+     *     repository, such as a vanity URL, both null with no resolution; and {@code broken}, as
+     *     {@code {path, reason}}
+     */
+    public static Map<String, Object> report(Document html, Set<String> localHosts, LinkCheck.InternalLinks internal) {
+        Set<String> hosts = localHosts == null ? DEFAULT_HOSTS : localHosts;
+        int total = 0;
+        int external = 0;
+        for (Element link : html.select("a[href]")) {
+            String href = link.attr("href").trim();
+            if (!href.isEmpty() && !NOT_A_PAGE.matcher(href).find()) {
+                total++;
+                String lower = href.toLowerCase(Locale.ROOT);
+                if ((lower.startsWith("http://") || lower.startsWith("https://")) && !hosts.contains(host(href))) {
+                    external++;
+                }
+            }
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("total", total);
+        out.put("internal", total - external);
+        out.put("external", external);
+        out.put("checked", internal == null ? null : internal.checked());
+        out.put("skipped", internal == null ? null : internal.notCheckedVanityLinks());
+        List<Map<String, String>> broken = new ArrayList<>();
+        if (internal != null) {
+            internal.broken().forEach(path -> broken.add(Map.of("path", path.path(), "reason", path.reason())));
+        }
+        out.put("broken", broken);
+        return out;
     }
 
     @SuppressWarnings("unchecked")

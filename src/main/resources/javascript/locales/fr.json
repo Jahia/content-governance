@@ -1211,10 +1211,6 @@
           "placeholderText": {
             "title": "{{count}} textes de remplissage sur la page",
             "detail": "Du lorem ipsum / TODO est encore visible. Remplacez-le par le contenu final avant publication."
-          },
-          "graphqlUnavailable": {
-            "title": "Les vérifications du référentiel n'ont pas pu s'exécuter",
-            "detail": "La requête GraphQL a échoué : les contrôles de publication et de traduction ont été ignorés. Les contrôles sur la page restent valides."
           }
         }
       },
@@ -1308,11 +1304,13 @@
         "internal": "Internes",
         "external": "Externes",
         "checked": "{{count}} vérifiés",
-        "skipped": "{{count}} ignorés (login/logout/actions)",
-        "truncated": "{{count}} non vérifiés (limite atteinte)",
-        "externalNote": "les liens externes ne sont pas vérifiés (restriction cross-origin du navigateur)",
+        "skipped": "{{count}} non vérifiés (pas de chemin de page, comme une URL vanity)",
+        "externalNote": "les liens externes ne sont pas vérifiés ici",
         "broken": "Liens cassés",
-        "statusError": "erreur",
+        "reasons": {
+          "missing": "Absent",
+          "not_published": "Non publié"
+        },
         "recs": {
           "brokenLinks": {
             "title": "{{count}} liens internes cassés",
@@ -1323,8 +1321,8 @@
             "detail": "Les liens écrits avec le http(s)://hôte complet cassent au changement d'environnement ou de domaine. Utilisez des liens de page internes."
           },
           "mixedContent": {
-            "title": "{{count}} liens http:// sur une page https",
-            "detail": "Les navigateurs signalent ou bloquent le contenu mixte. Passez ces URL en https."
+            "title": "{{count}} liens en http://",
+            "detail": "Un navigateur signale ou bloque une adresse http:// sur une page servie en https, et la connexion du visiteur n'y est pas chiffrée. Passez ces adresses en https."
           },
           "blankNoopener": {
             "title": "{{count}} liens target=\"_blank\" sans rel=\"noopener\"",
@@ -1334,7 +1332,9 @@
       },
       "recs": {
         "title": "Recommandations",
-        "none": "Rien à améliorer dans cette catégorie."
+        "none": "Rien à améliorer dans cette catégorie.",
+        "rule": "Règle {{rule}} ({{count}})",
+        "items": "Constats ({{count}})"
       },
       "a11y": {
         "levels": {
@@ -1426,7 +1426,8 @@
               "detail": "Les formulaires complexes offrent une aide ou des instructions là où l'utilisateur en a besoin (WCAG 3.3.5)."
             }
           }
-        }
+        },
+        "serverRules": "Règles HTML vérifiées sur le serveur"
       },
       "vitals": {
         "labNote": "Chiffres indicatifs : la page est mesurée sur son aperçu d'édition, dans votre navigateur et avec votre session ; ils ne correspondent donc pas au site en ligne (ni cache, ni CDN). Utilisez-les pour comparer avant et après une modification. Ce qui alourdit la page, ci-dessous, est identique sur le site en ligne.",
@@ -1599,7 +1600,7 @@
         "readability": "La facilité de lecture du texte dans sa langue : score, phrases longues et titres.",
         "ecodesign": "Contrôles d'écoconception du référentiel RGESN : poids de la page, requêtes, images, polices, médias et services tiers.",
         "links": "Liens internes cassés, adresses écrites en entier, contenu mixte et liens ouvrant une nouvelle fenêtre sans protection.",
-        "jahia": "Les contrôles que seul Jahia peut faire : contenus non publiés sur la page, traductions manquantes, libellés bruts et textes de remplissage."
+        "jahia": "Les vérifications que seul Jahia peut faire : contenu non publié sur la page, traductions manquantes, libellés bruts et textes provisoires, et les vérifications qu'ajoutent d'autres modules."
       }
     },
     "compliance": {

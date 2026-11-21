@@ -78,6 +78,14 @@ Nothing below matters if these fail.
 
 Read from the initial HTML, before any JavaScript runs.
 
+The checks `title`, `singleH1`, `metaDescription`, `canonical`, `langDeclared`, `structuredData` and
+`imageAlt` are rules of the page check service, `HtmlCheck`, which the drawer and `frame.check` call
+too. GEO readiness runs these rules on the HTML of the control, the page as the first agent got it,
+and a check fails when the service finds the page breaks its rule. So a page gets the same verdict
+here as in the SEO tab of Page quality, under the same rule id, and a limit that the site changes
+applies to both. The value beside the verdict is what the fetch read, such as the length of the title.
+A page that no agent got fails these checks, except `imageAlt`: it has no image to describe.
+
 ### `contentInInitialHtml` · Real text in the initial HTML
 
 **Critical.** Crawlers do not run JavaScript. A page whose content only appears afterwards is perfect to an editor and empty to a model.
@@ -98,7 +106,7 @@ Read from the initial HTML, before any JavaScript runs.
 
 **Important.** The title is what gets quoted. Too short says nothing, too long is truncated wherever it appears.
 
-*Fails when:* Missing, under 30 characters, or over 60. Rule `seo.title`, the same rule as the SEO tab of Page quality.
+*Fails when:* Missing, or out of the range of the rule `seo.title`, 30 to 60 characters unless the site changed it.
 
 *Shown in the interface as:* “A title under 30 or over 60 characters is either uninformative or truncated wherever it is quoted.”
 
@@ -106,7 +114,7 @@ Read from the initial HTML, before any JavaScript runs.
 
 **Important.** Zero or several leave the subject of the page ambiguous to anything parsing it.
 
-*Fails when:* Zero or more than one. Rule `html.headingH1Missing` for zero, and `html.headingH1Multiple` for more than one, the same rules as the HTML check.
+*Fails when:* The page has headings and no H1, or more than one H1. Rule `html.headingH1Missing` for none, and `html.headingH1Multiple` for more than one. A page with no heading at all passes this check, and fails `headingOutline`.
 
 *Shown in the interface as:* “Zero or several H1 headings leave the main subject of the page ambiguous.”
 
@@ -122,7 +130,7 @@ Read from the initial HTML, before any JavaScript runs.
 
 **Important.** Without one, the summary shown beside an answer is generated from whatever text happens to come first.
 
-*Fails when:* Missing, under 50 characters, or over 160. Rule `seo.metaDescription`, the same rule as the SEO tab of Page quality. A report stored before the length was read judges the presence only.
+*Fails when:* Missing, or out of the range of the rule `seo.metaDescription`, 50 to 160 characters unless the site changed it.
 
 *Shown in the interface as:* “Without one, the summary shown alongside an answer is generated from whatever text comes first. Keep it between 50 and 160 characters.”
 
@@ -130,19 +138,23 @@ Read from the initial HTML, before any JavaScript runs.
 
 **Important.** Without it, the same content at several addresses is counted as several pages and the signal is split.
 
+*Fails when:* The page has no `link rel="canonical"`. Rule `seo.canonical`.
+
 *Shown in the interface as:* “Without a canonical, the same content reachable at several addresses is treated as several pages.”
 
 ### `langDeclared` · Page language declared
 
 **Important.** The language has to be guessed otherwise, which on a multilingual site goes wrong quietly.
 
-*Fails when:* The `html` element has no `lang` attribute. Rule `html.pageLanguageMissing`, the same rule as the HTML check.
+*Fails when:* The `html` element has no `lang` attribute. Rule `html.pageLanguageMissing`.
 
 *Shown in the interface as:* “The html lang attribute is missing, so the language has to be guessed. On a multilingual site that is a real risk.”
 
 ### `structuredData` · Structured data present
 
 **Important.** Schema types are the most direct way to state what a page is about, rather than leaving a model to infer it.
+
+*Fails when:* The page has no JSON-LD block. Rule `seo.structuredData`. A block that does not parse is a finding of `seo.structuredDataValid` in Page quality.
 
 *Shown in the interface as:* “No JSON-LD was found. Schema types are the most direct way to state what this page is about.”
 
@@ -156,7 +168,7 @@ Read from the initial HTML, before any JavaScript runs.
 
 **Critical.** To a crawler that reads only text, an image with no alt text does not exist.
 
-*Fails when:* An image has no alt attribute. An empty alt marks a decorative image and passes. A page with no images passes. Rule `html.imageAltMissing`, the same rule as the HTML check.
+*Fails when:* An image has no alt attribute. An empty alt marks a decorative image and passes. A page with no images passes. Rule `html.imageAltMissing`.
 
 *Shown in the interface as:* “Some images have no alt text. To a text-only crawler those images simply do not exist.”
 

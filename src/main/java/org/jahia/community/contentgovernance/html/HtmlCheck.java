@@ -12,8 +12,10 @@ import org.jahia.community.contentgovernance.html.rules.HtmlRuleChecks;
 import org.jahia.community.contentgovernance.html.rules.Scope;
 import org.jahia.community.contentgovernance.page.HealthChecks;
 import org.jahia.community.contentgovernance.page.LinkChecks;
+import org.jahia.community.contentgovernance.page.PageFacts;
 import org.jahia.community.contentgovernance.page.ReadabilityChecks;
 import org.jahia.community.contentgovernance.page.SeoChecks;
+import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.content.decorator.JCRSiteNode;
@@ -40,7 +42,8 @@ import java.util.Set;
  * of the scope {@code PAGE} reads the HTML, with the rules of the site. A page gets every check, and an
  * item gets the checks of one item only. The GraphQL fields {@code checkPage} and {@code checkText}, and
  * the tools {@code frame.check} and {@code audit.accessibility} call it, so they give one page the same
- * findings under the same rule ids. The drawer and the GEO site scan still run their own checks.
+ * findings under the same rule ids. The drawer reads {@code checkPage}, and GEO readiness runs the SEO
+ * rules of the service on the HTML that a crawler gets.
  *
  * <p>A render reads the workspace of the session, as its user: in {@code default}, the content that
  * is not published yet. The caller renders inside its session, then checks the HTML outside it. The
@@ -53,6 +56,7 @@ public class HtmlCheck {
 
     /** Host names that always serve this Jahia, for a link written with one of them. */
     private static final Set<String> LOCAL_HOSTS = Set.of("localhost", "127.0.0.1", "[::1]");
+    private static final String LONG_SENTENCES = "readability.longSentences";
     private static final Logger logger = LoggerFactory.getLogger(HtmlCheck.class);
 
     @Reference
@@ -121,7 +125,9 @@ public class HtmlCheck {
         Map<String, Object> facts = new HashMap<>();
         facts.put(LinkChecks.LOCAL_HOSTS, hosts);
         try {
-            facts.put(LinkChecks.BROKEN, LinkCheck.internal(html, hosts, session).broken());
+            LinkCheck.InternalLinks internal = LinkCheck.internal(html, hosts, session);
+            facts.put(LinkChecks.BROKEN, internal.broken());
+            facts.put(LinkChecks.INTERNAL, internal);
         } catch (RepositoryException | RuntimeException e) {
             logger.warn("The internal links of {} could not be checked", node.getPath(), e);
         }
@@ -147,6 +153,46 @@ public class HtmlCheck {
             input = input.withFact(fact.getKey(), fact.getValue());
         }
         return checks.run(input, Set.of()).stream().map(CheckRegistry.Checked::finding).toList();
+    }
+
+    /**
+     * What the tabs of the drawer show beside the findings, as {@link PageFacts#of} states it.
+     *
+     * @param language the language of the content, such as {@code en}
+     */
+    public Map<String, Object> facts(Rendered rendered, Locale language) {
+        Integer maxSentenceWords = null;
+        try {
+            Double maximum = ContentRules.forPath(rendered.path()).get(LONG_SENTENCES).maximum();
+            maxSentenceWords = maximum == null ? null : maximum.intValue();
+        } catch (IllegalArgumentException e) {
+            // A site with no such rule counts no long sentence.
+        }
+        return PageFacts.of(rendered.html(), rendered.facts(), language == null ? null : language.getLanguage(),
+                maxSentenceWords);
+    }
+
+    /**
+     * Runs the checks of some rules on HTML that the caller fetched, such as a page as a crawler gets it.
+     * The checks read the HTML and its SEO facts only: no fact of the repository and no readability, so a
+     * rule of readability gives no finding here.
+     *
+     * @param rules    the rules of the site of the page
+     * @param path     the path of the page
+     * @param language the language of the content, such as {@code en}, or null
+     * @param html     the HTML of a whole page
+     * @param ruleIds  the ids of the rules to run
+     * @return the findings of these rules that the site keeps on, in the order of the rules
+     */
+    public List<Finding> findings(ContentRules rules, String path, String language, Document html, Set<String> ruleIds) {
+        // The thresholds of a whole page measure the SEO facts only: no readability is measured for these rules
+        CheckInput input = CheckInput.page(path, language, html.outerHtml())
+                .withFact(HtmlRuleChecks.DOCUMENT, html)
+                .withFact(HtmlRuleChecks.HTML_SCOPE, Scope.PAGE);
+        for (Map.Entry<String, Object> fact : SeoChecks.facts(html).entrySet()) {
+            input = input.withFact(fact.getKey(), fact.getValue());
+        }
+        return checks.runRules(rules, input, ruleIds).stream().map(CheckRegistry.Checked::finding).toList();
     }
 
     /**

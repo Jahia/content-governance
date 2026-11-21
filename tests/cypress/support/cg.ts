@@ -132,6 +132,21 @@ export function addNodeTree(parentPath: string, node: Record<string, unknown>): 
     }`, {parent: parentPath, ...node});
 }
 
+/**
+ * Adds HTML to the main area of a page, so that the page renders it as written, on the server as in the
+ * preview of the drawer: a `jnt:bigText` in a free zone (`ctpl:freeZone`) of classic-templates, the
+ * template set of the CI (CYPRESS_CG_TEMPLATE_SET), whose page templates hold the area `main`. A rich
+ * text of the template set rewrites its HTML, such as a heading level that skips one.
+ *
+ * @param {string} pagePath the path of the page.
+ * @param {string} name the name of the zone.
+ * @param {Record<string, string>} bodies the HTML, by language.
+ */
+export function addPageText(pagePath: string, name: string, bodies: Record<string, string>): void {
+    const properties = Object.entries(bodies).map(([language, value]) => ({name: 'text', language, value}));
+    addNodeTree(`${pagePath}/main`, {name, type: 'ctpl:freeZone', children: [{name: 'text', primaryNodeType: 'jnt:bigText', properties}]});
+}
+
 /** Whether a node exists, read as root. */
 export function nodeExists(path: string): Cypress.Chainable<boolean> {
     return gql(asRoot(), 'query N($path: String!) { jcr { nodeByPath(path: $path) { path } } }', {path})

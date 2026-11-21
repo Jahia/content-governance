@@ -9,7 +9,7 @@ type RuleRuntime = {id: string; evaluator: string; active: boolean; blocking: bo
 
 const RULES = 'query R($siteKey: String!) { contentGovernance { contentRules(siteKey: $siteKey) { id evaluator active missingCheck needs } } }';
 const PAGE_CHECK = `query P($path: String!) {
-    contentGovernance { checkPage(path: $path, language: "en") { ruleId severity text } }
+    contentGovernance { checkPage(path: $path, language: "en") { path findings { ruleId severity text } facts } }
 }`;
 const RUNTIME = 'query R($siteKey: String!) { contentGovernance { contentRules(siteKey: $siteKey) { id evaluator active blocking } } }';
 const CHECK = `query C($path: String!, $text: String!, $scope: String) {
@@ -125,21 +125,24 @@ describe('Content Governance - check registry', () => {
         gqlOk(asRoot(), RUNTIME, {siteKey}).then(data => {
             const byId = Object.fromEntries((data.contentGovernance.contentRules as RuleRuntime[]).map(rule => [rule.id, rule]));
             gqlOk(asRoot(), PAGE_CHECK, {path: `${sitePath}/home/cg-links`}).then(page => {
-                const findings = page.contentGovernance.checkPage as CheckFinding[];
+                const findings = page.contentGovernance.checkPage.findings as CheckFinding[];
                 expect(findings.map(finding => finding.ruleId)).to.include.members(['html.imageAltMissing',
                     'html.linkTextVague', 'links.mixedContent', 'links.blankNoopener', 'health.unpublishedChanges']);
                 expect(findings).to.deep.include({ruleId: 'links.mixedContent', severity: 'serious',
                     text: 'http://example.com/report'});
                 findings.forEach(finding => {
                     expect(byId[finding.ruleId], finding.ruleId).to.include({active: true});
-                    expect(finding.ruleId).not.to.match(/^ecodesign\.|^health\.graphqlUnavailable$|^seo\./);
+                    expect(finding.ruleId).not.to.match(/^ecodesign\.|^seo\./);
                 });
             });
             gqlOk(asRoot(), PAGE_CHECK, {path: `${sitePath}/home`}).then(page => {
-                (page.contentGovernance.checkPage as CheckFinding[]).forEach(finding => {
+                (page.contentGovernance.checkPage.findings as CheckFinding[]).forEach(finding => {
                     expect(byId[finding.ruleId], finding.ruleId).to.include({active: true});
-                    expect(finding.ruleId).not.to.match(/^ecodesign\.|^health\.graphqlUnavailable$/);
+                    expect(finding.ruleId).not.to.match(/^ecodesign\./);
                 });
+                const facts = JSON.parse(page.contentGovernance.checkPage.facts);
+                expect(facts).to.have.all.keys('seo', 'readability', 'links', 'jahia');
+                expect(facts.seo.title.length).to.be.greaterThan(0);
             });
         });
     });
@@ -147,7 +150,7 @@ describe('Content Governance - check registry', () => {
     it('gives one page the same findings in checkPage and in frame.check', () => {
         const path = `${sitePath}/home`;
         gqlOk(asRoot(), PAGE_CHECK, {path}).then(page => {
-            const fromGraphql = (page.contentGovernance.checkPage as CheckFinding[])
+            const fromGraphql = (page.contentGovernance.checkPage.findings as CheckFinding[])
                 .map(finding => `${finding.ruleId} ${finding.severity} ${finding.text}`);
             expect(fromGraphql, 'the page has findings').not.to.be.empty;
             framePageCheck({siteKey, locale: 'en', path}).then((findings: FramePageFinding[]) => {

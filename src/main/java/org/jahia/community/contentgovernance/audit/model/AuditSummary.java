@@ -11,13 +11,13 @@ import org.json.JSONObject;
 
 /**
  * The number of issues per tab id of one stored run, computed on the server from what the run
- * stores, never taken from the client. A Page quality audit counts the accessibility violations and
- * the recommendations of each of its tabs ({@code accessibility}, {@code seo}...). A run of another
- * tab of the drawer counts its findings under the id of that tab.
+ * stores, never taken from the client. A Page quality audit counts the recommendations of each of its
+ * tabs ({@code accessibility}, {@code seo}...), and for accessibility the violations of axe-core too. A
+ * run of another tab of the drawer counts its findings under the id of that tab.
  *
  * @param counts               issues per tab id, for the tabs the run measured
  * @param total                the sum of the counts
- * @param seriousAccessibility accessibility violations of impact {@code critical} or {@code serious}, or -1
+ * @param seriousAccessibility accessibility issues of impact {@code critical} or {@code serious}, or -1
  *                             when unknown (a run of another tab, or a summary stored before it was counted)
  */
 public record AuditSummary(Map<String, Integer> counts, int total, int seriousAccessibility) {
@@ -26,6 +26,8 @@ public record AuditSummary(Map<String, Integer> counts, int total, int seriousAc
     private static final String SERIOUS_KEY = "seriousAccessibility";
     private static final String COUNTS_KEY = "counts";
     private static final String TOTAL_KEY = "total";
+    private static final String VIOLATIONS = "violations";
+    private static final String RECOMMENDATIONS = "recommendations";
 
     /** Tab id to the key of its result in the Page quality results, in the drawer's order. */
     public static final Map<String, String> TAB_RESULTS = tabResults();
@@ -49,25 +51,37 @@ public record AuditSummary(Map<String, Integer> counts, int total, int seriousAc
     public static AuditSummary of(JSONObject results) {
         Map<String, Integer> counts = new LinkedHashMap<>();
         int total = 0;
-        int serious = 0;
         JSONObject a11y = results.optJSONObject("a11y");
-        JSONArray violations = a11y == null ? null : a11y.optJSONArray("violations");
-        for (int i = 0; violations != null && i < violations.length(); i++) {
-            JSONObject violation = violations.optJSONObject(i);
-            if (violation != null && SERIOUS.contains(violation.optString("impact"))) {
-                serious++;
-            }
-        }
+        int serious = a11y == null ? 0 : serious(a11y.optJSONArray(VIOLATIONS), "impact")
+                + serious(a11y.optJSONArray(RECOMMENDATIONS), "severity");
         for (Map.Entry<String, String> tab : TAB_RESULTS.entrySet()) {
             JSONObject result = results.optJSONObject(tab.getValue());
             if (result != null) {
-                JSONArray issues = result.optJSONArray("accessibility".equals(tab.getKey()) ? "violations" : "recommendations");
-                int count = issues == null ? 0 : issues.length();
+                int count = length(result.optJSONArray(RECOMMENDATIONS));
+                if ("accessibility".equals(tab.getKey())) {
+                    count += length(result.optJSONArray(VIOLATIONS));
+                }
                 counts.put(tab.getKey(), count);
                 total += count;
             }
         }
         return new AuditSummary(Collections.unmodifiableMap(counts), total, serious);
+    }
+
+    private static int length(JSONArray issues) {
+        return issues == null ? 0 : issues.length();
+    }
+
+    /** The issues whose impact, under the key, is critical or serious. */
+    private static int serious(JSONArray issues, String key) {
+        int serious = 0;
+        for (int i = 0; issues != null && i < issues.length(); i++) {
+            JSONObject issue = issues.optJSONObject(i);
+            if (issue != null && SERIOUS.contains(issue.optString(key))) {
+                serious++;
+            }
+        }
+        return serious;
     }
 
     /**

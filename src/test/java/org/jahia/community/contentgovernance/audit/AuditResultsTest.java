@@ -47,6 +47,15 @@ class AuditResultsTest {
     }
 
     @Test
+    void countsTheHtmlRulesOfTheServerWithAccessibility() {
+        AuditSummary summary = AuditSummary.of(AuditResults.parse("{\"a11y\": {"
+                + "\"violations\": [{\"id\": \"region\", \"impact\": \"moderate\"}],"
+                + "\"recommendations\": [{\"key\": \"rule\", \"rule\": \"html.buttonNameMissing\", \"severity\": \"serious\"}]}}"));
+        assertThat(summary.counts()).containsExactly(Map.entry("accessibility", 2));
+        assertThat(summary.seriousAccessibility()).isEqualTo(1);
+    }
+
+    @Test
     void readsBackWhatItStores() {
         AuditSummary summary = AuditSummary.of(AuditResults.parse(RESULTS));
         assertThat(AuditSummary.fromJson(summary.toJson())).isEqualTo(summary);

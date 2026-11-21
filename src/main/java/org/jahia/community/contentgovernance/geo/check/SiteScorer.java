@@ -1,5 +1,7 @@
 package org.jahia.community.contentgovernance.geo.check;
 
+import org.jahia.community.contentgovernance.check.spi.Finding;
+import org.jahia.community.contentgovernance.html.HtmlCheck;
 import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.services.content.JCRCallback;
@@ -10,6 +12,7 @@ import org.jahia.community.contentgovernance.geo.util.LlmsFile;
 import org.jahia.community.contentgovernance.geo.util.PublicUrls;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.jsoup.Jsoup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +26,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 
 /**
  * GEO-17. Scores every published page of a site, on a schedule.
@@ -36,7 +40,9 @@ import java.util.TreeMap;
  * by the word-count check, and the per-crawler comparison stays in the drawer.
  *
  * Scoring runs through {@link GeoScore} over a report shaped exactly like the
- * drawer's, so the site score and the page score cannot drift apart. The one
+ * drawer's, so the site score and the page score cannot drift apart. The SEO
+ * checks of each page run in the page check service ({@link HtmlCheck}), on the
+ * HTML that the crawler got, so they give the findings of the drawer. The one
  * check that genuinely needs several agents is dropped rather than allowed to
  * pass for free.
  */
@@ -87,6 +93,16 @@ public final class SiteScorer {
         public String publicBaseUrl = "";
         /** Blank scans the whole site; otherwise only this subtree. */
         public String scope = "";
+        /** The page check service, which checks the SEO rules of each page on the HTML that the crawler got. */
+        private HtmlCheck pages;
+
+        public void setPages(HtmlCheck pages) {
+            this.pages = pages;
+        }
+
+        HtmlCheck pages() {
+            return pages;
+        }
     }
 
     /**
@@ -94,6 +110,9 @@ public final class SiteScorer {
      * nature: the caller decides whether that is a job or a request.
      */
     public static JSONObject scan(String sitePath, String language, Options opts) throws RepositoryException {
+        if (opts.pages() == null) {
+            throw new IllegalStateException("A site scan needs the page check service");
+        }
         return new Run(sitePath, language, opts).execute();
     }
 
@@ -458,11 +477,28 @@ public final class SiteScorer {
             // the repository work for every page on the site.
             String url = resolveUrl(path, language, opts, out);
 
-            JSONObject agent = fetch(url, visibility, siteBase, opts, links);
+            String[] body = new String[1];
+            JSONObject agent = fetch(url, visibility, siteBase, opts, links, html -> body[0] = html);
             recordCanonical(url, agent, canonicals);
 
-            JSONObject score = GeoScore.compute(drawerReport(url, agent, visibility, siteFiles, rules), contentRules);
+            JSONObject report = drawerReport(url, agent, visibility, siteFiles, rules);
+            addPageFindings(report, path, body[0]);
+            JSONObject score = GeoScore.compute(report, contentRules);
             return summarise(out, score);
+        }
+
+        /**
+         * The rules of the page check service that the HTML the crawler got breaks, under
+         * {@link GeoScore#PAGE_FINDINGS}. None when no HTML came, so that GeoScore fails these checks.
+         */
+        private void addPageFindings(JSONObject report, String path, String html) {
+            if (html == null || html.isEmpty()) {
+                return;
+            }
+            JSONArray ids = new JSONArray();
+            opts.pages().findings(contentRules, path, language, Jsoup.parse(html), GeoScore.PAGE_RULES).stream()
+                    .map(Finding::ruleId).distinct().forEach(ids::put);
+            report.put(GeoScore.PAGE_FINDINGS, ids);
         }
 
         /**
@@ -494,7 +530,7 @@ public final class SiteScorer {
          * it, and the critical guestReadable check does the talking.
          */
         private static JSONObject fetch(String url, JSONObject visibility, String siteBase, Options opts,
-                LinkGraph.Accumulator links) {
+                LinkGraph.Accumulator links, Consumer<String> body) {
             if (!visibility.optBoolean(GUEST_READABLE, true) || url == null) {
                 JSONObject agent = new JSONObject();
                 agent.put("name", SCAN_AGENT);
@@ -505,7 +541,10 @@ public final class SiteScorer {
             // so it costs nothing beyond this request.
             String from = PublishedMap.pathOf(url);
             return PageFetch.probe(url, siteBase, SCAN_AGENT, agentUa(), opts.fetchTimeoutMs, opts.maxBodyBytes,
-                    html -> LinkGraph.addPage(links, from, html));
+                    html -> {
+                        LinkGraph.addPage(links, from, html);
+                        body.accept(html);
+                    });
         }
 
         /**
