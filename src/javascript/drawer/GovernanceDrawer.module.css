@@ -75,7 +75,8 @@
 }
 
 /* Header has a fixed height in Moonstone layouts; here the bar scrolls sideways rather than
-   wrapping, so a narrow drawer never hides a section under the content. */
+   wrapping, so a narrow drawer never hides a section under the content. The switch between the
+   panels uses it too. */
 .sectionBar {
     flex-shrink: 0;
     overflow-x: auto;
@@ -86,6 +87,18 @@
 .sectionTabs {
     flex-wrap: nowrap;
     width: max-content;
+}
+
+/* A panel fills the drawer under the header; the governance panel lays its tabs out in it. */
+.panel {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel[hidden] {
+    display: none;
 }
 
 .section {

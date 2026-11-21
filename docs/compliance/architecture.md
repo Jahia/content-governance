@@ -31,7 +31,7 @@ Shared with the other sections:
 |---|---|
 | `org.jahia.community.contentgovernance.graphql` | `ContentGovernanceQueryExtension`, which adds `complianceScan` and `contentGovernance` to the root `Query`, and the bundle's `DXGraphQLExtensionsProvider` |
 | `org.jahia.community.contentgovernance.settings` | `Features` (section and tab ids: the Compliance section is `compliance`, with no tabs) and `SiteFeatures` (the server-side gate) |
-| `src/javascript/drawer/` | `GovernanceAction` (the header button, its node checks) and `GovernanceDrawer` (tabs, badges, sections mounted on first visit) |
+| `src/javascript/drawer/` | `GovernanceAction` (a header button per panel, their node checks), `GovernanceDrawer` (the panels and their switch) and `GovernancePanel` (tabs, badges, sections mounted on first visit) |
 | `src/javascript/compliance/` | `ComplianceSection.jsx`, `scan.gql.js`, `renderedPaths.js` (frame paths), `dashboard/` (dashboard, `scanSite.gql.js`, CSV and JSON exports) |
 | `src/javascript/common/SectionGate.jsx` | Shows the dashboard only while the site keeps the section on |
 
@@ -54,7 +54,7 @@ glossary becomes a content folder.
 
 **Drawer.** `GovernanceAction` (header action `headerPrimaryActions`) shows the **Content governance**
 button on a `jnt:page` or a `jmix:mainResource` of a site that enables the module, once the site's
-settings (`contentGovernance.siteSettings`) list at least one section switched on. The Compliance tab
+settings (`contentGovernance.siteSettings`) keep the governance panel and at least one section switched on. The Compliance tab
 is listed only when `compliance` is on, and greyed out (`drawer.unavailable.notPage`,
 `drawer.unavailable.noWrite`) when the node is not a `jnt:page` or the user lacks `jcr:write` on it
 (`useNodeChecks`). `ComplianceSection` mounts the first time its tab is shown and runs `scanPage`

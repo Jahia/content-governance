@@ -13,7 +13,7 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 
 | Path | What |
 |---|---|
-| `src/javascript/drawer/` | The header action and the one drawer: header, section bar, sections mounted on first visit; `useDock.js` docks it beside the page under jContent's header; `entries.js` and `FindingActions.jsx` read the tabs and finding actions other modules add (`docs/drawer-entries.md`) |
+| `src/javascript/drawer/` | The header action, one button per panel, and the one drawer: `GovernanceDrawer` hosts the panels, with their header and switch, each panel mounted on first visit; `GovernancePanel` holds the section bar and the sections; `useDock.js` docks the drawer beside the page under jContent's header; `drawerApi.js` gives other modules `openPanel`; `entries.js` and `FindingActions.jsx` read the panels, tabs, finding actions and checks of the browser other modules add (`docs/drawer-entries.md`) |
 | `src/javascript/audit/` | Page quality section: preview frame, the run of the checks of the browser (`runChecks.js`, `browserResults.js`), tabs, shared audits (`auditHistory.js`), the Page quality dashboard (`dashboard/`) |
 | `src/javascript/checks/` | The checks of the browser that Content Governance registers (`register.js`): axe-core, the web vitals and eco-design |
 | `src/main/java/.../audit/` | Shared audits: `service/spi/AuditHistoryService` and its DS component, `AuditResults` (input check), `model/`, `graphql/` (`AuditAccess`, `AuditFields`, types) |

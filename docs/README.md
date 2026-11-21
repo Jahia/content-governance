@@ -53,9 +53,9 @@ kept on purpose, traps already hit once, known leftovers.
 
 ## If you build a module that adds to Content Governance
 
-- **[`drawer-entries.md`](drawer-entries.md)**: how another module adds a tab to the drawer, or an
-  action on a finding, and what the drawer gives to each entry: the page, the language and the
-  findings.
+- **[`drawer-entries.md`](drawer-entries.md)**: how another module adds a panel to the drawer, a
+  tab to the governance panel or an action on a finding, how it opens a panel with `openPanel`, and
+  what the drawer gives to each entry, such as the page, the language and the findings.
 - **[`geo-readiness/architecture.md`](geo-readiness/architecture.md#the-geo-report-writer)**: how
   another module writes the report of the GEO dashboard with a model.
 

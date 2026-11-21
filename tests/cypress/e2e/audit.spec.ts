@@ -130,7 +130,8 @@ describe('Content Governance - Page quality audit', () => {
         cy.get('#content-governance-fix-first li').each($finding => {
             expect($finding.text(), 'Fix first lists critical and serious findings only').to.match(/Critical|Serious/);
         });
-        cy.get('#content-governance-fix-first li').first().contains('button', 'Open').click();
+        // The drawer's own button: an action of another module on the finding may start with "Open" too
+        cy.get('#content-governance-fix-first li').first().contains('button', /^Open$/).click();
         // The docked drawer is as tall as the page under edit: the tab's results may start below its fold
         cy.get(DRAWER).contains('automated rules passed').scrollIntoView().should('be.visible');
     });
