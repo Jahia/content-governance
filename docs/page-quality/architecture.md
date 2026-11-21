@@ -145,26 +145,31 @@ schema is measured again: 6 dropped the audits from before the check of the serv
   broken ones (`missing` or `not_published`). `jahia`: the status of the page, the content items
   read (400 at most), what is not published in the language, and what lacks an active language.
 
-Each finding goes to one tab, under the id of its rule (`tabOf`): the domain of the rule names the tab
-(`seo`, `readability`, `links`, `health` for Jahia health, `html` for Accessibility). The HTML rules
-that SEO and Readability word stay there: the language of the page, the alt texts and the vague link
-texts in SEO, the H1 and the heading levels in Readability. A rule of another domain, such as a check
-that another module registers, goes to Jahia health. A tab shows one recommendation per rule
-`{key, rule, severity, params, items}`: `items` holds each finding of the rule. The text of a rule
-that the tab words is in `audit.<ns>.recs.<key>.title|detail`. Another rule shows its id and its
-advice (`audit.recs.rule`).
+Each finding goes to the tab of the domain of its rule (`tabOf`, `DOMAIN_TABS`): `accessibility`,
+`seo`, `readability` (and `writing`), `links`, `health` for Jahia health, and `ecodesign`. No list
+names the tab of one rule, so a check that another module registers lands like a built-in one. A
+tab shows one recommendation per rule `{key, rule, severity, params, items, title, detail, label}`:
+`items` holds each finding of the rule, with its `locator` when the check gave one. The texts come
+from the rule (`audit/ruleText.js`), in the language of the interface of the editor: the plural form
+of its title for the count, with the values `count`, `value` (the text of the first finding), `min`
+and `max`, and its advice. A finding with a locator offers "Highlight on the page", and says "Item
+not found" when the preview has no such element. An audit stored before this version keeps its old
+texts (`audit.<ns>.recs.<key>`), and the drawer offers "Run again".
 
 ## The analyzers of the browser
 
 Each analyzer gets the rules of the site, which `audit/rules.js` reads at the start of the audit
-through the GraphQL field `contentRules` ([the catalog](../content-rules/catalog.md)). A finding is
-`{key, rule, severity, params}`: `key` names its text, `rule` is the id of its rule, `severity` is
-the severity of the rule, and `params` holds the `min` and `max` of the rule. A rule that the site
+through the GraphQL field `contentRules(siteKey, language)` ([the catalog](../content-rules/catalog.md)).
+A finding is `{key, rule, severity, params, title, detail}`: `rule` is the id of its rule, `severity`
+is the severity of the rule, `params` holds the values of its texts, and the texts come from the
+rule. axe-core skips each check whose rule `axe.<id>` the site turned off, and each violation keeps
+the impact of axe-core beside the severity of the site. The findings of the web vitals are rules of
+the domain `ecodesign`: the Ecodesign tab shows them. A rule that the site
 turned off gives no finding. These rules are browser rules: the server registers their ids and never
 runs them, and they never block.
 
 Run in this order in `handleFrameLoad`. Each returns a result object with a `recommendations` array
-of these findings; the text is in `audit.<ns>.recs.<key>.title|detail`.
+of these findings.
 
 | Analyzer | File | Reads | Notes |
 |---|---|---|---|

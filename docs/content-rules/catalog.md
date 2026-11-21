@@ -13,11 +13,13 @@ properties.
 |---|---|
 | `ruleId` | The name of the rule, such as `seo.title`. Each finding of the rule shows it. One rule of a site has it. |
 | `evaluator` | What checks the rule. The next table lists the values. |
-| `domain` | The group of the rule, such as `seo`. Empty: the part of the id before the first dot. |
+| `domain` | The group of the rule, which names the tab of its findings: `accessibility`, `seo`, `readability`, `writing`, `links`, `health`, `ecodesign`, `geo`, `compliance` or `glossary`. Empty: the part of the id before the first dot when it is one of them, else `compliance` for a rule of the evaluator `pattern`. A rule of another domain never runs. |
 | `severity` | `critical`, `serious`, `moderate` or `minor`. |
 | `blocking` | A finding of a blocking rule stops the publication of the content. |
 | `enabled` | On or off. A rule that is off reports nothing. |
 | `fixer` | The role of the person who fixes a finding: `editor`, `developer` or `administrator`. Example: `geo.reachable`, a crawler that gets a 403, names an administrator. |
+| `title` | The title of a finding, one text per language, with one line per plural form, such as `one: {{count}} image has no text alternative` and `other: {{count}} images have no text alternative`. It takes the values `{{count}}` (the findings of the rule), `{{value}}` (what the first finding measured or matched), `{{min}}` and `{{max}}`. |
+| `label` | A neutral name of what the rule checks, one text per language, such as "Title length". GEO readiness shows it on each check. |
 | `advice` | What to do about a finding, one text per language. For the evaluator `model`, the criterion that the model checks. |
 | `unit`, `minimum`, `maximum` | The limits of a rule of the evaluator `threshold`, in its unit. |
 | `kind`, `pattern`, `matchMode`, `replacement`, `ruleLanguage` | The pattern of a rule of the evaluator `pattern`: a forbidden term, a term to replace, a mandatory mention or a style pattern. A term ignores case and accents, a `*` at its end matches the rest of the word, and a `*` at its start lets it end another word. A regular expression ignores case, unless it starts with `(?-i)`. |
@@ -78,8 +80,30 @@ maximum: 60
 Give the page a title, with the main subject first, inside the length range.
 ```
 
-The frontmatter holds the properties of the node, with `id` for `ruleId`. The body is the advice. A
-file with an unknown key, no evaluator, or an unknown severity is skipped with a warning in the log.
+The frontmatter holds the properties of the node, with `id` for `ruleId`. The body is the advice in
+English. A file with an unknown key, no evaluator, no domain, an unknown domain or an unknown
+severity is skipped with a warning in the log.
+
+The texts of a rule take a map of languages. The drawer shows them in the language of the
+interface of the editor, and in English when the rule has none in that language:
+
+```markdown
+label:
+  en: "Text alternatives of images"
+  fr: "Alternatives textuelles des images"
+title:
+  en:
+    one: "{{count}} image has no text alternative"
+    other: "{{count}} images have no text alternative"
+  fr:
+    one: "{{count}} image sans alternative textuelle"
+    other: "{{count}} images sans alternative textuelle"
+advice:
+  fr: "Donnez à chaque image un attribut alt : une description, ou une valeur vide pour une image décorative."
+```
+
+The module writes only the English texts on the node. A site translates a text on the node, and its
+translation replaces the one of the file in that language.
 
 The module copies the rules of a module into each site that enables content-governance and installs
 that module, under `contents/content-insights/<module>/rules`. The copy runs when a site installs a
@@ -104,8 +128,10 @@ Create a **Content rule** in jContent, under **Content folders > content-insight
 Give it a rule id, an evaluator, a severity and an advice. For example, the rule `acme.tone` has the
 evaluator `model`, the severity `minor` and the advice "Write in a friendly tone."
 
-The id is free, and it needs no domain. jContent refuses a rule whose id another rule of the site
-already has: "The rule seo.title already exists at /sites/...".
+The id is free. Give the rule a domain, such as `writing` for `acme.tone`, so that its findings
+have a tab. A term with no domain, such as `brand.seamless`, takes `compliance`. jContent refuses a
+rule whose id another rule of the site already has: "The rule seo.title already exists at
+/sites/...".
 
 ## How a new version of a module updates the rules
 
@@ -236,9 +262,8 @@ important. `minor` shows as advisory.
 
 ## What the catalog does not hold
 
-- The accessibility findings keep the ids and the impacts of axe-core.
-- The readability bands come from the formula of each language. The rules `readability.hardText`
-  and `readability.veryHardText` have a switch and a severity, and no limit.
+- The tabs also show values beside the findings, such as the tag checklist of SEO or the outline
+  of the headings. These values come from the page facts of the server, not from the rules.
 - The limits of a scan, such as the number of links that the Links tab checks, are not rules.
 - The length hints of the social card of the SEO assist (`og:description`) are not rules.
 - The instructions that ai-assistant gives a model for an SEO review state the default ranges of
@@ -268,8 +293,8 @@ important. `minor` shows as advisory.
 | `geo.dateModified` | `geo.dateModified` | minor | none | developer |
 | `geo.robotsPresent` | `geo.robotsPresent` | serious | none | administrator |
 | `geo.llmsPresent` | `geo.llmsPresent` | minor | none | administrator |
-| `readability.veryHardText` | `readability.veryHardText` | serious | none | editor |
-| `readability.hardText` | `readability.hardText` | moderate | none | editor |
+| `readability.flesch` | `threshold` | moderate | minimum 50 points (a higher score reads easier) | editor |
+| `readability.lix` | `threshold` | moderate | maximum 44 points (Danish, Norwegian and Swedish) | editor |
 | `readability.longSentences` | `threshold` | minor | maximum 25 words | editor |
 | `readability.longParagraphs` | `threshold` | moderate | maximum 80 words | editor |
 | `readability.thinContent` | `threshold` | minor | minimum 300 words | editor |
@@ -282,7 +307,15 @@ important. `minor` shows as advisory.
 | `html.*` | the id of the rule | see below | none | see below |
 
 The rules `html.*` are the rules of the HTML check, and
-[`html-rules.md`](../page-quality/html-rules.md) lists them. Each rule names a check of its own id.
+[`html-rules.md`](../page-quality/html-rules.md) lists them. Each rule names a check of its own id,
+and takes the domain `accessibility`.
+
+Each check of axe-core that the drawer runs is a rule `axe.<id of the axe-core rule>`, such as
+`axe.color-contrast`. Its evaluator is `axe`, and its severity is the impact of axe-core. A site
+turns a check off on its rule, and axe-core then does not run it. The check gives no violation and
+no item to review, and the level scores leave it out. The drawer shows the severity of the site
+beside the impact of axe-core. It shows the help text of axe-core in the language of the editor,
+unless the site writes a title on the rule.
 | `ecodesign.imageDimensions` | `ecodesign.imageDimensions` | moderate | none | developer |
 | `ecodesign.webFonts` | `threshold` | minor | maximum 2 files | developer |
 | `ecodesign.autoplay` | `ecodesign.autoplay` | moderate | none | editor |
