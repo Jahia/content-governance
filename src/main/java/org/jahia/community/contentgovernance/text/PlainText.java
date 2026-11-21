@@ -1,4 +1,4 @@
-package org.jahia.community.contentgovernance.compliance.service.internal;
+package org.jahia.community.contentgovernance.text;
 
 import org.apache.commons.text.StringEscapeUtils;
 
@@ -8,13 +8,15 @@ import java.util.regex.Pattern;
 
 /**
  * Turns property values into the text a visitor reads: tags removed from rich text, entities
- * decoded, white space collapsed.
+ * decoded, white space collapsed. The Compliance scan and the check {@code pattern} read a text this way,
+ * so a match has the same place in both.
  *
- * <p>The tag stripper is one forward pass: every search starts where the previous one ended, and an
- * unclosed tag, comment or script drops the rest of the value. A regular expression per construct
+ * <p>The tag stripper is one forward pass: every search starts where the previous one ended. An unclosed
+ * comment or script drops the rest of the value, and a {@code <} that no {@code >} follows is text, with
+ * the rest of the value: {@code Prices < 10 EUR} stays as it is. A regular expression per construct
  * restarts at each unclosed {@code <}, which took 23 s on a 160 KB value of {@code <} characters.</p>
  */
-final class PlainText {
+public final class PlainText {
 
     // Block-level tags separate words; inline tags (strong, em, span, a) do not: <b>gra</b>tuit is one word.
     private static final Set<String> BLOCK_TAGS = Set.of(
@@ -31,7 +33,7 @@ final class PlainText {
      * @param html a rich text value
      * @return the visible text, on one line
      */
-    static String fromHtml(String html) {
+    public static String fromHtml(String html) {
         String lower = html.toLowerCase(Locale.ROOT);
         StringBuilder out = new StringBuilder(html.length());
         int i = 0;
@@ -54,6 +56,8 @@ final class PlainText {
             }
             int close = html.indexOf('>', i + 1);
             if (close < 0) {
+                // No > follows, so no tag starts here or after
+                out.append(html, i, n);
                 break;
             }
             String name = tagName(lower, i + 1, close);
@@ -92,7 +96,16 @@ final class PlainText {
      * @param text a plain text value (small text, text area)
      * @return the text on one line
      */
-    static String collapse(String text) {
+    public static String collapse(String text) {
         return SPACES.matcher(text).replaceAll(" ").trim();
+    }
+
+    /**
+     * @param text a plain text value (small text, text area), such as {@code Prices < 10 EUR}
+     * @return the value as HTML, which {@link #fromHtml} reads as {@link #collapse} reads the value:
+     * {@code Prices &lt; 10 EUR}
+     */
+    public static String toHtml(String text) {
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 }

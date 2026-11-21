@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 class BuiltInChecksTest {
 
@@ -77,6 +78,54 @@ class BuiltInChecksTest {
                 RuleValues.PATTERN, "robust", RuleValues.KIND, "bogus")))).isEmpty();
         assertThat(check.check(value, rule(Map.of(RuleValues.RULE_ID, "w.old", RuleValues.EVALUATOR, "pattern",
                 RuleValues.PATTERN, "robust", RuleValues.VALID_UNTIL, LocalDate.of(2020, 1, 1))))).isEmpty();
+    }
+
+    private static ContentRule term(String id, String pattern) {
+        return rule(Map.of(RuleValues.RULE_ID, id, RuleValues.EVALUATOR, "pattern", RuleValues.KIND, "forbidden",
+                RuleValues.PATTERN, pattern));
+    }
+
+    /** A glossary rule that writes an English term in another language. */
+    private static ContentRule glossary(String id, String pattern, String replacement, String language) {
+        return rule(Map.of(RuleValues.RULE_ID, id, RuleValues.EVALUATOR, "pattern", RuleValues.KIND, "replace",
+                RuleValues.MATCH_MODE, "term", RuleValues.PATTERN, pattern, RuleValues.PATTERN_LANGUAGE, "en",
+                RuleValues.REPLACEMENT, replacement, RuleValues.RULE_LANGUAGE, language));
+    }
+
+    @Test
+    @DisplayName("pattern applies its rules together: a longer term hides a shorter one, a glossary term has forms in other languages")
+    void pattern_appliesItsRulesTogether() {
+        List<ContentRule> rules = List.of(term("compliance.baggins", "Baggins"),
+                term("compliance.sackville", "Sackville-Baggins"),
+                glossary("glossary.frodo-fr", "Frodo", "Frodon", "fr"),
+                glossary("glossary.frodo-es", "Frodo", "Frodo", "es"));
+
+        List<Finding> found = new PatternCheck().check(CheckInput.value(PATH, "es", "<p>Frodon y <b>Sackville-Baggins</b></p>"),
+                rules);
+
+        assertThat(found).extracting(Finding::ruleId, Finding::text).containsExactly(
+                tuple("compliance.sackville", "Sackville-Baggins"), tuple("glossary.frodo-fr", "Frodon"));
+        // The place is in the text that a reader reads, and a form of another language names the form to write
+        assertThat(found.get(0).values()).containsEntry(Finding.START, 9).containsEntry(Finding.END, 26)
+                .containsEntry(Finding.TERM, "Sackville-Baggins").doesNotContainKey(Finding.REPLACEMENT);
+        assertThat(found.get(1).values()).containsEntry(Finding.START, 0).containsEntry(Finding.END, 6)
+                .containsEntry(Finding.TERM, "Frodon").containsEntry(Finding.REPLACEMENT, "Frodo");
+        assertThat(found.get(1).context()).isEqualTo("Frodon y Sackville-Baggins");
+    }
+
+    @Test
+    @DisplayName("pattern reads inline tags as one word, and gives each place up to the most findings of a rule")
+    void pattern_readsTheTextAsAReaderDoes() {
+        PatternCheck check = new PatternCheck();
+        List<ContentRule> free = List.of(term("compliance.free", "gratuit"));
+
+        assertThat(check.check(CheckInput.value(PATH, "fr", "<p>Livraison <b>gra</b>tuit</p>"), free))
+                .extracting(Finding::text).containsExactly("gratuit");
+        assertThat(check.check(CheckInput.value(PATH, "fr", "gratuit ".repeat(80)), free))
+                .hasSize(CheckRegistry.MAX_FINDINGS);
+        // Other rules on the same check give their own findings, not those of the rules before them
+        assertThat(check.check(CheckInput.value(PATH, "fr", "gratuit et offert"), List.of(term("compliance.offered", "offert"))))
+                .extracting(Finding::ruleId).containsExactly("compliance.offered");
     }
 
     @Test

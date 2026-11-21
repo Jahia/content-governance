@@ -183,14 +183,31 @@ A check states the scopes in which it runs:
 
 | Scope | What the check reads | Who runs it today |
 |---|---|---|
-| `VALUE` | One value that an editor writes. | The GraphQL field `checkText`, and `frame.check` of the editorial frame. |
+| `VALUE` | One value that an editor writes. | The GraphQL field `checkText` and `frame.check` of the editorial frame. The Compliance scan runs the rules of the domains `compliance`, `glossary` and `writing` on each text. |
 | `PAGE` | The HTML of a rendered page or content item. | The page check (`HtmlCheck`): the GraphQL field `checkPage`, which the drawer reads, `frame.check` with a path, the tool `audit.accessibility`, `checkText` with the scope `PAGE`, and the SEO checks of GEO readiness on the HTML that a crawler gets. |
 | `SITE` | A whole site. | No caller yet. |
 
 A run applies each rule that the site keeps on and whose check is registered for the scope. Each
 finding carries the id of the rule, the severity that the site gives the rule, and the text that
 breaks the rule. A check that throws an exception gives no finding, and the other checks still run.
-One check gives 50 findings or fewer on one input.
+One rule gives 50 findings or fewer on one input.
+
+A finding on a value can also carry values, which the Compliance section and `frame.check` read:
+
+| Value | What it holds |
+|---|---|
+| `start` | The place where the text of the finding starts, in the value as a reader reads it: tags removed, entities decoded, white space collapsed. |
+| `end` | The place where the text of the finding ends, excluded. |
+| `term` | The term of the rule that the text holds, such as "click here". |
+| `replacement` | What to write instead, such as "select". |
+
+Example: `{start: 4, end: 14, term: "click here", replacement: "select"}` in "Now click here to buy".
+With no `start`, the Compliance section marks the first place of the text of the finding.
+
+A check whose rules act on each other implements `RuleSetCheck` instead of `ContentCheck`. A run
+then calls it once per input, with all its rules, and gives each finding to the rule that it names.
+The check `pattern` is one. The term "Sackville-Baggins" of one rule hides the term "Baggins" of
+another rule. A glossary rule of another language reports a form of its term.
 
 ```graphql
 query {

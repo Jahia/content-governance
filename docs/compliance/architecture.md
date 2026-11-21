@@ -1,7 +1,7 @@
 # How the Compliance section works
 
 The Compliance section is one of the three sections of the Content Governance bundle. Its parts: the
-term rules (`ccs:contentRule` nodes of the evaluator `pattern`), a Java service that scans, GraphQL
+rules of the domains `compliance`, `glossary` and `writing`, a Java service that scans, GraphQL
 fields that expose it, a
 per-site switch checked on the server, and two React 18 entry points of the module's UI extension
 (the **Compliance** section of the drawer and the jContent dashboard).
@@ -10,7 +10,8 @@ per-site switch checked on the server, and two React 18 entry points of the modu
 Drawer, Compliance section ──► complianceScan.scanPage ─┐
                                                         ├─► SiteFeatures gate ─► ComplianceScanService ─► JCR (caller's session, default workspace)
 jContent dashboard         ──► complianceScan.scanSite ─┘                               │
-                                                                                         └─► ComplianceRules: the pattern rules of ContentRules (system session)
+                                                                                         ├─► ComplianceRules: the rules of Compliance of ContentRules (system session)
+                                                                                         └─► CheckRegistry: each value, as frame.check runs a text
 ```
 
 ## Code
@@ -22,7 +23,7 @@ Java, under `org.jahia.community.contentgovernance.compliance`:
 | `model` (exported) | Records of the reports: `ComplianceReport`, `SiteComplianceReport`, `ComplianceIssue`, `LocationReport`, `TermUsage`, `Glossary` (a folder of rules applied), enums |
 | `service.spi` (exported) | `ComplianceScanService`: `scan(page, uiLocale, renderedPaths)` and `scanSite(site, uiLocale)` |
 | `choicelist` | `SiteLanguagesInitializer`: `choicelist[complianceSiteLanguages]`, every language of the site (Jahia's `siteLanguage` offers the live-active ones only) |
-| `service.internal` | `ComplianceScanServiceImpl` (tree walk), `ComplianceRules` (the rules that apply), `PlainText` (rich text to text), `Excerpt`, `GlossarySeeder` (a JCR listener on `j:installedModules`: when a site enables the module and has no folder `contents/compliance-glossaries`, creates it with a folder for the default language and one example rule from the resource bundle, once per site: flag `glossarySeeded` on the settings node) |
+| `service.internal` | `ComplianceScanServiceImpl` (tree walk), `ComplianceRules` (the rules that apply), `ValueFindings` (the findings of the registry on one value), `PlacedFinding` (one finding with its place, term and replacement), `Excerpt`, `GlossarySeeder` (a JCR listener on `j:installedModules`: when a site enables the module and has no folder `contents/compliance-glossaries`, creates it with a folder for the default language and one example rule from the resource bundle, once per site: flag `glossarySeeded` on the settings node) |
 | `graphql` | `GqlComplianceScan` (`scanPage`, `scanSite`) and the `Gql*` views; schema names are prefixed (`ComplianceIssue`, `ComplianceScanStatus`...) |
 
 Shared with the other sections:
@@ -30,6 +31,8 @@ Shared with the other sections:
 | Package or folder | Holds |
 |---|---|
 | `org.jahia.community.contentgovernance.graphql` | `ContentGovernanceQueryExtension`, which adds `complianceScan` and `contentGovernance` to the root `Query`, and the bundle's `DXGraphQLExtensionsProvider` |
+| `org.jahia.community.contentgovernance.text` | `PlainText` (rich text to text), which the check `pattern` reads too, `FoldedText` and `TermPattern` |
+| `org.jahia.community.contentgovernance.check` | `CheckRegistry`, which runs the checks of every module, and `PatternCheck`, the check of the evaluator `pattern` |
 | `org.jahia.community.contentgovernance.settings` | `Features` (section and tab ids: the Compliance section is `compliance`, with no tabs) and `SiteFeatures` (the server-side gate) |
 | `src/javascript/drawer/` | `GovernanceAction` (the header button, its node checks) and `GovernanceDrawer` (tabs, badges, sections mounted on first visit) |
 | `src/javascript/compliance/` | `ComplianceSection.jsx`, `scan.gql.js`, `renderedPaths.js` (frame paths), `dashboard/` (dashboard, `scanSite.gql.js`, CSV and JSON exports) |
@@ -39,9 +42,20 @@ Shared with the other sections:
 
 A term is a `ccs:contentRule` of the evaluator `pattern`, which
 [`../content-rules/catalog.md`](../content-rules/catalog.md) describes. A list of terms is a content
-folder of rules, with the permissions of that folder. Since content-governance#74, the scan applies
-each rule of the evaluator `pattern` that the site keeps on, that applies on the day and to the
-language, and that is not a mandatory mention.
+folder of rules, with the permissions of that folder.
+
+Since [content-governance#154](https://github.com/Jahia/content-governance/issues/154), the scan
+applies each rule of the domains `compliance`, `glossary` and `writing` that the check registry runs
+on a value. Two kinds of rules qualify:
+
+- A rule of the evaluator `pattern` that the site keeps on, that applies on the day, and that is not a
+  mandatory mention. A rule of another language stays, because a glossary rule reports a form of its
+  term in any language.
+- A rule whose check another module registers for the scope `VALUE`, such as `acme.erpPrice` of the
+  test module. Its findings show like the findings of a term.
+
+A pattern rule of another domain, such as `seo`, shows in its own tab, not in Compliance. A rule of
+the evaluator `model` runs on a whole page only, so the scan never calls a model.
 
 `ccs:glossary` and `ccs:glossaryTerm` stay declared in `src/main/resources/META-INF/definitions.cnd`,
 hidden from the create menu, until no site holds one. `LegacyTerms` converts each of their nodes when
@@ -78,7 +92,9 @@ constraint (choice lists and tokens are technical values) and not hidden. `jcr:t
 `jcr:description` are read; every other property of the `jcr`, `j`, `jmix`, `jnt`, `mix`, `nt` and
 `rep` namespaces is not. Rich text goes through `PlainText.fromHtml`: scripts, styles and comments
 dropped, block tags turned into spaces, inline tags removed (so `<b>gra</b>tuit` stays one word),
-entities decoded. System children (`j:translation_*`, `j:acl`, vanity URLs) and the rule nodes
+entities decoded. The scan gives each value to the checks as HTML. A rich text goes as it is, and
+another text goes escaped (`PlainText.toHtml`), so the check `pattern` reads the same text as the
+scan. System children (`j:translation_*`, `j:acl`, vanity URLs) and the rule nodes
 themselves are skipped.
 
 **Page scan** (`scanPage`), what the page shows:
@@ -104,7 +120,19 @@ come pages first in path order, then content items; rules are ranked by uses.
 
 ## Matching
 
-The scan runs the matcher of the evaluator `pattern`, `RuleChecker`, which `frame.check` runs too. A
+The scan runs each value through `CheckRegistry.runRules`, with the rules of Compliance.
+`frame.check` runs a text through `CheckRegistry.run`, so both give the same findings for the same
+text. `ValueFindingsTest` checks this on a rich text and on a plain text, in three languages.
+
+An issue takes four things from its finding: the matched text, its place (`start` and `end`), the
+term and the replacement. It takes the id, the severity, the advice and the folder from its rule. A
+check that gives no place, such as `acme.erpPrice`, gets the first place of its text in the value.
+Its term is the label of its rule, such as "Prices from the ERP". One rule gives 50 findings or fewer
+on one value, and the report sets `truncated` when a rule reaches that number.
+
+The check `pattern` (`PatternCheck`) is a `RuleSetCheck`: it applies all its rules of one value
+together, with `RuleChecker.Finder`. It compiles the finder once for a set of rules, so the texts of
+one scan share it. A
 rule of the match mode `term` goes through `TermPattern` (package `text`), and a regular expression
 reads the text as it is written, in any case, unless an inline flag such as `(?-i)` turns the case
 on. `TermPattern` folds both the term and the text the same way (`FoldedText`): lower case, NFD
@@ -137,8 +165,9 @@ the replacement of the rule is the right term: the replacement is searched in an
 accents.
 
 `PlainText.fromHtml` strips tags in one forward pass (every search starts where the previous one
-ended; an unclosed tag, comment or script drops the rest of the value), so a hostile value stays
-linear: the regular expressions it replaces took 23 s on 160 KB of `<`. `Excerpt` keeps about 60
+ended; an unclosed comment or script drops the rest of the value), so a hostile value stays
+linear: the regular expressions it replaces took 23 s on 160 KB of `<`. A `<` that no `>` follows is
+text, with the rest of the value: `Prices < 10 EUR` stays as it is. `Excerpt` keeps about 60
 characters on each side, cut at spaces.
 
 ## API
@@ -165,8 +194,10 @@ query {
 }
 ```
 
-`status` is `SAFE`, `ISSUES` or `NO_GLOSSARY` (no term rule for the language). `term` is the pattern of
-the rule, `reason` its advice, `alternative` its replacement, and `glossaryPath` the same value as
+`status` is `SAFE`, `ISSUES` or `NO_GLOSSARY` (no rule of Compliance for the language). `term` is the
+term that the finding names. It is the pattern of the rule, a form of a glossary term of another
+language, or the label of a rule of another check. `reason` is the advice of the rule, `alternative` the
+replacement, and `glossaryPath` the same value as
 `folder`, kept for the clients of version 1. `uiLanguage`
 sets the language of the type and field labels (English by default). Report text is plain text;
 clients escape it.

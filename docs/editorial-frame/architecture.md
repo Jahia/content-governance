@@ -9,9 +9,15 @@ it.
 The diagram shows who calls the frame, and which workspace each path reads.
 
 ```
-ai-assistant, other modules ──► EditorialFrameService ──► FrameReader, checkers ──► JCR (live workspace)
-mcp-server (optional) ──► frame.check ──────────────────┘
+ai-assistant, other modules ──► EditorialFrameService ──► FrameReader, GlossaryChecker ──► JCR (live workspace)
+mcp-server (optional) ──► frame.check ──────────────────┤
+                                                        └─► check of a text ──► CheckRegistry ──► rules of ContentRules (edit workspace)
 ```
+
+A check of a text runs every check of the scope `VALUE` through the `CheckRegistry` of Content
+Governance, the check `pattern` included. The Compliance scan runs the same checks on each text, so
+`frame.check` and the scan give the same findings for the same text. For a whole document, the check
+adds the mandatory mentions of the frame that the text lacks.
 
 ## Code
 
@@ -21,8 +27,8 @@ module editorial-frame.
 | Package | Holds |
 |---|---|
 | `api` (exported at version 1.0.0) | `EditorialFrameService` and the records that it gives: `Frame`, `WritingRule`, `RuleViolation` and `GlossaryTerm`. |
-| `internal` | `EditorialFrameServiceImpl`, the component that publishes the service. |
-| `internal.frame` | `FrameReader` reads the rules and the glossary of a site. `RuleChecker` and `GlossaryChecker` check a text. |
+| `internal` | `EditorialFrameServiceImpl`, the component that publishes the service. It checks a text through the `CheckRegistry`. |
+| `internal.frame` | `FrameReader` reads the rules and the glossary of a site. `RuleChecker` finds the rules in a text, for the check `pattern` and for the mandatory mentions. `GlossaryChecker` checks a translation. |
 | `internal.tools` | The tool `frame.check` for AI agents. This package alone names a type of mcp-server. |
 
 ## What the bundle declares for the frame

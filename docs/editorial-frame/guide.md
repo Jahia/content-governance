@@ -12,7 +12,8 @@ the frame sits in the module.
 The glossary of the frame and the terms of the Compliance section are one model since
 content-governance#74: term rules of the evaluator `pattern`, which
 [`../compliance/glossary-guide.md`](../compliance/glossary-guide.md) describes. The Compliance section
-and `frame.check` report the same term rules.
+and `frame.check` run the term rules through the same check, so they give the same findings for the
+same text.
 
 ## Where the frame lives
 

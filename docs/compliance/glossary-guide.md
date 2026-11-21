@@ -129,8 +129,9 @@ rule of `fr` replaces "jeton d'authentification" with "jeton d'accès".
 
 ## Things to know
 
-- **No need to publish a rule for the drawer.** The Compliance section reads the version that you
-  edit, so a new rule applies at the next check. The tool `frame.check` reads the published rules.
+- **No need to publish a rule for the drawer.** The Compliance section and the tool `frame.check` read
+  the version that you edit, so a new rule applies at the next check. The instructions that a model
+  gets from the frame hold the published rules only.
 - **A language with no term rule is "Not checked"**, never "Compliant". The reports say that nothing
   was checked and how to fix it.
 - **Keep the rules in the content folders.** A rule that is placed on a page applies too, and an

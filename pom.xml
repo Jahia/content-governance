@@ -315,11 +315,12 @@
                         <!-- The api of the writing rules and the glossary. Version 1.0.0 left out the
                              methods that moved to ai-assistant, so a reader of 0.1.0, which imports
                              [0.1,1), no longer wires to it. check.spi and geo.spi are what another
-                             module implements: a content check, and the writer of the GEO report. -->
+                             module implements: a content check, and the writer of the GEO report. check.spi 1.1.0
+                             adds the values of a finding and RuleSetCheck, a check that applies its rules together. -->
                         <Export-Package>
                             org.jahia.community.contentgovernance.compliance.model,
                             org.jahia.community.contentgovernance.compliance.service.spi,
-                            org.jahia.community.contentgovernance.check.spi;version="1.0.0",
+                            org.jahia.community.contentgovernance.check.spi;version="1.1.0",
                             org.jahia.community.contentgovernance.geo.spi;version="1.0.0",
                             org.jahia.pm.modules.editorialframe.api;version="1.0.0"
                         </Export-Package>

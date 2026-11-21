@@ -4,6 +4,7 @@ import org.jahia.community.contentgovernance.check.spi.CheckInput;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck.Scope;
 import org.jahia.community.contentgovernance.check.spi.Finding;
+import org.jahia.community.contentgovernance.check.spi.RuleSetCheck;
 import org.jahia.community.contentgovernance.rules.ContentRule;
 import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.osgi.service.component.annotations.Component;
@@ -14,6 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,8 +37,8 @@ public class CheckRegistry {
     public static final String RUNTIME = "check.runtime";
     /** The value of {@value #RUNTIME} for a check that runs in the browser. */
     public static final String BROWSER = "browser";
-    /** The most findings that one check gives on one input. */
-    static final int MAX_FINDINGS = 50;
+    /** The most findings that one rule gives on one input. */
+    public static final int MAX_FINDINGS = 50;
     /** The module that registers a check which Content Governance does not register itself. */
     private static final Map<String, String> PROVIDERS = Map.of(ContentRule.MODEL, "ai-assistant");
     private static final Logger logger = LoggerFactory.getLogger(CheckRegistry.class);
@@ -123,8 +127,8 @@ public class CheckRegistry {
 
     /**
      * Runs on the input each check of a rule that the site of the input keeps on. A check that runs in
-     * the browser, or not in the scope of the input, does not run. A check that fails is logged and
-     * skipped.
+     * the browser, or not in the scope of the input, does not run. A {@link RuleSetCheck} runs once, on
+     * all its rules. A check that fails is logged and skipped.
      *
      * @param input   what to check, whose path names the site
      * @param skipped the evaluators that the caller applies itself
@@ -136,7 +140,7 @@ public class CheckRegistry {
 
     /**
      * {@link #run(CheckInput, Set)} on some rules of the site only, such as the SEO rules that GEO
-     * readiness reports on each page of a site.
+     * readiness reports on each page of a site, or the rules of Compliance on each text of a site.
      *
      * @param rules   the rules of the site of the input, read once for many inputs
      * @param ruleIds the ids of the rules to run
@@ -150,25 +154,82 @@ public class CheckRegistry {
         return run(rules, input, skipped, null);
     }
 
+    /**
+     * @param rule  a rule of a site
+     * @param scope where the check would run
+     * @return true when a run on an input of the scope applies the rule: the site keeps it on, its domain is
+     * known, and a started module registers its check for the server in that scope
+     */
+    public boolean runs(ContentRule rule, Scope scope) {
+        return runner(rule, scope) != null;
+    }
+
+    /** The check that applies the rule in the scope, or null when the rule does not run there. */
+    private Registered runner(ContentRule rule, Scope scope) {
+        Registered registered = rule.enabled() && rule.hasKnownDomain() ? find(rule.evaluator()) : null;
+        return registered != null && !registered.browser() && registered.check().scopes().contains(scope) ? registered : null;
+    }
+
     /** The run on the rules of the site whose id {@code ruleIds} holds, or on every rule when it is null. */
     private List<Checked> run(ContentRules rules, CheckInput input, Set<String> skipped, Set<String> ruleIds) {
-        Scope scope = input.scope();
-        List<Checked> out = new ArrayList<>();
+        List<Running> running = new ArrayList<>();
         for (ContentRule rule : rules.all()) {
-            boolean wanted = rule.enabled() && rule.hasKnownDomain() && !skipped.contains(rule.evaluator())
-                    && (ruleIds == null || ruleIds.contains(rule.id()));
-            Registered registered = wanted ? find(rule.evaluator()) : null;
-            if (registered == null || registered.browser() || !registered.check().scopes().contains(scope)) {
-                continue;
-            }
-            try {
-                List<Finding> found = registered.check().check(input, rule);
-                found.stream().limit(MAX_FINDINGS).forEach(finding -> out.add(new Checked(rule, finding)));
-            } catch (RuntimeException e) {
-                logger.warn("The check {} failed on the rule {} at {}", registered.id(), rule.id(), input.path(), e);
+            boolean wanted = !skipped.contains(rule.evaluator()) && (ruleIds == null || ruleIds.contains(rule.id()));
+            Registered registered = wanted ? runner(rule, input.scope()) : null;
+            if (registered != null) {
+                running.add(new Running(rule, registered));
             }
         }
+        Map<String, List<Finding>> together = together(input, running);
+        List<Checked> out = new ArrayList<>();
+        for (Running one : running) {
+            List<Finding> found = one.registered().check() instanceof RuleSetCheck
+                    ? together.getOrDefault(one.rule().id(), List.of()) : alone(input, one);
+            found.stream().limit(MAX_FINDINGS).forEach(finding -> out.add(new Checked(one.rule(), finding)));
+        }
         return out;
+    }
+
+    /** A rule that a run applies, with its check. */
+    private record Running(ContentRule rule, Registered registered) {
+    }
+
+    private static List<Finding> alone(CheckInput input, Running one) {
+        try {
+            return one.registered().check().check(input, one.rule());
+        } catch (RuntimeException e) {
+            logger.warn("The check {} failed on the rule {} at {}", one.registered().id(), one.rule().id(), input.path(), e);
+            return List.of();
+        }
+    }
+
+    /**
+     * Applies each {@link RuleSetCheck} once to its rules of the run.
+     *
+     * @return the findings, by the id of their rule; a finding that names a rule of another check is dropped
+     */
+    private static Map<String, List<Finding>> together(CheckInput input, List<Running> running) {
+        Map<Registered, List<ContentRule>> sets = new LinkedHashMap<>();
+        for (Running one : running) {
+            if (one.registered().check() instanceof RuleSetCheck) {
+                sets.computeIfAbsent(one.registered(), registered -> new ArrayList<>()).add(one.rule());
+            }
+        }
+        Map<String, List<Finding>> byRule = new HashMap<>();
+        sets.forEach((registered, setRules) -> {
+            Set<String> ids = new HashSet<>();
+            setRules.forEach(rule -> ids.add(rule.id()));
+            try {
+                for (Finding finding : ((RuleSetCheck) registered.check()).check(input, setRules)) {
+                    if (ids.contains(finding.ruleId())) {
+                        byRule.computeIfAbsent(finding.ruleId(), id -> new ArrayList<>()).add(finding);
+                    }
+                }
+            } catch (RuntimeException e) {
+                logger.warn("The check {} failed on its {} rules at {}", registered.id(), setRules.size(), input.path(), e);
+            }
+        });
+        return byRule;
     }
 
     private Registered find(String checkId) {
