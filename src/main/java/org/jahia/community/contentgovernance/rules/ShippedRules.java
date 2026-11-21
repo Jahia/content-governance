@@ -212,20 +212,6 @@ public final class ShippedRules {
         return reader.shipment(!SiteFeatures.MODULE.equals(module));
     }
 
-    /**
-     * The domains or the subdomains that this module and the other started modules declare, but for the
-     * module of the shipment, whose own ones the reader adds.
-     */
-    private static Set<String> declaredElsewhere(Level level, String module) {
-        Set<String> ids = new HashSet<>(own().of(level).keySet());
-        BY_MODULE.forEach((other, shipment) -> {
-            if (!other.equals(module)) {
-                ids.addAll(shipment.of(level).keySet());
-            }
-        });
-        return ids;
-    }
-
     private static Shipment loadFromClassPath(String module) {
         URL url = ShippedRules.class.getResource("/" + OWN_FOLDER);
         if (url == null || !"file".equals(url.getProtocol())) {
@@ -331,6 +317,20 @@ public final class ShippedRules {
             if (others) {
                 ids.addAll(declaredElsewhere(level, module));
             }
+            return ids;
+        }
+
+        /**
+         * The domains or the subdomains that this module and the other started modules declare, but for the
+         * module of the shipment, whose own ones the reader adds.
+         */
+        private static Set<String> declaredElsewhere(Level level, String module) {
+            Set<String> ids = new HashSet<>(own().of(level).keySet());
+            BY_MODULE.forEach((other, shipment) -> {
+                if (!other.equals(module)) {
+                    ids.addAll(shipment.of(level).keySet());
+                }
+            });
             return ids;
         }
     }

@@ -73,21 +73,24 @@ final class DomainNodes {
         while (found != null && found.hasNext()) {
             Node translation = found.nextNode();
             String language = translation.hasProperty("jcr:language") ? translation.getProperty("jcr:language").getString() : null;
-            if (language == null || "en".equals(language)) {
-                continue;
-            }
-            Map<String, String> texts = new TreeMap<>();
-            for (String key : DomainValues.TRANSLATABLE) {
-                String text = translation.hasProperty(key) ? translation.getProperty(key).getString() : "";
-                if (!text.isBlank()) {
-                    texts.put(key, text);
-                }
-            }
+            Map<String, String> texts = language == null || "en".equals(language) ? Map.of() : texts(translation);
             if (!texts.isEmpty()) {
                 out.put(language, texts);
             }
         }
         return out;
+    }
+
+    /** The label and the help that one translation node holds, by key. */
+    private static Map<String, String> texts(Node translation) throws RepositoryException {
+        Map<String, String> texts = new TreeMap<>();
+        for (String key : DomainValues.TRANSLATABLE) {
+            String text = translation.hasProperty(key) ? translation.getProperty(key).getString() : "";
+            if (!text.isBlank()) {
+                texts.put(key, text);
+            }
+        }
+        return texts;
     }
 
     /**

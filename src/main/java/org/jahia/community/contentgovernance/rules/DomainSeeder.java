@@ -72,27 +72,11 @@ final class DomainSeeder {
                     level.folder(), shipment.module());
             return 0;
         }
-        Map<String, JCRNodeWrapper> inFolder = new LinkedHashMap<>();
-        for (JCRNodeWrapper node : folder.getNodes()) {
-            String id = node.isNodeType(level.type()) ? DomainNodes.text(node, level.idProperty()) : null;
-            if (id != null) {
-                inFolder.putIfAbsent(id, node);
-            }
-        }
+        Map<String, JCRNodeWrapper> inFolder = nodesIn(folder, level);
         int changed = 0;
         for (DomainFile file : shipment.of(level).values()) {
             JCRNodeWrapper node = inFolder.get(file.id());
-            if (node != null) {
-                changed += update(node, file);
-            } else if (folder.hasNode(file.id())) {
-                logger.info("{} already has a node {}, so the {} of {} is not added", folder.getPath(), file.id(),
-                        level.name().toLowerCase(Locale.ROOT), shipment.module());
-            } else {
-                JCRNodeWrapper added = folder.addNode(file.id(), level.type());
-                DomainNodes.write(added, level, file.values(), true);
-                added.setProperty(RuleNodes.SEED_DIGEST, DomainValues.digest(level, file.values()));
-                changed++;
-            }
+            changed += node != null ? update(node, file) : add(folder, file, shipment.module());
         }
         if (shipment.complete()) {
             for (Map.Entry<String, JCRNodeWrapper> entry : inFolder.entrySet()) {
@@ -102,6 +86,34 @@ final class DomainSeeder {
             }
         }
         return changed;
+    }
+
+    /** The domain or subdomain nodes of a folder, by id. */
+    private static Map<String, JCRNodeWrapper> nodesIn(JCRNodeWrapper folder, Level level) throws RepositoryException {
+        Map<String, JCRNodeWrapper> nodes = new LinkedHashMap<>();
+        for (JCRNodeWrapper node : folder.getNodes()) {
+            String id = node.isNodeType(level.type()) ? DomainNodes.text(node, level.idProperty()) : null;
+            if (id != null) {
+                nodes.putIfAbsent(id, node);
+            }
+        }
+        return nodes;
+    }
+
+    /** Adds the node of a shipped file, unless the folder has a node of its name. Returns 1 when it wrote. */
+    private static int add(JCRNodeWrapper folder, DomainFile file, String module) throws RepositoryException {
+        Level level = file.level();
+        if (folder.hasNode(file.id())) {
+            if (logger.isInfoEnabled()) {
+                logger.info("{} already has a node {}, so the file of {} in {} is not added", folder.getPath(), file.id(),
+                        module, level.folder());
+            }
+            return 0;
+        }
+        JCRNodeWrapper added = folder.addNode(file.id(), level.type());
+        DomainNodes.write(added, level, file.values(), true);
+        added.setProperty(RuleNodes.SEED_DIGEST, DomainValues.digest(level, file.values()));
+        return 1;
     }
 
     /** Brings a seeded node to the new shipped values, unless an administrator changed it. Returns 1 when it wrote. */

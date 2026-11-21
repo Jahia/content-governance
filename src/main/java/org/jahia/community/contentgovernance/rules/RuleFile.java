@@ -194,6 +194,24 @@ public record RuleFile(String id, Map<String, Object> values) {
         if (values.get(RuleValues.EVALUATOR) == null) {
             throw new IllegalArgumentException("The rule " + id + " names no evaluator");
         }
+        checkPlace(id, values);
+        if (!ContentRule.SEVERITIES.contains(values.get(RuleValues.SEVERITY))) {
+            throw new IllegalArgumentException("The rule " + id + " has the unknown severity " + values.get(RuleValues.SEVERITY));
+        }
+        oneOf(id, RuleValues.FIXER, values, ContentRule.FIXERS);
+        oneOf(id, RuleValues.KIND, values, KINDS);
+        oneOf(id, RuleValues.MATCH_MODE, values, MATCH_MODES);
+        boolean limited = values.containsKey(RuleValues.MINIMUM) || values.containsKey(RuleValues.MAXIMUM);
+        if (limited && !values.containsKey(RuleValues.UNIT)) {
+            throw new IllegalArgumentException("The rule " + id + " has a limit and no unit");
+        }
+        if (ContentRule.PATTERN.equals(values.get(RuleValues.EVALUATOR)) && !values.containsKey(RuleValues.PATTERN)) {
+            throw new IllegalArgumentException("The rule " + id + " has the evaluator pattern and no pattern");
+        }
+    }
+
+    /** The subdomains of a rule: one at least, each an id; and its sites: each a site key or {@value RuleValues#ALL_SITES}. */
+    private static void checkPlace(String id, Map<String, Object> values) {
         if (!(values.get(RuleValues.SUBDOMAINS) instanceof List<?> subdomains) || subdomains.isEmpty()) {
             throw new IllegalArgumentException("The rule " + id + " names no subdomain");
         }
@@ -207,19 +225,6 @@ public record RuleFile(String id, Map<String, Object> values) {
             if (!SITE.matcher(site.toString()).matches()) {
                 throw new IllegalArgumentException("The rule " + id + " names the site " + site + ", which is not a site key or *");
             }
-        }
-        if (!ContentRule.SEVERITIES.contains(values.get(RuleValues.SEVERITY))) {
-            throw new IllegalArgumentException("The rule " + id + " has the unknown severity " + values.get(RuleValues.SEVERITY));
-        }
-        oneOf(id, RuleValues.FIXER, values, ContentRule.FIXERS);
-        oneOf(id, RuleValues.KIND, values, KINDS);
-        oneOf(id, RuleValues.MATCH_MODE, values, MATCH_MODES);
-        boolean limited = values.containsKey(RuleValues.MINIMUM) || values.containsKey(RuleValues.MAXIMUM);
-        if (limited && !values.containsKey(RuleValues.UNIT)) {
-            throw new IllegalArgumentException("The rule " + id + " has a limit and no unit");
-        }
-        if (ContentRule.PATTERN.equals(values.get(RuleValues.EVALUATOR)) && !values.containsKey(RuleValues.PATTERN)) {
-            throw new IllegalArgumentException("The rule " + id + " has the evaluator pattern and no pattern");
         }
     }
 

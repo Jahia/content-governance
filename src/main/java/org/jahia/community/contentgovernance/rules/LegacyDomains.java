@@ -98,10 +98,9 @@ final class LegacyDomains {
         before.put(DOMAIN, domain);
         String seeded = RuleNodes.text(node, RuleNodes.SEED_DIGEST);
         boolean unchanged = seeded != null && seeded.equals(legacyDigest(before));
-        if (!values.containsKey(RuleValues.SUBDOMAINS)) {
-            List<String> subdomains = subdomainsOf(String.valueOf(values.get(RuleValues.RULE_ID)), domain);
+        List<String> subdomains = subdomainsOf(String.valueOf(values.get(RuleValues.RULE_ID)), domain);
+        if (values.putIfAbsent(RuleValues.SUBDOMAINS, subdomains) == null) {
             node.setProperty(RuleValues.SUBDOMAINS, subdomains.toArray(String[]::new));
-            values.put(RuleValues.SUBDOMAINS, subdomains);
         }
         removeDomain(real);
         if (unchanged) {

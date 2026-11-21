@@ -124,19 +124,28 @@ public final class ContentDomains {
                 for (JCRNodeWrapper node : nodes(session, level, path)) {
                     Map<String, Object> read = DomainNodes.read(node, level);
                     Object id = read.get(DomainValues.ID);
-                    String module = id == null ? null : ShippedRules.moduleOf(level, id.toString());
-                    if (id != null && seen.add(id.toString()) && (module == null || modules.contains(module))) {
-                        Map<String, Object> merged = new LinkedHashMap<>(values.get(level).getOrDefault(id.toString(), Map.of()));
-                        Object shippedTranslations = merged.get(DomainValues.TRANSLATIONS);
-                        merged.putAll(read);
-                        merged.put(DomainValues.TRANSLATIONS, RuleValues.mergeTranslations(shippedTranslations,
-                                read.get(DomainValues.TRANSLATIONS)));
-                        values.get(level).put(id.toString(), merged);
+                    if (id != null && seen.add(id.toString()) && shippedToSite(level, id.toString(), modules)) {
+                        values.get(level).merge(id.toString(), read, ContentDomains::over);
                     }
                 }
             }
         }
         return new ContentDomains(siteKey, values);
+    }
+
+    /** False for the node of a domain or a subdomain that a started module ships and that the site does not install. */
+    private static boolean shippedToSite(Level level, String id, Collection<String> modules) {
+        String module = ShippedRules.moduleOf(level, id);
+        return module == null || modules.contains(module);
+    }
+
+    /** The values of a node on top of the values that it replaces: a text of the node replaces the text of its language. */
+    private static Map<String, Object> over(Map<String, Object> base, Map<String, Object> node) {
+        Map<String, Object> merged = new LinkedHashMap<>(base);
+        merged.putAll(node);
+        merged.put(DomainValues.TRANSLATIONS, RuleValues.mergeTranslations(base.get(DomainValues.TRANSLATIONS),
+                node.get(DomainValues.TRANSLATIONS)));
+        return merged;
     }
 
     private static Map<Level, Map<String, Map<String, Object>>> shipped(List<ShippedRules.Shipment> shipments) {

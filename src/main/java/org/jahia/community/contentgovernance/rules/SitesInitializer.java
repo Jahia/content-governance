@@ -33,7 +33,7 @@ public class SitesInitializer implements ModuleChoiceListInitializer {
     private static final String SYSTEM_SITE = "systemsite";
     private static final Logger logger = LoggerFactory.getLogger(SitesInitializer.class);
 
-    private String key = KEY;
+    private String initializerKey = KEY;
 
     @Override
     public List<ChoiceListValue> getChoiceListValues(ExtendedPropertyDefinition definition, String param,
@@ -97,11 +97,11 @@ public class SitesInitializer implements ModuleChoiceListInitializer {
 
     @Override
     public void setKey(String key) {
-        this.key = key;
+        this.initializerKey = key;
     }
 
     @Override
     public String getKey() {
-        return key;
+        return initializerKey;
     }
 }

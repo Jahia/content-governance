@@ -39,8 +39,18 @@ class LegacyDomainsTest {
         node.put(LegacyDomains.DOMAIN, "seo");
 
         // RuleValues.digest of 1.12.0-SNAPSHOT: one key=value line per key, in the order of its keys.
-        String before = "ruleId=seo.title\nevaluator=threshold\ndomain=seo\nenabled=true\nseverity=serious\n"
-                + "blocking=false\nfixer=editor\nunit=characters\nminimum=30\nmaximum=60\n";
+        String before = """
+                ruleId=seo.title
+                evaluator=threshold
+                domain=seo
+                enabled=true
+                severity=serious
+                blocking=false
+                fixer=editor
+                unit=characters
+                minimum=30
+                maximum=60
+                """;
         assertThat(LegacyDomains.legacyDigest(node)).isEqualTo(sha256(before));
         assertThat(LegacyDomains.legacyDigest(node)).isNotEqualTo(RuleValues.digest(TITLE));
     }
