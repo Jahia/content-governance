@@ -106,4 +106,37 @@ describe('guardedFetch', () => {
         expect(guard.fetch.mock.calls.filter(([address]) => !address.endsWith('/modules/CsrfServlet')).length)
             .toBe(calls + 1);
     });
+
+    it('never sends a POST again when a proxy answers 502 with a page', async () => {
+        const {guardedFetch} = await import('../../javascript/common/guardedFetch.js');
+        await guardedFetch('/modules/content-governance/geo/report', {method: 'POST'});
+        const before = guard.calls.servlet;
+        const guardFetch = guard.fetch.getMockImplementation();
+        guard.fetch.mockImplementation(async (address, init = {}) => (address.endsWith('/modules/CsrfServlet')
+            ? guardFetch(address, init)
+            : {ok: false, type: 'basic', status: 502, headers: {get: name => (name.toLowerCase() === 'content-type' ? 'text/html' : null)}}));
+
+        const res = await guardedFetch('/modules/content-governance/geo/report', {method: 'POST'});
+
+        expect(res.status).toBe(502);
+        expect(guard.fetch.mock.calls.filter(([address]) => !address.endsWith('/modules/CsrfServlet')).length)
+            .toBe(before + 1);
+    });
+
+    it('returns a second refusal with a status as it is', async () => {
+        guard = fakeGuard({refuseWith: 503});
+        const guardFetch = guard.fetch.getMockImplementation();
+        // Every load gives a token that the session no longer holds.
+        guard.fetch.mockImplementation(async (address, init = {}) => (address.endsWith('/modules/CsrfServlet')
+            && (init.method || 'GET') === 'GET'
+            ? {ok: true, type: 'basic', status: 200, headers: {get: () => null}, text: async () => "var a = 'X-CSRF', b = 'stale-token';"}
+            : guardFetch(address, init)));
+        vi.stubGlobal('fetch', guard.fetch);
+        const {guardedFetch} = await import('../../javascript/common/guardedFetch.js');
+
+        const res = await guardedFetch('/modules/content-governance/geo/report');
+
+        expect(res.status).toBe(503);
+        expect(guard.calls).toMatchObject({refused: 2, servlet: 2});
+    });
 });

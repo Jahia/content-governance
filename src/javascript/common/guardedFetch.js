@@ -8,15 +8,17 @@
  *   one);
  * - a refusal rotates every token of the session: the tokens are loaded again, other tabs are told to
  *   drop theirs, and the request is sent once more. The guard refuses with a redirect to /error.html,
- *   or with an error status and an HTML page when it is set to answer with an error, as a Jahia Cloud
- *   node answered 503. The servlets of this module always answer in JSON, so an error that is not
- *   JSON reads as a refusal too. A second redirect comes back as a 403, and a second error as itself,
- *   which callers report as an error.
+ *   or with 403 or 503 and an HTML page when it is set to answer with an error, as a Jahia Cloud node
+ *   answered 503. The servlets of this module answer every error in JSON, so such an answer that is
+ *   not JSON reads as a refusal too. Another status, such as a 502 or a 504 of a proxy, can come after
+ *   the servlet ran, so it is never sent again. A second redirect comes back as a 403 whose error is
+ *   "refused", and a second error as itself, which callers report as an error.
  *
  * Page tokens do not change between requests, so parallel requests share them safely.
  */
 const MASTER_TOKEN = /var\s+[\w$]+\s*=\s*'([A-Za-z][A-Za-z0-9_-]*)'\s*,\s*[\w$]+\s*=\s*'([A-Za-z0-9-]{8,})'/;
 const REQUESTED_WITH = {'X-Requested-With': 'XMLHttpRequest'};
+const REFUSAL_STATUSES = new Set([403, 503]);
 
 const channel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('content-governance-csrf');
 let tokens = null;
@@ -109,7 +111,7 @@ async function send(url, init) {
             return {sent, refused: true};
         }
 
-        if (!res.ok && !(res.headers.get('Content-Type') || '').includes('json')) {
+        if (REFUSAL_STATUSES.has(res.status) && !(res.headers.get('Content-Type') || '').includes('json')) {
             return {sent, res, refused: true};
         }
 
@@ -132,6 +134,9 @@ export async function guardedFetch(url, init = {}) {
     if (tokens === first.sent) {
         tokens = null;
     }
+
+    // The page of a refusal is never read: its connection goes back at once.
+    first.res?.body?.cancel().catch(() => {});
 
     channel?.postMessage('rotated');
     const second = await send(url, init);

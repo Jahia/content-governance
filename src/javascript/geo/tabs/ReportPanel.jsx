@@ -5,6 +5,7 @@ import {Banner, Button, Chip, Loader, Typography} from '@jahia/moonstone';
 import {fetchReportStatus, generateReport, readReport} from '../api/geoReport';
 import {jcontentUrl} from '../util/jcontentUrl';
 import {downloadText, reportFilename, reportToJson, reportToMarkdown} from '../util/exportReport';
+import {panelStateAfter} from '../util/reportStatus';
 import {Actions, Card, Meta, Note, Panel, PanelHeader} from '../dashboard/Layout';
 import styles from './Tabs.module.css';
 import {withKeys} from '../../common/keys';
@@ -33,6 +34,8 @@ export const ReportPanel = ({path, language, reportLanguage, siteKey, siteName})
 
     useEffect(() => {
         let alive = true;
+        setStatus(null);
+        setReport(null);
         setPhase('loading');
         (async () => {
             try {
@@ -46,13 +49,11 @@ export const ReportPanel = ({path, language, reportLanguage, siteKey, siteName})
                     setPhase('idle');
                 }
             } catch (e) {
-                // A failed call says nothing about the model: the server refused or
-                // did not answer. The tab says so and offers to ask again. Only the
-                // answer of the server says whether a model writes the report.
                 console.warn('geo-readiness: the report status could not be read', e);
                 if (alive) {
-                    setStatus(null);
-                    setPhase('unreachable');
+                    const next = panelStateAfter(e);
+                    setStatus(next.status);
+                    setPhase(next.phase);
                 }
             }
         })();

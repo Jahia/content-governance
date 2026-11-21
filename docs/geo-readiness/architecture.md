@@ -101,7 +101,7 @@ check, crawler list, public base URL. It has no AI key, because the module calls
 |---|---|
 | `GeoSection.jsx` | The drawer section: the **Run check** button, the banners above the tabs, and the tabs **Score**, **Crawler access**, **Site files**, **Structured data** and **AI citations**, each filtered by its switch. The last result is cached in the browser's local storage per page and language. **AI citations** loads on its own and is greyed out while the site has no BotRank binding. |
 | `tabs/` | One component per drawer tab (`ScoreTab`, `CrawlerTab`, `SiteFilesTab`, `SchemaTab`, `CitationsTab`) and per dashboard panel (`SiteScorePanel`, `ReportPanel`, `VisibilityPanel`, `LinksPanel`, `VanityPanel`, `SchemaPanel`, `LanguagesPanel`, `FreshnessPanel`, `SitemapPanel`, `RobotsControlPanel`, `LlmsPanel`, `SiteCitationsPanel`), plus `CronBuilder` and `DiffView`. |
-| `dashboard/GeoDashboard.jsx` | The Additional > SEO screen: five groups of tabs (overview, reach, usable, files, AI citations), one panel per tab. The **Report** tab shows only while the report status is `enabled` ([The GEO report writer](#the-geo-report-writer)). The AI citations group shows only while `geo.citations` is on. |
+| `dashboard/GeoDashboard.jsx` | The Additional > SEO screen: five groups of tabs (overview, reach, usable, files, AI citations), one panel per tab. The **Report** tab shows while the report status is `enabled`, and when the status call failed for another reason than a 403, so that the tab can offer a retry ([The GEO report writer](#the-geo-report-writer)). The AI citations group shows only while `geo.citations` is on. |
 | `dashboard/exportScan.js` | **Export CSV** / **Export JSON** of the header: reads the stored scan (`scanStatus`) at click time and builds both files in the browser, one CSV row per finding. The cell quoting and download helpers are shared with the Compliance dashboard (`common/exportFile.js`). |
 | `dashboard/Layout.jsx` | The one layout every dashboard panel uses: `Panel`, `PanelHeader` (title and intro, `Meta` pills for dates), `Card` per section, `Figures`/`Figure` for key numbers with a tone, `Ring` and `Hero` for the figure a panel leads with, `Actions`, `Note`, `Source`. A panel places no Separator and no heading Typography of its own. |
 | `dashboard/Layout.module.css` | The type scale (page title 20/28, intro 14/1.6, hero 18/26, card title 16/22, card intro 13/1.55, body 14/1.55, notes 12.5/1.55, figures 32), card and figure styles, tones good/warn/bad/accent on the module's AAA colours. Moonstone body and caption paragraphs inside a panel follow the same scale. |
@@ -319,7 +319,10 @@ POST answers as follows:
 | An answer that is not JSON | 502 `provider failed`, followed by the cause |
 
 The **Report** tab shows its own message for 403 and 429, and the `error` field of the answer for
-the other cases.
+the other cases. When the status call or the read of the stored report fails, the tab says that it
+could not reach the server and offers a retry: a refused or failed call never reads as no model.
+`guardedFetch` sends a request once more with fresh tokens after a refusal of the CSRF guard, which
+comes as a redirect, or as a 403 or a 503 with a page that is not JSON.
 
 ## Configuration
 

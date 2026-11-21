@@ -17,6 +17,7 @@ import {SchemaPanel} from '../tabs/SchemaPanel';
 import {ReportPanel} from '../tabs/ReportPanel';
 import {CITATION_VIEWS, SiteCitationsPanel} from '../tabs/SiteCitationsPanel';
 import {fetchReportStatus} from '../api/geoReport';
+import {tabOfferedAfter} from '../util/reportStatus';
 import {scanStatus} from '../api/siteScore';
 import {exportCsv, exportJson} from './exportScan';
 import {languageLabel} from '../util/languageFlag';
@@ -80,7 +81,7 @@ export const GeoDashboard = ({isOn}) => {
         let alive = true;
         fetchReportStatus({path: `/sites/${siteKey}`, language})
             .then(s => alive && setReportEnabled(Boolean(s && s.enabled)))
-            .catch(e => alive && setReportEnabled(e.code !== 403));
+            .catch(e => alive && setReportEnabled(tabOfferedAfter(e)));
         return () => {
             alive = false;
         };
