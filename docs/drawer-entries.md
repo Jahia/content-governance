@@ -1,9 +1,10 @@
 # Add an entry to the drawer from another module
 
-Another module can add two kinds of entry to the drawer of content governance:
+Another module can add three kinds of entry to the drawer of content governance:
 
 - a tab in the section bar,
-- an action on a finding.
+- an action on a finding,
+- a check that runs in the browser, on the preview of the page.
 
 A module adds an entry to the registry of jContent (`@jahia/ui-extender`) when jContent starts. The
 sections of content governance are tabs of the same registry, at the priorities 1, 2 and 3. Their
@@ -199,6 +200,121 @@ first" only. "Fix first" lists the 5 most serious findings that are critical or 
 
 If an action throws an error, that action disappears from the finding and the console shows the
 error. The other actions of the finding stay.
+
+## Add a check that runs in the browser
+
+A check that needs a browser runs on the preview of the page in Page quality. Examples are axe-core,
+the web vitals and eco-design. A check is an entry of the type `contentGovernanceCheck`, and it
+applies the rules whose evaluator is its own. Content Governance registers axe-core, the web vitals
+and eco-design this way, as another module does.
+
+Example: a module measures the contrast of the brand colors. It ships the rule `acme.brandContrast`,
+with the evaluator `acme.contrast`, and it registers this check:
+
+```js
+import {registry} from '@jahia/ui-extender';
+
+registry.add('contentGovernanceCheck', 'acmeContrast', {
+    evaluator: 'acme.contrast',
+    run: async ({document, window, rules, language, signal}) => rules.map(rule => {
+        const failing = [...document.querySelectorAll('h1, h2')].filter(element => lowContrast(window, element));
+        return {
+            ruleId: rule.id,
+            passed: failing.length === 0,
+            values: {color: '#ffcc00'},
+            findings: failing.map(element => ({text: element.outerHTML, locator: cssPath(element)}))
+        };
+    })
+});
+```
+
+In this example, `lowContrast` and `cssPath` are functions of the module.
+
+| Field | Value |
+|---|---|
+| key | The id of the check, as the second argument. Give a key that names your module. |
+| `evaluator` | The evaluator of the rules that the check applies. |
+| `run` | A function that checks the preview and returns a list of results, or a promise of that list. |
+
+The drawer leaves out a check with no evaluator or no `run` function, and the console shows why.
+
+### The rule of a check
+
+A rule of a check of the browser states `runtime: browser` in its file, or on its node in jContent.
+The server never runs such a rule, and it never stops a publication on it. The site settings show
+the rule as active. The file of the rule of the example is `acme.brandContrast.md`:
+
+```markdown
+---
+id: acme.brandContrast
+evaluator: acme.contrast
+runtime: browser
+domain: accessibility
+severity: serious
+label:
+  en: "Contrast of the brand colors"
+title:
+  en:
+    one: "{{count}} heading uses {{color}} on white"
+    other: "{{count}} headings use {{color}} on white"
+---
+Use the dark variant of the brand color on a white background.
+```
+
+[The catalog of the rules](content-rules/catalog.md) states every key of a rule file. A module with no
+Java code ships its rules and its check this way.
+
+### What `run` receives
+
+| Argument | Value |
+|---|---|
+| `document` | The document of the preview, with the editing tooling removed. |
+| `window` | The window of the preview, for its performance entries and its styles. |
+| `rules` | The rules of the evaluator that the site keeps on. Each rule has the fields of the GraphQL field `contentRules`, such as `id`, `severity`, `minimum` and `maximum`. |
+| `language` | The language of the interface of the editor, such as `fr`. |
+| `signal` | An `AbortSignal`. The drawer aborts it when the time limit of the check is over. |
+
+The drawer runs the checks one after the other, in the order that the modules added them. A check
+runs only when the site keeps at least one rule of its evaluator on, and keeps on the tab of the domain of
+that rule. A rule of a domain that no tab shows never runs.
+
+Before the first check, the drawer sets the performance mark `contentGovernanceChecks` in the preview.
+A check that measures what the page loaded leaves out the resources after that mark, because other
+checks added them. The script of axe-core is one of them.
+
+### What `run` returns
+
+`run` returns one result per rule, in the shape of the results of the checks of the server:
+
+```js
+{ruleId, passed, values, findings: [{text, context, locator, values}]}
+```
+
+| Field | Value |
+|---|---|
+| `ruleId` | The id of the rule. The drawer drops a result for a rule that the check did not receive. |
+| `passed` | `true` when the page keeps the rule. Without it, a result passes when it has no finding. |
+| `values` | What the check measured, such as `{color: '#ffcc00'}`. The title and the advice of the rule can name each value that is a text, a number or a flag, as `{{color}}`. |
+| `findings` | One finding per place that breaks the rule. The drawer keeps the first 50. |
+| `text` | What the finding shows, such as the HTML of an element. |
+| `context` | An optional text beside it, such as what fails. |
+| `locator` | An optional CSS selector of the element in the preview. With it, the finding offers "Highlight on the page". |
+
+The drawer merges these results with those of the server. A failed result shows in the tab of the
+domain of its rule, worded by its rule, like a finding of the server. Its count is the number of its
+findings, unless `values` gives `count`.
+
+### Time limit and failure
+
+Each check has 60 seconds. A check that throws an error or runs out of time is left out. Its tabs
+show why, with **Re-run**, and the other checks still run. The drawer never stores such a partial
+audit.
+
+### Not checked
+
+A rule of the browser that no check gave a result for shows under **Not checked** in the tab of its
+domain. No started module registers a check of its evaluator, or the check left the rule out. Such a
+rule is neither passed nor failed.
 
 ## Limits
 

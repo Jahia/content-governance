@@ -1,6 +1,7 @@
 ---
 id: ecodesign.imageDimensions
 evaluator: ecodesign.imageDimensions
+runtime: browser
 domain: ecodesign
 severity: moderate
 fixer: developer

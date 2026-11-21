@@ -49,7 +49,7 @@ public class LinkChecks {
 
     @Activate
     void activate(BundleContext context) {
-        services.open(context, Family.checks(IDS, SHARED, LinkChecks::read), false);
+        services.open(context, Family.checks(IDS, SHARED, LinkChecks::read));
     }
 
     @Deactivate

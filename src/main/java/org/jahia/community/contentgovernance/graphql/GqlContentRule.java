@@ -107,9 +107,16 @@ public class GqlContentRule {
 
     @GraphQLField
     @GraphQLNonNull
-    @GraphQLDescription("False when no started module registers the check that the evaluator names: the rule then never runs")
+    @GraphQLDescription("False when no started module registers the check that the evaluator names: the rule then never runs. A rule of the browser is active: the drawer finds its check")
     public boolean isActive() {
         return status.active();
+    }
+
+    @GraphQLField
+    @GraphQLNonNull
+    @GraphQLDescription("Where the check of the rule runs: browser for a check that the drawer runs on the preview of the page, else server")
+    public String getRuntime() {
+        return rule.inBrowser() ? ContentRule.BROWSER : ContentRule.SERVER;
     }
 
     @GraphQLField

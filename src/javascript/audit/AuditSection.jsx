@@ -2,13 +2,12 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../common/i18n';
 import {useApolloClient} from '@apollo/client';
-import {runAccessibility} from './analyzers/accessibility';
-import {runWebVitals} from './analyzers/webVitals';
-import {runEcodesign} from './analyzers/ecodesign';
 import {fetchRules} from './rules';
 import {checkPage} from './pageCheck';
-import {removeToolingElements} from './analyzers/tooling';
-import {runStep} from './analyzers/timeLimit';
+import {rulesOfTabsOn, runChecks} from './runChecks';
+import {browserTabs, RESULT_KEYS, SERVER_KEYS, withBrowserResults} from './browserResults';
+import {removeToolingElements} from './tooling';
+import {runStep} from './timeLimit';
 import {fetchPageAudits, fetchPageLastModified, saveAudit, storedResults} from './auditHistory';
 import {auditFindings} from '../drawer/findings';
 import {AccessibilityTab} from './tabs/AccessibilityTab';
@@ -19,6 +18,7 @@ import {SeoTab} from './tabs/SeoTab';
 import {LinksTab} from './tabs/LinksTab';
 import {JahiaTab} from './tabs/JahiaTab';
 import {IncompleteStep} from './tabs/IncompleteStep';
+import {NotChecked} from './tabs/NotChecked';
 import {Banner, Button, Download, Loader, Reload, Tab, TabItem, Typography, Visibility} from '@jahia/moonstone';
 import {HelpTab} from '../common/HelpTab';
 import {findByText, findEditFrameDocument, locateInFrame} from './editFrame';
@@ -39,12 +39,9 @@ const FRAME_LOAD_LIMIT_MS = 20_000;
 // Audits a page keeps for every editor of the site (AuditHistoryService.MAX_RUNS)
 const AUDITS_KEPT = 10;
 
-// The time each network-bound step may take before its tab is left out of the audit (runStep). `page` is
-// the check of the server, which gives the tabs SEO, Readability, Links and Jahia health.
-const STEP_LIMITS_MS = {vitals: 15_000, a11y: 60_000, page: 60_000};
-
-// The tabs whose results the check of the server gives, by their key in the results
-const SERVER_KEYS = ['seo', 'readability', 'links', 'jahia'];
+// The time the check of the server may take before its tabs are left out of the audit (runStep): it gives
+// the tabs SEO, Readability, Links and Jahia health. Each check of the browser has its own (runChecks.js).
+const PAGE_LIMIT_MS = 60_000;
 
 // The tabs that read the check of the server: its results, or its HTML rules
 const SERVER_TABS = ['seo', 'readability', 'links', 'jahia', 'accessibility'];
@@ -57,7 +54,7 @@ const UNREAD = {incomplete: 'failed', message: 'the server could not read the re
 // header). "Re-run" always performs a fresh audit. LRU-capped.
 const CACHE_PREFIX = 'content-governance:audit:';
 const CACHE_MAX_ENTRIES = 10;
-// Bump whenever the cached `results` shape changes (e.g. a new analyzer key),
+// Bump whenever the cached `results` shape changes (e.g. a new key of a tab),
 // so entries written by an older module version are ignored instead of
 // restored into UI that expects the new shape.
 const CACHE_SCHEMA = 7;
@@ -126,17 +123,6 @@ function saveCachedAudit(path, language, entry) {
 
 /** The tabs of the section, in order; each id is also its feature id (`audit.<id>`). */
 const TAB_IDS = ['accessibility', 'seo', 'vitals', 'readability', 'ecodesign', 'links', 'jahia'];
-
-/** The key of each tab in the results. */
-const RESULT_KEYS = {
-    accessibility: 'a11y',
-    seo: 'seo',
-    vitals: 'vitals',
-    readability: 'readability',
-    ecodesign: 'ecodesign',
-    links: 'links',
-    jahia: 'jahia'
-};
 
 // What a tab's tooltip adds to its help: how many issues it holds
 const tabNote = (tab, t) => (tab.badge ? t('tabs.badgeTooltip', {count: tab.badge}) : undefined);
@@ -222,8 +208,10 @@ const pageFactsOf = seo => ({
 /**
  * Measures the page for the tabs the site keeps on. The check of the server gives the tabs SEO,
  * Readability, Links and Jahia health, with the findings that `frame.check` gives for the page. The
- * preview frame gives what needs a browser: accessibility with axe-core, the web vitals and eco-design.
- * The frame is refused when it shows an error page, and its editing tooling is stripped first.
+ * checks that modules register in the browser run on the preview frame: axe-core, the web vitals and
+ * eco-design, and those of other modules. Their results join the tab of the domain of each rule, and a
+ * rule that no check gave a result for is listed as not checked in its tab. The frame is refused when it
+ * shows an error page, and its editing tooling is stripped first.
  *
  * @returns {Promise<object>} the results (`measuredResults`), with `incomplete` when a step did not finish
  */
@@ -236,66 +224,35 @@ async function auditFrame(frame, {isOn, language, uiLanguage, path, apolloClient
     }
 
     // Strip editor/preview tooling (jExperience persona panel…)
-    // before any analyzer sees the DOM.
+    // before any check of the browser sees the DOM.
     removeToolingElements(frame.contentDocument);
 
     // Read once per audit, so that a rule the site changed applies at the next run, with the texts of the
     // rules in the editor's interface language.
     const rules = await fetchRules(apolloClient, path, uiLanguage);
 
-    // Only the tabs the site keeps on are kept. Eco-design reads the vitals measurement, so vitals
-    // run as its input. The check of the server runs when a tab that reads it is on, Accessibility
-    // included, and gives the page facts kept with each audit (title, description, images without
-    // alt): it starts at once, since its request leaves no trace in the frame's own resource
-    // statistics. Vitals then run first in the frame: axe injection would otherwise appear in the
-    // page's own resource statistics.
+    // Only the tabs the site keeps on are kept. The check of the server runs when a tab that reads it is
+    // on, Accessibility included, and gives the page facts kept with each audit (title, description,
+    // images without alt): it starts at once, since its request leaves no trace in the frame's own
+    // resource statistics. The checks of the browser run meanwhile, one after the other.
     // A step that fails or runs out of time leaves its own tabs out; the other tabs are still shown,
     // and such a partial audit is never cached. So is an audit whose server could not read the state of
     // the content: Jahia health and Links say so.
     const incomplete = {};
-    const step = async (key, start) => {
-        const outcome = await runStep(start, STEP_LIMITS_MS[key]);
-        if (outcome.incomplete) {
-            console.warn(`[content-governance] ${key} did not finish`, outcome);
-            incomplete[key] = outcome;
-            return null;
-        }
-        return outcome.value;
-    };
-    const server = SERVER_TABS.some(tab => isOn(tab)) ? step('page', () => checkPage(apolloClient, path, language, rules)) : null;
-    const vitals = isOn('vitals') || isOn('ecodesign') ? await step('vitals', () => runWebVitals(frame, rules)) : null;
-    let ecodesign = null;
-    if (isOn('ecodesign')) {
-        if (vitals) {
-            ecodesign = runEcodesign(frame, vitals, rules);
-        } else {
-            incomplete.ecodesign = incomplete.vitals;
-        }
+    const server = SERVER_TABS.some(tab => isOn(tab)) ? runStep(() => checkPage(apolloClient, path, language, rules), PAGE_LIMIT_MS) : null;
+    const browser = browserTabs(await runChecks(frame, rulesOfTabsOn(rules, isOn), uiLanguage), rules);
+    const outcome = server && await server;
+    if (outcome?.incomplete) {
+        console.warn('[content-governance] the check of the server did not finish', outcome);
+        incomplete.page = outcome;
     }
-    const axe = isOn('accessibility') ? await step('a11y', () => runAccessibility(frame, rules, uiLanguage)) : null;
-    const checked = server && await server;
+    const checked = outcome?.value;
     markServerTabs(incomplete, checked);
+    Object.entries(browser.incomplete).forEach(([tab, step]) => {
+        incomplete[RESULT_KEYS[tab]] = incomplete[RESULT_KEYS[tab]] || step;
+    });
     const page = pageFactsOf(checked?.seo);
-    // The rules of the domain accessibility that the server checks go with the checks of axe-core
-    const a11y = axe && {...axe, recommendations: checked ? checked.accessibility : []};
-    // The server gives no tab of the browser: its findings of the domain ecodesign join that tab
-    const serverTabs = Object.fromEntries(SERVER_KEYS.filter(key => checked?.[key]).map(key => [key, checked[key]]));
-    return measuredResults({a11y, ...byDomain(vitals, ecodesign, checked?.ecodesign), ...serverTabs}, page, incomplete, isOn);
-}
-
-/**
- * The findings of the web vitals go to the tab of the domain of their rules, Ecodesign, with the findings
- * of the eco-design analyzer and of the server: Web Vitals keeps its figures only. One rule gives one
- * recommendation, so a rule that both analyzers report shows once.
- */
-function byDomain(vitals, ecodesign, serverEco) {
-    if (!ecodesign) {
-        return {vitals: vitals && {...vitals, recommendations: []}, ecodesign};
-    }
-    const seen = new Set();
-    const recommendations = [...(ecodesign.recommendations || []), ...(vitals?.recommendations || []), ...(serverEco || [])]
-        .filter(rec => !seen.has(rec.rule) && seen.add(rec.rule));
-    return {vitals: vitals && {...vitals, recommendations: []}, ecodesign: {...ecodesign, recommendations}};
+    return measuredResults(withBrowserResults(checked, browser), page, incomplete, isOn);
 }
 
 /**
@@ -323,9 +280,9 @@ function keepEnabled(results, isOn) {
 
 /**
  * The Page quality section of the drawer: the page checked by the server (SEO, readability, links,
- * Jahia health) and rendered in a preview frame, measured there by what needs a browser
- * (accessibility, vitals, eco-design). Results are cached per page and language; the section measures
- * the page when it first shows and on every re-run.
+ * Jahia health) and rendered in a preview frame, measured there by the checks of the browser
+ * (accessibility, vitals, eco-design, and those of other modules). Results are cached per page and
+ * language; the section measures the page when it first shows and on every re-run.
  */
 export function AuditSection({path, language, isOn, onCount, onFindings, requestedTab}) {
     const {t, i18n} = useGovernanceTranslation('audit');
@@ -350,10 +307,10 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
     // loading it while the drawer is still translated off-screen makes Chrome
     // throttle rendering, and FCP/LCP paint entries never fire.
     const [frameVisible, setFrameVisible] = useState(false);
-    // Hiding the preview keeps the iframe mounted at full size behind the results - analyzers and
-    // highlight still need its document, and a frame with no height never paints.
+    // Hiding the preview keeps the iframe mounted at full size behind the results - the checks of the
+    // browser and highlight still need its document, and a frame with no height never paints.
     // Beside Page Builder the page is already on screen: the preview starts hidden behind the
-    // results, where it keeps its size and paints, so the analyzers measure it as before.
+    // results, where it keeps its size and paints, so the checks of the browser measure it as before.
     const [previewCollapsed, setPreviewCollapsed] = useState(() => Boolean(findEditFrameDocument(path, language)));
     const frameRef = useRef(null);
     const previewRef = useRef(null);
@@ -708,12 +665,14 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
                         <LinksTab result={results.links} onHighlight={highlight}/>}
                     {currentTab === 'jahia' && results.jahia &&
                         <JahiaTab result={results.jahia} onHighlightText={highlightText}/>}
-                    {currentTab === 'vitals' && results.vitals &&
+                    {currentTab === 'vitals' && results.vitals?.metrics &&
                         <VitalsTab result={results.vitals}/>}
                     {currentTab === 'readability' && results.readability &&
                         <ReadabilityTab result={results.readability} onHighlight={highlight}/>}
                     {currentTab === 'ecodesign' && results.ecodesign &&
                         <EcodesignTab result={results.ecodesign}/>}
+                    {results[RESULT_KEYS[currentTab]]?.notChecked?.length > 0 &&
+                        <NotChecked rules={results[RESULT_KEYS[currentTab]].notChecked}/>}
                     </>
                 )}
             </div>
