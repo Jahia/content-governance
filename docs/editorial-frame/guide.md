@@ -26,7 +26,8 @@ The frame is content of the site. These types hold it:
 
 The service finds these nodes by their type anywhere under the site, so no folder is imposed. The
 frame of `systemsite` is the frame of the group: every site reads it first. Its rules and glossary
-terms add up with those of the site.
+terms add up with those of the site. The checks of a text read the rules of `systemsite` too, through
+the check registry.
 
 ### The glossary
 

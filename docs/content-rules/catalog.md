@@ -257,6 +257,19 @@ severity, set it again on the node of the kept id.
 
 ## How a check reads the rules
 
+`ContentRules` gives the rules of a site in three layers, the most specific last:
+
+1. The rules that the modules of the site ship.
+2. The rule nodes of `systemsite`, which apply to every site. A node of a rule that a module ships
+   applies only to a site that enables that module.
+3. The rule nodes of the site.
+
+A node replaces the rule of its id from the layer before it, and keeps the shipped values that it
+lacks. Example: a node `brand.noClickHere` in `/sites/systemsite/contents` applies to every site, and
+a node `seo.title` of `digitall` replaces the node `seo.title` of `systemsite` on `digitall`.
+[content-governance#138](https://github.com/Jahia/content-governance/issues/138) moves the rules to
+`systemsite`.
+
 - The Java checks of GEO readiness read the rules of the site through `ContentRules.forSite`. A site
   scan reads them once, at its start.
 - The checks of Page quality on the server read them through `ContentRules.forPath`, at the start of

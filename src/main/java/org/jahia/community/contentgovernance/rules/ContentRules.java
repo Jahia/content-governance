@@ -20,16 +20,21 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 /**
- * The rules as one site applies them: every {@value #TYPE} node of the site, and the rules that the
- * modules of the site ship and that the site has no node of.
+ * The rules as one site applies them, from the most general to the most specific: the rules that the
+ * modules of the site ship, then every {@value #TYPE} node of {@code systemsite}, which applies to every
+ * site, then every {@value #TYPE} node of the site. Example: a rule {@code acme.noClickHere} in
+ * {@code /sites/systemsite/contents} applies to {@code digitall}, and a node {@code seo.title} of
+ * {@code digitall} replaces the node {@code seo.title} of {@code systemsite} there.
  *
  * <p>The rule nodes are read in the edit workspace with a system session, so that a change applies
  * without a publication and a scheduled scan reads the same rules as the drawer. A node replaces the
- * shipped rule of its id; a property that the node lacks keeps the shipped value. A node whose id no
- * module ships is a rule of its own, such as a rule of the customer.</p>
+ * rule of its id that comes before it; a property that the node lacks keeps the shipped value. A node
+ * whose id no module ships is a rule of its own, such as a rule of the customer. A node of
+ * {@code systemsite} whose rule a module ships applies only to a site that enables that module.</p>
  *
  * <p>Thread safety: immutable.</p>
  */
@@ -42,6 +47,8 @@ public final class ContentRules {
     public static final String ROOT = "contents/content-insights";
 
     private static final String EDIT_WORKSPACE = "default";
+    /** The site whose rule nodes apply to every site. */
+    private static final String SYSTEM_SITE = "systemsite";
     private static final String SITES = "/sites/";
     private static final Pattern SITE_KEY = Pattern.compile("[A-Za-z0-9_.-]+");
     private static final Logger logger = LoggerFactory.getLogger(ContentRules.class);
@@ -111,23 +118,71 @@ public final class ContentRules {
         }
         Collection<String> modules = session.getNode(sitePath) instanceof JCRSiteNode site
                 ? site.getInstalledModulesWithAllDependencies() : List.of();
-        List<ShippedRules.Shipment> shipments = ShippedRules.forModules(modules);
+        List<RuleNode> platform = SYSTEM_SITE.equals(siteKey) ? List.of() : ruleNodes(session, SITES + SYSTEM_SITE);
+        return merge(ShippedRules.forModules(modules), shippedIds(ShippedRules.all()), platform,
+                ruleNodes(session, sitePath));
+    }
+
+    /**
+     * A rule node as it was read.
+     *
+     * @param values the values of the node
+     * @param folder the path of the folder that holds the node
+     */
+    record RuleNode(Map<String, Object> values, String folder) {
+    }
+
+    private static List<RuleNode> ruleNodes(JCRSessionWrapper session, String path) throws RepositoryException {
+        List<RuleNode> out = new ArrayList<>();
+        if (session.nodeExists(path)) {
+            for (JCRNodeWrapper node : nodes(session, path)) {
+                out.add(new RuleNode(RuleNodes.read(node), node.getParent().getPath()));
+            }
+        }
+        return out;
+    }
+
+    private static Set<String> shippedIds(List<ShippedRules.Shipment> shipments) {
+        Set<String> ids = new HashSet<>();
+        shipments.forEach(shipment -> ids.addAll(shipment.rules().keySet()));
+        return ids;
+    }
+
+    /**
+     * The rules of a site, as {@link ContentRules} states them.
+     *
+     * @param shipments  the rules that the modules of the site ship
+     * @param shippedIds the ids of the rules that any started module ships
+     * @param platform   the rule nodes of {@code systemsite}, in path order
+     * @param site       the rule nodes of the site, in path order
+     * @return the rules of the site
+     */
+    static ContentRules merge(List<ShippedRules.Shipment> shipments, Set<String> shippedIds, List<RuleNode> platform,
+                              List<RuleNode> site) {
         Map<String, ContentRule> out = shipped(shipments);
+        Set<String> enabled = shippedIds(shipments);
+        // A rule that a module ships applies only on a site that enables the module
+        put(out, shipments, platform, id -> enabled.contains(id) || !shippedIds.contains(id));
+        put(out, shipments, site, id -> true);
+        return new ContentRules(out);
+    }
+
+    /** Puts each node whose id {@code applies} accepts, the first node of an id only, over the rule of its id. */
+    private static void put(Map<String, ContentRule> out, List<ShippedRules.Shipment> shipments, List<RuleNode> nodes,
+                            Predicate<String> applies) {
         Set<String> seen = new HashSet<>();
-        for (JCRNodeWrapper node : nodes(session, sitePath)) {
-            Map<String, Object> values = RuleNodes.read(node);
-            Object id = values.get(RuleValues.RULE_ID);
-            if (id == null || !seen.add(id.toString())) {
+        for (RuleNode node : nodes) {
+            Object id = node.values().get(RuleValues.RULE_ID);
+            if (id == null || !seen.add(id.toString()) || !applies.test(id.toString())) {
                 continue;
             }
             Map<String, Object> shippedValues = shippedValues(shipments, id.toString());
             Map<String, Object> merged = new LinkedHashMap<>(shippedValues);
-            merged.putAll(values);
+            merged.putAll(node.values());
             merged.put(RuleValues.TRANSLATIONS, RuleValues.mergeTranslations(shippedValues.get(RuleValues.TRANSLATIONS),
-                    values.get(RuleValues.TRANSLATIONS)));
-            out.put(id.toString(), RuleValues.toRule(merged).inFolder(node.getParent().getPath()));
+                    node.values().get(RuleValues.TRANSLATIONS)));
+            out.put(id.toString(), RuleValues.toRule(merged).inFolder(node.folder()));
         }
-        return new ContentRules(out);
     }
 
     private static Map<String, Object> shippedValues(List<ShippedRules.Shipment> shipments, String id) {
