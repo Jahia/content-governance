@@ -1,6 +1,7 @@
 package org.jahia.community.contentgovernance.check;
 
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
+import org.jahia.community.contentgovernance.check.spi.CheckResult;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck;
 import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.community.contentgovernance.check.spi.Rule;
@@ -107,6 +108,65 @@ class CheckRegistryTest {
     }
 
     @Test
+    @DisplayName("the results give one per rule that ran, passed or failed, from the default method of a check")
+    void results_givePassesAndFailures() {
+        CheckRegistry registry = new CheckRegistry();
+        registry.bindCheck(PRICE, id("acme.erpPrice"));
+        ContentRules rules = withRule("acme.erpPrice", "acme.erpPrice").changed("acme.erpPrice", null, "critical", null, null);
+
+        assertThat(registry.results(rules, CheckInput.value(PAGE, "en", "Only 12.50 EUR"))).containsExactly(
+                new CheckResult("acme.erpPrice", false, Map.of(),
+                        List.of(new Finding("acme.erpPrice", "critical", "12.50 EUR", null))));
+        assertThat(registry.results(rules, CheckInput.value(PAGE, "en", "Free"))).containsExactly(
+                new CheckResult("acme.erpPrice", true, Map.of(), List.of()));
+        assertThat(registry.results(rules.changed("acme.erpPrice", false, null, null, null),
+                CheckInput.value(PAGE, "en", "Free"))).as("a rule that is off does not run").isEmpty();
+    }
+
+    @Test
+    @DisplayName("a result carries the values of its check, under the id of the rule that ran, and no null")
+    void results_carryTheValuesOfTheCheck() {
+        CheckRegistry registry = new CheckRegistry();
+        registry.bindCheck(new ContentCheck() {
+            @Override
+            public Set<Scope> scopes() {
+                return Set.of(Scope.VALUE);
+            }
+
+            @Override
+            public List<Finding> check(CheckInput input, Rule rule) {
+                return List.of();
+            }
+
+            @Override
+            public CheckResult result(CheckInput input, Rule rule) {
+                return new CheckResult("another.id", true, Map.of("length", input.text().length()), List.of());
+            }
+        }, id("acme.length"));
+        registry.bindCheck(new ContentCheck() {
+            @Override
+            public Set<Scope> scopes() {
+                return Set.of(Scope.VALUE);
+            }
+
+            @Override
+            public List<Finding> check(CheckInput input, Rule rule) {
+                return List.of();
+            }
+
+            @Override
+            public CheckResult result(CheckInput input, Rule rule) {
+                return null;
+            }
+        }, id("acme.none"));
+        ContentRules rules = withRule("acme.length", "acme.length").with(RuleValues.toRule(Map.of(
+                RuleValues.RULE_ID, "acme.none", RuleValues.EVALUATOR, "acme.none", RuleValues.DOMAIN, "writing")));
+
+        assertThat(registry.results(rules, CheckInput.value(PAGE, "en", "Hello"))).containsExactly(
+                new CheckResult("acme.length", true, Map.of("length", 5), List.of()));
+    }
+
+    @Test
     @DisplayName("a run on some rules runs those rules only")
     void runRules_runsTheNamedRulesOnly() {
         CheckRegistry registry = new CheckRegistry();
@@ -190,6 +250,8 @@ class CheckRegistryTest {
 
         assertThat(registry.run(withRule("acme.many", "acme.many"), CheckInput.value(PAGE, "en", "x"), Set.of()))
                 .hasSize(CheckRegistry.MAX_FINDINGS);
+        assertThat(registry.results(withRule("acme.many", "acme.many"), CheckInput.value(PAGE, "en", "x")))
+                .singleElement().satisfies(result -> assertThat(result.findings()).hasSize(CheckRegistry.MAX_FINDINGS));
     }
 
     @Test

@@ -1,7 +1,5 @@
 package org.jahia.community.contentgovernance.graphql;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.annotations.annotationTypes.GraphQLDescription;
 import graphql.annotations.annotationTypes.GraphQLField;
 import graphql.annotations.annotationTypes.GraphQLName;
@@ -41,7 +39,6 @@ public class GqlContentGovernance {
     /** The longest text that checkText takes. */
     static final int MAX_TEXT = 200_000;
     static final String INVALID_PATH = "Invalid path";
-    private static final ObjectMapper JSON = new ObjectMapper();
     private static final Pattern LANGUAGE = Pattern.compile("^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8}){0,3}$");
 
     // graphql-java-annotations injects OSGi services into fields only (@GraphQLOsgiService)
@@ -177,18 +174,19 @@ public class GqlContentGovernance {
 
     /**
      * Renders a page or a content item as the current user, in the edit workspace, and runs every check
-     * of the server on it: the findings that {@code frame.check} gives for the same path, and the facts
-     * that the tabs of the drawer show. Any signed-in user who can read the path may ask.
+     * of the server on it: the result of each rule that ran, with the values that the tabs of the drawer
+     * show, and the findings that {@code frame.check} gives for the same path. Any signed-in user who can
+     * read the path may ask.
      *
      * @param path     the path of a page or of a content item
      * @param language the language of the content, such as en
-     * @return the findings, in the order of the rules, and the facts
+     * @return the results, in the order of the rules
      */
     @GraphQLField
     @GraphQLName("checkPage")
     @GraphQLNonNull
-    @GraphQLDescription("The findings of every check of the server on a page or a content item, rendered in the edit "
-            + "workspace, and the facts that the drawer shows")
+    @GraphQLDescription("The result of each rule that every check of the server ran on a page or a content item, "
+            + "rendered in the edit workspace: passed or failed, its values and its findings")
     public GqlPageCheck checkPage(
             @GraphQLName("path") @GraphQLNonNull @GraphQLDescription("Path of the page or of the content item") String path,
             @GraphQLName("language") @GraphQLNonNull @GraphQLDescription("Language of the content, such as en") String language) {
@@ -209,12 +207,7 @@ public class GqlContentGovernance {
         if (!(outcome instanceof HtmlCheck.Rendered rendered)) {
             throw new DataFetchingException("Jahia could not render " + path);
         }
-        List<GqlCheckFinding> findings = pages.findings(rendered, locale).stream().map(GqlCheckFinding::new).toList();
-        try {
-            return new GqlPageCheck(rendered.path(), findings, JSON.writeValueAsString(pages.facts(rendered, locale)));
-        } catch (JsonProcessingException e) {
-            throw new DataFetchingException("The facts of " + path + " could not be written");
-        }
+        return new GqlPageCheck(rendered.path(), pages.results(rendered, locale).stream().map(GqlCheckResult::new).toList());
     }
 
     /**
