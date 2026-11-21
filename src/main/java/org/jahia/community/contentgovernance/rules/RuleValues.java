@@ -81,6 +81,8 @@ public final class RuleValues {
     public static final List<String> DAYS = List.of(DECIDED_ON, VALID_FROM, VALID_UNTIL);
 
     private static final String DEFAULT_FIXER = "editor";
+    /** The domain of a pattern rule that names none. */
+    private static final String COMPLIANCE = "compliance";
 
     private RuleValues() {
     }
@@ -92,9 +94,11 @@ public final class RuleValues {
     }
 
     /**
-     * The values with the defaults of the node type: on, not blocking, fixed by an editor, and the domain
-     * of the id when its prefix is a known domain. A node that holds a default and a file that leaves it
-     * out have the same values.
+     * The values with the defaults of the node type: on, not blocking, fixed by an editor, and for a rule
+     * with no domain the domain of the prefix of its id when it is a known domain, else {@code compliance}
+     * for a rule of the evaluator pattern, such as a term that a site adds in jContent
+     * ({@code brand.seamless}). A node that holds a default and a file that leaves it out have the same
+     * values.
      */
     static Map<String, Object> withDefaults(Map<String, Object> values) {
         Map<String, Object> out = new HashMap<>(values);
@@ -104,6 +108,10 @@ public final class RuleValues {
         Object id = out.get(RULE_ID);
         if (id != null && !out.containsKey(DOMAIN)) {
             String domain = RuleDomains.fromId(id.toString());
+            Object evaluator = out.get(EVALUATOR);
+            if (domain == null && (evaluator == null || ContentRule.PATTERN.equals(evaluator))) {
+                domain = COMPLIANCE;
+            }
             if (domain != null) {
                 out.put(DOMAIN, domain);
             }

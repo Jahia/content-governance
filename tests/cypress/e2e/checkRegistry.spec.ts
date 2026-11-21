@@ -71,6 +71,7 @@ describe('Content Governance - check registry', () => {
                     name: 'acme-tone', primaryNodeType: 'ccs:contentRule', properties: [
                         {name: 'ruleId', value: 'acme.tone'},
                         {name: 'evaluator', value: 'model'},
+                        {name: 'domain', value: 'writing'},
                         {name: 'advice', value: 'Write in a friendly tone.', language: 'en'}
                     ]
                 }]

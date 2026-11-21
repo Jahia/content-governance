@@ -242,4 +242,14 @@ class CheckRegistryTest {
         assertThat(RuleValues.toRule(Map.of(RuleValues.RULE_ID, "glossary.access-token", RuleValues.EVALUATOR, "pattern"))
                 .domain()).isEqualTo("glossary");
     }
+
+    @Test
+    void aTermThatASiteAddsWithNoDomain_isACompliance() {
+        assertThat(RuleValues.toRule(Map.of(RuleValues.RULE_ID, "brand.seamless", RuleValues.EVALUATOR, "pattern")).domain())
+                .isEqualTo("compliance");
+        assertThat(RuleValues.toRule(Map.of(RuleValues.RULE_ID, "brand.seamless")).domain()).isEqualTo("compliance");
+        assertThat(RuleValues.toRule(Map.of(RuleValues.RULE_ID, "brand.tone", RuleValues.EVALUATOR, "model")).domain()).isNull();
+        assertThat(RuleValues.toRule(Map.of(RuleValues.RULE_ID, "brand.seamless", RuleValues.EVALUATOR, "pattern",
+                RuleValues.DOMAIN, "brand")).hasKnownDomain()).isFalse();
+    }
 }
