@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -89,5 +91,17 @@ class ShippedRulesTest {
         ContentRule canonical = site.get("seo.canonical");
         assertThat(canonical.enabled()).isFalse();
         assertThat(canonical.severity()).isEqualTo("minor");
+    }
+
+    @Test
+    @DisplayName("the rules that axe-core marks experimental ship switched off, and a site can switch them on")
+    void experimentalAxeRules_shipOff() {
+        ContentRules base = ContentRules.base();
+        for (String id : List.of("axe.css-orientation-lock", "axe.focus-order-semantics", "axe.hidden-content",
+                "axe.p-as-heading", "axe.table-fake-caption", "axe.td-has-header")) {
+            assertThat(base.get(id).enabled()).as(id).isFalse();
+            assertThat(base.changed(id, true, null, null, null).get(id).enabled()).as(id).isTrue();
+        }
+        assertThat(base.get("axe.image-alt").enabled()).isTrue();
     }
 }

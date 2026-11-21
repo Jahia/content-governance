@@ -351,6 +351,10 @@ turns a check off on its rule, and axe-core then does not run it. The check give
 no item to review, and the level scores leave it out. The drawer shows the severity of the site
 beside the impact of axe-core. It shows the help text of axe-core in the language of the editor,
 unless the site writes a title on the rule.
+
+Six rules that axe-core marks experimental ship switched off: `axe.css-orientation-lock`,
+`axe.focus-order-semantics`, `axe.hidden-content`, `axe.p-as-heading`, `axe.table-fake-caption` and
+`axe.td-has-header`. A site switches one on in its rule.
 | `ecodesign.imageDimensions` | `ecodesign.imageDimensions` | moderate | none | developer |
 | `ecodesign.webFonts` | `ecodesign.webFonts` | minor | maximum 2 files | developer |
 | `ecodesign.autoplay` | `ecodesign.autoplay` | moderate | none | editor |
