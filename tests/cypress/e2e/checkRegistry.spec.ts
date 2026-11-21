@@ -144,8 +144,11 @@ describe('Content Governance - check registry', () => {
                 const results = page.contentGovernance.checkPage.results as CheckResult[];
                 results.forEach(result => {
                     expect(byId[result.ruleId], result.ruleId).to.include({active: true});
-                    expect(result.ruleId).not.to.match(/^ecodesign\./);
                     expect(result.passed, result.ruleId).to.eq(result.findings.length === 0);
+                    if (/^ecodesign\./.test(result.ruleId)) {
+                        // The browser measures eco-design: on the server its threshold has no number, and passes with no value
+                        expect(result, result.ruleId).to.deep.include({passed: true, values: '{}', findings: []});
+                    }
                 });
                 const byRule = Object.fromEntries(results.map(result => [result.ruleId, result]));
                 expect(byRule, 'the measure rules ran').to.include.keys('seo.tags', 'readability.statistics', 'readability.headings');
