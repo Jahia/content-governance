@@ -5,13 +5,13 @@ import {
 
 type RuleStatus = {id: string; evaluator: string; active: boolean; missingCheck: string | null; needs: string | null};
 type CheckFinding = {ruleId: string; severity: string; text: string};
-type RuleRuntime = {id: string; evaluator: string; active: boolean; blocking: boolean};
+type RuleRuntime = {id: string; evaluator: string; runtime: string; active: boolean; blocking: boolean};
 
 const RULES = 'query R($siteKey: String!) { contentGovernance { contentRules(siteKey: $siteKey) { id evaluator active missingCheck needs } } }';
 const PAGE_CHECK = `query P($path: String!) {
     contentGovernance { checkPage(path: $path, language: "en") { path findings { ruleId severity text } facts } }
 }`;
-const RUNTIME = 'query R($siteKey: String!) { contentGovernance { contentRules(siteKey: $siteKey) { id evaluator active blocking } } }';
+const RUNTIME = 'query R($siteKey: String!) { contentGovernance { contentRules(siteKey: $siteKey) { id evaluator runtime active blocking } } }';
 const CHECK = `query C($path: String!, $text: String!, $scope: String) {
     contentGovernance { checkText(path: $path, language: "en", text: $text, scope: $scope) { ruleId severity text } }
 }`;
@@ -174,7 +174,7 @@ describe('Content Governance - check registry', () => {
             mutateProperty(name: "blocking") { setValue(value: "true") } } } }`);
         gqlOk(asRoot(), RUNTIME, {siteKey}).then(data => {
             const rule = (data.contentGovernance.contentRules as RuleRuntime[]).find(item => item.id === 'ecodesign.lazyLoading');
-            expect(rule).to.include({active: true, blocking: false});
+            expect(rule).to.include({runtime: 'browser', evaluator: 'ecodesign.lazyLoading', active: true, blocking: false});
         });
     });
 });
