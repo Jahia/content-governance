@@ -275,7 +275,7 @@ class PageChecksTest {
         @Test
         @DisplayName("the tags of seo.tags read the head and the images")
         void seo() {
-            Map<String, Object> seo = SeoChecks.tags(Jsoup.parse("<html lang='EN'>" + GOOD_HEAD
+            Map<String, Object> seo = SeoChecks.tagsValues(Jsoup.parse("<html lang='EN'>" + GOOD_HEAD
                     + "<body><img src='a.png'><img src='b.png' alt=''>"
                     + "<p>Our yearly report is out, with every number of the year. <a href='/report'>Read more</a></p>"
                     + "<p><a href='/other'>read more »</a></p></body></html>"), "en-US");
@@ -295,7 +295,7 @@ class PageChecksTest {
         @DisplayName("readability.statistics gives the statistics of the main text, in English with the grade level")
         void readability() {
             Document html = Jsoup.parse("<body><h1>Report</h1><main><p>" + textOf("pilot") + "</p></main></body>");
-            Map<String, Object> facts = ReadabilityChecks.statistics(html, "en", 9);
+            Map<String, Object> facts = ReadabilityChecks.statisticsValues(html, "en", 9);
 
             assertThat(facts).containsEntry("lang", "en").containsEntry("spaced", true).containsEntry("empty", false)
                     .containsEntry("scored", true).containsEntry("formula", "Flesch").containsEntry("scale", "flesch")
@@ -305,7 +305,7 @@ class PageChecksTest {
                     .containsEntry("longSentenceWords", 9).containsEntry("readingMinutes", 1)
                     .containsEntry("paragraphs", 1).containsEntry("avgWordsPerParagraph", 30)
                     .doesNotContainKey("outline");
-            assertThat(ReadabilityChecks.headings(html)).containsEntry("h1Count", 1).containsEntry("headingSkips", 0)
+            assertThat(ReadabilityChecks.headingsValues(html)).containsEntry("h1Count", 1).containsEntry("headingSkips", 0)
                     .containsEntry("headingCount", 0);
         }
 
@@ -330,7 +330,7 @@ class PageChecksTest {
                     + "<h1>Site</h1><main>"
                     + "<h2>Intro</h2><section><h4>Detail</h4></section><section id='faq'><h2><img alt='Help'></h2>"
                     + "<h3></h3></section></main></body>");
-            Map<String, Object> facts = ReadabilityChecks.headings(html);
+            Map<String, Object> facts = ReadabilityChecks.headingsValues(html);
 
             assertThat(facts).containsEntry("h1Count", 1).containsEntry("headingSkips", 2).containsEntry("headingCount", 4);
             List<Object> outline = list(facts.get("outline"));

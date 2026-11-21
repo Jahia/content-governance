@@ -187,20 +187,29 @@ public class CheckRegistry {
             if (registered == null || registered.browser() || !registered.check().scopes().contains(scope)) {
                 continue;
             }
-            try {
-                CheckResult result = registered.check().result(input, rule);
-                if (result == null) {
-                    logger.warn("The check {} gave no result on the rule {} at {}", registered.id(), rule.id(), input.path());
-                    continue;
-                }
-                // The result belongs to the rule that ran, whatever id the check wrote
-                List<Finding> found = result.findings().stream().limit(MAX_FINDINGS).toList();
-                out.add(new Ran(rule, new CheckResult(rule.id(), result.passed(), result.values(), found)));
-            } catch (RuntimeException e) {
-                logger.warn("The check {} failed on the rule {} at {}", registered.id(), rule.id(), input.path(), e);
+            Ran ran = applyRule(registered, rule, input);
+            if (ran != null) {
+                out.add(ran);
             }
         }
         return out;
+    }
+
+    /** The result of one rule, or null when its check failed or gave none. */
+    private static Ran applyRule(Registered registered, ContentRule rule, CheckInput input) {
+        try {
+            CheckResult result = registered.check().result(input, rule);
+            if (result == null) {
+                logger.warn("The check {} gave no result on the rule {} at {}", registered.id(), rule.id(), input.path());
+                return null;
+            }
+            // The result belongs to the rule that ran, whatever id the check wrote
+            List<Finding> found = result.findings().stream().limit(MAX_FINDINGS).toList();
+            return new Ran(rule, new CheckResult(rule.id(), result.passed(), result.values(), found));
+        } catch (RuntimeException e) {
+            logger.warn("The check {} failed on the rule {} at {}", registered.id(), rule.id(), input.path(), e);
+            return null;
+        }
     }
 
     private Registered find(String checkId) {

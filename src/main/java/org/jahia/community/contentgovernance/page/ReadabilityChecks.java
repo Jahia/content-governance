@@ -125,7 +125,7 @@ public class ReadabilityChecks {
      * @return the keys of {@link Readability#statistics}, {@code longSentenceWords}, and {@code paragraphs} and
      *     {@code avgWordsPerParagraph} for a text long enough
      */
-    public static Map<String, Object> statistics(Document html, String language, Integer maxSentenceWords) {
+    public static Map<String, Object> statisticsValues(Document html, String language, Integer maxSentenceWords) {
         Map<String, Object> out = new LinkedHashMap<>(Readability.statistics(text(html), code(html, language),
                 maxSentenceWords));
         out.put("longSentenceWords", maxSentenceWords);
@@ -144,7 +144,7 @@ public class ReadabilityChecks {
      * @param html the HTML of a page or of an item
      * @return the keys of {@link HeadingOutline#of}
      */
-    public static Map<String, Object> headings(Document html) {
+    public static Map<String, Object> headingsValues(Document html) {
         return HeadingOutline.of(html, mainText(html));
     }
 
@@ -166,8 +166,8 @@ public class ReadabilityChecks {
         Document html = Family.document(input);
         Integer maxSentenceWords = input.fact(LONG_SENTENCE_WORDS) instanceof Integer maximum ? maximum : null;
         return new Family.Found()
-                .values(STATISTICS, statistics(html, input.language(), maxSentenceWords))
-                .values(HEADINGS, headings(html));
+                .values(STATISTICS, statisticsValues(html, input.language(), maxSentenceWords))
+                .values(HEADINGS, headingsValues(html));
     }
 
     static Readability.Measure measure(Document html, String language) {

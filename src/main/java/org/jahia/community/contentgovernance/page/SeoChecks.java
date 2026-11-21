@@ -114,7 +114,7 @@ public class SeoChecks {
      *     {@code {htmlLang, expected}}, {@code hreflang}, {@code totalImages} and {@code imagesWithoutAlt};
      *     null for a tag that the page lacks
      */
-    public static Map<String, Object> tags(Document html, String language) {
+    public static Map<String, Object> tagsValues(Document html, String language) {
         Map<String, Object> out = new LinkedHashMap<>();
         Map<String, Map<String, Object>> thresholds = values(html);
         out.put(TITLE_KEY, thresholds.get(TITLE));
@@ -174,7 +174,7 @@ public class SeoChecks {
     @SuppressWarnings("unchecked")
     static Family.Found read(CheckInput input) {
         Document html = Family.document(input);
-        Map<String, Object> tags = tags(html, input.language());
+        Map<String, Object> tags = tagsValues(html, input.language());
         Family.Found found = new Family.Found().values(TAGS, tags);
         if (!Family.wholePage(input)) {
             return found;
