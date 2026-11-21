@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BooleanSupplier;
 
 /**
@@ -63,6 +64,11 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
     private static final Logger logger = LoggerFactory.getLogger(RuleSeeder.class);
 
     private BundleTracker<String> tracker;
+    /**
+     * The started modules whose rule folder has a file that was skipped, by module. Such a file may name a
+     * domain or a subdomain of a module that starts later, so the folder is read again when one starts.
+     */
+    private final Map<String, Bundle> incomplete = new ConcurrentHashMap<>();
     /** True on the processing server, and on a Jahia that is not a cluster: the node that writes at start. */
     private boolean processingServer;
     /** Reads whether this node is the processing server. A test replaces it, because SettingsBean needs Jahia. */
@@ -118,18 +124,40 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
 
     @Override
     public String addingBundle(Bundle bundle, BundleEvent event) {
+        ShippedRules.Shipment shipment = read(bundle);
+        if (shipment == null) {
+            return null;
+        }
+        if (!shipment.domains().isEmpty() || !shipment.subdomains().isEmpty()) {
+            // A module that started first may name a domain or a subdomain that this one declares.
+            Map.copyOf(incomplete).forEach((module, other) -> {
+                if (!module.equals(shipment.module())) {
+                    read(other);
+                }
+            });
+        }
+        return shipment.module();
+    }
+
+    /** Reads the rules, the domains and the subdomains of a module, and seeds them on the processing server. */
+    private ShippedRules.Shipment read(Bundle bundle) {
         ShippedRules.Shipment shipment = ShippedRules.load(bundle);
         if (shipment == null) {
             return null;
         }
         ShippedRules.put(shipment);
+        if (shipment.complete()) {
+            incomplete.remove(shipment.module());
+        } else {
+            incomplete.put(shipment.module(), bundle);
+        }
         logger.info("Read {} content rules, {} domains and {} subdomains from the module {}", shipment.rules().size(),
                 shipment.domains().size(), shipment.subdomains().size(), shipment.module());
         if (processingServer) {
             DomainSeeder.seed(shipment);
             seedSites(shipment.module());
         }
-        return shipment.module();
+        return shipment;
     }
 
     @Override
@@ -140,6 +168,7 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
     @Override
     public void removedBundle(Bundle bundle, BundleEvent event, String module) {
         // The rule nodes stay on the sites: a check that a module registered is gone with it.
+        incomplete.remove(module);
         ShippedRules.remove(module);
     }
 

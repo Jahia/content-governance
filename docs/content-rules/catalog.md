@@ -239,6 +239,9 @@ The prices that the ERP gives.
 
 A subdomain names a domain, and a rule names subdomains, that the same module, content-governance or
 another started module declares. Another file is skipped with a warning in the log.
+When another module starts and declares domains or subdomains, content-governance reads the skipped
+files again. Example: a rule of `acme-rules` names the subdomain `acme.prices` of `acme-subdomains`.
+The rule applies once `acme-subdomains` starts, even when `acme-rules` started first.
 
 The module writes them in the system site, which every site reads:
 

@@ -276,15 +276,15 @@ async function auditFrame(frame, {isOn, language, uiLanguage, path, apolloClient
     const checked = server && await server;
     markServerTabs(incomplete, checked);
     const page = pageFactsOf(checked?.seo);
-    // The rules of the domain accessibility that the server checks go with the checks of axe-core
+    // The rules of the subdomain accessibility that the server checks go with the checks of axe-core
     const a11y = axe && {...axe, recommendations: checked ? checked.accessibility : []};
-    // The server gives no tab of the browser: its findings of the domain ecodesign join that tab
+    // The server gives no tab of the browser: its findings of the subdomain ecodesign join that tab
     const serverTabs = Object.fromEntries(SERVER_KEYS.filter(key => checked?.[key]).map(key => [key, checked[key]]));
     return measuredResults({a11y, ...byDomain(vitals, ecodesign, checked?.ecodesign), ...serverTabs}, page, incomplete, isOn);
 }
 
 /**
- * The findings of the web vitals go to the tab of the domain of their rules, Ecodesign, with the findings
+ * The findings of the web vitals go to the tab of the subdomain of their rules, Ecodesign, with the findings
  * of the eco-design analyzer and of the server: Web Vitals keeps its figures only. One rule gives one
  * recommendation, so a rule that both analyzers report shows once.
  */

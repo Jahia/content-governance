@@ -8,7 +8,17 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 
 import javax.jcr.RepositoryException;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLStreamHandler;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
@@ -132,10 +142,70 @@ class RuleSeederTest {
         }
     }
 
+    @Test
+    @DisplayName("a rule that names the subdomain of a module that starts later comes back when that module starts")
+    void addingBundle_readsAgainARuleThatWaitsForItsSubdomain() {
+        Bundle rules = bundle("acme-rules", Map.of("content-rules/acme.price.md",
+                "---\nevaluator: erp.price\nsubdomains: [acme.prices]\nseverity: serious\n---\nCheck the price.\n"));
+        Bundle subdomains = bundle("acme-subdomains", Map.of("content-rules/subdomains/acme.prices.md",
+                "---\ndomain: compliance\nlabel: Prices\n---\nThe prices that the ERP gives.\n"));
+        RuleSeeder seeder = seeder(false);
+        seeder.activate(mock(BundleContext.class));
+        try {
+            seeder.addingBundle(rules, null);
+            assertThat(ShippedRules.of("acme-rules").rules()).isEmpty();
+
+            seeder.addingBundle(subdomains, null);
+
+            assertThat(ShippedRules.of("acme-rules").rules()).containsOnlyKeys("acme.price");
+            assertThat(ShippedRules.of("acme-rules").complete()).isTrue();
+        } finally {
+            seeder.removedBundle(rules, null, "acme-rules");
+            seeder.removedBundle(subdomains, null, "acme-subdomains");
+            seeder.deactivate();
+        }
+    }
+
     /** A seeder on the processing server, or on a browsing node of a cluster. */
     private static RuleSeeder seeder(boolean processing) {
         RuleSeeder seeder = new RuleSeeder();
         seeder.processingServerCheck = () -> processing;
         return seeder;
+    }
+
+    /** A started bundle whose manifest names the rule folder content-rules, with its files by path. */
+    private static Bundle bundle(String module, Map<String, String> files) {
+        Bundle bundle = mock(Bundle.class);
+        when(bundle.getSymbolicName()).thenReturn(module);
+        when(bundle.getHeaders()).thenReturn(new Hashtable<>(Map.of(ShippedRules.HEADER, "content-rules")));
+        List<URL> entries = new ArrayList<>();
+        files.forEach((path, text) -> entries.add(entry(module, path, text)));
+        when(bundle.findEntries("content-rules", "*.md", true)).thenAnswer(invocation -> Collections.enumeration(entries));
+        return bundle;
+    }
+
+    /** An entry of a bundle, whose path starts at the root of the bundle, as the framework gives it. */
+    private static URL entry(String module, String path, String text) {
+        URLStreamHandler handler = new URLStreamHandler() {
+            @Override
+            protected URLConnection openConnection(URL url) {
+                return new URLConnection(url) {
+                    @Override
+                    public void connect() {
+                        // The text is in memory.
+                    }
+
+                    @Override
+                    public InputStream getInputStream() {
+                        return new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
+                    }
+                };
+            }
+        };
+        try {
+            return new URL("bundle", module, -1, "/" + path, handler);
+        } catch (MalformedURLException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }

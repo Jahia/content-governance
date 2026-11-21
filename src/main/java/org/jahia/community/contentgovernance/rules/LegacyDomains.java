@@ -91,7 +91,7 @@ final class LegacyDomains {
         return converted;
     }
 
-    private static void convert(JCRNodeWrapper node, Node real) throws RepositoryException {
+    static void convert(JCRNodeWrapper node, Node real) throws RepositoryException {
         String domain = real.getProperty(DOMAIN).getString();
         Map<String, Object> values = RuleNodes.read(node);
         Map<String, Object> before = new HashMap<>(values);

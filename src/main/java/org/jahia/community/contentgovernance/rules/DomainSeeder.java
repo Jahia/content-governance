@@ -117,7 +117,7 @@ final class DomainSeeder {
     }
 
     /** Brings a seeded node to the new shipped values, unless an administrator changed it. Returns 1 when it wrote. */
-    private static int update(JCRNodeWrapper node, DomainFile file) throws RepositoryException {
+    static int update(JCRNodeWrapper node, DomainFile file) throws RepositoryException {
         Level level = file.level();
         String shipped = DomainValues.digest(level, file.values());
         String seeded = DomainNodes.text(node, RuleNodes.SEED_DIGEST);
@@ -144,7 +144,7 @@ final class DomainSeeder {
         return wrote ? 1 : 0;
     }
 
-    private static int retire(JCRNodeWrapper node, Level level) throws RepositoryException {
+    static int retire(JCRNodeWrapper node, Level level) throws RepositoryException {
         RuleSeeder.Retirement retirement = RuleSeeder.retirementOf(DomainNodes.text(node, RuleNodes.SEED_DIGEST),
                 DomainValues.digest(level, DomainNodes.read(node, level)));
         if (retirement == RuleSeeder.Retirement.REMOVE) {
