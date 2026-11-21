@@ -1434,7 +1434,7 @@
             }
           }
         },
-        "serverRules": "Reglas del catálogo comprobadas en el servidor",
+        "otherRules": "Otras reglas del catálogo",
         "siteSeverity": "Sitio: {{severity}}",
         "siteSeverityHelp": "La gravedad que el sitio da a esta regla en su catálogo",
         "axeImpactHelp": "El impacto que axe-core da a esta comprobación"

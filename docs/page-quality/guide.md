@@ -168,9 +168,9 @@ best-practice rules.
   number of elements. Open it to see what the rule checks (with a link to its documentation), the
   HTML of up to 25 failing elements, what is wrong with each, and **Highlight on the page**.
 - **Automated checks needing human review**: cases marked **To verify**. Look at each one.
-- **HTML rules checked on the server**: the accessibility rules of the server that no other tab
-  shows, such as a button with no name or two elements with the same id. Each one shows its rule id
-  and the elements that break it.
+- **Other rules of the catalog**: the accessibility rules that axe-core does not run, such as the
+  HTML rules of the server or a rule of another module. Examples are a button with no name and two
+  elements with the same id. Each one shows its rule id and the elements that break it.
 - **Manual checklist (not automatable)**: 14 WCAG criteria no tool can judge, such as keyboard use,
   meaningful alt text, captions, focus order, 200% zoom. Review them once per page type.
 

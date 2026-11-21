@@ -1434,7 +1434,7 @@
             }
           }
         },
-        "serverRules": "Règles du catalogue vérifiées sur le serveur",
+        "otherRules": "Autres règles du catalogue",
         "siteSeverity": "Site : {{severity}}",
         "siteSeverityHelp": "La gravité que le site donne à cette règle dans son catalogue",
         "axeImpactHelp": "L'impact qu'axe-core donne à ce contrôle"
