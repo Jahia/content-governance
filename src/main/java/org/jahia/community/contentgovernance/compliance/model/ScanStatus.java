@@ -8,6 +8,6 @@ public enum ScanStatus {
     SAFE,
     /** At least one content breaks a rule. */
     ISSUES,
-    /** No rule of the evaluator pattern applies to the language: nothing was checked. */
+    /** No rule of Compliance applies to the language: nothing was checked. */
     NO_GLOSSARY
 }

@@ -12,7 +12,8 @@ the frame sits in the module.
 The glossary of the frame and the terms of the Compliance section are one model since
 content-governance#74: term rules of the evaluator `pattern`, which
 [`../compliance/glossary-guide.md`](../compliance/glossary-guide.md) describes. The Compliance section
-and `frame.check` report the same term rules.
+and `frame.check` run the term rules through the same check, so they give the same findings for the
+same text.
 
 ## Where the frame lives
 
@@ -25,7 +26,8 @@ The frame is content of the site. These types hold it:
 
 The service finds these nodes by their type anywhere under the site, so no folder is imposed. The
 frame of `systemsite` is the frame of the group: every site reads it first. Its rules and glossary
-terms add up with those of the site.
+terms add up with those of the site. The checks of a text read the rules of `systemsite` too, through
+the check registry.
 
 ### The glossary
 
@@ -58,8 +60,11 @@ the server. An empty date sets no limit. Out of its dates, a rule is not part of
 checks leave it out. For example, a ban on competitor names valid until 2026-12-31 stops on
 2027-01-01 with no change in jContent.
 
-Every consumer reads the **live** workspace: a change reaches the checks only after its
-publication, through the workflow of the site.
+The frame, the glossary and the instructions of a model are read in the **live** workspace. A change
+reaches them only after its publication, through the workflow of the site. A check of a text, such
+as `frame.check`, reads the rules in the edit workspace, as the drawer and the Compliance scan do. A
+new rule therefore applies at the next check. The mandatory mentions of a whole document come from
+the published frame.
 
 ## What reads the frame
 
@@ -82,8 +87,9 @@ The OSGi service `EditorialFrameService` gives the frame to the other modules:
 
 ## Security
 
-- Only published content that passed the workflow reaches the checks. A node created in the live
-  workspace, such as a visitor contribution (`j:originWS=live`), is ignored.
+- Only published content that passed the workflow reaches the instructions of a model. A check of a
+  text also reads the rules of the edit workspace. A node created in the live workspace, such as a
+  visitor contribution (`j:originWS=live`), is ignored by both.
 - The tool serves a site only to a user with `jContentAccess` on it, and validates the site key and
   the language before any read with a system session.
 - Each rule pattern runs with a deadline of 200 ms on a text, and a pattern that overflows the stack

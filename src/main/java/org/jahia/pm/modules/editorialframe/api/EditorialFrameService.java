@@ -8,9 +8,11 @@ import java.util.List;
 /**
  * The writing rules and the glossary of a site, and their checks, as the other modules read them.
  *
- * <p>Every read goes to the live workspace: a consumer never reads a rule or a term that is not
- * published. The rules and the terms of {@code systemsite} are those of the group, and every site
- * reads them before its own.</p>
+ * <p>The frame and the glossary are read in the live workspace: a consumer never reads a rule or a term
+ * that is not published. The rules and the terms of {@code systemsite} are those of the group, and every
+ * site reads them before its own. A check of a text applies the rules as the check registry of Content
+ * Governance applies them, in the edit workspace, so it finds what the drawer and the Compliance scan find
+ * in the same text.</p>
  */
 public interface EditorialFrameService {
 
@@ -18,8 +20,9 @@ public interface EditorialFrameService {
     Frame getFrame(String siteKey, String language);
 
     /**
-     * The rules that a text breaks. A mandatory rule is checked only when {@code document} is true,
-     * because a single field never holds a whole page.
+     * The rules that a text breaks: the findings of every check of the scope VALUE, then, when
+     * {@code document} is true, the mandatory mentions of the frame that the text lacks. A single field
+     * never holds a whole page, so it gets no mandatory mention.
      */
     List<RuleViolation> check(String siteKey, String language, String text, boolean document);
 

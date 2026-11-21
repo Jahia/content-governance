@@ -1,16 +1,21 @@
 import {enableModule} from '@jahia/cypress';
 import {
-    addNodeTree, asRoot, assertRefused, createTestSite, deleteTestSite, FramePageFinding, framePageCheck, gql, gqlOk, nodeExists
+    addNodeTree, asRoot, assertRefused, createTestSite, deleteTestSite, frameCheck, FramePageFinding, framePageCheck,
+    FrameViolation, gql, gqlOk, nodeExists
 } from '../support/cg';
 
 type RuleStatus = {id: string; evaluator: string; active: boolean; missingCheck: string | null; needs: string | null};
 type CheckFinding = {ruleId: string; severity: string; text: string};
 type CheckResult = {ruleId: string; passed: boolean; values: string; findings: CheckFinding[]};
 type RuleRuntime = {id: string; evaluator: string; runtime: string; active: boolean; blocking: boolean};
+type ScanIssue = {ruleId: string; term: string; matchedText: string; folder: string; severity: string};
 
 const RULES = 'query R($siteKey: String!) { contentGovernance { contentRules(siteKey: $siteKey) { id evaluator active missingCheck needs } } }';
 const PAGE_CHECK = `query P($path: String!) {
     contentGovernance { checkPage(path: $path, language: "en") { path results { ruleId passed values findings { ruleId severity text } } } }
+}`;
+const SCAN_PAGE = `query P($path: String!) {
+    complianceScan { scanPage(path: $path, language: "en") { status issues { ruleId term matchedText folder severity } } }
 }`;
 
 /** The findings of the results of checkPage, in the order of the rules. */
@@ -97,6 +102,29 @@ describe('Content Governance - check registry', () => {
         });
         check('The kit is in stock.').then(findings => {
             expect(findings.map(finding => finding.ruleId)).not.to.include('acme.erpPrice');
+        });
+    });
+
+    it('shows the finding of a check of another module in the Compliance scan, as frame.check gives it', () => {
+        const text = 'The kit costs 12.50 EUR today.';
+        addNodeTree(`${sitePath}/home`, {
+            name: 'cg-price', type: 'jnt:page',
+            props: [{name: 'j:templateName', value: 'simple'}, {name: 'jcr:title', language: 'en', value: 'Price page'}],
+            children: [{
+                name: 'area-main', primaryNodeType: 'jnt:contentList', children: [
+                    {name: 'intro', primaryNodeType: 'jnt:text', properties: [{name: 'text', language: 'en', value: text}]}
+                ]
+            }]
+        });
+        gqlOk(asRoot(), SCAN_PAGE, {path: `${sitePath}/home/cg-price`}).then(data => {
+            const issues = data.complianceScan.scanPage.issues as ScanIssue[];
+            // The rule acme.erpPrice belongs to the subdomain writing of Compliance; its term is its label
+            expect(issues).to.deep.include({ruleId: 'acme.erpPrice', term: 'Prices from the ERP', matchedText: '12.50 EUR',
+                folder: `${insights}/content-governance-test-module/rules`, severity: 'serious'});
+            frameCheck({siteKey, locale: 'en', text}).then((violations: FrameViolation[]) => {
+                expect(issues.map(issue => `${issue.ruleId} ${issue.matchedText}`).sort())
+                    .to.deep.eq(violations.map(violation => `${violation.ruleId} ${violation.match}`).sort());
+            });
         });
     });
 

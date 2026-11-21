@@ -4,24 +4,52 @@ import org.jahia.community.contentgovernance.check.spi.CheckInput;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck;
 import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.community.contentgovernance.check.spi.Rule;
+import org.jahia.community.contentgovernance.check.spi.RuleSetCheck;
 import org.jahia.community.contentgovernance.rules.ContentRule;
 import org.jahia.community.contentgovernance.rules.RuleValues;
-import org.jahia.pm.modules.editorialframe.api.RuleViolation;
+import org.jahia.community.contentgovernance.text.PlainText;
 import org.jahia.pm.modules.editorialframe.api.WritingRule;
 import org.jahia.pm.modules.editorialframe.internal.frame.RuleChecker;
 import org.osgi.service.component.annotations.Component;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
- * The evaluator {@code pattern}: the writing rule of the rule node, which {@link RuleChecker} checks on a
- * value with no model. A rule of the kind {@code mandatory} needs a whole document, so it gives no finding
- * on one value.
+ * The evaluator {@code pattern}: the writing rule of each rule node, which {@link RuleChecker} finds in a
+ * value with no model. The rules of one input apply together, as {@link RuleSetCheck} states: a term inside
+ * a longer term of another rule gives no finding there, and a glossary rule of another language reports a
+ * form of its term. A rule of the kind {@code mandatory} needs a whole document, so it gives no finding on
+ * one value.
+ *
+ * <p>The check reads the value as {@link PlainText#fromHtml} reads it, as the Compliance scan does. A
+ * finding holds the matched text, the text around it, and the values {@link Finding#START} and
+ * {@link Finding#END}, the place of the match in that text, {@link Finding#TERM}, the term that the text
+ * holds, and {@link Finding#REPLACEMENT}, what to write instead, when the rule names it. Example: with the
+ * glossary rules that write "Frodo" as "Frodon" in French and as "Frodo" in Spanish, the Spanish text
+ * "Frodon llega" gives the finding "Frodon" with {@code {start: 0, end: 6, term: "Frodon", replacement:
+ * "Frodo"}}.</p>
+ *
+ * <p>The findings come in the order of the text, so the 50 findings of a rule that the registry keeps are
+ * the first places of the text.</p>
+ *
+ * <p>Thread safety: the finders are immutable, and the map of the recent ones is synchronized.</p>
  */
 @Component(service = ContentCheck.class, property = ContentCheck.ID + "=" + ContentRule.PATTERN)
-public class PatternCheck implements ContentCheck {
+public class PatternCheck implements RuleSetCheck {
+
+    /** The most sets of rules whose finder is kept. */
+    private static final int KEPT_FINDERS = 16;
+
+    /** The finders of the last sets of rules: a scan of a site reads thousands of texts with one set. */
+    private final RecentFinders finders = new RecentFinders();
 
     @Override
     public Set<Scope> scopes() {
@@ -29,19 +57,99 @@ public class PatternCheck implements ContentCheck {
     }
 
     @Override
-    public List<Finding> check(CheckInput input, Rule rule) {
-        WritingRule writing = writingRule(rule);
-        if (writing == null || input.text() == null || !writing.inForceOn(LocalDate.now())) {
+    public List<Finding> check(CheckInput input, List<? extends Rule> rules) {
+        if (input.text() == null || rules.isEmpty()) {
             return List.of();
         }
-        return RuleChecker.check(List.of(writing), input.language(), input.text(), false).stream()
-                .map(violation -> finding(rule, violation))
-                .toList();
+        RuleChecker.Finder finder = finder(new RuleSet(List.copyOf(rules), input.language(), LocalDate.now()));
+        if (finder.isEmpty()) {
+            return List.of();
+        }
+        String plain = PlainText.fromHtml(input.text());
+        Map<String, Rule> byId = new HashMap<>();
+        rules.forEach(rule -> byId.putIfAbsent(rule.id(), rule));
+        List<RuleChecker.Match> matches = new ArrayList<>(finder.find(plain));
+        matches.sort(Comparator.comparingInt(RuleChecker.Match::start).thenComparingInt(RuleChecker.Match::end));
+        List<Finding> found = new ArrayList<>();
+        for (RuleChecker.Match match : matches) {
+            found.add(finding(byId.get(match.rule().id()), plain, match));
+        }
+        return found;
     }
 
-    private static Finding finding(Rule rule, RuleViolation violation) {
-        return Finding.of(rule, violation.match() == null ? violation.pattern() : violation.match(),
-                violation.excerpt());
+    private RuleChecker.Finder finder(RuleSet set) {
+        RuleChecker.Finder finder = finders.get(set);
+        if (finder == null) {
+            List<WritingRule> writing = new ArrayList<>();
+            for (Rule rule : set.rules()) {
+                WritingRule one = writingRule(rule);
+                if (one != null && one.inForceOn(set.day())) {
+                    writing.add(one);
+                }
+            }
+            finder = new RuleChecker.Finder(writing, set.language(), CheckRegistry.MAX_FINDINGS);
+            finders.put(set, finder);
+        }
+        return finder;
+    }
+
+    private static Finding finding(Rule rule, String plain, RuleChecker.Match match) {
+        WritingRule writing = match.rule();
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put(Finding.START, match.start());
+        values.put(Finding.END, match.end());
+        values.put(Finding.TERM, writing.pattern());
+        if (writing.replacement() != null) {
+            values.put(Finding.REPLACEMENT, writing.replacement());
+        }
+        return new Finding(rule.id(), rule.severity(), plain.substring(match.start(), match.end()),
+                RuleChecker.excerpt(plain, match.start(), match.end()), null, values);
+    }
+
+    /** The finders of the last sets of rules: the one used least recently leaves first. */
+    private static final class RecentFinders {
+        private final Map<RuleSet, RuleChecker.Finder> finders = new LinkedHashMap<>(KEPT_FINDERS, 0.75f, true);
+
+        synchronized RuleChecker.Finder get(RuleSet set) {
+            return finders.get(set);
+        }
+
+        synchronized void put(RuleSet set, RuleChecker.Finder finder) {
+            finders.put(set, finder);
+            if (finders.size() > KEPT_FINDERS) {
+                finders.remove(finders.keySet().iterator().next());
+            }
+        }
+    }
+
+    /**
+     * The rules of one input, on a day, for a text of one language. Two sets are equal when they hold the same
+     * rule objects in the same order: a scan reads the rules of its site once, so its texts share one finder.
+     */
+    private record RuleSet(List<? extends Rule> rules, String language, LocalDate day) {
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof RuleSet set) || set.rules.size() != rules.size()
+                    || !Objects.equals(set.language, language) || !set.day.equals(day)) {
+                return false;
+            }
+            for (int i = 0; i < rules.size(); i++) {
+                if (set.rules.get(i) != rules.get(i)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = Objects.hash(language, day);
+            for (Rule rule : rules) {
+                hash = 31 * hash + System.identityHashCode(rule);
+            }
+            return hash;
+        }
     }
 
     /** The writing rule of the values of a rule, or null when the rule has no pattern or an unknown kind. */

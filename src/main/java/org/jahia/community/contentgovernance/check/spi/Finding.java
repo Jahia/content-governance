@@ -15,10 +15,27 @@ import java.util.Map;
  *                 {@code main > p:nth-child(3) > img}, or null when the finding has no element. The drawer
  *                 marks the element with it, and says "Item not found" when the page has no such element.
  * @param values   what the check measured at this place, by name, such as the contrast ratio of a text,
- *                 empty when it measured nothing. The values of the whole rule are on {@link CheckResult}.
+ *                 empty when it measured nothing. A check of a value names the place of its finding with
+ *                 {@value #START} and {@value #END}, and a term rule adds {@value #TERM} and
+ *                 {@value #REPLACEMENT}: {@code {start: 4, end: 14, term: "click here", replacement: "select"}}.
+ *                 The Compliance section and {@code frame.check} read them. The values of the whole rule
+ *                 are on {@link CheckResult}.
  */
 public record Finding(String ruleId, String severity, String text, String context, String locator,
                       Map<String, Object> values) {
+
+    /**
+     * The value that holds where the finding starts in the text of the value as a reader reads it: tags
+     * removed, entities decoded, white space collapsed. Example: 4 in {@code <p>Now <b>click here</b></p>}.
+     * With no such value, the Compliance section marks the first place of the text of the finding.
+     */
+    public static final String START = "start";
+    /** The value that holds where the finding ends in the same text, excluded, such as 14. */
+    public static final String END = "end";
+    /** The value that holds the term of the rule that the text holds, as the rule writes it, such as "click here". */
+    public static final String TERM = "term";
+    /** The value that holds what to write instead, such as "select". */
+    public static final String REPLACEMENT = "replacement";
 
     public Finding {
         text = text == null ? "" : text;

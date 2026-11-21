@@ -7,6 +7,7 @@ import org.jahia.community.contentgovernance.check.spi.CheckResult;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck.Scope;
 import org.jahia.community.contentgovernance.check.spi.Finding;
+import org.jahia.community.contentgovernance.check.spi.RuleSetCheck;
 import org.jahia.community.contentgovernance.rules.ContentRule;
 import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.osgi.service.component.annotations.Component;
@@ -17,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,8 +35,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Component(service = CheckRegistry.class, immediate = true)
 public class CheckRegistry {
 
-    /** The most findings that one check gives on one input. */
-    static final int MAX_FINDINGS = 50;
+    /** The most findings that one rule gives on one input. */
+    public static final int MAX_FINDINGS = 50;
 
     private static final ObjectMapper JSON = new ObjectMapper();
     /** The module that registers a check which Content Governance does not register itself. */
@@ -129,8 +132,8 @@ public class CheckRegistry {
 
     /**
      * Runs on the input each check of a rule that the site of the input keeps on. A rule of the browser,
-     * or a check not in the scope of the input, does not run. A check that fails is logged and
-     * skipped.
+     * or a check not in the scope of the input, does not run. A {@link RuleSetCheck} runs once, on all its
+     * rules. A check that fails is logged and skipped.
      *
      * @param input   what to check, whose path names the site
      * @param skipped the evaluators that the caller applies itself
@@ -154,7 +157,7 @@ public class CheckRegistry {
 
     /**
      * {@link #run(CheckInput, Set)} on some rules of the site only, such as the SEO rules that GEO
-     * readiness reports on each page of a site.
+     * readiness reports on each page of a site, or the rules of Compliance on each text of a site.
      *
      * @param rules   the rules of the site of the input, read once for many inputs
      * @param ruleIds the ids of the rules to run
@@ -168,6 +171,23 @@ public class CheckRegistry {
         return run(rules, input, skipped, null);
     }
 
+    /**
+     * @param rule  a rule of a site
+     * @param scope where the check would run
+     * @return true when a run on an input of the scope applies the rule: the site keeps it on, it is placed in
+     * a subdomain of the site, it does not run in the browser, and a started module registers its check in
+     * that scope
+     */
+    public boolean runs(ContentRule rule, Scope scope) {
+        return runner(rule, scope) != null;
+    }
+
+    /** The check that applies the rule in the scope, or null when the rule does not run there. */
+    private Registered runner(ContentRule rule, Scope scope) {
+        Registered registered = rule.enabled() && rule.placed() && !rule.inBrowser() ? find(rule.evaluator()) : null;
+        return registered != null && registered.check().scopes().contains(scope) ? registered : null;
+    }
+
     /** The findings of {@link #apply}, each with its rule. */
     private List<Checked> run(ContentRules rules, CheckInput input, Set<String> skipped, Set<String> ruleIds) {
         List<Checked> out = new ArrayList<>();
@@ -179,16 +199,20 @@ public class CheckRegistry {
 
     /** The run on the rules of the site whose id {@code ruleIds} holds, or on every rule when it is null. */
     private List<Ran> apply(ContentRules rules, CheckInput input, Set<String> skipped, Set<String> ruleIds) {
-        Scope scope = input.scope();
-        List<Ran> out = new ArrayList<>();
+        List<Running> running = new ArrayList<>();
         for (ContentRule rule : rules.all()) {
-            boolean wanted = rule.enabled() && rule.placed() && !rule.inBrowser()
-                    && !skipped.contains(rule.evaluator()) && (ruleIds == null || ruleIds.contains(rule.id()));
-            Registered registered = wanted ? find(rule.evaluator()) : null;
-            if (registered == null || !registered.check().scopes().contains(scope)) {
-                continue;
+            boolean wanted = !skipped.contains(rule.evaluator()) && (ruleIds == null || ruleIds.contains(rule.id()));
+            Registered registered = wanted ? runner(rule, input.scope()) : null;
+            if (registered != null) {
+                running.add(new Running(rule, registered));
             }
-            Ran ran = applyRule(registered, rule, input);
+        }
+        Map<String, CheckResult> together = together(input, running);
+        List<Ran> out = new ArrayList<>();
+        for (Running one : running) {
+            CheckResult result = one.registered().check() instanceof RuleSetCheck
+                    ? together.get(one.rule().id()) : alone(input, one);
+            Ran ran = result == null ? null : kept(one, result, input);
             if (ran != null) {
                 out.add(ran);
             }
@@ -196,27 +220,73 @@ public class CheckRegistry {
         return out;
     }
 
-    /** The result of one rule, or null when its check failed, gave none, or gave values that JSON cannot write. */
-    private static Ran applyRule(Registered registered, ContentRule rule, CheckInput input) {
+    /** A rule that a run applies, with its check. */
+    private record Running(ContentRule rule, Registered registered) {
+    }
+
+    /** The result of a check that applies one rule, or null when the check failed or gave none. */
+    private static CheckResult alone(CheckInput input, Running one) {
         try {
-            CheckResult result = registered.check().result(input, rule);
+            CheckResult result = one.registered().check().result(input, one.rule());
             if (result == null) {
-                logger.warn("The check {} gave no result on the rule {} at {}", registered.id(), rule.id(), input.path());
-                return null;
+                logger.warn("The check {} gave no result on the rule {} at {}", one.registered().id(), one.rule().id(),
+                        input.path());
             }
-            // The result belongs to the rule that ran, whatever id the check wrote, and fails when it has a finding
-            List<Finding> found = result.findings().stream().limit(MAX_FINDINGS).toList();
-            CheckResult kept = new CheckResult(rule.id(), result.passed() && found.isEmpty(), result.values(), found);
-            if (!writable(kept)) {
-                logger.warn("The check {} gave values that JSON cannot write on the rule {} at {}", registered.id(),
-                        rule.id(), input.path());
-                return null;
-            }
-            return new Ran(rule, kept);
+            return result;
         } catch (RuntimeException e) {
-            logger.warn("The check {} failed on the rule {} at {}", registered.id(), rule.id(), input.path(), e);
+            logger.warn("The check {} failed on the rule {} at {}", one.registered().id(), one.rule().id(), input.path(), e);
             return null;
         }
+    }
+
+    /**
+     * Applies each {@link RuleSetCheck} once to its rules of the run, and gives each of these rules a result
+     * with no value, which passes when the rule has no finding.
+     *
+     * @return the results, by the id of their rule, with none for the rules of a check that failed; a finding
+     * that names a rule of another check is dropped
+     */
+    private static Map<String, CheckResult> together(CheckInput input, List<Running> running) {
+        Map<Registered, List<ContentRule>> sets = new LinkedHashMap<>();
+        for (Running one : running) {
+            if (one.registered().check() instanceof RuleSetCheck) {
+                sets.computeIfAbsent(one.registered(), registered -> new ArrayList<>()).add(one.rule());
+            }
+        }
+        Map<String, CheckResult> byRule = new HashMap<>();
+        sets.forEach((registered, setRules) -> {
+            Map<String, List<Finding>> found = new HashMap<>();
+            setRules.forEach(rule -> found.put(rule.id(), new ArrayList<>()));
+            try {
+                for (Finding finding : ((RuleSetCheck) registered.check()).check(input, setRules)) {
+                    List<Finding> ofRule = found.get(finding.ruleId());
+                    if (ofRule != null) {
+                        ofRule.add(finding);
+                    }
+                }
+            } catch (RuntimeException e) {
+                logger.warn("The check {} failed on its {} rules at {}", registered.id(), setRules.size(), input.path(), e);
+                return;
+            }
+            setRules.forEach(rule -> byRule.put(rule.id(), CheckResult.of(rule, Map.of(), found.get(rule.id()))));
+        });
+        return byRule;
+    }
+
+    /**
+     * The result of the rule as the registry keeps it, or null when JSON cannot write its values. The result
+     * belongs to the rule that ran, whatever id the check wrote, keeps its first {@value #MAX_FINDINGS}
+     * findings, and fails when it has a finding.
+     */
+    private static Ran kept(Running one, CheckResult result, CheckInput input) {
+        List<Finding> found = result.findings().stream().limit(MAX_FINDINGS).toList();
+        CheckResult kept = new CheckResult(one.rule().id(), result.passed() && found.isEmpty(), result.values(), found);
+        if (!writable(kept)) {
+            logger.warn("The check {} gave values that JSON cannot write on the rule {} at {}", one.registered().id(),
+                    one.rule().id(), input.path());
+            return null;
+        }
+        return new Ran(one.rule(), kept);
     }
 
     /** True when JSON writes the values of the result and of each finding, as the GraphQL API sends them. */

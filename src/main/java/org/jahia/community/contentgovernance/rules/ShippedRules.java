@@ -117,16 +117,6 @@ public final class ShippedRules {
         return forModules(BY_MODULE.keySet());
     }
 
-    /** The module that ships the rule of an id, or null when no started module ships it. */
-    static String moduleOfRule(String id) {
-        for (Shipment shipment : all()) {
-            if (shipment.rules().containsKey(id)) {
-                return shipment.module();
-            }
-        }
-        return null;
-    }
-
     /** The module that ships a domain or a subdomain of an id, or null when no started module ships it. */
     static String moduleOf(Level level, String id) {
         for (Shipment shipment : all()) {

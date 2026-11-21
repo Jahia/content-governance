@@ -20,11 +20,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 /**
- * The rules as one site applies them: every {@value #TYPE} node of the site, and the rules that the
- * modules of the site ship and that the site has no node of.
+ * The rules as one site applies them, from the most general to the most specific: the rules that the
+ * modules of the site ship, then every {@value #TYPE} node of {@code systemsite}, which applies to every
+ * site, then every {@value #TYPE} node of the site. Example: a rule {@code acme.noClickHere} in
+ * {@code /sites/systemsite/contents} applies to {@code digitall}, and a node {@code seo.title} of
+ * {@code digitall} replaces the node {@code seo.title} of {@code systemsite} there.
  *
  * <p>A rule applies to a site when the rule, one of its subdomains and the domain of that subdomain all
  * include the site ({@link ContentDomains}), and the site installs the module that ships the rule. A rule
@@ -35,8 +39,10 @@ import java.util.regex.Pattern;
  *
  * <p>The rule nodes are read in the edit workspace with a system session, so that a change applies
  * without a publication and a scheduled scan reads the same rules as the drawer. A node replaces the
- * shipped rule of its id; a property that the node lacks keeps the shipped value. A node whose id no
- * module ships is a rule of its own, such as a rule of the customer.</p>
+ * rule of its id that comes before it; a property that the node lacks keeps the shipped value. A node
+ * whose id no module ships is a rule of its own, such as a rule of the customer. A node, of
+ * {@code systemsite} or of the site, whose rule a module ships applies only to a site that enables that
+ * module.</p>
  *
  * <p>Thread safety: immutable.</p>
  */
@@ -127,32 +133,75 @@ public final class ContentRules {
         }
         Collection<String> modules = session.getNode(sitePath) instanceof JCRSiteNode site
                 ? site.getInstalledModulesWithAllDependencies() : List.of();
-        List<ShippedRules.Shipment> shipments = ShippedRules.forModules(modules);
+        List<RuleNode> platform = ContentDomains.SYSTEM_SITE.equals(sitePath) ? List.of()
+                : ruleNodes(session, ContentDomains.SYSTEM_SITE);
+        return merge(ShippedRules.forModules(modules), shippedIds(ShippedRules.all()), platform,
+                ruleNodes(session, sitePath), ContentDomains.read(session, siteKey, modules));
+    }
+
+    /**
+     * A rule node as it was read.
+     *
+     * @param values the values of the node
+     * @param folder the path of the folder that holds the node
+     */
+    record RuleNode(Map<String, Object> values, String folder) {
+    }
+
+    private static List<RuleNode> ruleNodes(JCRSessionWrapper session, String path) throws RepositoryException {
+        List<RuleNode> out = new ArrayList<>();
+        if (session.nodeExists(path)) {
+            for (JCRNodeWrapper node : nodes(session, path)) {
+                out.add(new RuleNode(RuleNodes.read(node), node.getParent().getPath()));
+            }
+        }
+        return out;
+    }
+
+    private static Set<String> shippedIds(List<ShippedRules.Shipment> shipments) {
+        Set<String> ids = new HashSet<>();
+        shipments.forEach(shipment -> ids.addAll(shipment.rules().keySet()));
+        return ids;
+    }
+
+    /**
+     * The rules of a site, as {@link ContentRules} states them.
+     *
+     * @param shipments  the rules that the modules of the site ship
+     * @param shippedIds the ids of the rules that any started module ships
+     * @param platform   the rule nodes of {@code systemsite}, in path order
+     * @param site       the rule nodes of the site, in path order
+     * @param hierarchy  the domains and the subdomains of the site
+     * @return the rules of the site
+     */
+    static ContentRules merge(List<ShippedRules.Shipment> shipments, Set<String> shippedIds, List<RuleNode> platform,
+                              List<RuleNode> site, ContentDomains hierarchy) {
         Map<String, ContentRule> out = shipped(shipments);
+        Set<String> enabled = shippedIds(shipments);
+        // A node of a rule that a module ships applies only on a site that enables the module: the seeded node
+        // stays on the site when the site removes the module, and stops applying
+        Predicate<String> applies = id -> enabled.contains(id) || !shippedIds.contains(id);
+        put(out, shipments, platform, applies);
+        put(out, shipments, site, applies);
+        return of(out, hierarchy);
+    }
+
+    /** Puts each node whose id {@code applies} accepts, the first node of an id only, over the rule of its id. */
+    private static void put(Map<String, ContentRule> out, List<ShippedRules.Shipment> shipments, List<RuleNode> nodes,
+                            Predicate<String> applies) {
         Set<String> seen = new HashSet<>();
-        for (JCRNodeWrapper node : nodes(session, sitePath)) {
-            Map<String, Object> values = RuleNodes.read(node);
-            Object id = values.get(RuleValues.RULE_ID);
-            if (id == null || !seen.add(id.toString()) || !shippedToSite(id.toString(), modules)) {
+        for (RuleNode node : nodes) {
+            Object id = node.values().get(RuleValues.RULE_ID);
+            if (id == null || !seen.add(id.toString()) || !applies.test(id.toString())) {
                 continue;
             }
             Map<String, Object> shippedValues = shippedValues(shipments, id.toString());
             Map<String, Object> merged = new LinkedHashMap<>(shippedValues);
-            merged.putAll(values);
+            merged.putAll(node.values());
             merged.put(RuleValues.TRANSLATIONS, RuleValues.mergeTranslations(shippedValues.get(RuleValues.TRANSLATIONS),
-                    values.get(RuleValues.TRANSLATIONS)));
-            out.put(id.toString(), RuleValues.toRule(merged).inFolder(node.getParent().getPath()));
+                    node.values().get(RuleValues.TRANSLATIONS)));
+            out.put(id.toString(), RuleValues.toRule(merged).inFolder(node.folder()));
         }
-        return of(out, ContentDomains.read(session, siteKey, modules));
-    }
-
-    /**
-     * False for the node of a rule that a started module ships and that the site does not install: the seeded
-     * node stays on the site when the site removes the module, and stops applying.
-     */
-    private static boolean shippedToSite(String id, Collection<String> modules) {
-        String module = ShippedRules.moduleOfRule(id);
-        return module == null || modules.contains(module);
     }
 
     /**
@@ -259,6 +308,11 @@ public final class ContentRules {
             throw new IllegalArgumentException("No rule has the id " + id);
         }
         return rule;
+    }
+
+    /** The domains and the subdomains of the site, which place these rules. */
+    public ContentDomains hierarchy() {
+        return hierarchy;
     }
 
     /** Every rule: the shipped ones in the order of their files, then the rules of the site. */

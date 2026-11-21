@@ -1,8 +1,8 @@
 package org.jahia.community.contentgovernance.compliance.model;
 
 /**
- * One place where one property value of one content breaks a rule of the evaluator {@code pattern}, such as
- * a term that the legal team forbids.
+ * One place where one property value of one content breaks a rule of Compliance, such as a term that the
+ * legal team forbids, or a price that the check of another module finds.
  *
  * @param nodePath      path of the content that holds the text
  * @param nodeUuid      identifier of that content, used to open it in Content Editor
@@ -12,7 +12,9 @@ package org.jahia.community.contentgovernance.compliance.model;
  * @param propertyLabel label of the property, in the UI language
  * @param ruleId        the id of the rule, such as {@code compliance.click-here}
  * @param severity      the severity of the rule: critical, serious, moderate or minor
- * @param term          the pattern of the rule, as the rule writes it
+ * @param term          the term that the finding names: the pattern of the rule as the rule writes it, a form
+ *                      of a glossary term of another language, or the label of a rule with no pattern, such as
+ *                      "Prices from the ERP"
  * @param matchedText   the text as written in the content
  * @param before        text before the match, shortened, as plain text
  * @param after         text after the match, shortened, as plain text

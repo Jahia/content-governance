@@ -269,7 +269,8 @@ A rule applies to a site when all of these are true:
 
 - The `sites` of the rule include the site.
 - One of its subdomains, and the domain of that subdomain, include the site.
-- The site installs the module that ships the rule. A rule that the site adds needs no module.
+- The site installs the module that ships the rule. A rule that the site or `systemsite` adds needs no
+  module.
 
 Example: an administrator sets the `sites` of the domain `geo` to `digitall`. The site `luxe` then
 loses the SEO & GEO tabs and their rules, such as `seo.title` and `geo.fetched`. The rule
@@ -316,14 +317,32 @@ A check states the scopes in which it runs:
 
 | Scope | What the check reads | Who runs it today |
 |---|---|---|
-| `VALUE` | One value that an editor writes. | The GraphQL field `checkText`, and `frame.check` of the editorial frame. |
+| `VALUE` | One value that an editor writes. | The GraphQL field `checkText` and `frame.check` of the editorial frame. The Compliance scan runs the rules of the subdomains of the domain `compliance` on each text, but `readability`, whose rules measure a whole page. |
 | `PAGE` | The HTML of a rendered page or content item. | The page check (`HtmlCheck`): the GraphQL field `checkPage`, which the drawer reads, `frame.check` with a path, the tool `audit.accessibility`, `checkText` with the scope `PAGE`, and the SEO checks of GEO readiness on the HTML that a crawler gets. |
 | `SITE` | A whole site. | No caller yet. |
 
 A run applies each rule that the site keeps on and whose check is registered for the scope. It gives
 one result per rule, passed or failed. Each finding carries the id of the rule, the severity
 that the site gives the rule, and the text that breaks the rule. A check that throws an exception
-gives no result, and the other checks still run. One check gives 50 findings or fewer on one input.
+gives no result, and the other checks still run. One rule gives 50 findings or fewer on one input.
+
+A finding on a value can also carry values, which the Compliance section and `frame.check` read:
+
+| Value | What it holds |
+|---|---|
+| `start` | The place where the text of the finding starts, in the value as a reader reads it: tags removed, entities decoded, white space collapsed. |
+| `end` | The place where the text of the finding ends, excluded. |
+| `term` | The term of the rule that the text holds, such as "click here". |
+| `replacement` | What to write instead, such as "select". |
+
+Example: `{start: 4, end: 14, term: "click here", replacement: "select"}` in "Now click here to buy".
+With no `start`, the Compliance section marks the first place of the text of the finding.
+
+A check whose rules act on each other implements `RuleSetCheck` instead of `ContentCheck`. A run
+then calls it once per input, with all its rules, and gives each finding to the rule that it names.
+Each of these rules gets a result with no value, which passes when the rule has no finding. The
+check `pattern` is one. The term "Sackville-Baggins" of one rule hides the term "Baggins" of
+another rule. A glossary rule of another language reports a form of its term.
 
 ```graphql
 query {
@@ -382,6 +401,19 @@ severity, set it again on the node of the kept id.
 
 ## How a check reads the rules
 
+`ContentRules` gives the rules of a site in three layers, the most specific last:
+
+1. The rules that the modules of the site ship.
+2. The rule nodes of `systemsite`, which apply to every site.
+3. The rule nodes of the site.
+
+A node replaces the rule of its id from the layer before it, and keeps the shipped values that it
+lacks. A node of a rule that a module ships, in either layer, applies only to a site that enables that
+module. The rules then apply as [Which rules apply to a site](#which-rules-apply-to-a-site) states. Example: a node `brand.noClickHere` in `/sites/systemsite/contents` applies to every site, and
+a node `seo.title` of `digitall` replaces the node `seo.title` of `systemsite` on `digitall`.
+[content-governance#138](https://github.com/Jahia/content-governance/issues/138) moves the rules to
+`systemsite`.
+
 - The Java checks of GEO readiness read the rules of the site through `ContentRules.forSite`. A site
   scan reads them once, at its start.
 - The checks of Page quality on the server read them through `ContentRules.forPath`, at the start of
@@ -391,8 +423,9 @@ severity, set it again on the node of the kept id.
   rule gives its `evaluator`, `runtime` and `blocking` there too.
 - The SEO assist reads the ranges of `seo.title` and `seo.metaDescription`, and states them in its
   prompt.
-- The editorial frame reads the rules of the evaluator `pattern` from the live workspace.
-  `frame.check` reports their matches, and the prompt of a model carries them.
+- The editorial frame reads the rules of the evaluator `pattern` from the live workspace, and the
+  prompt of a model carries them. `frame.check` runs the rules of the edit workspace through the
+  check registry, as the Compliance scan does.
 - A rule with no node, and a site that cannot be read, use the values that the module ships.
 
 Each finding carries the id of its rule: `rule` on a recommendation of Page quality, and `rule` on a

@@ -5,6 +5,7 @@ import org.jahia.community.contentgovernance.check.spi.CheckResult;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck;
 import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.community.contentgovernance.check.spi.Rule;
+import org.jahia.community.contentgovernance.check.spi.RuleSetCheck;
 import org.jahia.community.contentgovernance.geo.check.GeoChecks;
 import org.jahia.community.contentgovernance.html.rules.HtmlRule;
 import org.jahia.community.contentgovernance.page.HealthChecks;
@@ -27,6 +28,7 @@ import java.util.function.Function;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 class CheckRegistryTest {
 
@@ -285,6 +287,94 @@ class CheckRegistryTest {
                 return result.apply(rule);
             }
         };
+    }
+
+    /** A check that applies its rules together: it notes each call, and finds each rule once, in reverse order. */
+    private static final class Together implements RuleSetCheck {
+        final List<List<String>> calls = new ArrayList<>();
+
+        @Override
+        public Set<Scope> scopes() {
+            return Set.of(Scope.VALUE);
+        }
+
+        @Override
+        public List<Finding> check(CheckInput input, List<? extends Rule> rules) {
+            calls.add(rules.stream().map(Rule::id).toList());
+            List<Finding> found = new ArrayList<>();
+            for (int i = rules.size() - 1; i >= 0; i--) {
+                found.add(Finding.of(rules.get(i), "x"));
+            }
+            // A finding of a rule that the check was not given goes nowhere
+            found.add(new Finding("acme.erpPrice", "minor", "stray", null));
+            return found;
+        }
+    }
+
+    private static ContentRules setAndPrice() {
+        return withRule("acme.first", "acme.set")
+                .with(RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.erpPrice", RuleValues.EVALUATOR, "acme.erpPrice",
+                        RuleValues.SUBDOMAINS, List.of("writing"))))
+                .with(RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.second", RuleValues.EVALUATOR, "acme.set",
+                        RuleValues.SUBDOMAINS, List.of("terms"))));
+    }
+
+    @Test
+    @DisplayName("a check that applies its rules together runs once per input, and each finding goes to its rule")
+    void run_appliesARuleSetOnce() {
+        CheckRegistry registry = new CheckRegistry();
+        Together together = new Together();
+        registry.bindCheck(together, id("acme.set"));
+        registry.bindCheck(PRICE, id("acme.erpPrice"));
+
+        List<CheckRegistry.Checked> found = registry.run(setAndPrice(), CheckInput.value(PAGE, "en", "12.50 EUR"), Set.of());
+
+        assertThat(together.calls).containsExactly(List.of("acme.first", "acme.second"));
+        // In the order of the rules, whatever order the check gave
+        assertThat(found).extracting(checked -> checked.rule().id(), checked -> checked.finding().text())
+                .containsExactly(tuple("acme.first", "x"), tuple("acme.erpPrice", "12.50 EUR"), tuple("acme.second", "x"));
+        assertThat(registry.runRules(setAndPrice(), CheckInput.value(PAGE, "en", "12.50 EUR"), Set.of("acme.second")))
+                .extracting(checked -> checked.rule().id()).containsExactly("acme.second");
+        assertThat(together.calls).last().isEqualTo(List.of("acme.second"));
+    }
+
+    @Test
+    @DisplayName("a check of a rule set that throws gives nothing for its rules, and the other checks still run")
+    void run_survivesAFailingRuleSet() {
+        CheckRegistry registry = new CheckRegistry();
+        registry.bindCheck(new RuleSetCheck() {
+            @Override
+            public Set<Scope> scopes() {
+                return Set.of(Scope.VALUE);
+            }
+
+            @Override
+            public List<Finding> check(CheckInput input, List<? extends Rule> rules) {
+                throw new IllegalStateException("broken");
+            }
+        }, id("acme.set"));
+        registry.bindCheck(PRICE, id("acme.erpPrice"));
+
+        assertThat(registry.run(setAndPrice(), CheckInput.value(PAGE, "en", "12.50 EUR"), Set.of()))
+                .extracting(checked -> checked.rule().id()).containsExactly("acme.erpPrice");
+    }
+
+    @Test
+    @DisplayName("a rule runs in a scope when the site keeps it on and a started module registers its check there")
+    void runs_namesTheRulesThatRunInAScope() {
+        CheckRegistry registry = new CheckRegistry();
+        registry.bindCheck(PRICE, id("acme.erpPrice"));
+        ContentRule price = withRule("acme.erpPrice", "acme.erpPrice").get("acme.erpPrice");
+
+        assertThat(registry.runs(price, ContentCheck.Scope.VALUE)).isTrue();
+        assertThat(registry.runs(price, ContentCheck.Scope.PAGE)).isFalse();
+        assertThat(registry.runs(withRule("acme.tone", "model").get("acme.tone"), ContentCheck.Scope.VALUE)).isFalse();
+        assertThat(registry.runs(placed(Map.of(RuleValues.RULE_ID, "acme.erpPrice", RuleValues.EVALUATOR,
+                "acme.erpPrice", RuleValues.SUBDOMAINS, List.of("writing"), RuleValues.ENABLED, false)), ContentCheck.Scope.VALUE))
+                .isFalse();
+        // A rule whose subdomain nobody declares has no place, so it runs nowhere
+        assertThat(registry.runs(placed(Map.of(RuleValues.RULE_ID, "acme.erpPrice", RuleValues.EVALUATOR,
+                "acme.erpPrice", RuleValues.SUBDOMAINS, List.of("acme"))), ContentCheck.Scope.VALUE)).isFalse();
     }
 
     @Test

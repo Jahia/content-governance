@@ -440,7 +440,10 @@ public final class RuleChecker {
         return regex.toString();
     }
 
-    static String excerpt(String text, int start, int end) {
+    /**
+     * @return the text around a match, about 40 characters on each side, with "..." where the text goes on
+     */
+    public static String excerpt(String text, int start, int end) {
         int from = Math.max(0, start - EXCERPT);
         int to = Math.min(text.length(), end + EXCERPT);
         String excerpt = text.substring(from, to).replaceAll("\\s+", " ").trim();

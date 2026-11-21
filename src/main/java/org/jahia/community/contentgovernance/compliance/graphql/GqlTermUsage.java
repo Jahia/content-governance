@@ -10,7 +10,7 @@ import org.jahia.community.contentgovernance.compliance.model.TermUsage;
  * GraphQL view of a {@link TermUsage}.
  */
 @GraphQLName("ComplianceTermUsage")
-@GraphQLDescription("How often a rule of the evaluator pattern is broken across a site")
+@GraphQLDescription("How often a rule of Compliance is broken across a site")
 public class GqlTermUsage {
 
     private final TermUsage usage;
@@ -27,7 +27,7 @@ public class GqlTermUsage {
         return usage.ruleId();
     }
 
-    /** @return the pattern of the rule */
+    /** @return the term of the first issue of the rule */
     @GraphQLField
     @GraphQLNonNull
     public String getTerm() {

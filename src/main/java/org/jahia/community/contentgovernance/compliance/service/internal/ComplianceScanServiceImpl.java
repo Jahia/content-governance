@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.compliance.service.internal;
 
+import org.jahia.community.contentgovernance.check.CheckRegistry;
 import org.jahia.community.contentgovernance.compliance.model.ComplianceIssue;
 import org.jahia.community.contentgovernance.compliance.model.ComplianceReport;
 import org.jahia.community.contentgovernance.compliance.model.IssueOrigin;
@@ -21,6 +22,7 @@ import org.jahia.services.content.nodetypes.ExtendedNodeType;
 import org.jahia.services.content.nodetypes.ExtendedPropertyDefinition;
 import org.jahia.services.content.nodetypes.SelectorType;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +45,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Default {@link ComplianceScanService}: walks the page or site tree in the caller's session. Each
+ * Default {@link ComplianceScanService}: walks the page or site tree in the caller's session, and runs the
+ * rules of Compliance on each text through the {@link CheckRegistry}, as {@code frame.check} does. Each
  * call keeps its state in its own {@code Scan}; the component itself holds none.
  */
 @Component(service = ComplianceScanService.class, immediate = true)
@@ -63,10 +66,27 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
     /** The nodes of the rules and of the older glossaries: their text is a rule, not content. */
     private static final List<String> RULE_TYPES = List.of(ContentRules.TYPE, "ccs:glossary", "ccs:glossaryTerm");
 
+    @Reference
+    private CheckRegistry checks;
+
+    public ComplianceScanServiceImpl() {
+        // Used by OSGi.
+    }
+
+    ComplianceScanServiceImpl(CheckRegistry checks) {
+        this.checks = checks;
+    }
+
+    /** Builds the issue of one finding of a value. */
+    interface IssueOf {
+        ComplianceIssue of(PlacedFinding found) throws RepositoryException;
+    }
+
     /** State of one scan. Not shared between calls. */
-    private static final class Scan {
+    static final class Scan {
         final ComplianceRules rules;
-        final RuleChecker.Finder finder;
+        final CheckRegistry checks;
+        final String language;
         final Locale uiLocale;
         final boolean followReferences;
         final int maxNodes;
@@ -80,11 +100,11 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         int skipped;
         boolean truncated;
 
-        Scan(ComplianceRules rules, String language, Locale uiLocale, boolean followReferences, int maxNodes,
-             int maxIssues) {
+        Scan(ComplianceRules rules, CheckRegistry checks, String language, Locale uiLocale, boolean followReferences,
+             int maxNodes, int maxIssues) {
             this.rules = rules;
-            // Every place counts, up to the limit of issues of the scan.
-            this.finder = new RuleChecker.Finder(rules.writing(), language, maxIssues);
+            this.checks = checks;
+            this.language = language;
             this.uiLocale = uiLocale;
             this.followReferences = followReferences;
             this.maxNodes = maxNodes;
@@ -98,6 +118,28 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
             }
             return false;
         }
+
+        /**
+         * Adds an issue for each finding of one value, in the order of the text, up to the limit of issues of
+         * the scan. A value that a rule breaks in as many places as the registry keeps, or that is too long
+         * for the rules to read whole, cuts the report.
+         *
+         * @return false once the scan reached its limit of issues
+         */
+        boolean add(ValueFindings value, IssueOf issueOf) throws RepositoryException {
+            if (value.capped() || value.text().length() > RuleChecker.MAX_TEXT) {
+                truncated = true;
+            }
+            for (PlacedFinding found : value.findings()) {
+                if (issueCount >= maxIssues) {
+                    truncated = true;
+                    return false;
+                }
+                issues.add(issueOf.of(found));
+                issueCount++;
+            }
+            return true;
+        }
     }
 
     @Override
@@ -106,9 +148,9 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         JCRSessionWrapper session = page.getSession();
         String language = session.getLocale().toString();
         String sitePath = page.getResolveSite().getPath();
-        ComplianceRules rules = ComplianceRules.read(session, page.getResolveSite().getSiteKey(), language);
-        Scan scan = new Scan(rules, language, uiLocale, true, MAX_SCANNED_NODES, MAX_ISSUES);
-        if (scan.finder.isEmpty()) {
+        ComplianceRules rules = ComplianceRules.read(session, checks, page.getResolveSite().getSiteKey(), language);
+        Scan scan = new Scan(rules, checks, language, uiLocale, true, MAX_SCANNED_NODES, MAX_ISSUES);
+        if (!rules.applies()) {
             return new ComplianceReport(page.getPath(), language, ScanStatus.NO_GLOSSARY, 0, false,
                     rules.folders(), List.of());
         }
@@ -145,9 +187,9 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         JCRSessionWrapper session = site.getSession();
         String language = session.getLocale().toString();
         String sitePath = site.getPath();
-        ComplianceRules rules = ComplianceRules.read(session, site.getSiteKey(), language);
-        Scan scan = new Scan(rules, language, uiLocale, false, MAX_SITE_SCANNED_NODES, MAX_SITE_ISSUES);
-        if (scan.finder.isEmpty()) {
+        ComplianceRules rules = ComplianceRules.read(session, checks, site.getSiteKey(), language);
+        Scan scan = new Scan(rules, checks, language, uiLocale, false, MAX_SITE_SCANNED_NODES, MAX_SITE_ISSUES);
+        if (!rules.applies()) {
             return new SiteComplianceReport(site.getSiteKey(), language, ScanStatus.NO_GLOSSARY, 0, 0, 0, false,
                     rules.folders(), List.of(), List.of());
         }
@@ -214,7 +256,7 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         }
     }
 
-    private static List<TermUsage> termUsages(List<LocationReport> locations) {
+    static List<TermUsage> termUsages(List<LocationReport> locations) {
         Map<String, ComplianceIssue> first = new LinkedHashMap<>();
         Map<String, Integer> uses = new LinkedHashMap<>();
         Map<String, Set<String>> where = new LinkedHashMap<>();
@@ -363,23 +405,10 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         if (raw == null || raw.isBlank()) {
             return true;
         }
-        String text = definition.getSelector() == SelectorType.RICHTEXT ? PlainText.fromHtml(raw) : PlainText.collapse(raw);
-        if (text.length() > RuleChecker.MAX_TEXT) {
-            // The rules read the start of a long value only.
-            scan.truncated = true;
-        }
-        List<RuleChecker.Match> matches = new ArrayList<>(scan.finder.find(text));
-        matches.sort(Comparator.comparingInt(RuleChecker.Match::start).thenComparingInt(RuleChecker.Match::end));
-        for (RuleChecker.Match match : matches) {
-            if (scan.issueCount >= scan.maxIssues) {
-                scan.truncated = true;
-                return false;
-            }
-            scan.issues.add(issue(node, property, definition, text, match, scan.rules.rules().get(match.rule().id()),
-                    origin, originPath, scan.uiLocale));
-            scan.issueCount++;
-        }
-        return true;
+        ValueFindings value = ValueFindings.of(scan.checks, scan.rules, node.getPath(), scan.language, raw,
+                definition.getSelector() == SelectorType.RICHTEXT);
+        return scan.add(value, found -> issue(node, property, definition, value.text(), found, origin, originPath,
+                scan.uiLocale));
     }
 
     /** @return the definition of a property that holds visitor text, {@code null} for any other property */
@@ -398,14 +427,16 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         return textSelector && !constrained && !definition.isHidden() ? definition : null;
     }
 
+    /** The issue of a finding: the term, the replacement and the place from the finding, the rest from its rule. */
     private static ComplianceIssue issue(JCRNodeWrapper node, JCRPropertyWrapper property, ExtendedPropertyDefinition definition,
-                                         String text, RuleChecker.Match match, ContentRule rule, IssueOrigin origin,
-                                         String originPath, Locale uiLocale) throws RepositoryException {
-        Excerpt excerpt = Excerpt.around(text, match.start(), match.end());
+                                         String text, PlacedFinding found, IssueOrigin origin, String originPath,
+                                         Locale uiLocale) throws RepositoryException {
+        Excerpt excerpt = found.excerpt(text);
         ExtendedNodeType type = node.getPrimaryNodeType();
+        ContentRule rule = found.rule();
         return new ComplianceIssue(node.getPath(), node.getIdentifier(), node.getDisplayableName(), type.getLabel(uiLocale),
                 property.getName(), definition.getLabel(uiLocale, type), rule.id(), rule.severity(),
-                match.rule().pattern(), excerpt.match(), excerpt.before(), excerpt.after(), rule.advice(),
-                match.rule().replacement(), rule.folder(), origin, originPath);
+                found.term(uiLocale.getLanguage()), excerpt.match(), excerpt.before(), excerpt.after(), rule.advice(),
+                found.replacement(), rule.folder(), origin, originPath);
     }
 }

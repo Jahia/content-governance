@@ -5,6 +5,7 @@ package org.jahia.pm.modules.editorialframe.internal;
 
 import org.jahia.community.contentgovernance.check.CheckRegistry;
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
+import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.community.contentgovernance.rules.ContentRule;
 import org.jahia.community.contentgovernance.rules.RuleValues;
 import org.jahia.pm.modules.editorialframe.api.EditorialFrameService;
@@ -32,7 +33,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-/** Reads the writing rules and the glossary of a site with a system session of the live workspace. */
+/**
+ * Reads the writing rules and the glossary of a site with a system session of the live workspace. A check
+ * of a text runs the rules of the site through the {@link CheckRegistry}, as the Compliance scan does, and
+ * adds the mandatory mentions of the frame for a whole document.
+ */
 @Component(service = EditorialFrameService.class, immediate = true)
 public class EditorialFrameServiceImpl implements EditorialFrameService {
 
@@ -40,9 +45,18 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
     static final String LIVE = "live";
     private static final String SITES = "/sites/";
 
-    /** The checks of the scope VALUE that modules register. Null in a unit test, which then runs none. */
+    /** The checks of the scope VALUE that modules register. Null in a unit test that runs none. */
     @Reference
     private CheckRegistry checks;
+
+    public EditorialFrameServiceImpl() {
+        // Used by OSGi.
+    }
+
+    /** @param checks the checks of the scope VALUE, which a test of another package binds */
+    public EditorialFrameServiceImpl(CheckRegistry checks) {
+        this.checks = checks;
+    }
 
     @Override
     public Frame getFrame(String siteKey, String language) {
@@ -52,35 +66,50 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
 
     @Override
     public List<RuleViolation> check(String siteKey, String language, String text, boolean document) {
-        List<RuleViolation> violations = new ArrayList<>(RuleChecker.check(getFrame(siteKey, language).rules(), language,
-                text, document));
-        violations.addAll(registeredChecks(siteKey, language, text));
+        List<RuleViolation> violations = new ArrayList<>(registeredChecks(siteKey, language, text));
+        if (document) {
+            violations.addAll(mandatory(getFrame(siteKey, language), language, text));
+        }
         return violations;
     }
 
     /**
-     * The findings of the registered checks of the scope VALUE, as violations. The frame checks the rules
-     * of the evaluator pattern itself.
+     * The findings of the registered checks of the scope VALUE, the rules of the evaluator pattern included,
+     * as violations: the Compliance scan finds the same in the same text.
      */
     private List<RuleViolation> registeredChecks(String siteKey, String language, String text) {
         if (checks == null || siteKey == null || text == null) {
             return List.of();
         }
-        return checks.run(CheckInput.value(SITES + siteKey, language, text), Set.of(ContentRule.PATTERN)).stream()
-                .map(checked -> violation(checked.rule(), checked.finding().text(), checked.finding().context()))
+        return checks.run(CheckInput.value(SITES + siteKey, language, text), Set.of()).stream()
+                .map(checked -> violation(checked.rule(), checked.finding(), language))
                 .toList();
     }
 
-    static RuleViolation violation(ContentRule rule, String text, String context) {
+    /** The mandatory mentions of the frame that a whole document lacks. */
+    private static List<RuleViolation> mandatory(Frame frame, String language, String text) {
+        List<WritingRule> mandatory = frame.rules().stream().filter(rule -> rule.kind() == WritingRule.Kind.MANDATORY).toList();
+        return mandatory.isEmpty() ? List.of() : RuleChecker.check(mandatory, language, text, true);
+    }
+
+    /**
+     * @param rule     the rule as the site applies it
+     * @param finding  what its check found: the term and the replacement of a term rule are values of the finding
+     * @param language the language of the text, which the advice is in when the rule has it
+     * @return the violation
+     */
+    static RuleViolation violation(ContentRule rule, Finding finding, String language) {
         WritingRule.Kind kind;
         try {
             kind = WritingRule.Kind.parse(rule.value(RuleValues.KIND) instanceof String name ? name : null);
         } catch (IllegalArgumentException e) {
             kind = WritingRule.Kind.FORBIDDEN;
         }
-        Object replacement = rule.value(RuleValues.REPLACEMENT);
+        Object term = finding.values().get(Finding.TERM);
+        Object replacement = finding.values().getOrDefault(Finding.REPLACEMENT, rule.value(RuleValues.REPLACEMENT));
         return new RuleViolation(rule.id(), kind, rule.blocking() ? WritingRule.Severity.BLOCKING : WritingRule.Severity.WARNING,
-                null, text, replacement == null ? null : replacement.toString(), rule.advice(), context, rule.folder());
+                term == null ? null : term.toString(), finding.text(), replacement == null ? null : replacement.toString(),
+                rule.text(RuleValues.ADVICE, language), finding.context(), rule.folder());
     }
 
     @Override
@@ -97,8 +126,10 @@ public class EditorialFrameServiceImpl implements EditorialFrameService {
     public List<RuleViolation> checkTranslation(String siteKey, String sourceLanguage, String sourceText, String language,
                                                 String text, boolean document) {
         Frame frame = getFrame(siteKey, language);
-        List<RuleViolation> violations = new ArrayList<>(RuleChecker.check(frame.rules(), language, text, document));
-        violations.addAll(registeredChecks(siteKey, language, text));
+        List<RuleViolation> violations = new ArrayList<>(registeredChecks(siteKey, language, text));
+        if (document) {
+            violations.addAll(mandatory(frame, language, text));
+        }
         // A rendering that a rule already proposes for a wrong term of the translation is not missing too.
         Set<String> proposed = new HashSet<>();
         violations.stream().map(RuleViolation::replacement).filter(Objects::nonNull)
