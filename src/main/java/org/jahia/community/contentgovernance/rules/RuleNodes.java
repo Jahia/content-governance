@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.TreeMap;
 
 /**
  * Reads and writes the {@link RuleValues} of a {@value ContentRules#TYPE} node. The session of the node
@@ -48,7 +49,40 @@ final class RuleNodes {
                 values.put(RuleValues.ADVICE, advice);
             }
         }
+        Map<String, Map<String, String>> translations = translations(node);
+        if (!translations.isEmpty()) {
+            values.put(RuleValues.TRANSLATIONS, translations);
+        }
         return values;
+    }
+
+    /**
+     * The title, the label and the advice of the node in each language but English. Example: the French
+     * advice that a site wrote on a shipped rule.
+     */
+    private static Map<String, Map<String, String>> translations(JCRNodeWrapper node) throws RepositoryException {
+        Map<String, Map<String, String>> out = new TreeMap<>();
+        Node real = node.getRealNode();
+        if (real == null) {
+            return out;
+        }
+        NodeIterator found = real.getNodes("j:translation_*");
+        while (found != null && found.hasNext()) {
+            Node translation = found.nextNode();
+            String language = translation.hasProperty("jcr:language") ? translation.getProperty("jcr:language").getString() : null;
+            if (language == null || "en".equals(language)) {
+                continue;
+            }
+            for (String key : RuleValues.TRANSLATABLE) {
+                if (translation.hasProperty(key)) {
+                    String text = translation.getProperty(key).getString();
+                    if (!text.isBlank()) {
+                        out.computeIfAbsent(language, ignored -> new TreeMap<>()).put(key, text);
+                    }
+                }
+            }
+        }
+        return out;
     }
 
     /**
@@ -110,7 +144,8 @@ final class RuleNodes {
         Map<String, Object> present = read(node);
         boolean wrote = false;
         for (Map.Entry<String, Object> entry : values.entrySet()) {
-            if (!present.containsKey(entry.getKey())) {
+            // The translations of a shipped rule stay in its file: the rule reads them from there.
+            if (RuleValues.KEYS.contains(entry.getKey()) && !present.containsKey(entry.getKey())) {
                 set(node, entry.getKey(), entry.getValue());
                 wrote = true;
             }

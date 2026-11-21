@@ -94,8 +94,9 @@ class LegacyTermsTest {
     @Test
     void theNewPropertiesComeLastSoThatTheDigestOfARuleThatLacksThemStaysTheSame() {
         // The digest reads the keys in order and skips an absent one: a seeded rule keeps its fingerprint.
-        assertThat(RuleValues.KEYS.subList(RuleValues.KEYS.size() - 3, RuleValues.KEYS.size()))
-                .containsExactly(RuleValues.PATTERN_FORMS, RuleValues.REPLACEMENT_FORMS, RuleValues.PATTERN_LANGUAGE);
+        assertThat(RuleValues.KEYS.subList(RuleValues.KEYS.size() - 5, RuleValues.KEYS.size()))
+                .containsExactly(RuleValues.PATTERN_FORMS, RuleValues.REPLACEMENT_FORMS, RuleValues.PATTERN_LANGUAGE,
+                        RuleValues.TITLE, RuleValues.LABEL);
     }
 
     @Test

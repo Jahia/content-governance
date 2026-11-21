@@ -44,4 +44,10 @@ public class GqlCheckFinding {
     public String getContext() {
         return finding.context();
     }
+
+    @GraphQLField
+    @GraphQLDescription("A CSS selector of the element that breaks the rule in the rendered page, or null")
+    public String getLocator() {
+        return finding.locator();
+    }
 }

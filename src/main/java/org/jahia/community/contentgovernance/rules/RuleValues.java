@@ -7,8 +7,10 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * The values of a rule, keyed by the name of their property on a {@value ContentRules#TYPE} node. A rule
@@ -48,6 +50,18 @@ public final class RuleValues {
     public static final String REPLACEMENT_FORMS = "replacementForms";
     /** The language of the pattern of a glossary term that the rule translates, such as {@code en}. */
     public static final String PATTERN_LANGUAGE = "patternLanguage";
+    /**
+     * Internationalized on the node: the title of a finding, with one line per plural form, such as
+     * {@code one: {{count}} image has no text alternative}. The rules read and write its English value.
+     */
+    public static final String TITLE = "title";
+    /** Internationalized on the node: a neutral name of what the rule checks, such as "Title length". */
+    public static final String LABEL = "label";
+    /**
+     * Not a property: the texts of the rule in the languages other than English, as
+     * {@code Map<language, Map<TITLE|LABEL|ADVICE, text>>}. The digest and the seeder ignore it.
+     */
+    public static final String TRANSLATIONS = "translations";
 
     /**
      * Every property that a rule file sets, in the order of the digest. A new key goes last, so that the
@@ -56,7 +70,11 @@ public final class RuleValues {
     public static final List<String> KEYS = List.of(RULE_ID, EVALUATOR, DOMAIN, ENABLED, SEVERITY, BLOCKING, FIXER,
             ADVICE, UNIT, MINIMUM, MAXIMUM, KIND, PATTERN, MATCH_MODE, REPLACEMENT, RULE_LANGUAGE, WRONG_EXAMPLES,
             RIGHT_EXAMPLES, OWNER, DECIDED_ON, VALID_FROM, VALID_UNTIL, PATTERN_FORMS, REPLACEMENT_FORMS,
-            PATTERN_LANGUAGE);
+            PATTERN_LANGUAGE, TITLE, LABEL);
+    /** The texts that a rule holds in each language. */
+    public static final List<String> TRANSLATABLE = List.of(TITLE, LABEL, ADVICE);
+    /** The plural forms of a title, as {@code Intl.PluralRules} and CLDR name them. */
+    public static final List<String> PLURAL_FORMS = List.of("zero", "one", "two", "few", "many", "other");
     public static final List<String> BOOLEANS = List.of(ENABLED, BLOCKING);
     public static final List<String> NUMBERS = List.of(MINIMUM, MAXIMUM);
     public static final List<String> LISTS = List.of(WRONG_EXAMPLES, RIGHT_EXAMPLES, PATTERN_FORMS, REPLACEMENT_FORMS);
@@ -75,7 +93,8 @@ public final class RuleValues {
 
     /**
      * The values with the defaults of the node type: on, not blocking, fixed by an editor, and the domain
-     * of the id. A node that holds a default and a file that leaves it out have the same values.
+     * of the id when its prefix is a known domain. A node that holds a default and a file that leaves it
+     * out have the same values.
      */
     static Map<String, Object> withDefaults(Map<String, Object> values) {
         Map<String, Object> out = new HashMap<>(values);
@@ -83,8 +102,71 @@ public final class RuleValues {
         out.putIfAbsent(BLOCKING, Boolean.FALSE);
         out.putIfAbsent(FIXER, DEFAULT_FIXER);
         Object id = out.get(RULE_ID);
-        if (id != null) {
-            out.putIfAbsent(DOMAIN, domainOf(id.toString()));
+        if (id != null && !out.containsKey(DOMAIN)) {
+            String domain = RuleDomains.fromId(id.toString());
+            if (domain != null) {
+                out.put(DOMAIN, domain);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * The plural forms of a title: one line per form, {@code <form>: <text>}. A text with no known form
+     * before it is the form {@code other}. Example: {@code "one: 1 image\nother: {{count}} images"}.
+     *
+     * @param encoded the title as a rule node holds it, or null
+     * @return the text of each form, in the order of the lines; empty for a null title
+     */
+    public static Map<String, String> pluralForms(String encoded) {
+        Map<String, String> out = new LinkedHashMap<>();
+        if (encoded == null || encoded.isBlank()) {
+            return out;
+        }
+        for (String line : encoded.split("\n")) {
+            String trimmed = line.strip();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            int colon = trimmed.indexOf(':');
+            String form = colon > 0 ? trimmed.substring(0, colon).strip() : "";
+            if (PLURAL_FORMS.contains(form)) {
+                out.put(form, trimmed.substring(colon + 1).strip());
+            } else {
+                out.put("other", trimmed);
+            }
+        }
+        return out;
+    }
+
+    /** The title of the plural forms, as {@link #pluralForms} reads it. */
+    static String encodeForms(Map<?, ?> forms) {
+        StringBuilder out = new StringBuilder();
+        for (Map.Entry<?, ?> form : forms.entrySet()) {
+            if (!PLURAL_FORMS.contains(String.valueOf(form.getKey()))) {
+                throw new IllegalArgumentException("The plural form " + form.getKey() + " is not one of " + PLURAL_FORMS);
+            }
+            out.append(out.isEmpty() ? "" : "\n").append(form.getKey()).append(": ").append(form.getValue());
+        }
+        return out.toString();
+    }
+
+    /**
+     * The translations of {@code over} on top of those of {@code base}: a text of {@code over} replaces the
+     * text of the same language and key. Example: a site translated the advice of a shipped rule in French,
+     * and its French title still comes from the module.
+     */
+    static Map<String, Map<String, String>> mergeTranslations(Object base, Object over) {
+        Map<String, Map<String, String>> out = new TreeMap<>();
+        for (Object source : new Object[]{base, over}) {
+            if (source instanceof Map<?, ?> languages) {
+                languages.forEach((language, texts) -> {
+                    if (texts instanceof Map<?, ?> map) {
+                        map.forEach((key, text) -> out.computeIfAbsent(String.valueOf(language), ignored -> new TreeMap<>())
+                                .put(String.valueOf(key), String.valueOf(text)));
+                    }
+                });
+            }
         }
         return out;
     }

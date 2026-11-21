@@ -49,15 +49,20 @@ export function rankFindings(findings, max = 5) {
 export const auditFindingKey = (resultKey, id) => `audit.${resultKey}.${id}`;
 
 /**
- * The title and the detail of a recommendation of a Page quality tab: the texts of its key under
- * `<ns>.recs`, or, for a rule that no tab words itself (`key: 'rule'`), its id and its advice.
+ * The title and the detail of a recommendation of a Page quality tab: the texts that its rule gave when the
+ * audit ran (`title` and `detail`), in the editor's interface language. Only an audit stored by an older
+ * version has no `title`: it shows its old text, from its key under `<ns>.recs`, or, for a rule that no tab
+ * worded (`key: 'rule'`), its id and its advice.
  *
- * @param {{key: string, params: object, advice: ?string}} rec the recommendation
- * @param {string} ns the namespace of the texts of the tab, such as `seo` or `eco`
+ * @param {{key: string, title: ?string, detail: ?string, params: object, advice: ?string}} rec the recommendation
+ * @param {string} ns the namespace of the old texts of the tab, such as `seo` or `eco`
  * @param {Function} t the translation function of Page quality (`audit.` prefix)
  * @returns {{title: string, detail: string}} the texts
  */
 export function recommendationText(rec, ns, t) {
+    if (typeof rec.title === 'string') {
+        return {title: rec.title, detail: rec.detail || ''};
+    }
     if (rec.key === RULE_KEY) {
         return {title: t('recs.rule', rec.params), detail: rec.advice || ''};
     }
@@ -65,12 +70,13 @@ export function recommendationText(rec, ns, t) {
 }
 
 /**
- * The id of a recommendation in its tab: its key, or the id of its rule for a rule that no tab words.
+ * The id of a recommendation in its tab: the id of its rule, or, in an audit stored by an older version,
+ * its key.
  *
  * @param {{key: string, rule: ?string}} rec the recommendation
  * @returns {string} the id
  */
-export const recommendationId = rec => (rec.key === RULE_KEY ? rec.rule : rec.key);
+export const recommendationId = rec => (rec.key === RULE_KEY || typeof rec.title === 'string' ? rec.rule || rec.key : rec.key);
 
 
 /**
@@ -103,8 +109,10 @@ export function auditFindings(results, t) {
             key: auditFindingKey('a11y', rule.id),
             section: 'audit',
             tab: 'accessibility',
-            severity: rule.impact || 'minor',
-            title: rule.help || rule.id,
+            // The severity that the site gives the rule axe.<id>; axe-core's impact in an older audit
+            severity: rule.severity || rule.impact || 'minor',
+            rule: rule.rule || null,
+            title: rule.title || rule.help || rule.id,
             detail: rule.description,
             count: rule.totalNodes
         });

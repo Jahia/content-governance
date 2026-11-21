@@ -34,7 +34,9 @@
  - ruleId (string) mandatory primary nofulltext
  // Not mandatory: Jahia refuses a new mandatory property on a type that has nodes. Empty: pattern.
  - evaluator (string) = 'pattern' autocreated nofulltext
- // The group of the rule. Empty: the part of the rule id before the first dot.
+ // The group of the rule, which names the tab of its findings: accessibility, seo, readability, writing,
+ // links, health, ecodesign, geo or compliance. Empty: the part of the rule id before the first dot when it is
+ // one of them; else the rule does not run.
  - domain (string) nofulltext
  - enabled (boolean) = 'true' autocreated
  - severity (string, choicelist[resourceBundle]) = 'moderate' autocreated mandatory < 'critical', 'serious', 'moderate', 'minor'
@@ -43,6 +45,11 @@
  - fixer (string, choicelist[resourceBundle]) = 'editor' autocreated < 'editor', 'developer', 'administrator'
  // What to do about a finding. For a rule of the evaluator model, the criterion that the model checks.
  - advice (string, textarea) i18n
+ // The title of a finding, with one line per plural form, such as "one: {{count}} image has no text
+ // alternative" and "other: {{count}} images have no text alternative".
+ - title (string, textarea) i18n
+ // A neutral name of what the rule checks, such as "Title length", for a list of passed and failed rules.
+ - label (string) i18n
  // The limits of a rule of the evaluator threshold, in this unit, such as characters.
  - unit (string)
  - minimum (double)

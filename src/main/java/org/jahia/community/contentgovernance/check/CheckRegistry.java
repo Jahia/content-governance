@@ -50,8 +50,15 @@ public class CheckRegistry {
      * @param active       true when a started module registers the check that the rule names
      * @param missingCheck the id of the check that no module registers, or null for an active rule
      * @param needs        the module that registers the missing check, or null when it is not known
+     * @param unknownDomain the domain of the rule when it is not one of {@code RuleDomains.ALL} (empty for no
+     *                      domain), or null for a rule of a known domain
      */
-    public record Status(boolean active, String missingCheck, String needs) {
+    public record Status(boolean active, String missingCheck, String needs, String unknownDomain) {
+
+        /** The status of a rule of a known domain. */
+        public Status(boolean active, String missingCheck, String needs) {
+            this(active, missingCheck, needs, null);
+        }
     }
 
     /**
@@ -95,10 +102,14 @@ public class CheckRegistry {
      * @return whether the check that the rule names is registered, and which one is missing
      */
     public Status status(ContentRule rule) {
-        if (has(rule.evaluator())) {
-            return new Status(true, null, null);
+        if (!rule.hasKnownDomain()) {
+            // A finding of a rule whose domain is unknown has no place in the drawer: the rule does not run
+            return new Status(false, null, null, rule.domain() == null ? "" : rule.domain());
         }
-        return new Status(false, rule.evaluator(), PROVIDERS.get(rule.evaluator()));
+        if (has(rule.evaluator())) {
+            return new Status(true, null, null, null);
+        }
+        return new Status(false, rule.evaluator(), PROVIDERS.get(rule.evaluator()), null);
     }
 
     /**
@@ -144,7 +155,7 @@ public class CheckRegistry {
         Scope scope = input.scope();
         List<Checked> out = new ArrayList<>();
         for (ContentRule rule : rules.all()) {
-            boolean wanted = rule.enabled() && !skipped.contains(rule.evaluator())
+            boolean wanted = rule.enabled() && rule.hasKnownDomain() && !skipped.contains(rule.evaluator())
                     && (ruleIds == null || ruleIds.contains(rule.id()));
             Registered registered = wanted ? find(rule.evaluator()) : null;
             if (registered == null || registered.browser() || !registered.check().scopes().contains(scope)) {

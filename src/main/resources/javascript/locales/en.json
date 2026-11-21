@@ -1045,7 +1045,10 @@
         "loading": "Loading page preview…",
         "analyzing": "Analyzing page…",
         "error": "Analysis failed",
-        "staleTitle": "Page modified since this audit"
+        "staleTitle": "Page modified since this audit",
+        "legacyTitle": "Audit stored by an older version",
+        "legacy": "This audit was stored before each finding took its text from its rule: it shows its old texts. Run it again to read the texts of the rules.",
+        "runAgain": "Run again"
       },
       "tabs": {
         "accessibility": "Accessibility",
@@ -1334,7 +1337,8 @@
         "title": "Recommendations",
         "none": "Nothing to improve in this category.",
         "rule": "Rule {{rule}} ({{count}})",
-        "items": "Findings ({{count}})"
+        "items": "Findings ({{count}})",
+        "notFound": "Item not found"
       },
       "a11y": {
         "levels": {
@@ -1427,7 +1431,10 @@
             }
           }
         },
-        "serverRules": "HTML rules checked on the server"
+        "serverRules": "HTML rules checked on the server",
+        "siteSeverity": "Site: {{severity}}",
+        "siteSeverityHelp": "The severity that the site gives this rule in its catalog",
+        "axeImpactHelp": "The impact that axe-core gives this check"
       },
       "vitals": {
         "labNote": "Indicative figures: the page is measured on its editing preview, in your browser and with your session, so they do not match the live site (no cache, no CDN). Use them to compare before and after a change. What weighs the page down, below, is the same on the live site.",
@@ -1474,7 +1481,8 @@
             "title": "{{count}} very large files (e.g. {{name}})",
             "detail": "Minify, compress or split these assets, or load them only where actually used."
           }
-        }
+        },
+        "findingsInEcodesign": "The findings on weight, requests and images show in the Ecodesign tab."
       },
       "dashboard": {
         "navLabel": "Page quality",

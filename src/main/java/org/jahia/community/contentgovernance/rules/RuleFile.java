@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 /**
@@ -42,6 +43,8 @@ public record RuleFile(String id, Map<String, Object> values) {
 
     /** A rule id becomes the name of its node, so it holds no slash, no colon and no space. */
     static final Pattern ID_PATTERN = Pattern.compile("[A-Za-z0-9][A-Za-z0-9_.-]{0,127}");
+    /** A language of a text, such as {@code fr} or {@code pt_BR}. */
+    private static final Pattern LANGUAGE = Pattern.compile("[a-z]{2,3}(_[A-Z]{2})?");
     private static final List<String> KINDS = List.of("forbidden", "replace", "mandatory", "style");
     private static final List<String> MATCH_MODES = List.of("term", "regex");
     private static final String SUFFIX = ".md";
@@ -73,24 +76,82 @@ public record RuleFile(String id, Map<String, Object> values) {
         String body = bodyStart < 0 ? "" : source.substring(bodyStart + 1).strip();
 
         Map<String, Object> values = new LinkedHashMap<>();
+        Map<String, Map<String, String>> translations = new TreeMap<>();
         for (Map.Entry<?, ?> entry : front.entrySet()) {
             String key = "id".equals(entry.getKey()) ? RuleValues.RULE_ID : String.valueOf(entry.getKey());
-            if (!RuleValues.KEYS.contains(key) || RuleValues.ADVICE.equals(key)) {
+            if (!RuleValues.KEYS.contains(key)) {
                 throw new IllegalArgumentException(fileName + " has the unknown key " + entry.getKey());
             }
-            if (entry.getValue() != null) {
+            if (entry.getValue() == null) {
+                continue;
+            }
+            if (RuleValues.TRANSLATABLE.contains(key)) {
+                texts(key, entry.getValue(), fileName, values, translations);
+            } else {
                 values.put(key, value(key, entry.getValue(), fileName));
             }
         }
         String stem = fileName.endsWith(SUFFIX) ? fileName.substring(0, fileName.length() - SUFFIX.length()) : fileName;
         values.putIfAbsent(RuleValues.RULE_ID, stem);
         String id = (String) values.get(RuleValues.RULE_ID);
-        values.putIfAbsent(RuleValues.DOMAIN, RuleValues.domainOf(id));
         if (!body.isEmpty()) {
             values.put(RuleValues.ADVICE, body);
         }
         check(id, values, fileName);
+        if (!translations.isEmpty()) {
+            values.put(RuleValues.TRANSLATIONS, Collections.unmodifiableMap(translations));
+        }
         return new RuleFile(id, values);
+    }
+
+    /**
+     * Reads a text of the rule: a text in English, or a map of languages. The title of a language is a
+     * text, or a map of plural forms:
+     *
+     * <pre>
+     * title:
+     *   en:
+     *     one: "{{count}} image has no text alternative"
+     *     other: "{{count}} images have no text alternative"
+     *   fr: ...
+     * label:
+     *   en: Text alternatives of images
+     *   fr: Alternatives textuelles des images
+     * </pre>
+     *
+     * The English advice is the body of the file; the frontmatter key {@code advice} gives its other
+     * languages.
+     */
+    private static void texts(String key, Object raw, String fileName, Map<String, Object> values,
+                              Map<String, Map<String, String>> translations) {
+        if (!(raw instanceof Map<?, ?> languages)) {
+            if (RuleValues.ADVICE.equals(key)) {
+                throw new IllegalArgumentException(fileName + ": the English advice is the body of the file");
+            }
+            values.put(key, String.valueOf(raw));
+            return;
+        }
+        for (Map.Entry<?, ?> language : languages.entrySet()) {
+            String code = String.valueOf(language.getKey());
+            if (!LANGUAGE.matcher(code).matches()) {
+                throw new IllegalArgumentException(fileName + ": " + code + " is not a language such as fr");
+            }
+            Object text = language.getValue();
+            String encoded;
+            if (text instanceof Map<?, ?> forms) {
+                if (!RuleValues.TITLE.equals(key)) {
+                    throw new IllegalArgumentException(fileName + ": only a title has plural forms");
+                }
+                encoded = RuleValues.encodeForms(forms);
+            } else {
+                encoded = text == null ? "" : String.valueOf(text).strip();
+            }
+            if ("en".equals(code)) {
+                values.put(key, encoded);
+            } else {
+                translations.computeIfAbsent(code, ignored -> new TreeMap<>()).put(key, encoded);
+            }
+        }
     }
 
     private static Map<?, ?> frontmatter(String front, String fileName) {
@@ -154,6 +215,13 @@ public record RuleFile(String id, Map<String, Object> values) {
         }
         if (values.get(RuleValues.EVALUATOR) == null) {
             throw new IllegalArgumentException("The rule " + id + " names no evaluator");
+        }
+        if (values.get(RuleValues.DOMAIN) == null) {
+            throw new IllegalArgumentException("The rule " + id + " names no domain: one of " + RuleDomains.ALL);
+        }
+        if (!RuleDomains.known(values.get(RuleValues.DOMAIN))) {
+            throw new IllegalArgumentException("The rule " + id + " has the unknown domain " + values.get(RuleValues.DOMAIN)
+                    + ": one of " + RuleDomains.ALL);
         }
         if (!ContentRule.SEVERITIES.contains(values.get(RuleValues.SEVERITY))) {
             throw new IllegalArgumentException("The rule " + id + " has the unknown severity " + values.get(RuleValues.SEVERITY));

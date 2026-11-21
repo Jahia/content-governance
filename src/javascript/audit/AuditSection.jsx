@@ -26,6 +26,7 @@ import styles from './AuditSection.module.css';
 import {toLocaleTag} from '../common/locale';
 import {tabCounts} from './tabCounts';
 import {CountBadge} from '../common/CountBadge';
+import {HighlightContext} from './HighlightContext';
 
 // Let client islands hydrate and layout settle before measuring
 const SETTLE_MS = 2500;
@@ -59,7 +60,10 @@ const CACHE_MAX_ENTRIES = 10;
 // Bump whenever the cached `results` shape changes (e.g. a new analyzer key),
 // so entries written by an older module version are ignored instead of
 // restored into UI that expects the new shape.
-const CACHE_SCHEMA = 6;
+const CACHE_SCHEMA = 7;
+// The shape of the results before every finding was worded from its rule (Jahia/content-governance#140):
+// such an audit shows its old text, with "Run again"
+const LEGACY_SCHEMA = 6;
 
 const cacheKey = (path, language) => `${CACHE_PREFIX}${language}:${path}`;
 
@@ -223,7 +227,7 @@ const pageFactsOf = seo => ({
  *
  * @returns {Promise<object>} the results (`measuredResults`), with `incomplete` when a step did not finish
  */
-async function auditFrame(frame, {isOn, language, path, apolloClient}) {
+async function auditFrame(frame, {isOn, language, uiLanguage, path, apolloClient}) {
     // Refuse to audit an error page (404/500 render) - scoring it
     // would silently produce meaningless results.
     const navEntry = frame.contentWindow.performance.getEntriesByType('navigation')[0];
@@ -235,8 +239,9 @@ async function auditFrame(frame, {isOn, language, path, apolloClient}) {
     // before any analyzer sees the DOM.
     removeToolingElements(frame.contentDocument);
 
-    // Read once per audit, so that a rule the site changed applies at the next run.
-    const rules = await fetchRules(apolloClient, path);
+    // Read once per audit, so that a rule the site changed applies at the next run, with the texts of the
+    // rules in the editor's interface language.
+    const rules = await fetchRules(apolloClient, path, uiLanguage);
 
     // Only the tabs the site keeps on are kept. Eco-design reads the vitals measurement, so vitals
     // run as its input. The check of the server runs when a tab that reads it is on, Accessibility
@@ -267,25 +272,44 @@ async function auditFrame(frame, {isOn, language, path, apolloClient}) {
             incomplete.ecodesign = incomplete.vitals;
         }
     }
-    const axe = isOn('accessibility') ? await step('a11y', () => runAccessibility(frame)) : null;
+    const axe = isOn('accessibility') ? await step('a11y', () => runAccessibility(frame, rules, uiLanguage)) : null;
     const checked = server && await server;
     markServerTabs(incomplete, checked);
     const page = pageFactsOf(checked?.seo);
-    // The HTML rules of the server that no other tab words go with the checks of axe-core
+    // The rules of the domain accessibility that the server checks go with the checks of axe-core
     const a11y = axe && {...axe, recommendations: checked ? checked.accessibility : []};
-    return measuredResults({a11y, vitals, ecodesign, ...checked}, page, incomplete, isOn);
+    // The server gives no tab of the browser: its findings of the domain ecodesign join that tab
+    const serverTabs = Object.fromEntries(SERVER_KEYS.filter(key => checked?.[key]).map(key => [key, checked[key]]));
+    return measuredResults({a11y, ...byDomain(vitals, ecodesign, checked?.ecodesign), ...serverTabs}, page, incomplete, isOn);
+}
+
+/**
+ * The findings of the web vitals go to the tab of the domain of their rules, Ecodesign, with the findings
+ * of the eco-design analyzer and of the server: Web Vitals keeps its figures only. One rule gives one
+ * recommendation, so a rule that both analyzers report shows once.
+ */
+function byDomain(vitals, ecodesign, serverEco) {
+    if (!ecodesign) {
+        return {vitals: vitals && {...vitals, recommendations: []}, ecodesign};
+    }
+    const seen = new Set();
+    const recommendations = [...(ecodesign.recommendations || []), ...(vitals?.recommendations || []), ...(serverEco || [])]
+        .filter(rec => !seen.has(rec.rule) && seen.add(rec.rule));
+    return {vitals: vitals && {...vitals, recommendations: []}, ecodesign: {...ecodesign, recommendations}};
 }
 
 /**
  * The results of the tabs the site keeps on, or null when one of them is missing (a tab switched
- * back on since the audit was cached) or when an older version of the module stored them in another
- * shape: a tab switched off is never shown nor exported.
+ * back on since the audit was cached) or when an older version of the module stored them in a shape
+ * that this version cannot show: a tab switched off is never shown nor exported. An audit of the
+ * shape before #140 is kept, marked `legacy`: it shows its old text, with "Run again".
  */
 function keepEnabled(results, isOn) {
-    if (results.page?.schema !== CACHE_SCHEMA) {
+    const schema = results.page?.schema;
+    if (schema !== CACHE_SCHEMA && schema !== LEGACY_SCHEMA) {
         return null;
     }
-    const kept = {page: results.page};
+    const kept = {page: results.page, ...(schema === LEGACY_SCHEMA ? {legacy: true} : {})};
     for (const [tab, key] of Object.entries(RESULT_KEYS)) {
         if (isOn(tab)) {
             if (!results[key]) {
@@ -304,7 +328,9 @@ function keepEnabled(results, isOn) {
  * the page when it first shows and on every re-run.
  */
 export function AuditSection({path, language, isOn, onCount, onFindings, requestedTab}) {
-    const {t} = useGovernanceTranslation('audit');
+    const {t, i18n} = useGovernanceTranslation('audit');
+    // The texts of the rules follow the editor's interface language, not the language of the content
+    const uiLanguage = i18n?.language || 'en';
     const apolloClient = useApolloClient();
     const [activeTab, setActiveTab] = useState(null);
     const [status, setStatus] = useState('idle');
@@ -434,7 +460,7 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
                     throw new Error('Preview frame unavailable');
                 }
 
-                const newResults = await auditFrame(frame, {isOn, language, path, apolloClient});
+                const newResults = await auditFrame(frame, {isOn, language, uiLanguage, path, apolloClient});
                 const timestamp = Date.now();
                 setResults(newResults);
                 setAuditedAt(timestamp);
@@ -450,7 +476,7 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
                 setStatus('error');
             }
         }, SETTLE_MS);
-    }, [language, path, apolloClient, isOn, runId, addRun]);
+    }, [language, uiLanguage, path, apolloClient, isOn, runId, addRun]);
 
     // Starts the analysis of a page whose load event does not come (a request that never answers)
     // once its document is parsed, or reports a preview that did not load at all.
@@ -493,22 +519,24 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
         highlightedRef.current = target;
     }, []);
 
+    // Marks the element of a selector and answers whether the page has it: false gives "Item not found"
     const highlight = useCallback(selector => {
         const doc = frameRef.current && frameRef.current.contentDocument;
         if (!doc) {
-            return;
+            return false;
         }
         let el = null;
         try {
             el = doc.querySelector(selector);
         } catch {
-            return;
+            return false;
         }
         if (!el) {
-            return;
+            return false;
         }
         const editDoc = findEditFrameDocument(path, language);
         mark((editDoc && locateInFrame(el, editDoc)) || el);
+        return true;
     }, [mark, path, language]);
 
     const highlightText = useCallback(sample => {
@@ -613,6 +641,17 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
                 )}
             </div>
 
+            {status === 'ready' && results?.legacy && (
+                <div className={styles.stale}>
+                    <Banner variant="info" title={t('drawer.legacyTitle')}>
+                        <div className={styles.staleRow}>
+                            <Typography>{t('drawer.legacy')}</Typography>
+                            <Button size="small" variant="outlined" label={t('drawer.runAgain')} onClick={() => setRunId(id => id + 1)}/>
+                        </div>
+                    </Banner>
+                </div>
+            )}
+
             {stale && (
                 <div className={styles.stale}>
                     <Banner variant="warning" title={t('drawer.staleTitle')}>
@@ -643,6 +682,7 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
                 </Tab>
             </div>
 
+            <HighlightContext.Provider value={highlight}>
             <div id="audit-tab-panel" role="tabpanel" aria-labelledby={currentTab ? `audit-tab-${currentTab}` : undefined} className={styles.content}>
                 {busy && (
                     <div className={styles.status}>
@@ -677,6 +717,7 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
                     </>
                 )}
             </div>
+            </HighlightContext.Provider>
         </>
     );
 }

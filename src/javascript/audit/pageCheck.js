@@ -1,6 +1,5 @@
 import {gql} from '@apollo/client';
 import {limits} from './rules';
-import {RULE_KEY} from '../drawer/findings';
 
 /**
  * The page check service of the server for the Page quality tabs SEO, Readability, Links and Jahia
@@ -19,6 +18,7 @@ export const PAGE_CHECK = gql`
                     severity
                     text
                     context
+                    locator
                 }
                 facts
             }
@@ -26,103 +26,72 @@ export const PAGE_CHECK = gql`
     }
 `;
 
-/** The tab of each domain of rules; a rule of another domain, such as a check of another module, goes to Jahia health. */
-const DOMAIN_TABS = {seo: 'seo', readability: 'readability', links: 'links', health: 'jahia', html: 'accessibility'};
-
-/** The tab of the rules that a tab of the drawer words itself, when it is not the tab of their domain. */
-const RULE_TABS = {
-    'html.pageLanguageMissing': 'seo',
-    'html.pageLanguageMismatch': 'seo',
-    'html.imageAltMissing': 'seo',
-    'html.linkTextVague': 'seo',
-    'html.headingH1Missing': 'readability',
-    'html.headingH1Multiple': 'readability',
-    'html.headingLevelSkipped': 'readability',
-    'html.headingEmpty': 'readability'
-};
-
-const lixSuffix = facts => (facts.readability.scale === 'lix' ? 'Lix' : '');
-
 /**
- * The text of each rule that a tab words itself: its key under `<tab>.recs` and its values. A rule
- * that is not here shows its id and its advice (`recs.rule`).
+ * The Page quality tab of each domain of rules (Jahia/content-governance#142). No list names the tab of a
+ * rule: a finding goes to the tab of the domain of its rule, built-in or of another module. A rule of the
+ * domain `geo` or `compliance` shows in its own section, and a rule of an unknown domain never runs.
  */
-const RULE_TEXTS = {
-    'seo.title': facts => (facts.seo.title.length === 0 ? ['noTitle'] : ['titleLength', {length: facts.seo.title.length}]),
-    'seo.metaDescription': facts => (facts.seo.description.length === 0 ?
-        ['noDescription'] :
-        ['descriptionLength', {length: facts.seo.description.length}]),
-    'seo.indexable': facts => ['noindex', {content: facts.seo.robots.content}],
-    'seo.followLinks': facts => ['nofollow', {content: facts.seo.robots.content}],
-    'seo.canonical': () => ['noCanonical'],
-    'seo.openGraph': () => ['incompleteOg'],
-    'seo.structuredDataValid': (facts, items) => ['invalidStructuredData', {count: items.length}],
-    'seo.structuredData': () => ['noStructuredData'],
-    'html.pageLanguageMissing': () => ['noLang'],
-    'html.pageLanguageMismatch': facts => ['langMismatch', {htmlLang: facts.seo.lang.htmlLang, expected: facts.seo.lang.expected}],
-    'html.imageAltMissing': (facts, items) => ['missingAlt', {count: items.length}],
-    'html.linkTextVague': (facts, items) => ['genericAnchors', {count: items.length}],
-    'readability.veryHardText': facts => [`veryHardText${lixSuffix(facts)}`, {score: facts.readability.score}],
-    'readability.hardText': facts => [`hardText${lixSuffix(facts)}`, {score: facts.readability.score}],
-    'readability.longSentences': facts => ['longSentences', {count: facts.readability.longSentences}],
-    'readability.longParagraphs': facts => ['longParagraphs', {count: facts.readability.avgWordsPerParagraph}],
-    'readability.thinContent': facts => ['thinContent', {count: facts.readability.words}],
-    'html.headingH1Missing': facts => ['h1Count', {count: facts.readability.h1Count}],
-    'html.headingH1Multiple': facts => ['h1Count', {count: facts.readability.h1Count}],
-    'html.headingLevelSkipped': (facts, items) => ['headingSkips', {count: items.length}],
-    'links.broken': (facts, items) => ['brokenLinks', {count: items.length}],
-    'links.hardcodedUrls': (facts, items) => ['hardcodedUrls', {count: items.length}],
-    'links.mixedContent': (facts, items) => ['mixedContent', {count: items.length}],
-    'links.blankNoopener': (facts, items) => ['blankNoopener', {count: items.length}],
-    'health.rawI18nKeys': (facts, items) => ['rawI18nKeys', {count: items.length}],
-    'health.unpublishedChanges': (facts, items) => ['unpublishedChanges', {count: items.length}],
-    'health.missingTranslations': (facts, items) => ['missingTranslations', {
-        count: items.length,
-        languages: [...new Set(items.flatMap(item => (item.context || '').split(', ').filter(Boolean)))].join(', ')
-    }],
-    'health.placeholderText': (facts, items) => ['placeholderText', {count: items.length}]
+export const DOMAIN_TABS = {
+    accessibility: 'accessibility',
+    seo: 'seo',
+    readability: 'readability',
+    writing: 'readability',
+    links: 'links',
+    health: 'jahia',
+    ecodesign: 'ecodesign'
 };
 
 /**
  * The tab that shows the findings of a rule.
  *
- * @param {string} ruleId the id of the rule
- * @param {object} [rule] the rule of the site, whose `domain` names the group of the rule
- * @returns {string} `seo`, `readability`, `links`, `jahia` or `accessibility`
+ * @param {object} [rule] the rule of the site, whose `domain` names its tab
+ * @returns {?string} `accessibility`, `seo`, `readability`, `links`, `jahia` or `ecodesign`, or null for a
+ *     rule that no Page quality tab shows
  */
-export function tabOf(ruleId, rule) {
-    return RULE_TABS[ruleId] || DOMAIN_TABS[rule?.domain || ruleId.split('.')[0]] || 'jahia';
+export function tabOf(rule) {
+    return DOMAIN_TABS[rule?.domain] || null;
 }
 
 /**
  * The recommendations of the findings, one for each rule in the order of the rules, by tab: what the
- * tab shows, with each finding of the rule in `items`.
+ * tab shows, worded from the rule, with each finding of the rule in `items`.
  *
- * @param {Array<{ruleId: string, severity: string, text: string, context: ?string}>} findings the findings of the service
- * @param {object} facts the facts of the service
- * @param {{find: function(string): ?object}} rules the rules of the site
- * @returns {Object<string, Array<{key: string, rule: string, severity: string, params: object, items: Array<object>, advice: ?string}>>}
+ * The values of the texts are generic: `count` (the findings of the rule), `value` (the text of the first
+ * finding, such as the measured length of a title), and the limits of the rule.
+ *
+ * @param {Array<{ruleId: string, severity: string, text: string, context: ?string, locator: ?string}>} findings the findings of the service
+ * @param {{find: function(string): ?object, word: function(string, object): object}} rules the rules of the site
+ * @returns {Object<string, Array<{key: string, rule: string, severity: string, params: object, items: Array<object>,
+ *     title: string, detail: string, label: string}>>}
  */
-export function recommendationsByTab(findings, facts, rules) {
+export function recommendationsByTab(findings, rules) {
     const byRule = new Map();
     findings.forEach(finding => {
         const items = byRule.get(finding.ruleId) || [];
-        items.push(finding.context ? {text: finding.text, context: finding.context} : {text: finding.text});
+        items.push({
+            text: finding.text,
+            ...(finding.context ? {context: finding.context} : {}),
+            ...(finding.locator ? {locator: finding.locator} : {})
+        });
         byRule.set(finding.ruleId, items);
     });
     const severities = new Map(findings.map(finding => [finding.ruleId, finding.severity]));
-    const out = {seo: [], readability: [], links: [], jahia: [], accessibility: []};
+    const out = {seo: [], readability: [], links: [], jahia: [], accessibility: [], ecodesign: []};
     byRule.forEach((items, ruleId) => {
         const rule = rules.find(ruleId);
-        const known = RULE_TEXTS[ruleId];
-        const [key, params] = known ? known(facts, items) : [RULE_KEY, {rule: ruleId, count: items.length}];
-        out[tabOf(ruleId, rule)].push({
-            key,
+        const tab = tabOf(rule);
+        if (!tab) {
+            console.warn(`[content-governance] the rule ${ruleId} has the domain ${rule?.domain}, which no Page quality tab shows`);
+            return;
+        }
+        const params = {...(rule ? limits(rule) : {}), count: items.length, value: items[0].text};
+        out[tab].push({
+            key: ruleId,
             rule: ruleId,
             severity: severities.get(ruleId) || rule?.severity || 'minor',
-            params: {...(rule ? limits(rule) : {}), ...params},
+            params,
             items,
-            advice: known ? null : rule?.advice || null
+            ...rules.word(ruleId, params)
         });
     });
     return out;
@@ -164,7 +133,7 @@ const under = (path, pagePath) => (path.startsWith(pagePath) ? path.slice(pagePa
  *     unread: Array<string>}} `unread` names the result key of each tab whose repository facts are missing
  */
 export function tabResults({findings, facts}, rules, pagePath, pageUrl) {
-    const recs = recommendationsByTab(findings, facts, rules);
+    const recs = recommendationsByTab(findings, rules);
     const itemsOf = ruleId => recs.jahia.find(rec => rec.rule === ruleId)?.items || [];
     const {seo, readability, links, jahia} = facts;
     return {
@@ -187,6 +156,7 @@ export function tabResults({findings, facts}, rules, pagePath, pageUrl) {
             recommendations: recs.jahia
         },
         accessibility: recs.accessibility,
+        ecodesign: recs.ecodesign,
         unread: unreadTabs(facts)
     };
 }

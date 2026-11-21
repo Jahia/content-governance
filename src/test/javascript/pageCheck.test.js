@@ -1,7 +1,8 @@
 import {describe, expect, it} from 'vitest';
 import {recommendationsByTab, tabOf, tabResults} from '../../javascript/audit/pageCheck.js';
 import {auditFindings, recommendationText} from '../../javascript/drawer/findings.js';
-import {BASE_RULES} from './baseRules.js';
+import {BASE_RULES, rulesIn} from './baseRules.js';
+import {ruleBook} from '../../javascript/audit/rules.js';
 
 const t = (key, params) => `${key}${params ? JSON.stringify(params) : ''}`;
 
@@ -37,21 +38,24 @@ const facts = change => ({
 const finding = (ruleId, text, context, severity = 'moderate') => ({ruleId, severity, text, context: context || null});
 
 describe('tabOf', () => {
-    it('puts a rule in the tab of its domain', () => {
-        expect(tabOf('seo.canonical')).toBe('seo');
-        expect(tabOf('links.broken')).toBe('links');
-        expect(tabOf('health.placeholderText')).toBe('jahia');
-        expect(tabOf('html.buttonNameMissing')).toBe('accessibility');
+    it('puts a rule in the tab of its domain, and nowhere else', () => {
+        expect(tabOf(BASE_RULES.get('seo.canonical'))).toBe('seo');
+        expect(tabOf(BASE_RULES.get('links.broken'))).toBe('links');
+        expect(tabOf(BASE_RULES.get('health.placeholderText'))).toBe('jahia');
+        expect(tabOf(BASE_RULES.get('html.buttonNameMissing'))).toBe('accessibility');
     });
 
-    it('keeps the HTML rules that SEO and Readability word in those tabs', () => {
-        expect(tabOf('html.imageAltMissing')).toBe('seo');
-        expect(tabOf('html.headingLevelSkipped')).toBe('readability');
+    it('puts every rule of the HTML check in the Accessibility tab', () => {
+        expect(tabOf(BASE_RULES.get('html.imageAltMissing'))).toBe('accessibility');
+        expect(tabOf(BASE_RULES.get('html.headingLevelSkipped'))).toBe('accessibility');
+        expect(tabOf(BASE_RULES.get('html.linkTextVague'))).toBe('accessibility');
     });
 
-    it('puts a rule of another domain, such as a check of another module, in Jahia health', () => {
-        expect(tabOf('acme.erpPrice', {domain: 'acme'})).toBe('jahia');
-        expect(tabOf('voice.tone', {domain: 'seo'})).toBe('seo');
+    it('puts a rule of another module in the tab of its domain, and a rule of an unknown domain in none', () => {
+        expect(tabOf({id: 'acme.erpPrice', domain: 'writing'})).toBe('readability');
+        expect(tabOf({id: 'voice.tone', domain: 'seo'})).toBe('seo');
+        expect(tabOf({id: 'brand.tone', domain: 'brand'})).toBeNull();
+        expect(tabOf(BASE_RULES.get('geo.reachable'))).toBeNull();
     });
 });
 
@@ -61,50 +65,58 @@ describe('recommendationsByTab', () => {
             finding('links.mixedContent', 'http://example.com/a'),
             finding('links.broken', '/sites/digitall/gone', 'missing', 'critical'),
             finding('links.mixedContent', 'http://example.com/b')
-        ], facts(), BASE_RULES);
+        ], BASE_RULES);
 
         expect(recs.links.map(rec => rec.rule)).toEqual(['links.mixedContent', 'links.broken']);
-        expect(recs.links[0]).toMatchObject({key: 'mixedContent', params: {count: 2}, severity: 'moderate',
-            items: [{text: 'http://example.com/a'}, {text: 'http://example.com/b'}]});
-        expect(recs.links[1]).toMatchObject({key: 'brokenLinks', severity: 'critical',
+        expect(recs.links[0]).toMatchObject({key: 'links.mixedContent', params: {count: 2}, severity: 'moderate',
+            title: '2 links use http://', items: [{text: 'http://example.com/a'}, {text: 'http://example.com/b'}]});
+        expect(recs.links[1]).toMatchObject({key: 'links.broken', severity: 'critical', title: '1 link is broken',
             items: [{text: '/sites/digitall/gone', context: 'missing'}]});
     });
 
-    it('words a known rule with the facts of the page and the limits of the rule', () => {
-        const recs = recommendationsByTab([finding('seo.title', '4'), finding('seo.metaDescription', '0'),
-            finding('html.pageLanguageMismatch', '<html lang="fr">')], facts(), BASE_RULES);
+    it('words every rule from the rule: its title, its values and its limits', () => {
+        const recs = recommendationsByTab([finding('seo.title', '72'), finding('seo.metaDescription', '0')], BASE_RULES);
 
-        expect(recs.seo[0]).toMatchObject({key: 'titleLength', params: {length: 4, min: 30, max: 60}});
-        expect(recs.seo[1]).toMatchObject({key: 'noDescription'});
-        expect(recs.seo[2]).toMatchObject({key: 'langMismatch', params: {htmlLang: 'fr', expected: 'en'}});
+        expect(recs.seo[0]).toMatchObject({title: 'The title has 72 characters (keep 30 to 60)', label: 'Title length',
+            detail: 'Give the page a title, with the main subject first, inside the length range.',
+            params: {value: '72', min: 30, max: 60}});
+        expect(recs.seo[1].title).toBe('The meta description has 0 characters (keep 50 to 160)');
     });
 
-    it('words a readability rule on the scale of the score', () => {
-        const flesch = recommendationsByTab([finding('readability.hardText', '42')], facts(), BASE_RULES);
-        const lix = recommendationsByTab([finding('readability.hardText', '50')],
-            facts({readability: {...facts().readability, scale: 'lix', score: 50}}), BASE_RULES);
+    it('takes the plural form of the count in the language of the texts', () => {
+        const one = [finding('html.imageAltMissing', '<img src="a.png">')];
+        const two = [...one, finding('html.imageAltMissing', '<img src="b.png">')];
 
-        expect(flesch.readability[0]).toMatchObject({key: 'hardText', params: {score: 42}});
-        expect(lix.readability[0]).toMatchObject({key: 'hardTextLix', params: {score: 50}});
+        expect(recommendationsByTab(one, BASE_RULES).accessibility[0].title).toBe('1 image has no text alternative');
+        expect(recommendationsByTab(two, BASE_RULES).accessibility[0].title).toBe('2 images have no text alternative');
+        expect(recommendationsByTab(two, rulesIn('fr')).accessibility[0]).toMatchObject({
+            title: '2 images sans alternative textuelle', label: 'Alternatives textuelles des images',
+            detail: expect.stringContaining('attribut alt')});
     });
 
-    it('names the languages that the content lacks', () => {
-        const recs = recommendationsByTab([finding('health.missingTranslations', '/a', 'de, fr'),
-            finding('health.missingTranslations', '/b', 'fr')], facts(), BASE_RULES);
+    it('words a rule of another module the same way, and its id when it has no text', () => {
+        const rules = ruleBook([...BASE_RULES.all(), {id: 'acme.erpPrice', domain: 'writing', severity: 'serious',
+            title: [{form: 'one', text: '{{count}} price typed, such as {{value}}'}], advice: 'Insert the product.'},
+        {id: 'acme.bare', domain: 'health', severity: 'minor', title: [], advice: ''}]);
+        const recs = recommendationsByTab([finding('acme.erpPrice', '12.50 EUR'), finding('acme.bare', 'x')], rules);
 
-        expect(recs.jahia[0].params).toMatchObject({count: 2, languages: 'de, fr'});
+        expect(recs.readability[0]).toMatchObject({title: '1 price typed, such as 12.50 EUR', detail: 'Insert the product.'});
+        expect(recs.jahia[0]).toMatchObject({title: 'acme.bare', label: 'acme.bare'});
     });
 
-    it('shows a rule that no tab words with its id and its advice', () => {
-        const recs = recommendationsByTab([finding('html.buttonNameMissing', '<button></button>', null, 'serious')],
-            facts(), BASE_RULES);
+    it('keeps the locator of a finding, and drops a rule that no tab shows', () => {
+        const recs = recommendationsByTab([{...finding('html.imageAltMissing', '<img>'), locator: 'main > img'},
+            finding('geo.reachable', 'GPTBot')], BASE_RULES);
 
-        expect(recs.accessibility[0]).toMatchObject({key: 'rule', rule: 'html.buttonNameMissing', severity: 'serious',
-            params: {rule: 'html.buttonNameMissing', count: 1}});
-        expect(recommendationText(recs.accessibility[0], 'a11y', t))
-            .toEqual({title: 'recs.rule{"rule":"html.buttonNameMissing","count":1}', detail: ''});
-        expect(recommendationText({...recs.accessibility[0], advice: 'Name the button.'}, 'a11y', t).detail)
-            .toBe('Name the button.');
+        expect(recs.accessibility[0].items).toEqual([{text: '<img>', locator: 'main > img'}]);
+        expect(Object.values(recs).flat().map(rec => rec.rule)).toEqual(['html.imageAltMissing']);
+    });
+
+    it('shows the old text of an audit stored before the rules worded it', () => {
+        expect(recommendationText({key: 'titleLength', params: {length: 72}}, 'seo', t))
+            .toEqual({title: 'seo.recs.titleLength.title{"length":72}', detail: 'seo.recs.titleLength.detail{"length":72}'});
+        expect(recommendationText({key: 'rule', params: {rule: 'acme.x', count: 1}, advice: 'Do it.'}, 'a11y', t))
+            .toEqual({title: 'recs.rule{"rule":"acme.x","count":1}', detail: 'Do it.'});
     });
 });
 
@@ -114,7 +126,7 @@ describe('tabResults', () => {
             facts: facts()}, BASE_RULES, '/sites/digitall/home');
 
         expect(results.seo).toMatchObject({title: {text: 'Home'}, imagesWithoutAlt: 1,
-            ranges: {title: {min: 30, max: 60}}, recommendations: [{key: 'noCanonical'}]});
+            ranges: {title: {min: 30, max: 60}}, recommendations: [{key: 'seo.canonical', title: 'The page declares no canonical URL'}]});
         expect(results.seo.ogImageResolved).toMatch(/\/files\/card\.png$/);
         expect(results.readability).toMatchObject({score: 42, recommendations: []});
         expect(results.links).toMatchObject({broken: [{path: '/sites/digitall/gone', reason: 'missing'}]});

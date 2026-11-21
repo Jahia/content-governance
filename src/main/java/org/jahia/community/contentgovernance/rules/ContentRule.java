@@ -11,7 +11,8 @@ import java.util.Map;
  * One rule of the catalog, as it applies to one site.
  *
  * @param id        the id that every finding of the rule carries, such as {@code seo.title}
- * @param domain    the group of the rule, by default the part of the id before the first dot
+ * @param domain    the group of the rule, one of {@link RuleDomains#ALL}; by default the part of the id before
+ *                  the first dot when it is a known domain, else null
  * @param evaluator what checks the rule: one of {@link #EVALUATORS}, or the id of a check that a module registers
  * @param severity  one of {@link #SEVERITIES}
  * @param blocking  true when a finding of the rule stops the publication of the content
@@ -52,6 +53,29 @@ public record ContentRule(String id, String domain, String evaluator, String sev
     @Override
     public Object value(String property) {
         return values.get(property);
+    }
+
+    /**
+     * A text of the rule in a language, or in English when the rule has none in that language.
+     *
+     * @param key      {@link RuleValues#TITLE}, {@link RuleValues#LABEL} or {@link RuleValues#ADVICE}
+     * @param language a language such as {@code fr}, or null for English
+     * @return the text, or null when the rule has none
+     */
+    public String text(String key, String language) {
+        if (language != null && !"en".equals(language)
+                && values.get(RuleValues.TRANSLATIONS) instanceof Map<?, ?> translations
+                && translations.get(language) instanceof Map<?, ?> texts
+                && texts.get(key) instanceof String text && !text.isBlank()) {
+            return text;
+        }
+        Object english = values.get(key);
+        return english == null || english.toString().isBlank() ? null : english.toString();
+    }
+
+    /** True when the domain of the rule is one of {@link RuleDomains#ALL}: only then does a finding have a place. */
+    public boolean hasKnownDomain() {
+        return RuleDomains.known(domain);
     }
 
     /**

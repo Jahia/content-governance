@@ -1045,7 +1045,10 @@
         "loading": "Seitenvorschau wird geladen…",
         "analyzing": "Seite wird analysiert…",
         "error": "Analyse fehlgeschlagen",
-        "staleTitle": "Seite seit diesem Audit geändert"
+        "staleTitle": "Seite seit diesem Audit geändert",
+        "legacyTitle": "Von einer älteren Version gespeichertes Audit",
+        "legacy": "Dieses Audit stammt aus der Zeit, bevor jeder Befund seinen Text aus seiner Regel nahm: Es zeigt seine alten Texte. Führen Sie es erneut aus, um die Texte der Regeln zu lesen.",
+        "runAgain": "Erneut ausführen"
       },
       "tabs": {
         "accessibility": "Barrierefreiheit",
@@ -1334,7 +1337,8 @@
         "title": "Empfehlungen",
         "none": "In dieser Kategorie gibt es nichts zu verbessern.",
         "rule": "Regel {{rule}} ({{count}})",
-        "items": "Befunde ({{count}})"
+        "items": "Befunde ({{count}})",
+        "notFound": "Element nicht gefunden"
       },
       "a11y": {
         "levels": {
@@ -1427,7 +1431,10 @@
             }
           }
         },
-        "serverRules": "Auf dem Server geprüfte HTML-Regeln"
+        "serverRules": "Auf dem Server geprüfte HTML-Regeln",
+        "siteSeverity": "Website: {{severity}}",
+        "siteSeverityHelp": "Der Schweregrad, den die Website dieser Regel in ihrem Katalog gibt",
+        "axeImpactHelp": "Die Auswirkung, die axe-core dieser Prüfung gibt"
       },
       "vitals": {
         "labNote": "Richtwerte: Die Seite wird in ihrer Bearbeitungsvorschau gemessen, in Ihrem Browser und mit Ihrer Sitzung. Sie entsprechen daher nicht der Live-Website (kein Cache, kein CDN). Nutzen Sie sie, um vor und nach einer Änderung zu vergleichen. Was die Seite schwer macht (unten), ist auf der Live-Website dasselbe.",
@@ -1474,7 +1481,8 @@
             "title": "{{count}} sehr große Dateien (z. B. {{name}})",
             "detail": "Minimieren, komprimieren oder teilen Sie diese Ressourcen auf, oder laden Sie sie nur dort, wo sie tatsächlich verwendet werden."
           }
-        }
+        },
+        "findingsInEcodesign": "Die Befunde zu Gewicht, Anfragen und Bildern stehen im Tab Ökodesign."
       },
       "dashboard": {
         "navLabel": "Seitenqualität",

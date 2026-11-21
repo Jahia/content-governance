@@ -49,15 +49,15 @@ class CheckRegistryTest {
 
     private static ContentRules withRule(String id, String evaluator) {
         return ContentRules.base().with(RuleValues.toRule(Map.of(RuleValues.RULE_ID, id, RuleValues.EVALUATOR, evaluator,
-                RuleValues.SEVERITY, "serious")));
+                RuleValues.SEVERITY, "serious", RuleValues.DOMAIN, "writing")));
     }
 
     @Test
     @DisplayName("a rule whose check no module registers is inactive, and names the check and its module")
     void status_namesTheMissingCheck() {
         CheckRegistry registry = new CheckRegistry();
-        ContentRule model = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.tone", RuleValues.EVALUATOR, "model"));
-        ContentRule price = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.erpPrice", RuleValues.EVALUATOR, "acme.erpPrice"));
+        ContentRule model = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.tone", RuleValues.EVALUATOR, "model", RuleValues.DOMAIN, "writing"));
+        ContentRule price = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.erpPrice", RuleValues.EVALUATOR, "acme.erpPrice", RuleValues.DOMAIN, "writing"));
 
         assertThat(registry.status(model)).isEqualTo(new CheckRegistry.Status(false, "model", "ai-assistant"));
         assertThat(registry.status(price)).isEqualTo(new CheckRegistry.Status(false, "acme.erpPrice", null));
@@ -166,7 +166,7 @@ class CheckRegistryTest {
         }, id("acme.broken"));
         registry.bindCheck(PRICE, id("acme.erpPrice"));
         ContentRules rules = withRule("acme.broken", "acme.broken").with(RuleValues.toRule(Map.of(
-                RuleValues.RULE_ID, "acme.erpPrice", RuleValues.EVALUATOR, "acme.erpPrice")));
+                RuleValues.RULE_ID, "acme.erpPrice", RuleValues.EVALUATOR, "acme.erpPrice", RuleValues.DOMAIN, "writing")));
 
         assertThat(registry.run(rules, CheckInput.value(PAGE, "en", "12.50 EUR"), Set.of()))
                 .extracting(checked -> checked.rule().id()).containsExactly("acme.erpPrice");
@@ -214,5 +214,20 @@ class CheckRegistryTest {
         assertThat(missing).isEmpty();
         assertThat(ContentRules.base().all()).extracting(ContentRule::id)
                 .containsAll(Arrays.stream(HtmlRule.values()).map(HtmlRule::id).toList());
+    }
+
+    @Test
+    void aRuleOfAnUnknownDomain_isInactiveAndDoesNotRun() {
+        CheckRegistry registry = new CheckRegistry();
+        registry.bindCheck(PRICE, id("acme.erpPrice"));
+        ContentRule brand = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "brand.price", RuleValues.EVALUATOR, "acme.erpPrice"));
+        ContentRule other = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.price", RuleValues.EVALUATOR, "acme.erpPrice",
+                RuleValues.DOMAIN, "acme"));
+
+        assertThat(brand.domain()).isNull();
+        assertThat(registry.status(brand)).isEqualTo(new CheckRegistry.Status(false, null, null, ""));
+        assertThat(registry.status(other)).isEqualTo(new CheckRegistry.Status(false, null, null, "acme"));
+        CheckInput input = CheckInput.value("/sites/digitall/home/main/intro", "en", "Only 12.50 EUR");
+        assertThat(registry.run(ContentRules.base().with(brand).with(other), input, Set.of())).isEmpty();
     }
 }
