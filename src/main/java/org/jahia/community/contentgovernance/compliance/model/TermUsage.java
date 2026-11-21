@@ -4,7 +4,7 @@ package org.jahia.community.contentgovernance.compliance.model;
  * How often one rule is broken across a site.
  *
  * @param ruleId      the id of the rule
- * @param term        the pattern of the rule
+ * @param term        the term of the first issue of the rule, as {@link ComplianceIssue#term()} states it
  * @param folder      path of the folder that holds the rule, may be {@code null}
  * @param reason      the advice of the rule, may be {@code null}
  * @param alternative the replacement that the rule names, may be {@code null}

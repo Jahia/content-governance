@@ -10,8 +10,8 @@ import java.util.Collection;
 import java.util.Locale;
 
 /**
- * Scans content against the rules of the evaluator {@code pattern} of its site, such as the terms that the
- * legal team forbids and the glossary terms to translate: one page as Page Builder shows it
+ * Scans content against the rules of Compliance of its site, such as the terms that the legal team forbids,
+ * the glossary terms to translate and the writing rules, through the check registry: one page as Page Builder shows it
  * ({@link #scan}), or a whole site where its content is stored ({@link #scanSite}). Each issue names its
  * rule and the folder of the rule.
  *
@@ -25,8 +25,10 @@ import java.util.Locale;
  * </ul>
  * <p>A text property is a {@code STRING} property shown in Content Editor as text, text area or rich
  * text, with no value constraint (choicelists and tokens are technical values). Rich text is read as
- * the text a visitor sees. The rules are those that the site keeps on, that apply on the day and to the
- * language of the session, and that one text can break: a mandatory mention needs a whole page.</p>
+ * the text a visitor sees. The rules are those of the domains {@code compliance}, {@code glossary} and
+ * {@code writing} that the site keeps on and that a check runs on a value. A rule of the evaluator
+ * {@code pattern} also applies on the day and to the language of the session, and is not a mandatory
+ * mention, which needs a whole page.</p>
  *
  * <p>The content is read through the session of the given node: the scan never sees content that the
  * user cannot read. The rules are read with a system session, so a rule applies even when the user

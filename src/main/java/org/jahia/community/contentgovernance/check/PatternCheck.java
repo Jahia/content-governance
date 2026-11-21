@@ -14,13 +14,13 @@ import org.osgi.service.component.annotations.Component;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The evaluator {@code pattern}: the writing rule of each rule node, which {@link RuleChecker} finds in a
@@ -37,7 +37,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * "Frodon llega" gives the finding "Frodon" with {@code {start: 0, end: 6, term: "Frodon", replacement:
  * "Frodo"}}.</p>
  *
- * <p>Thread safety: the finders are immutable, and kept in a concurrent map.</p>
+ * <p>The findings come in the order of the text, so the 50 findings of a rule that the registry keeps are
+ * the first places of the text.</p>
+ *
+ * <p>Thread safety: the finders are immutable, and the map of the recent ones is synchronized.</p>
  */
 @Component(service = ContentCheck.class, property = ContentCheck.ID + "=" + ContentRule.PATTERN)
 public class PatternCheck implements RuleSetCheck {
@@ -46,7 +49,7 @@ public class PatternCheck implements RuleSetCheck {
     private static final int KEPT_FINDERS = 16;
 
     /** The finders of the last sets of rules: a scan of a site reads thousands of texts with one set. */
-    private final Map<RuleSet, RuleChecker.Finder> finders = new ConcurrentHashMap<>();
+    private final RecentFinders finders = new RecentFinders();
 
     @Override
     public Set<Scope> scopes() {
@@ -65,8 +68,10 @@ public class PatternCheck implements RuleSetCheck {
         String plain = PlainText.fromHtml(input.text());
         Map<String, Rule> byId = new HashMap<>();
         rules.forEach(rule -> byId.putIfAbsent(rule.id(), rule));
+        List<RuleChecker.Match> matches = new ArrayList<>(finder.find(plain));
+        matches.sort(Comparator.comparingInt(RuleChecker.Match::start).thenComparingInt(RuleChecker.Match::end));
         List<Finding> found = new ArrayList<>();
-        for (RuleChecker.Match match : finder.find(plain)) {
+        for (RuleChecker.Match match : matches) {
             found.add(finding(byId.get(match.rule().id()), plain, match));
         }
         return found;
@@ -75,10 +80,6 @@ public class PatternCheck implements RuleSetCheck {
     private RuleChecker.Finder finder(RuleSet set) {
         RuleChecker.Finder finder = finders.get(set);
         if (finder == null) {
-            if (finders.size() >= KEPT_FINDERS) {
-                // A set of rules that comes back is compiled again
-                finders.clear();
-            }
             List<WritingRule> writing = new ArrayList<>();
             for (Rule rule : set.rules()) {
                 WritingRule one = writingRule(rule);
@@ -103,6 +104,22 @@ public class PatternCheck implements RuleSetCheck {
         }
         return new Finding(rule.id(), rule.severity(), plain.substring(match.start(), match.end()),
                 RuleChecker.excerpt(plain, match.start(), match.end()), null, values);
+    }
+
+    /** The finders of the last sets of rules: the one used least recently leaves first. */
+    private static final class RecentFinders {
+        private final Map<RuleSet, RuleChecker.Finder> finders = new LinkedHashMap<>(KEPT_FINDERS, 0.75f, true);
+
+        synchronized RuleChecker.Finder get(RuleSet set) {
+            return finders.get(set);
+        }
+
+        synchronized void put(RuleSet set, RuleChecker.Finder finder) {
+            finders.put(set, finder);
+            if (finders.size() > KEPT_FINDERS) {
+                finders.remove(finders.keySet().iterator().next());
+            }
+        }
     }
 
     /**

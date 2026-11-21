@@ -19,7 +19,8 @@ public interface RuleSetCheck extends ContentCheck {
      * @param input what to check
      * @param rules the rules that the site keeps on and whose evaluator is the id of this check, in the order
      *              of the rules of the site
-     * @return the findings, each with the id of its rule, in the order of the rules
+     * @return the findings, each with the id of its rule; Content Governance keeps the first 50 findings of
+     * each rule, in the order of this list
      */
     List<Finding> check(CheckInput input, List<? extends Rule> rules);
 

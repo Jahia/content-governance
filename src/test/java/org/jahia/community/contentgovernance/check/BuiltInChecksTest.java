@@ -103,14 +103,15 @@ class BuiltInChecksTest {
         List<Finding> found = new PatternCheck().check(CheckInput.value(PATH, "es", "<p>Frodon y <b>Sackville-Baggins</b></p>"),
                 rules);
 
+        // In the order of the text, whatever the order of the rules
         assertThat(found).extracting(Finding::ruleId, Finding::text).containsExactly(
-                tuple("compliance.sackville", "Sackville-Baggins"), tuple("glossary.frodo-fr", "Frodon"));
+                tuple("glossary.frodo-fr", "Frodon"), tuple("compliance.sackville", "Sackville-Baggins"));
         // The place is in the text that a reader reads, and a form of another language names the form to write
-        assertThat(found.get(0).values()).containsEntry(Finding.START, 9).containsEntry(Finding.END, 26)
-                .containsEntry(Finding.TERM, "Sackville-Baggins").doesNotContainKey(Finding.REPLACEMENT);
-        assertThat(found.get(1).values()).containsEntry(Finding.START, 0).containsEntry(Finding.END, 6)
+        assertThat(found.get(0).values()).containsEntry(Finding.START, 0).containsEntry(Finding.END, 6)
                 .containsEntry(Finding.TERM, "Frodon").containsEntry(Finding.REPLACEMENT, "Frodo");
-        assertThat(found.get(1).context()).isEqualTo("Frodon y Sackville-Baggins");
+        assertThat(found.get(0).context()).isEqualTo("Frodon y Sackville-Baggins");
+        assertThat(found.get(1).values()).containsEntry(Finding.START, 9).containsEntry(Finding.END, 26)
+                .containsEntry(Finding.TERM, "Sackville-Baggins").doesNotContainKey(Finding.REPLACEMENT);
     }
 
     @Test

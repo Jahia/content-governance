@@ -10,7 +10,7 @@ import org.jahia.community.contentgovernance.compliance.model.ComplianceIssue;
  * GraphQL view of a {@link ComplianceIssue}. Text fields are plain text: the client escapes them.
  */
 @GraphQLName("ComplianceIssue")
-@GraphQLDescription("One place where a content breaks a rule of the evaluator pattern, such as a forbidden term")
+@GraphQLDescription("One place where a content breaks a rule of Compliance, such as a forbidden term")
 public class GqlComplianceIssue {
 
     private final ComplianceIssue issue;
@@ -81,10 +81,10 @@ public class GqlComplianceIssue {
         return issue.folder();
     }
 
-    /** @return the pattern of the rule */
+    /** @return the term that the finding names */
     @GraphQLField
     @GraphQLNonNull
-    @GraphQLDescription("The pattern of the rule, as the rule writes it")
+    @GraphQLDescription("The term that the finding names: the pattern of the rule, a form of a glossary term of another language, or the label of a rule with no pattern")
     public String getTerm() {
         return issue.term();
     }

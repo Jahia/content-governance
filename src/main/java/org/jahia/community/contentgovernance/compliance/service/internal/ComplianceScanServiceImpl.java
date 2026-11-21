@@ -77,8 +77,13 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         this.checks = checks;
     }
 
+    /** Builds the issue of one finding of a value. */
+    interface IssueOf {
+        ComplianceIssue of(PlacedFinding found) throws RepositoryException;
+    }
+
     /** State of one scan. Not shared between calls. */
-    private static final class Scan {
+    static final class Scan {
         final ComplianceRules rules;
         final CheckRegistry checks;
         final String language;
@@ -112,6 +117,28 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
                 return true;
             }
             return false;
+        }
+
+        /**
+         * Adds an issue for each finding of one value, in the order of the text, up to the limit of issues of
+         * the scan. A value that a rule breaks in as many places as the registry keeps, or that is too long
+         * for the rules to read whole, cuts the report.
+         *
+         * @return false once the scan reached its limit of issues
+         */
+        boolean add(ValueFindings value, IssueOf issueOf) throws RepositoryException {
+            if (value.capped() || value.text().length() > RuleChecker.MAX_TEXT) {
+                truncated = true;
+            }
+            for (PlacedFinding found : value.findings()) {
+                if (issueCount >= maxIssues) {
+                    truncated = true;
+                    return false;
+                }
+                issues.add(issueOf.of(found));
+                issueCount++;
+            }
+            return true;
         }
     }
 
@@ -229,7 +256,7 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         }
     }
 
-    private static List<TermUsage> termUsages(List<LocationReport> locations) {
+    static List<TermUsage> termUsages(List<LocationReport> locations) {
         Map<String, ComplianceIssue> first = new LinkedHashMap<>();
         Map<String, Integer> uses = new LinkedHashMap<>();
         Map<String, Set<String>> where = new LinkedHashMap<>();
@@ -380,19 +407,8 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         }
         ValueFindings value = ValueFindings.of(scan.checks, scan.rules, node.getPath(), scan.language, raw,
                 definition.getSelector() == SelectorType.RICHTEXT);
-        if (value.capped() || value.text().length() > RuleChecker.MAX_TEXT) {
-            // A rule may break the value in more places, or the rules read the start of a long value only.
-            scan.truncated = true;
-        }
-        for (PlacedFinding found : value.findings()) {
-            if (scan.issueCount >= scan.maxIssues) {
-                scan.truncated = true;
-                return false;
-            }
-            scan.issues.add(issue(node, property, definition, value.text(), found, origin, originPath, scan.uiLocale));
-            scan.issueCount++;
-        }
-        return true;
+        return scan.add(value, found -> issue(node, property, definition, value.text(), found, origin, originPath,
+                scan.uiLocale));
     }
 
     /** @return the definition of a property that holds visitor text, {@code null} for any other property */
