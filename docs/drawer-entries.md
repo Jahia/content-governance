@@ -275,7 +275,8 @@ Java code ships its rules and its check this way.
 | `signal` | An `AbortSignal`. The drawer aborts it when the time limit of the check is over. |
 
 The drawer runs the checks one after the other, in the order that the modules added them. A check
-runs only when the site keeps at least one rule of its evaluator on.
+runs only when the site keeps at least one rule of its evaluator on, in a tab that the site keeps on.
+The measure of the web vitals runs while the Web Vitals tab or the Ecodesign tab is on.
 
 Before the first check, the drawer sets the performance mark `contentGovernanceChecks` in the preview.
 A check that measures what the page loaded leaves out the resources after that mark, because other

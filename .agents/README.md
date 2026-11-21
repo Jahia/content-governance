@@ -14,7 +14,8 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 | Path | What |
 |---|---|
 | `src/javascript/drawer/` | The header action and the one drawer: header, section bar, sections mounted on first visit; `useDock.js` docks it beside the page under jContent's header; `entries.js` and `FindingActions.jsx` read the tabs and finding actions other modules add (`docs/drawer-entries.md`) |
-| `src/javascript/audit/` | Page quality section: preview frame, analyzers (`analyzers/`), tabs, shared audits (`auditHistory.js`), the Page quality dashboard (`dashboard/`) |
+| `src/javascript/audit/` | Page quality section: preview frame, the run of the checks of the browser (`runChecks.js`, `browserResults.js`), tabs, shared audits (`auditHistory.js`), the Page quality dashboard (`dashboard/`) |
+| `src/javascript/checks/` | The checks of the browser that Content Governance registers (`register.js`): axe-core, the web vitals and eco-design |
 | `src/main/java/.../audit/` | Shared audits: `service/spi/AuditHistoryService` and its DS component, `AuditResults` (input check), `model/`, `graphql/` (`AuditAccess`, `AuditFields`, types) |
 | `src/javascript/publish/` | The line at the top of jContent's Publish menu (`PublishCheckAction`) |
 | `src/javascript/geo/` | GEO readiness section (`GeoSection`), its tabs, the GEO dashboard, the BotRank screen |
@@ -134,7 +135,8 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   language file goes in `LOCALES`. The drawer spec fails when jContent loads 200 kB or more of the
   module where the button does not show.
 - **No audit step can hold the drawer** (2026-10-31): a Page quality step that waits on the network
-  goes through `runStep` with its own entry in `STEP_LIMITS_MS`, and its tab shows `IncompleteStep`
+  goes through `runStep` with a time limit (`PAGE_LIMIT_MS` for the check of the server, `CHECK_LIMIT_MS` of
+  `runChecks.js` for each check of the browser), and its tab shows `IncompleteStep`
   when it does not finish; the frame is audited after `FRAME_LOAD_LIMIT_MS` when its load event does
   not come. The audit spec's never-answering page proves both.
 - **Shared audits are counted and checked on the server** (2026-10-31): the drawer sends the

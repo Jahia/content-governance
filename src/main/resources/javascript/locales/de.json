@@ -1528,7 +1528,7 @@
       },
       "notChecked": {
         "title": "Nicht geprüft ({{count}})",
-        "note": "Diese Regeln laufen im Browser, und keine Prüfung hat ein Ergebnis für sie geliefert: Kein Modul dieses Jahia registriert eine Prüfung für ihren Auswerter. Sie sind weder bestanden noch fehlgeschlagen."
+        "note": "Diese Regeln laufen im Browser, und keine Prüfung hat ein Ergebnis für sie geliefert: Kein Modul dieses Jahia registriert eine Prüfung für ihren Auswerter, oder die Prüfung hat sie ausgelassen, etwa eine Regel, die die mitgelieferte axe-core-Version nicht kennt. Sie sind weder bestanden noch fehlgeschlagen."
       },
       "readability": {
         "score": "Lesbarkeitsscore",

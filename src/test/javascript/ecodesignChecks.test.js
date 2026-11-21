@@ -1,5 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {MEASURES} from '../../javascript/checks/ecodesign.js';
+import {shortName} from '../../javascript/checks/pageMeasure.js';
 import {BASE_RULES, rulesWith} from './baseRules.js';
 
 const KILOBYTE = 1024;
@@ -78,5 +79,13 @@ describe('the eco-design checks', () => {
         expect(result.passed).toBe(false);
         expect(result.values.name).toBe('vendor.js');
         expect(result.findings).toEqual([{text: 'vendor.js', context: '900 KB'}]);
+    });
+});
+
+describe('shortName', () => {
+    it('names a file by the last segment of its address, and a data address by its media type', () => {
+        expect(shortName('https://example.com/files/photo.jpg?v=2#top')).toBe('photo.jpg');
+        expect(shortName('data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=/AAAA')).toBe('data:image/svg+xml');
+        expect(shortName('data:,Hello')).toBe('data:');
     });
 });

@@ -22,6 +22,9 @@ export const MAX_FINDINGS = 50;
 /** The value of `runtime` of a rule whose check runs in the browser. */
 export const BROWSER = 'browser';
 
+/** The evaluator of the measure of the web vitals, whose values the Web Vitals tab shows. */
+export const VITALS = 'webVitals';
+
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 /** A finding as a check gave it, with texts only: `text`, and `context`, `locator` and `values` when it has them. */
@@ -68,6 +71,19 @@ export function resultsOf(value, given, key) {
  * @returns {Array<object>} the rules
  */
 export const browserRules = rules => rules.all().filter(rule => rule.runtime === BROWSER && rule.enabled && tabOf(rule));
+
+/**
+ * The rules of the tabs that the site keeps on, for {@link runChecks}: a check of a tab that is off does not
+ * run. The measure of the web vitals runs while the Web Vitals tab or the Ecodesign tab is on, since both
+ * read it.
+ *
+ * @param {{all: function(): Array<object>}} rules the rules of the site
+ * @param {function(string): boolean} isOn whether the site keeps a tab on
+ * @returns {{all: function(): Array<object>}} the rules of the tabs that are on
+ */
+export const rulesOfTabsOn = (rules, isOn) => ({
+    all: () => rules.all().filter(rule => isOn(tabOf(rule)) || (rule.evaluator === VITALS && isOn('vitals')))
+});
 
 /**
  * Runs each check of the browser, one after the other, on the preview. A check runs when the site keeps

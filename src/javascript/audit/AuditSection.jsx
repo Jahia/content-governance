@@ -4,7 +4,7 @@ import {useGovernanceTranslation} from '../common/i18n';
 import {useApolloClient} from '@apollo/client';
 import {fetchRules} from './rules';
 import {checkPage} from './pageCheck';
-import {runChecks} from './runChecks';
+import {rulesOfTabsOn, runChecks} from './runChecks';
 import {browserTabs} from './browserResults';
 import {removeToolingElements} from './tooling';
 import {runStep} from './timeLimit';
@@ -254,7 +254,7 @@ async function auditFrame(frame, {isOn, language, uiLanguage, path, apolloClient
     // the content: Jahia health and Links say so.
     const incomplete = {};
     const server = SERVER_TABS.some(tab => isOn(tab)) ? runStep(() => checkPage(apolloClient, path, language, rules), PAGE_LIMIT_MS) : null;
-    const browser = browserTabs(await runChecks(frame, rules, uiLanguage), rules);
+    const browser = browserTabs(await runChecks(frame, rulesOfTabsOn(rules, isOn), uiLanguage), rules);
     const outcome = server && await server;
     if (outcome?.incomplete) {
         console.warn('[content-governance] the check of the server did not finish', outcome);

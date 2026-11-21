@@ -17,8 +17,12 @@ const measured = new WeakMap();
 /** transferSize is 0 for a resource from the HTTP cache: its encoded size keeps the weight meaningful. */
 export const sizeOf = entry => entry.transferSize || entry.encodedBodySize || 0;
 
-/** The last segment of an address, such as `app.js` for `https://example.com/js/app.js?v=2`. */
+/** The last segment of an address, such as `app.js` for `https://example.com/js/app.js?v=2`, or the media type of a data address, such as `data:image/png`. */
 export function shortName(url) {
+    if (url.startsWith('data:')) {
+        // The text of an inline image is its media type, not a fragment of its base64 content
+        return `data:${url.slice('data:'.length).split(/[;,]/)[0]}`;
+    }
     const clean = url.split('?')[0].split('#')[0];
     return clean.split('/').findLast(Boolean) || clean;
 }

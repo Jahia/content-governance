@@ -3,7 +3,7 @@ import {registry} from '@jahia/ui-extender';
 import {browserChecks, CHECK_TYPE, CHECKS_MARK} from '../../javascript/drawer/entries.js';
 import {ECODESIGN_EVALUATORS, registerChecks} from '../../javascript/checks/register.js';
 import {MEASURES} from '../../javascript/checks/ecodesign.js';
-import {browserRules, MAX_FINDINGS, resultsOf, runChecks} from '../../javascript/audit/runChecks.js';
+import {browserRules, CHECK_LIMIT_MS, MAX_FINDINGS, resultsOf, rulesOfTabsOn, runChecks} from '../../javascript/audit/runChecks.js';
 import {browserTabs} from '../../javascript/audit/browserResults.js';
 import {resultOf} from '../../javascript/checks/axe.js';
 import {ruleBook} from '../../javascript/audit/rules.js';
@@ -101,6 +101,42 @@ describe('runChecks', () => {
         expect(outcome.incomplete).toEqual({'acme.contrast': {incomplete: 'failed', message: 'no colors'}});
         expect(outcome.results.map(result => result.ruleId)).toEqual(['acme.logo']);
         expect(outcome.notChecked).not.toContain('acme.brandContrast');
+    });
+
+    it('leaves out a check that runs out of time, aborts it, and still runs the next check', async () => {
+        vi.useFakeTimers();
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        let signal;
+        const rules = rulesWith(brand, {...brand, id: 'acme.logo', evaluator: 'acme.logo'});
+        const running = runChecks(frame(), rules, 'en', [
+            {key: 'hung', evaluator: 'acme.contrast', run: context => {
+                signal = context.signal;
+                return new Promise(() => {});
+            }},
+            {key: 'logo', evaluator: 'acme.logo', run: async () => [{ruleId: 'acme.logo', passed: true}]}
+        ]);
+        await vi.advanceTimersByTimeAsync(CHECK_LIMIT_MS);
+        const outcome = await running;
+        vi.useRealTimers();
+
+        expect(outcome.incomplete).toEqual({'acme.contrast': {incomplete: 'timedOut', seconds: CHECK_LIMIT_MS / 1000}});
+        expect(signal.aborted).toBe(true);
+        expect(outcome.results.map(result => result.ruleId)).toEqual(['acme.logo']);
+        expect(outcome.notChecked).not.toContain('acme.brandContrast');
+    });
+
+    it('runs no check of a tab that the site switched off, and the web vitals while one of their two tabs is on', async () => {
+        const vitals = {id: 'ecodesign.webVitals', evaluator: 'webVitals', runtime: 'browser', domain: 'ecodesign', severity: 'minor'};
+        const rules = ruleBook([brand, vitals]);
+        const run = vi.fn(async ({rules: given}) => given.map(rule => ({ruleId: rule.id, passed: true})));
+        const checks = [{key: 'acme', evaluator: 'acme.contrast', run}, {key: 'webVitals', evaluator: 'webVitals', run}];
+        const ran = async onTabs => (await runChecks(frame(), rulesOfTabsOn(rules, tab => onTabs.includes(tab)), 'en', checks))
+            .results.map(result => result.ruleId);
+
+        expect(await ran(['seo', 'ecodesign'])).toEqual(['ecodesign.webVitals']);
+        expect(await ran(['vitals'])).toEqual(['ecodesign.webVitals']);
+        expect(await ran(['accessibility'])).toEqual(['acme.brandContrast']);
+        expect((await runChecks(frame(), rulesOfTabsOn(rules, () => false), 'en', checks)).notChecked).toEqual([]);
     });
 
     it('keeps the first 50 findings of a result, and passes a result with no finding and no verdict', () => {

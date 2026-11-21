@@ -1528,7 +1528,7 @@
       },
       "notChecked": {
         "title": "Sin comprobar ({{count}})",
-        "note": "Estas reglas se ejecutan en el navegador y ningún control dio un resultado para ellas: ningún módulo de este Jahia registra un control para su evaluador. No están ni superadas ni fallidas."
+        "note": "Estas reglas se ejecutan en el navegador y ningún control dio un resultado para ellas: ningún módulo de este Jahia registra un control para su evaluador, o el control las dejó fuera, como una regla que la versión de axe-core del módulo no conoce. No están ni superadas ni fallidas."
       },
       "readability": {
         "score": "Puntuación de legibilidad",

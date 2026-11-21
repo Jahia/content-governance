@@ -1,6 +1,6 @@
 import {limits} from './rules';
 import {tabOf} from './pageCheck';
-import {browserRules} from './runChecks';
+import {browserRules, VITALS} from './runChecks';
 
 /**
  * The Page quality tabs from the results of the checks of the browser (runChecks.js): what each tab shows,
@@ -11,8 +11,7 @@ import {browserRules} from './runChecks';
 
 /** The evaluator of axe-core, whose violations the Accessibility tab lists with their elements. */
 export const AXE = 'axe';
-/** The evaluator of the measure of the web vitals, whose values the Web Vitals tab shows. */
-export const VITALS = 'webVitals';
+export {VITALS} from './runChecks';
 
 /** The tabs that list recommendations of rules. */
 const RECOMMENDATION_TABS = ['accessibility', 'seo', 'readability', 'links', 'jahia', 'ecodesign'];

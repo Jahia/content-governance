@@ -1528,7 +1528,7 @@
       },
       "notChecked": {
         "title": "Not checked ({{count}})",
-        "note": "These rules run in the browser, and no check gave a result for them: no module of this Jahia registers a check of their evaluator. They are neither passed nor failed."
+        "note": "These rules run in the browser, and no check gave a result for them: no module of this Jahia registers a check of their evaluator, or the check left them out, such as a rule that the bundled axe-core does not know. They are neither passed nor failed."
       },
       "readability": {
         "score": "Readability score",
