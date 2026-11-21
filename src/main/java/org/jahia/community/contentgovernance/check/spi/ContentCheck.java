@@ -58,6 +58,10 @@ public interface ContentCheck {
      * Applies one rule to one input, and gives its result: passed when {@link #check} finds nothing, with
      * no value. A check that throws a runtime exception gives no result, and the other checks still run.
      *
+     * <p>The registry calls this method, and never {@link #check}: when a check overrides it, the findings
+     * of this result are the ones that every caller of the registry gets. The registry fails a result that
+     * has a finding, and drops a result whose values JSON cannot write.</p>
+     *
      * @param input what to check
      * @param rule  a rule that the site keeps on, and whose evaluator is the id of this check
      * @return the result of the rule on the input

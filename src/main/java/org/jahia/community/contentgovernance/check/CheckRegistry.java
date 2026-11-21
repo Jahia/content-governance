@@ -1,5 +1,7 @@
 package org.jahia.community.contentgovernance.check;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
 import org.jahia.community.contentgovernance.check.spi.CheckResult;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck;
@@ -36,6 +38,8 @@ public class CheckRegistry {
     public static final String BROWSER = "browser";
     /** The most findings that one check gives on one input. */
     static final int MAX_FINDINGS = 50;
+
+    private static final ObjectMapper JSON = new ObjectMapper();
     /** The module that registers a check which Content Governance does not register itself. */
     private static final Map<String, String> PROVIDERS = Map.of(ContentRule.MODEL, "ai-assistant");
     private static final Logger logger = LoggerFactory.getLogger(CheckRegistry.class);
@@ -195,7 +199,7 @@ public class CheckRegistry {
         return out;
     }
 
-    /** The result of one rule, or null when its check failed or gave none. */
+    /** The result of one rule, or null when its check failed, gave none, or gave values that JSON cannot write. */
     private static Ran applyRule(Registered registered, ContentRule rule, CheckInput input) {
         try {
             CheckResult result = registered.check().result(input, rule);
@@ -203,12 +207,31 @@ public class CheckRegistry {
                 logger.warn("The check {} gave no result on the rule {} at {}", registered.id(), rule.id(), input.path());
                 return null;
             }
-            // The result belongs to the rule that ran, whatever id the check wrote
+            // The result belongs to the rule that ran, whatever id the check wrote, and fails when it has a finding
             List<Finding> found = result.findings().stream().limit(MAX_FINDINGS).toList();
-            return new Ran(rule, new CheckResult(rule.id(), result.passed(), result.values(), found));
+            CheckResult kept = new CheckResult(rule.id(), result.passed() && found.isEmpty(), result.values(), found);
+            if (!writable(kept)) {
+                logger.warn("The check {} gave values that JSON cannot write on the rule {} at {}", registered.id(),
+                        rule.id(), input.path());
+                return null;
+            }
+            return new Ran(rule, kept);
         } catch (RuntimeException e) {
             logger.warn("The check {} failed on the rule {} at {}", registered.id(), rule.id(), input.path(), e);
             return null;
+        }
+    }
+
+    /** True when JSON writes the values of the result and of each finding, as the GraphQL API sends them. */
+    private static boolean writable(CheckResult result) {
+        try {
+            JSON.writeValueAsString(result.values());
+            for (Finding finding : result.findings()) {
+                JSON.writeValueAsString(finding.values());
+            }
+            return true;
+        } catch (JsonProcessingException e) {
+            return false;
         }
     }
 

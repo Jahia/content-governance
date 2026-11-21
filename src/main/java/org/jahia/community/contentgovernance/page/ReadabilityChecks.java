@@ -76,7 +76,31 @@ public class ReadabilityChecks {
      * @return the facts by rule id
      */
     public static Map<String, Object> facts(Document html, String language) {
+        return facts(measure(html, language), html);
+    }
+
+    /**
+     * The input with the facts of {@link #facts} and the values of the rule of the scale of the language,
+     * from one measure of the text.
+     *
+     * @param input    the input of the checks of the HTML
+     * @param html     the HTML of a page or of an item
+     * @param language the language of the content, or null for the language of the page
+     * @return the input with these facts and values
+     */
+    public static CheckInput withReadability(CheckInput input, Document html, String language) {
         Readability.Measure measure = measure(html, language);
+        CheckInput out = input;
+        for (Map.Entry<String, Object> fact : facts(measure, html).entrySet()) {
+            out = out.withFact(fact.getKey(), fact.getValue());
+        }
+        for (Map.Entry<String, Map<String, Object>> values : values(measure).entrySet()) {
+            out = out.withValues(values.getKey(), values.getValue());
+        }
+        return out;
+    }
+
+    private static Map<String, Object> facts(Readability.Measure measure, Document html) {
         Map<String, Object> out = new LinkedHashMap<>();
         if (!measure.measured()) {
             return out;
@@ -99,12 +123,9 @@ public class ReadabilityChecks {
      * formula and the band of the score. None for a text too short to measure, or in a language with no
      * formula.
      *
-     * @param html     the HTML of a page or of an item
-     * @param language the language of the content, or null for the language of the page
      * @return {@code {score, formula, band}} under {@code readability.flesch} or {@code readability.lix}
      */
-    public static Map<String, Map<String, Object>> values(Document html, String language) {
-        Readability.Measure measure = measure(html, language);
+    private static Map<String, Map<String, Object>> values(Readability.Measure measure) {
         if (!measure.measured() || measure.score() == null) {
             return Map.of();
         }

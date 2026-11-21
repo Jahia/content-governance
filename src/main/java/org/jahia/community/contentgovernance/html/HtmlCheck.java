@@ -212,15 +212,9 @@ public class HtmlCheck {
      * @param scope    what the HTML holds
      */
     public static CheckInput input(String path, String language, Document html, Scope scope) {
-        CheckInput input = CheckInput.page(path, language, html.outerHtml())
+        CheckInput input = ReadabilityChecks.withReadability(CheckInput.page(path, language, html.outerHtml())
                 .withFact(HtmlRuleChecks.DOCUMENT, html)
-                .withFact(HtmlRuleChecks.HTML_SCOPE, scope);
-        for (Map.Entry<String, Object> fact : ReadabilityChecks.facts(html, language).entrySet()) {
-            input = input.withFact(fact.getKey(), fact.getValue());
-        }
-        for (Map.Entry<String, Map<String, Object>> values : ReadabilityChecks.values(html, language).entrySet()) {
-            input = input.withValues(values.getKey(), values.getValue());
-        }
+                .withFact(HtmlRuleChecks.HTML_SCOPE, scope), html, language);
         return scope == Scope.PAGE ? withSeo(input, html) : input;
     }
 

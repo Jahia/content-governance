@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -252,6 +253,49 @@ class CheckRegistryTest {
                 .hasSize(CheckRegistry.MAX_FINDINGS);
         assertThat(registry.results(withRule("acme.many", "acme.many"), CheckInput.value(PAGE, "en", "x")))
                 .singleElement().satisfies(result -> assertThat(result.findings()).hasSize(CheckRegistry.MAX_FINDINGS));
+    }
+
+    /** A check of the scope VALUE whose result is the one that {@code result} builds for the rule. */
+    private static ContentCheck resultCheck(Function<Rule, CheckResult> result) {
+        return new ContentCheck() {
+            @Override
+            public Set<Scope> scopes() {
+                return Set.of(Scope.VALUE);
+            }
+
+            @Override
+            public List<Finding> check(CheckInput input, Rule rule) {
+                return List.of();
+            }
+
+            @Override
+            public CheckResult result(CheckInput input, Rule rule) {
+                return result.apply(rule);
+            }
+        };
+    }
+
+    @Test
+    @DisplayName("a result with a finding never passes, and a result whose values JSON cannot write gives no result")
+    void results_keepTheContractOfAResult() {
+        CheckRegistry registry = new CheckRegistry();
+        registry.bindCheck(resultCheck(rule -> new CheckResult(rule.id(), true, Map.of(), List.of(Finding.of(rule, "x")))),
+                id("acme.found"));
+        registry.bindCheck(resultCheck(rule -> new CheckResult(rule.id(), true, Map.of("opaque", new Object()), List.of())),
+                id("acme.opaque"));
+        registry.bindCheck(resultCheck(rule -> new CheckResult(rule.id(), false, Map.of(),
+                List.of(new Finding(rule.id(), "minor", "x", null, null, Map.of("opaque", new Object()))))),
+                id("acme.opaqueFinding"));
+        ContentRules rules = withRule("acme.found", "acme.found");
+        for (String id : List.of("acme.opaque", "acme.opaqueFinding")) {
+            rules = rules.with(RuleValues.toRule(Map.of(RuleValues.RULE_ID, id, RuleValues.EVALUATOR, id,
+                    RuleValues.DOMAIN, "writing")));
+        }
+
+        assertThat(registry.results(rules, CheckInput.value(PAGE, "en", "x"))).singleElement().satisfies(result -> {
+            assertThat(result.ruleId()).isEqualTo("acme.found");
+            assertThat(result.passed()).isFalse();
+        });
     }
 
     @Test
