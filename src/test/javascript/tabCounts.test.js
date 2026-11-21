@@ -25,15 +25,14 @@ describe('tabCounts', () => {
             a11y: {violations: [{id: 'region', impact: 'moderate'}, {id: 'image-alt', impact: 'critical'}]},
             seo: {recommendations: [{key: 'a', severity: 'moderate'}, {key: 'b', severity: 'minor'}]},
             readability: {recommendations: [{key: 'h1Count', severity: 'serious'}]}
-        }, {recommendations: [{severity: 'moderate'}]});
+        });
         expect(counts.accessibility.serious).toBe(true);
         expect(counts.seo.serious).toBe(false);
         expect(counts.readability.serious).toBe(true);
-        expect(counts.ai).toEqual({count: 1, serious: false});
     });
 
     it('gives nothing before an audit', () => {
-        expect(tabCounts(null, null)).toEqual({});
+        expect(tabCounts(null)).toEqual({});
     });
 });
 

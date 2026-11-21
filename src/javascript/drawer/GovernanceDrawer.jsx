@@ -18,7 +18,7 @@ import {CountBadge} from '../common/CountBadge';
  * The one drawer of the module: a header, one tab per entry of the registry the site switched on
  * (drawer/entries.js), and the content of those tabs. The module's own tabs register there too, so
  * the drawer renders every tab the same way. A tab mounts the first time it is shown and stays
- * mounted while the drawer is open, so switching back to it keeps its results and any AI answer
+ * mounted while the drawer is open, so switching back to it keeps its results and any answer
  * still on its way.
  *
  * Tabs the page cannot use (compliance on a content item that is not a page, or without write

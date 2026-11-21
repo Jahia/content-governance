@@ -111,7 +111,7 @@ class SiteScopeTest {
 
     @Test
     void keyOf_theSitePathThatRequireReturns_givesTheSiteKey() {
-        // The AI features name this key to genai-connector, which checks genaiAccess on /sites/<key>.
+        // The GEO report names this key to its writer, which checks its permission on /sites/<key>.
         assertThat(SiteScope.keyOf("/sites/acme")).isEqualTo("acme");
         assertThat(SiteScope.keyOf("/sites/my-site_2")).isEqualTo("my-site_2");
     }

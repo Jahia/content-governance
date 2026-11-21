@@ -145,7 +145,7 @@ function register() {
         render: () => <ComplianceRoute/>
     });
 
-    // Per-site switches, the shared model's status and the BotRank connection: site administrators
+    // Per-site switches and the BotRank connection: site administrators
     // only, since the BotRank binding spends the customer's organisation key.
     registry.add('adminRoute', 'contentGovernanceSettings', {
         targets: ['administration-sites:95'],

@@ -5,7 +5,7 @@ for whom. The entry needs the `site-admin` permission on the site, and the modul
 site (**Administration > Server > Modules and Extensions > Modules**, **Usage in sites**). Without
 either, the screen says so and changes nothing.
 
-The screen has three tabs: **Features**, **AI model** and **BotRank**.
+The screen has two tabs: **Features** and **BotRank**.
 
 ## Features
 
@@ -18,44 +18,22 @@ next time they open the drawer.
 
 | You switch off | Editors of the site | The server |
 |---|---|---|
-| A section | No longer see that section in the drawer. Its dashboard stays listed under **Additional** and says it is switched off for this site. | Refuses the section's calls (GEO checks, compliance scans, AI tasks of that section) |
+| A section | No longer see that section in the drawer. Its dashboard stays listed under **Additional** and says it is switched off for this site. | Refuses the section's calls (GEO checks, compliance scans) |
 | A tab | No longer see that tab in the drawer | Refuses the calls of that tab |
 | Every section | No longer see the **Content governance** button | Refuses every call |
 
 A tab keeps its own switch while its section is off, so switching the section back on brings back the
 tabs as they were.
 
-Two tabs also depend on something outside the site, and say so with a chip next to their switch:
-
-- **AI review** (Page quality) shows **AI unavailable** while no model answers you on this
-  site. It stays greyed out in the drawer whatever its switch says. The AI assists inside the
-  **Accessibility**, **SEO** and **Readability** tabs follow their tab's switch and are greyed out
-  the same way.
-- **AI citations** (GEO readiness) shows **Needs a BotRank connection**. It stays greyed out in the
-  drawer until the site is connected in the **BotRank** tab.
+**AI citations** (GEO readiness) also depends on something outside the site. Its switch shows the
+chip **Needs a BotRank connection**, and the tab stays greyed out in the drawer until the site is
+connected in the **BotRank** tab.
 
 What each switch is stored as: the ids switched off, in the `disabledFeatures` property of the
 site's `content-governance` node (`/sites/<key>/content-governance`, never published). Section ids are
 `audit`, `geo` and `compliance`, or the key that another module gives its section. Tab ids are
 `<section>.<tab>`, for example `geo.citations` or `audit.vitals`. A script sets them with the
 `saveSiteSettings` mutation (see the root `README.md`).
-
-## AI model
-
-Read only. The tab shows whether a model answers you on this site. If a model answers, the tab also
-shows the provider, the model and whether it reads images (for the alt text assist). The
-`genai-connector` module serves this model to every AI feature. A server administrator configures
-it in genai-connector, not in Content Governance, and the root `README.md` describes the setup.
-
-Every AI feature is greyed out, and nothing leaves the server, in three cases:
-
-- genai-connector is not installed or not started.
-- genai-connector serves no model on its `balanced` tier.
-- The user does not have the `genaiAccess` permission on the site. The features are then greyed
-  out for that user only, with a message.
-
-The model serves every site of the instance. A site that must not use it switches off the **AI
-review** tab, and the tabs whose assists it does not want.
 
 ## BotRank
 

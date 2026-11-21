@@ -2,8 +2,7 @@
 
 **Page quality** is the first section of the **Content governance** drawer. It checks the page you
 are editing before you publish it: accessibility, SEO, speed, readability, eco-design, links and
-Jahia-specific problems such as missing translations. When a server administrator has configured an
-AI model, it can also write suggestions for you to copy into the page.
+Jahia-specific problems such as missing translations.
 
 Everything runs in your browser, on a preview of the page in the language you are editing. The
 preview shows the editing version of the page, so it includes changes you have not published yet.
@@ -53,8 +52,8 @@ Page Builder and open the drawer again. Each language has its own results.
 
 | Control | What it does |
 |---|---|
-| **Re-run** | Loads the page again and runs every check from scratch. Use it after you have fixed something. It also clears the AI answers of the previous run. |
-| **Export JSON** | Downloads the results of the automated checks as a JSON file (`content-governance-audit-<page name>.json`), with the page path, language and date. AI answers are not included. Useful to attach to a ticket for a developer. |
+| **Re-run** | Loads the page again and runs every check from scratch. Use it after you have fixed something. |
+| **Export JSON** | Downloads the results of the automated checks as a JSON file (`content-governance-audit-<page name>.json`), with the page path, language and date. Useful to attach to a ticket for a developer. |
 | **Hide preview** / **Show preview** | Hides the page preview to give the results the full height of the drawer. In Page Builder it starts hidden, since the page is beside the drawer. The preview stays loaded behind the results, so the audit measures it the same way and highlighting can still show it. |
 | "Last audit: date by user" | When the results shown were produced, and who ran the audit. |
 | "Issues over the last N audits: 12 → 9 → 7" | The total of the badges at each of the page's last audits (up to 10), oldest first. Hover a number for its date and who ran it. Shown from the second audit. |
@@ -72,7 +71,7 @@ so you can keep using them as a to-do list while you edit.
 
 Every complete audit is stored on the site for its page and language, the last 10 of each, so every
 editor of the site sees the newest one and the trend. An audit with a check that did not finish is
-not stored. AI answers stay in your browser only, for your last 10 audits.
+not stored.
 
 ## The site dashboard
 
@@ -111,7 +110,6 @@ when they are all moderate or minor. No number means nothing to review.
 |---|---|
 | **Accessibility** | Automated rules the page fails. One rule can fail on many elements; it counts once. Items "to verify" are not counted. |
 | **SEO**, **Web Vitals**, **Readability**, **Ecodesign**, **Links**, **Jahia** | Recommendations in the tab's **Recommendations** list. |
-| **AI review** | Recommendations of the AI review, once you have generated one. |
 
 Some problems show in two tabs, because they matter for both: heavy pages, oversized images and
 images without width and height appear in **Web Vitals** and **Ecodesign**; images without alt text
@@ -151,6 +149,9 @@ exported JSON.
 
 A site administrator can switch tabs off for a site. A tab switched off is not shown.
 
+Page quality calls no AI model. When the module ai-assistant is installed, the AI review of the page
+is in its own **AI review** tab of the drawer.
+
 ### Accessibility
 
 Runs axe-core, an automated accessibility checker, against the WCAG A, AA and AAA rules and its own
@@ -166,7 +167,6 @@ best-practice rules.
 - **Automated checks needing human review**: cases marked **To verify**. Look at each one.
 - **Manual checklist (not automatable)**: 14 WCAG criteria no tool can judge, such as keyboard use,
   meaningful alt text, captions, focus order, 200% zoom. Review them once per page type.
-- **AI alt text**: see [AI assists](#ai-assists).
 
 ### SEO
 
@@ -175,7 +175,6 @@ best-practice rules.
   followed (`nofollow`), no canonical URL, incomplete Open Graph tags, invalid or missing structured
   data, missing or wrong `lang` attribute, images without alt, generic link texts such as "click
   here" or "read more".
-- **AI suggestions**: see [AI assists](#ai-assists).
 - **Social sharing preview**: roughly how the page looks when shared on a social network or in a chat
   tool, from its `og:title`, `og:description` and `og:image` (or its title and description).
 - **Tag checklist**: each tag with a tick or a cross and its current value.
@@ -234,7 +233,6 @@ Measures how easy the main text is to read. Navigation, header and footer are le
   says so (**Skips from H2 to H4**), a heading without text is marked **Empty**, and the eye button
   shows the heading on the page (in the page under edit in Page Builder, otherwise in the preview).
   The first 200 headings are listed. An audit run before version 1.10 has no outline: **Re-run** it.
-- **AI plain-language rewrites**: see [AI assists](#ai-assists).
 
 Under 30 words, the tab shows "Not enough text on this page to compute readability", then the
 structure and the heading outline, which do not depend on the amount of text. A page in a
@@ -314,86 +312,15 @@ The check covers up to 400 content items stored under the page, and stops at sub
 displayed from elsewhere (a listing, a reused item) is not checked. If the repository query fails,
 the tab says **Repository checks could not run** and keeps the on-page checks.
 
-### AI review
-
-Shown only when a model answers you on this site (see [Greyed out](#greyed-out-missing-or-failing)).
-
-Click **Generate AI review**. The page text, its title, meta description and a summary of all the
-findings above go to the provider of that model. After a few seconds you get:
-
-- **Overall assessment**: two or three sentences.
-- **Recommendations**, most important first (the model is asked for 15 at most), each with a
-  severity and a category: Content, SEO,
-  Accessibility, Performance, UX, Proofreading, Factuality, Consistency, Conversion, Localization,
-  Legal, Ecodesign. Proofreading, factuality (outdated dates, contradictions), consistency,
-  conversion, localization and legal wording are things no automated check covers.
-- When a recommendation is about specific words, the quoted text with **Highlight on the page**, and
-  often a **Suggested fix** with **Copy**.
-
-The assessment and recommendations are written in your jContent interface language; quotes and
-suggested fixes are in the page language, since they would be published. **Regenerate** asks again.
-
-## AI assists
-
-When a model answers you on this site, three tabs offer suggestions next to their findings. They
-share these rules:
-
-- **You start them.** Nothing is sent until you click.
-- **Nothing is written to the repository.** Each suggestion has a **Copy** button: paste it in
-  Content Editor yourself.
-- **Content is in the page language, explanations in yours.** Titles, descriptions, alt texts,
-  labels and rewrites are in the language being checked. The one-line reasons follow your jContent
-  interface language.
-- **Review before you paste.** Every answer ends with "AI-generated suggestions: review before acting
-  on them." The model can be wrong; it is told to use only what the page says, but check names,
-  numbers and facts.
-- Each answer shows the provider and model, the tokens used and, when the provider reports one, the
-  cost.
-- Answers are kept with the results until the next **Re-run**.
-
-| Assist | Where | Button | What you get |
-|---|---|---|---|
-| **AI suggestions** | **SEO** | **Suggest with AI** | 2 or 3 title tags, 3 meta descriptions, an `og:title` and `og:description` for social sharing, a focus keyword with supporting terms, heading rewrites (current, suggested, reason), and for each generic link or button label ("Read more", "Click here", "Submit"...) 2 or 3 specific labels. Character counts turn to a warning colour outside the recommended length. |
-| **AI alt text** | **Accessibility**, when images have no alt | **Suggest alt text** | For up to 8 images without alt, largest first: a thumbnail, a suggested alt (125 characters at most), or "Decorative - use an empty alt", a reason, and **Highlight on the page**. |
-| **AI plain-language rewrites** | **Readability**, when the page has long sentences | **Rewrite the hardest sentences** | The 6 longest sentences (22 words or more, in paragraphs, list items, tables and quotes of the main content), each with a rewrite, word counts before and after, a reason and **Highlight on the page**. |
-
-Where each suggestion goes:
-
-- Titles, descriptions and social fields: the page's SEO properties.
-- Headings and link or button labels: the component that holds them, in Content Editor. Headings are
-  content, not SEO properties.
-- Keywords: guidance for your writing. Search engines ignore a keywords meta tag.
-- Alt text: the alt field of the image in Content Editor.
-- Rewrites: paste over the original sentence.
-
-**Pictures or context only.** When the server has a model that reads images, that model sees a small
-copy of each picture. Without such a model, the alt texts are guessed from the file name, caption,
-nearby heading and text, and the tab says so. Even with a model that reads images, the browser
-cannot read a picture served from another domain. That picture is described from context only, and
-the tab shows "described from context only". To know which case applies, a site administrator can look at **Reads images
-(alt text)** in **Site Settings > Content governance**, **AI model** tab.
-
-If more images or sentences are waiting than one request takes, the tab says how many were not sent:
-fix the first ones, **Re-run**, then ask again.
-
-## Greyed out, missing or failing
+## Missing or failing
 
 | What you see | Why | Who to ask |
 |---|---|---|
-| **AI review** tab greyed out, tooltip "No AI model is available on this server." | The genai-connector module is not installed, or it serves no model to the AI features. | A server administrator. |
-| An AI assist box with a greyed button and "AI is not available on this server..." | Same. | A server administrator. |
-| **AI review** tab or an AI assist greyed out, with a message about the `genaiAccess` permission | You do not have the `genaiAccess` permission on this site. | The person who manages rights. |
-| A tab missing | A site administrator switched it off for this site. The AI assists follow their own tab: with the **AI review** tab switched off, the SEO, alt text and plain-language assists still work. | A site administrator, in **Site Settings > Content governance**, **Features** tab. |
+| A tab missing | A site administrator switched it off for this site. | A site administrator, in **Site Settings > Content governance**, **Features** tab. |
 | **Page quality** missing from the drawer | The section is switched off for this site. | A site administrator. |
 | No **Content governance** button | The module is not enabled on this site, every section is switched off, or the item is not a page or a content item with its own URL. | A site administrator. |
 | **Analysis failed** with "HTTP 404" | The page does not exist or does not render in this language. | Check the language; otherwise a developer. |
 | **Analysis failed** with "HTTP 500" or another error | The page fails to render. | A developer. |
-| "You have reached the number of AI requests allowed in ten minutes. Retry a little later." | You reached the limit of AI calls (30 per 10 minutes by default; a call the provider failed counts, a refused one does not). genai-connector can also apply a limit of its own. | Wait a few minutes. |
-| "A site administrator has switched this feature off for this site." | The feature was switched off since the drawer opened. | A site administrator. |
-| "You cannot read this page any more, so the AI cannot review it." | Your rights on the page changed since the drawer opened. | The person who manages rights. |
-| "The AI model reached its output limit before it finished the answer..." | The answer reached its budget of 6000 tokens before it was complete. A reasoning model can spend the budget before it writes the answer. | A server administrator, who checks the `max.output.tokens.limit` of genai-connector and the model of its `balanced` tier. |
-| "The AI provider did not answer. Retry in a moment; if it persists, tell a server administrator." | The provider failed, or its answer was still unreadable after genai-connector asked again. | Try again later; if it persists, a server administrator (server log). |
-| "The answer reached its output limit, so some recommendations may be missing." | The answer stopped at its output limit, but it was still complete JSON. | A server administrator, who checks the `max.output.tokens.limit` of genai-connector. |
 
 ## Limits to keep in mind
 
@@ -409,7 +336,5 @@ fix the first ones, **Re-run**, then ask again.
 - **Links**: external links are not verified. Internal links are verified as you, on the editing
   version, up to 60 URLs.
 - **Jahia**: only content stored under the page, up to 400 items.
-- **AI**: suggestions can be wrong and are never applied for you. The page text sent includes
-  unpublished content.
 - Results are stored in your browser only and are not shared with your team; use **Export JSON** to
   pass them on.

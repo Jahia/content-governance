@@ -37,7 +37,7 @@ export const normalizeLabel = text => {
 
 /**
  * Weak calls to action: links and buttons whose label is generic. Returns
- * distinct labels with a sample of the surrounding text, for the AI assist.
+ * distinct labels with a sample of the surrounding text.
  */
 function collectWeakCtas(doc) {
     const controls = Array.from(doc.querySelectorAll('a[href], button, input[type="submit"], input[type="button"]'));

@@ -56,8 +56,8 @@ describe('drawerTabs', () => {
 
         expect(drawerTabs().map(entry => entry.key)).toEqual(['audit', 'geo', 'compliance', 'aiAssistantReview']);
         const [audit, geo, compliance] = drawerTabs();
-        expect(tabParts(audit).map(part => part.id)).toEqual(['accessibility', 'seo', 'vitals', 'readability', 'ecodesign', 'links', 'jahia', 'ai']);
-        expect(tabParts(audit).find(part => part.id === 'ai').needs).toBe('ai');
+        expect(tabParts(audit).map(part => part.id)).toEqual(['accessibility', 'seo', 'vitals', 'readability', 'ecodesign', 'links', 'jahia']);
+        expect(tabParts(geo).find(part => part.id === 'citations').needs).toBe('botRank');
         expect(tabParts(geo).map(part => part.id)).toEqual(['score', 'crawler', 'files', 'schema', 'citations']);
         expect(tabParts(compliance)).toEqual([]);
         expect(compliance.requirePage && compliance.requireWrite).toBe(true);

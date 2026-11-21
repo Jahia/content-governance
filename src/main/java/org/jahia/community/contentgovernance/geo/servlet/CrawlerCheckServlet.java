@@ -66,9 +66,8 @@ import java.util.regex.Pattern;
  * bot user agent, with no cookies, and we read the INITIAL html rather than a
  * rendered DOM.
  *
- * Hardening follows page-audit's AiReviewServlet: authenticated users only, the
- * caller must be able to read the node, same-origin JSON only, per-user rate
- * limit, and a whitelisted response.
+ * Hardening: authenticated users only, the caller must be able to read the node,
+ * same-origin JSON only, a per-user rate limit, and a whitelisted response.
  */
 @Component(
         service = {HttpServlet.class, Servlet.class},

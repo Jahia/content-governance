@@ -3,11 +3,8 @@ package org.jahia.community.contentgovernance.geo.servlet;
 import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.community.contentgovernance.geo.check.GeoReport;
 import org.jahia.community.contentgovernance.geo.check.ScanStore;
-import org.jahia.community.contentgovernance.ai.AiException;
-import org.jahia.community.contentgovernance.ai.AiFeature;
-import org.jahia.community.contentgovernance.ai.AiService;
-import org.jahia.community.contentgovernance.ai.AiStatus;
 import org.jahia.community.contentgovernance.geo.config.GeoReadinessConfigService;
+import org.jahia.community.contentgovernance.geo.spi.GeoReportWriter;
 import org.jahia.community.contentgovernance.geo.util.PublicUrls;
 import org.jahia.community.contentgovernance.geo.util.SiteScope;
 import org.jahia.services.content.JCRSessionFactory;
@@ -18,6 +15,9 @@ import org.json.JSONObject;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,17 +29,20 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The written report, generated on request and read back afterwards.
  *
  * GET  /modules/content-governance/geo/report            -> {enabled, reason, provider, model}
  * POST {"action":"read", path, language}        -> the stored report, or {"report": null}
- * POST {"action":"generate", path, language, reportLanguage} -> asks genai-connector, stores, returns
+ * POST {"action":"generate", path, language, reportLanguage} -> asks the writer, stores, returns
  *
  * Same gate as the dashboard's other endpoints: the caller must hold the
  * permission the dashboard route declares, on the site the path resolves to.
- * Generation is metered separately and tightly, because each call is paid for.
+ * This module calls no model: another module, such as ai-assistant, registers
+ * a {@link GeoReportWriter}, which checks its own permission and meters its
+ * own calls. Without one, the status says {@code absent} and nothing is written.
  */
 @Component(
         service = {HttpServlet.class, Servlet.class},
@@ -58,19 +61,38 @@ public class GeoReportServlet extends GeoServlet {
     private static final int TOO_MANY_REQUESTS = 429;
     private static final String AUTH_REQUIRED = "authentication required";
     private static final String OPERATION_FAILED = "operation failed";
+    /** The reason of the status while no module registers a writer. */
+    static final String ABSENT = "absent";
+    /**
+     * The reports one user may ask for in ten minutes, before the digest of the site is built. Each one
+     * reads the whole scan, and the writer meters its own calls on top of this.
+     */
+    static final int REPORT_RATE_MAX_CALLS = 5;
     private static final long RATE_WINDOW_MS = 600_000L;
 
-    /**
-     * Injected through the constructor rather than into the field, so a servlet
-     * the container shares between threads holds nothing mutable.
-     */
+    /** Injected through the constructor; it does not change while the servlet runs. */
     private final transient GeoReadinessConfigService config;
-    private final transient AiService ai;
+
+    /**
+     * The writer that another module registers, or null. The container sets it when that module starts
+     * and clears it when it stops, through {@link #bindWriter} and {@link #unbindWriter}.
+     */
+    private final transient AtomicReference<GeoReportWriter> writer = new AtomicReference<>();
 
     @Activate
-    public GeoReportServlet(@Reference GeoReadinessConfigService config, @Reference AiService ai) {
+    public GeoReportServlet(@Reference GeoReadinessConfigService config) {
         this.config = config;
-        this.ai = ai;
+    }
+
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC,
+            policyOption = ReferencePolicyOption.GREEDY, unbind = "unbindWriter")
+    void bindWriter(GeoReportWriter registered) {
+        writer.set(registered);
+    }
+
+    /** Clears the writer only when it is the one that leaves: a greedy rebind sets the new one first. */
+    void unbindWriter(GeoReportWriter leaving) {
+        writer.compareAndSet(leaving, null);
     }
 
     /**
@@ -78,13 +100,11 @@ public class GeoReportServlet extends GeoServlet {
      * may administer.
      *
      * The gate is {@link #requireDashboard}, not a guest check. The answer names
-     * the AI provider and model that genai-connector serves - which third party
-     * this site's content is sent to - so it is site settings, and it is read with
+     * the provider and the model that the writer uses - which third party this
+     * site's content is sent to - so it is site settings, and it is read with
      * the same `publish` permission the POST below requires. Before
      * JAHIA-SEC-432 this asked only whether the caller was logged in, and any
      * account on the platform could read it.
-     *
-     * The caller must also hold genaiAccess on the site, as genai-connector checks it.
      */
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
@@ -93,13 +113,7 @@ public class GeoReportServlet extends GeoServlet {
             if (sitePath == null) {
                 return;
             }
-            AiStatus status = ai.status(AiFeature.GEO_REPORT, SiteScope.keyOf(sitePath));
-            JSONObject out = new JSONObject();
-            out.put("enabled", status.ready());
-            out.put("reason", status.reason());
-            out.put("provider", status.provider());
-            out.put("model", status.model());
-            writeJson(resp, HttpServletResponse.SC_OK, out);
+            writeJson(resp, HttpServletResponse.SC_OK, statusJson(statusOf(writer.get(), SiteScope.keyOf(sitePath))));
         } catch (IOException | RuntimeException e) {
             // Nothing may leave a servlet method: the container would answer with
             // a stack trace instead of a response. A broken socket, or a JSON
@@ -169,11 +183,11 @@ public class GeoReportServlet extends GeoServlet {
             } else {
                 deny(resp, HttpServletResponse.SC_BAD_REQUEST, "unknown action");
             }
-        } catch (AiException e) {
+        } catch (GeoReportWriter.Failure e) {
             // The provider's own words stay in the log. The browser learns why there is no report.
             logger.warn("GEO report for {} [{}] gave no answer ({}): {}", sitePath, ask.language, e.reason(),
                     e.getMessage());
-            denyAi(resp, e.reason());
+            denyWriter(resp, e.reason());
         } catch (IOException e) {
             logger.warn("GEO report for {} [{}] failed: {}", sitePath, ask.language, e.getMessage());
             deny(resp, HttpServletResponse.SC_BAD_GATEWAY, "provider failed: " + safe(e.getMessage()));
@@ -212,45 +226,89 @@ public class GeoReportServlet extends GeoServlet {
         return null;
     }
 
-    /** The paid path: a model must answer for the caller on the site, within their budget. */
+    /** The status of a writer for the current user on a site, or {@value #ABSENT} without a writer. */
+    static GeoReportWriter.Status statusOf(GeoReportWriter writer, String siteKey) {
+        return writer == null ? GeoReportWriter.Status.refused(ABSENT) : writer.status(siteKey);
+    }
+
+    /** The status as the dashboard reads it: the provider and the model only when the writer is ready. */
+    static JSONObject statusJson(GeoReportWriter.Status status) {
+        JSONObject out = new JSONObject();
+        out.put("enabled", status.ready());
+        out.put("reason", status.ready() ? "" : status.reason());
+        out.put("provider", status.ready() ? status.provider() : "");
+        out.put("model", status.ready() ? status.model() : "");
+        return out;
+    }
+
+    /**
+     * The refusal of generate for the status of the writer, or null when the writer is ready. A writer
+     * that is absent or not configured gives NOT_CONFIGURED.
+     */
+    static GeoReportWriter.Failure.Reason refusalOf(GeoReportWriter.Status status) {
+        if (status.ready()) {
+            return null;
+        }
+        return GeoReportWriter.Status.NO_ACCESS.equals(status.reason())
+                ? GeoReportWriter.Failure.Reason.NO_ACCESS : GeoReportWriter.Failure.Reason.NOT_CONFIGURED;
+    }
+
+    /** The paid path: the writer must answer for the caller on the site, within the limit of the caller. */
     private void generate(String sitePath, String language, String reportLanguage, JahiaUser user,
             HttpServletRequest req, HttpServletResponse resp)
-            throws IOException, RepositoryException, AiException {
-        AiStatus status = ai.status(AiFeature.GEO_REPORT, SiteScope.keyOf(sitePath));
-        if (!status.ready()) {
-            denyAi(resp, status.availability() == AiStatus.Availability.NO_ACCESS
-                    ? AiException.Reason.NO_ACCESS : AiException.Reason.NOT_CONFIGURED);
+            throws IOException, RepositoryException, GeoReportWriter.Failure {
+        GeoReportWriter current = writer.get();
+        GeoReportWriter.Failure.Reason refusal = refusalOf(statusOf(current, SiteScope.keyOf(sitePath)));
+        if (refusal != null) {
+            denyWriter(resp, refusal);
             return;
         }
-        if (!rateLimitOk(user.getUserKey(), RATE_WINDOW_MS, ai.reportRateMaxCalls())) {
+        // Counted before the digest, which reads the whole scan of the site.
+        if (!rateLimitOk(user.getUserKey(), RATE_WINDOW_MS, REPORT_RATE_MAX_CALLS)) {
             deny(resp, TOO_MANY_REQUESTS, "rate limit");
             return;
         }
         String base = baseUrlFor(sitePath, language, req);
-        JSONObject report = GeoReport.generate(sitePath, language, reportLanguage, base, ai);
+        JSONObject report = GeoReport.generate(sitePath, language, reportLanguage, base, current);
         JSONObject out = new JSONObject();
         out.put("report", report);
         writeJson(resp, HttpServletResponse.SC_OK, out);
     }
 
-    /** The refusal of a report that genai-connector did not write. */
-    private static void denyAi(HttpServletResponse resp, AiException.Reason reason) throws IOException {
+    /** The HTTP status of a report that the writer did not write. */
+    static int httpStatusOf(GeoReportWriter.Failure.Reason reason) {
         switch (reason) {
             case NO_ACCESS:
-                deny(resp, HttpServletResponse.SC_FORBIDDEN, "genaiAccess required");
+                return HttpServletResponse.SC_FORBIDDEN;
+            case QUOTA:
+                return TOO_MANY_REQUESTS;
+            case NOT_CONFIGURED:
+                return HttpServletResponse.SC_CONFLICT;
+            default:
+                return HttpServletResponse.SC_BAD_GATEWAY;
+        }
+    }
+
+    /** The refusal of a report that the writer did not write: its status, and a fixed message. */
+    private static void denyWriter(HttpServletResponse resp, GeoReportWriter.Failure.Reason reason) throws IOException {
+        String message;
+        switch (reason) {
+            case NO_ACCESS:
+                message = "access required";
                 break;
             case QUOTA:
-                deny(resp, TOO_MANY_REQUESTS, "rate limit");
+                message = "rate limit";
                 break;
             case NOT_CONFIGURED:
-                deny(resp, HttpServletResponse.SC_CONFLICT, "no provider configured");
+                message = "no report writer";
                 break;
             case OUTPUT_LIMIT:
-                deny(resp, HttpServletResponse.SC_BAD_GATEWAY, "provider failed: the answer reached its output budget");
+                message = "provider failed: the answer reached its output budget";
                 break;
             default:
-                deny(resp, HttpServletResponse.SC_BAD_GATEWAY, "provider failed");
+                message = "provider failed";
         }
+        deny(resp, httpStatusOf(reason), message);
     }
 
     private String baseUrlFor(String sitePath, String language, HttpServletRequest req) throws RepositoryException {

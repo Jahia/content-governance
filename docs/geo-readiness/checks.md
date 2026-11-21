@@ -395,16 +395,17 @@ wins, and a now/next/later roadmap. The server parses it against that shape and 
 reaches the browser: strings are clipped, enums are normalised to known values, lists are capped,
 and a page path survives only if the digest itself listed it. Everything is rendered as text.
 
-It answers only on a click, is metered per user, and is stored per language so the tab reads back
-instantly afterwards. The prose is written in the interface language, which may differ from the
-content language being measured; the tab says so when a stored report was written for another.
-Export produces Markdown built from the parsed shape, or the shape itself as JSON.
+It answers only on a click, and the module that writes it limits the calls of each user. It is
+stored per language, so the tab reads it back instantly afterwards. The prose is written in the
+interface language, which may differ from the content language being measured; the tab says so when
+a stored report was written for another. Export produces Markdown built from the parsed shape, or
+the shape itself as JSON.
 
-The `genai-connector` module serves the model of the report, as it serves the Page quality AI review
-and assists. The provider and the model are those of its `balanced` tier, configured in
-genai-connector. The **Report** tab is shown greyed out while genai-connector serves no model, or
-while the user does not have `genaiAccess` on the site. Nothing leaves the server then.
-Configuration keys: [`architecture.md`](architecture.md#configuration).
+Content Governance calls no model. Another module writes the report through the extension point
+`GeoReportWriter`, and that module keeps the prompt, the model and the key. The **Report** tab is
+shown greyed out while no module writes the report, or while that module does not answer the user
+on the site. Nothing leaves the server then. The contract of a writer is in
+[`architecture.md`](architecture.md#the-geo-report-writer).
 
 ## What the drawer says about where a page stands
 
