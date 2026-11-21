@@ -56,7 +56,7 @@ const pageResults = (findings = [], change = {}) => {
 const finding = (ruleId, text, context, severity = 'moderate') => ({ruleId, severity, text, context: context || null});
 
 describe('tabOf', () => {
-    it('puts a rule in the tab of its domain, and nowhere else', () => {
+    it('puts a rule in the tab of its subdomain, and nowhere else', () => {
         expect(tabOf(BASE_RULES.get('seo.canonical'))).toBe('seo');
         expect(tabOf(BASE_RULES.get('links.broken'))).toBe('links');
         expect(tabOf(BASE_RULES.get('health.placeholderText'))).toBe('jahia');
@@ -69,11 +69,18 @@ describe('tabOf', () => {
         expect(tabOf(BASE_RULES.get('html.linkTextVague'))).toBe('accessibility');
     });
 
-    it('puts a rule of another module in the tab of its domain, and a rule of an unknown domain in none', () => {
-        expect(tabOf({id: 'acme.erpPrice', domain: 'writing'})).toBe('readability');
-        expect(tabOf({id: 'voice.tone', domain: 'seo'})).toBe('seo');
-        expect(tabOf({id: 'brand.tone', domain: 'brand'})).toBeNull();
+    it('puts a rule of another module in the tab of its subdomain, and a rule of unknown subdomains in none', () => {
+        expect(tabOf({id: 'acme.erpPrice', subdomains: ['writing']})).toBe('readability');
+        expect(tabOf({id: 'voice.tone', subdomains: ['seo']})).toBe('seo');
+        expect(tabOf({id: 'brand.tone', subdomains: ['brand']})).toBeNull();
+        expect(tabOf({id: 'brand.none'})).toBeNull();
         expect(tabOf(BASE_RULES.get('geo.reachable'))).toBeNull();
+    });
+
+    it('puts a rule of two subdomains in the tab of the first that has one', () => {
+        expect(BASE_RULES.get('seo.title').subdomains).toEqual(['seo', 'geo.score']);
+        expect(tabOf(BASE_RULES.get('seo.title'))).toBe('seo');
+        expect(tabOf({id: 'acme.score', subdomains: ['geo.score', 'accessibility']})).toBe('accessibility');
     });
 });
 
@@ -113,9 +120,9 @@ describe('recommendationsByTab', () => {
     });
 
     it('words a rule of another module the same way, and its id when it has no text', () => {
-        const rules = ruleBook([...BASE_RULES.all(), {id: 'acme.erpPrice', domain: 'writing', severity: 'serious',
+        const rules = ruleBook([...BASE_RULES.all(), {id: 'acme.erpPrice', subdomains: ['writing'], severity: 'serious',
             title: [{form: 'one', text: '{{count}} price typed, such as {{value}}'}], advice: 'Insert the product.'},
-        {id: 'acme.bare', domain: 'health', severity: 'minor', title: [], advice: ''}]);
+        {id: 'acme.bare', subdomains: ['health'], severity: 'minor', title: [], advice: ''}]);
         const recs = recommendationsByTab([finding('acme.erpPrice', '12.50 EUR'), finding('acme.bare', 'x')], rules);
 
         expect(recs.readability[0]).toMatchObject({title: '1 price typed, such as 12.50 EUR', detail: 'Insert the product.'});

@@ -1,7 +1,7 @@
 ---
 id: health.missingTranslations
 evaluator: health.missingTranslations
-domain: health
+subdomains: [health]
 severity: serious
 fixer: editor
 label:

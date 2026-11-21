@@ -1,7 +1,7 @@
 ---
 id: readability.longSentences
 evaluator: threshold
-domain: readability
+subdomains: [readability]
 severity: minor
 fixer: editor
 unit: words

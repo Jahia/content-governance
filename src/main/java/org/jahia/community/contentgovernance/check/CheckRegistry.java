@@ -32,10 +32,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Component(service = CheckRegistry.class, immediate = true)
 public class CheckRegistry {
 
-    /** The service property of a check that the drawer runs in the browser: the server only knows its id. */
-    public static final String RUNTIME = "check.runtime";
-    /** The value of {@value #RUNTIME} for a check that runs in the browser. */
-    public static final String BROWSER = "browser";
     /** The most findings that one check gives on one input. */
     static final int MAX_FINDINGS = 50;
 
@@ -46,21 +42,22 @@ public class CheckRegistry {
 
     private final List<Registered> checks = new CopyOnWriteArrayList<>();
 
-    private record Registered(String id, ContentCheck check, boolean browser) {
+    private record Registered(String id, ContentCheck check) {
     }
 
     /**
      * Whether a rule can run.
      *
-     * @param active       true when a started module registers the check that the rule names
+     * @param active       true when a started module registers the check that the rule names, or when the rule
+     *                     runs in the browser, where the drawer finds its check
      * @param missingCheck the id of the check that no module registers, or null for an active rule
      * @param needs        the module that registers the missing check, or null when it is not known
-     * @param unknownDomain the domain of the rule when it is not one of {@code RuleDomains.ALL} (empty for no
-     *                      domain), or null for a rule of a known domain
+     * @param unknownSubdomains the subdomains of a rule that no module and no node declares (empty when the
+     *                      rule names none), or null for a rule placed in a subdomain of the site
      */
-    public record Status(boolean active, String missingCheck, String needs, String unknownDomain) {
+    public record Status(boolean active, String missingCheck, String needs, List<String> unknownSubdomains) {
 
-        /** The status of a rule of a known domain. */
+        /** The status of a rule placed in a subdomain of the site. */
         public Status(boolean active, String missingCheck, String needs) {
             this(active, missingCheck, needs, null);
         }
@@ -88,13 +85,13 @@ public class CheckRegistry {
                     ContentCheck.ID);
             return;
         }
-        checks.add(new Registered(checkId.trim(), check, BROWSER.equals(properties.get(RUNTIME))));
+        checks.add(new Registered(checkId.trim(), check));
     }
 
     protected void unbindCheck(ContentCheck check, Map<String, Object> properties) {
         Object id = properties.get(ContentCheck.ID);
         String checkId = id instanceof String text ? text.trim() : null;
-        // One object may serve several ids, such as the checks that run in the browser.
+        // One object may serve several ids, such as the checks of one family.
         checks.removeIf(registered -> registered.check() == check && registered.id().equals(checkId));
     }
 
@@ -108,14 +105,15 @@ public class CheckRegistry {
 
     /**
      * @param rule a rule of a site
-     * @return whether the check that the rule names is registered, and which one is missing
+     * @return whether the check that the rule names is registered, and which one is missing. A rule of the
+     * browser is active: the server cannot see the checks that the drawer registers.
      */
     public Status status(ContentRule rule) {
-        if (!rule.hasKnownDomain()) {
-            // A finding of a rule whose domain is unknown has no place in the drawer: the rule does not run
-            return new Status(false, null, null, rule.domain() == null ? "" : rule.domain());
+        if (!rule.placed()) {
+            // A finding of a rule whose subdomains are unknown has no place in the drawer: the rule does not run
+            return new Status(false, null, null, rule.subdomains());
         }
-        if (has(rule.evaluator())) {
+        if (rule.inBrowser() || has(rule.evaluator())) {
             return new Status(true, null, null, null);
         }
         return new Status(false, rule.evaluator(), PROVIDERS.get(rule.evaluator()), null);
@@ -126,13 +124,12 @@ public class CheckRegistry {
      * @return true when a finding of the rule stops the publication: never for a rule of the browser
      */
     public boolean blocking(ContentRule rule) {
-        Registered registered = find(rule.evaluator());
-        return rule.blocking() && (registered == null || !registered.browser());
+        return rule.blocking() && !rule.inBrowser();
     }
 
     /**
-     * Runs on the input each check of a rule that the site of the input keeps on. A check that runs in
-     * the browser, or not in the scope of the input, does not run. A check that fails is logged and
+     * Runs on the input each check of a rule that the site of the input keeps on. A rule of the browser,
+     * or a check not in the scope of the input, does not run. A check that fails is logged and
      * skipped.
      *
      * @param input   what to check, whose path names the site
@@ -185,10 +182,10 @@ public class CheckRegistry {
         Scope scope = input.scope();
         List<Ran> out = new ArrayList<>();
         for (ContentRule rule : rules.all()) {
-            boolean wanted = rule.enabled() && rule.hasKnownDomain() && !skipped.contains(rule.evaluator())
-                    && (ruleIds == null || ruleIds.contains(rule.id()));
+            boolean wanted = rule.enabled() && rule.placed() && !rule.inBrowser()
+                    && !skipped.contains(rule.evaluator()) && (ruleIds == null || ruleIds.contains(rule.id()));
             Registered registered = wanted ? find(rule.evaluator()) : null;
-            if (registered == null || registered.browser() || !registered.check().scopes().contains(scope)) {
+            if (registered == null || !registered.check().scopes().contains(scope)) {
                 continue;
             }
             Ran ran = applyRule(registered, rule, input);

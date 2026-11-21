@@ -1,7 +1,7 @@
 ---
 id: readability.headings
 evaluator: readability.headings
-domain: readability
+subdomains: [readability]
 severity: minor
 label:
   en: "Outline of the headings"

@@ -1,7 +1,7 @@
 ---
 id: seo.tags
 evaluator: seo.tags
-domain: seo
+subdomains: [seo]
 severity: minor
 label:
   en: "Tags of the page"

@@ -1,7 +1,8 @@
 ---
 id: ecodesign.pageWeight
-evaluator: threshold
-domain: ecodesign
+evaluator: ecodesign.pageWeight
+runtime: browser
+subdomains: [ecodesign]
 severity: moderate
 fixer: developer
 unit: kilobytes

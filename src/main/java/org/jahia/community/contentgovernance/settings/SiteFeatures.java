@@ -19,8 +19,10 @@ import java.util.Set;
  * Which sections and tabs of the module a site uses, and the server-side gate every endpoint calls.
  *
  * <p>A feature is enabled on a site when the site enables the module (directly or through a
- * module it enables, as jContent checks it) and neither the feature nor its section is in the
- * site's list of switched-off ids. A site never configured has an empty list: everything on.</p>
+ * module it enables, as jContent checks it) and neither the feature, its section nor the governance
+ * panel that holds them is in the site's list of switched-off ids. A site never configured has an
+ * empty list: everything on. The panels of other modules, such as a chat, are switched in the same
+ * list, and their module reads it.</p>
  *
  * <p>Stored on {@code /sites/<key>/content-governance} ({@code nt:unstructured} +
  * {@code jmix:nolive}, never published), property {@value #DISABLED}. Read with a system session,
@@ -48,7 +50,7 @@ public final class SiteFeatures {
      * Whether a site enables the module and the feature.
      *
      * @param sitePath {@code /sites/<key>}
-     * @param feature  a tab id or a {@code tab.part} id ({@link Features})
+     * @param feature  a tab id or a {@code tab.part} id of the governance panel ({@link Features})
      * @return false when the site is missing, does not enable the module, or switched the feature off
      */
     public static boolean isEnabled(String sitePath, String feature) {
@@ -78,9 +80,14 @@ public final class SiteFeatures {
         return site != null && site.getInstalledModulesWithAllDependencies().contains(MODULE);
     }
 
-    /** True when neither {@code feature} nor its section is in {@code disabled}. */
+    /**
+     * True when neither {@code feature}, its section nor the governance panel is in {@code disabled}.
+     *
+     * @param feature a tab id or a {@code tab.part} id of the governance panel
+     */
     public static boolean isOn(Set<String> disabled, String feature) {
-        return !disabled.contains(feature) && !disabled.contains(Features.sectionOf(feature));
+        return !disabled.contains(Features.GOVERNANCE) && !disabled.contains(feature)
+                && !disabled.contains(Features.sectionOf(feature));
     }
 
     /**

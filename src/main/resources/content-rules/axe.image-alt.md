@@ -1,7 +1,8 @@
 ---
 id: axe.image-alt
 evaluator: axe
-domain: accessibility
+runtime: browser
+subdomains: [accessibility]
 severity: critical
 fixer: editor
 ---

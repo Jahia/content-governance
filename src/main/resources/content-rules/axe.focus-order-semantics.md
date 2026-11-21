@@ -1,7 +1,9 @@
 ---
 id: axe.focus-order-semantics
 evaluator: axe
-domain: accessibility
+runtime: browser
+enabled: false
+subdomains: [accessibility]
 severity: minor
 fixer: developer
 ---

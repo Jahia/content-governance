@@ -40,7 +40,7 @@ JavaScript-only page is still caught, by the word-count check.
 
 - **The drawer.** `src/javascript/drawer/GovernanceAction.jsx` registers one header action,
   **Content governance** (`headerPrimaryActions`), on `jnt:page` and `jmix:mainResource` nodes of a
-  site that enables the module. `GovernanceDrawer.jsx` renders one tab per switched-on section and
+  site that enables the module. `GovernancePanel.jsx` renders one tab per switched-on section and
   mounts `geo/GeoSection.jsx` the first time **GEO readiness** is opened; it stays mounted while the
   drawer is open, so switching sections keeps the result. `GeoSection` reports its issue count (the
   sum of its tab badges) to the drawer, which shows it on the section tab.

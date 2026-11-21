@@ -1,7 +1,9 @@
 ---
 id: axe.p-as-heading
 evaluator: axe
-domain: accessibility
+runtime: browser
+enabled: false
+subdomains: [accessibility]
 severity: serious
 fixer: editor
 ---

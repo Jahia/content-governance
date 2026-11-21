@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BooleanSupplier;
 
 /**
@@ -46,11 +47,13 @@ import java.util.function.BooleanSupplier;
  * <ul>
  *   <li>A rule that the site lacks is added. A deleted rule node comes back with its shipped values.</li>
  *   <li>A rule that nobody changed takes the new shipped values.</li>
- *   <li>A rule that the site changed keeps its values, and only gets the properties it lacks.</li>
+ *   <li>A rule that the site changed keeps its values, and only gets the properties it lacks. When its module
+ *       moves it to the browser, it also takes the shipped evaluator, {@link #browserEvaluator} states why.</li>
  *   <li>A rule that the module no longer ships is removed if nobody changed it, and marked
  *       {@value RuleNodes#RETIRED} if the site changed it.</li>
  * </ul>
- * <p>The nodes stay unpublished: {@link ContentRules} reads the edit workspace.</p>
+ * <p>The nodes stay unpublished: {@link ContentRules} reads the edit workspace. The domains and the
+ * subdomains that a module ships go to the system site, through {@link DomainSeeder}.</p>
  */
 @Component(service = DefaultEventListener.class, immediate = true)
 public class RuleSeeder extends DefaultEventListener implements BundleTrackerCustomizer<String> {
@@ -62,6 +65,11 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
     private static final Logger logger = LoggerFactory.getLogger(RuleSeeder.class);
 
     private BundleTracker<String> tracker;
+    /**
+     * The started modules whose rule folder has a file that was skipped, by module. Such a file may name a
+     * domain or a subdomain of a module that starts later, so the folder is read again when one starts.
+     */
+    private final Map<String, Bundle> incomplete = new ConcurrentHashMap<>();
     /** True on the processing server, and on a Jahia that is not a cluster: the node that writes at start. */
     private boolean processingServer;
     /** Reads whether this node is the processing server. A test replaces it, because SettingsBean needs Jahia. */
@@ -87,9 +95,9 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
     }
 
     /**
-     * Converts the rules and the glossary terms of an older version, then tracks the modules that ship
-     * rules. The tracker seeds every site with the rules of each module, this module included, as it finds
-     * them. The nodes of a cluster share one repository and start the module at the same time, so only the
+     * Converts the rules, the glossary terms and the domains of an older version, then tracks the modules
+     * that ship rules. The tracker seeds the system site with the domains and the subdomains of each module,
+     * and every site with its rules, this module included, as it finds them. The nodes of a cluster share one repository and start the module at the same time, so only the
      * processing server converts and seeds: a browsing node never reads a node that the processing server
      * writes in the same second.
      */
@@ -99,6 +107,8 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
         if (processingServer) {
             LegacyRules.migrate();
             LegacyTerms.migrate();
+            // Before the seeder: it tells a node that nobody changed by the fingerprint that the conversion keeps.
+            LegacyDomains.migrate();
         } else {
             logger.debug("A browsing node leaves the conversions and the seeding to the processing server");
         }
@@ -115,16 +125,40 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
 
     @Override
     public String addingBundle(Bundle bundle, BundleEvent event) {
+        ShippedRules.Shipment shipment = read(bundle);
+        if (shipment == null) {
+            return null;
+        }
+        if (!shipment.domains().isEmpty() || !shipment.subdomains().isEmpty()) {
+            // A module that started first may name a domain or a subdomain that this one declares.
+            Map.copyOf(incomplete).forEach((module, other) -> {
+                if (!module.equals(shipment.module())) {
+                    read(other);
+                }
+            });
+        }
+        return shipment.module();
+    }
+
+    /** Reads the rules, the domains and the subdomains of a module, and seeds them on the processing server. */
+    private ShippedRules.Shipment read(Bundle bundle) {
         ShippedRules.Shipment shipment = ShippedRules.load(bundle);
         if (shipment == null) {
             return null;
         }
         ShippedRules.put(shipment);
-        logger.info("Read {} content rules from the module {}", shipment.rules().size(), shipment.module());
+        if (shipment.complete()) {
+            incomplete.remove(shipment.module());
+        } else {
+            incomplete.put(shipment.module(), bundle);
+        }
+        logger.info("Read {} content rules, {} domains and {} subdomains from the module {}", shipment.rules().size(),
+                shipment.domains().size(), shipment.subdomains().size(), shipment.module());
         if (processingServer) {
+            DomainSeeder.seed(shipment);
             seedSites(shipment.module());
         }
-        return shipment.module();
+        return shipment;
     }
 
     @Override
@@ -135,6 +169,7 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
     @Override
     public void removedBundle(Bundle bundle, BundleEvent event, String module) {
         // The rule nodes stay on the sites: a check that a module registered is gone with it.
+        incomplete.remove(module);
         ShippedRules.remove(module);
     }
 
@@ -311,6 +346,11 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
                 wrote = true;
             }
             case FILL -> {
+                String evaluator = browserEvaluator(RuleNodes.read(node), rule.values());
+                if (evaluator != null) {
+                    node.setProperty(RuleValues.EVALUATOR, evaluator);
+                    wrote = true;
+                }
                 wrote |= RuleNodes.fillMissing(node, rule.values());
                 // A node that holds the shipped values again is a node that nobody changed.
                 if (!shipped.equals(seeded) && RuleValues.digest(RuleNodes.read(node)).equals(shipped)) {
@@ -322,6 +362,25 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
             case NONE -> wrote |= RuleNodes.fillMissing(node, rule.values());
         }
         return wrote ? 1 : 0;
+    }
+
+    /**
+     * The evaluator that a rule changed by the site takes when its module moves the rule to the browser: the
+     * shipped one, since no check of the server applies the rule any more. Example: a site raised the maximum
+     * of {@code ecodesign.pageWeight}, whose evaluator was {@code threshold}; the node keeps its maximum and
+     * takes the evaluator {@code ecodesign.pageWeight} of the browser.
+     *
+     * @param node    the values of the node
+     * @param shipped the values that the module ships
+     * @return the shipped evaluator, or null when the node has a runtime already, the shipped rule runs on the
+     * server, or the node names the shipped evaluator
+     */
+    static String browserEvaluator(Map<String, Object> node, Map<String, Object> shipped) {
+        if (node.containsKey(RuleValues.RUNTIME) || !ContentRule.BROWSER.equals(shipped.get(RuleValues.RUNTIME))) {
+            return null;
+        }
+        Object evaluator = shipped.get(RuleValues.EVALUATOR);
+        return evaluator == null || evaluator.equals(node.get(RuleValues.EVALUATOR)) ? null : evaluator.toString();
     }
 
     private static boolean unretire(JCRNodeWrapper node) throws RepositoryException {

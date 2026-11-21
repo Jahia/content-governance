@@ -1,7 +1,8 @@
 ---
 id: axe.valid-lang
 evaluator: axe
-domain: accessibility
+runtime: browser
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

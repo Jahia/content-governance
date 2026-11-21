@@ -11,8 +11,8 @@ import java.util.Map;
  * One rule of the catalog, as it applies to one site.
  *
  * @param id        the id that every finding of the rule carries, such as {@code seo.title}
- * @param domain    the group of the rule, one of {@link RuleDomains#ALL}; by default the part of the id before
- *                  the first dot when it is a known domain, else null
+ * @param subdomains the ids of the subdomains of the rule, such as {@code seo} and {@code geo.score}: the findings
+ *                  of the rule show in each; empty when the rule names none and no default applies
  * @param evaluator what checks the rule: one of {@link #EVALUATORS}, or the id of a check that a module registers
  * @param severity  one of {@link #SEVERITIES}
  * @param blocking  true when a finding of the rule stops the publication of the content
@@ -26,10 +26,12 @@ import java.util.Map;
  * @param folder    the path of the folder that holds the node of the rule, such as
  *                  {@code /sites/digitall/contents/compliance-glossaries/legal}, or null for a shipped rule
  *                  that the site has no node of
+ * @param placed    true when one of the subdomains is a subdomain of the site, under a domain of the site: only
+ *                  then does a finding have a place, and only then does the rule run
  */
-public record ContentRule(String id, String domain, String evaluator, String severity, boolean blocking,
+public record ContentRule(String id, List<String> subdomains, String evaluator, String severity, boolean blocking,
                           boolean enabled, String fixer, String advice, String unit, Double minimum, Double maximum,
-                          Map<String, Object> values, String folder) implements Rule {
+                          Map<String, Object> values, String folder, boolean placed) implements Rule {
 
     /** The severities of a rule, from the most serious to the least. */
     public static final List<String> SEVERITIES = List.of("critical", "serious", "moderate", "minor");
@@ -45,8 +47,15 @@ public record ContentRule(String id, String domain, String evaluator, String sev
     public static final String MODEL = "model";
     /** The evaluators that a rule names by a word. Any other evaluator is the id of a check of its own. */
     public static final List<String> EVALUATORS = List.of(PATTERN, THRESHOLD, PRESENCE, MODEL);
+    /** The check of the rule runs on the server: the default. */
+    public static final String SERVER = "server";
+    /** The check of the rule runs in the browser, on the preview of the page, where the drawer registers it. */
+    public static final String BROWSER = "browser";
+    /** The values of {@link RuleValues#RUNTIME}. */
+    public static final List<String> RUNTIMES = List.of(SERVER, BROWSER);
 
     public ContentRule {
+        subdomains = List.copyOf(subdomains);
         values = Collections.unmodifiableMap(new HashMap<>(values));
     }
 
@@ -73,9 +82,18 @@ public record ContentRule(String id, String domain, String evaluator, String sev
         return english == null || english.toString().isBlank() ? null : english.toString();
     }
 
-    /** True when the domain of the rule is one of {@link RuleDomains#ALL}: only then does a finding have a place. */
-    public boolean hasKnownDomain() {
-        return RuleDomains.known(domain);
+    /** The keys of the sites that the rule applies to, or {@value RuleValues#ALL_SITES}. */
+    public List<String> sites() {
+        List<String> sites = RuleValues.strings(values, RuleValues.SITES);
+        return sites.isEmpty() ? List.of(RuleValues.ALL_SITES) : sites;
+    }
+
+    /**
+     * True when the rule states {@code runtime: browser}: the drawer runs its check on the preview of the page,
+     * and the server never runs it.
+     */
+    public boolean inBrowser() {
+        return BROWSER.equals(values.get(RuleValues.RUNTIME));
     }
 
     /**
@@ -83,8 +101,18 @@ public record ContentRule(String id, String domain, String evaluator, String sev
      * @return this rule in that folder
      */
     public ContentRule inFolder(String path) {
-        return new ContentRule(id, domain, evaluator, severity, blocking, enabled, fixer, advice, unit, minimum,
-                maximum, values, path);
+        return new ContentRule(id, subdomains, evaluator, severity, blocking, enabled, fixer, advice, unit, minimum,
+                maximum, values, path, placed);
+    }
+
+    /**
+     * @param ids         the subdomains of the rule
+     * @param inHierarchy true when one of them is a subdomain of the site, under a domain of the site
+     * @return this rule with these subdomains
+     */
+    ContentRule placedIn(List<String> ids, boolean inHierarchy) {
+        return new ContentRule(id, ids, evaluator, severity, blocking, enabled, fixer, advice, unit, minimum,
+                maximum, values, folder, inHierarchy);
     }
 
     /**
@@ -132,7 +160,7 @@ public record ContentRule(String id, String domain, String evaluator, String sev
         if (newMaximum != null) {
             newValues.put(RuleValues.MAXIMUM, newMaximum);
         }
-        return new ContentRule(id, domain, evaluator, newSeverity, blocking, newEnabled, fixer, advice, unit,
-                newMinimum, newMaximum, newValues, folder);
+        return new ContentRule(id, subdomains, evaluator, newSeverity, blocking, newEnabled, fixer, advice, unit,
+                newMinimum, newMaximum, newValues, folder, placed);
     }
 }

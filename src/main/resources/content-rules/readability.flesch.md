@@ -1,7 +1,7 @@
 ---
 id: readability.flesch
 evaluator: threshold
-domain: readability
+subdomains: [readability]
 severity: moderate
 fixer: editor
 unit: points

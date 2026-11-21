@@ -1,7 +1,7 @@
 ---
 id: geo.headingOutline
 evaluator: geo.headingOutline
-domain: geo
+subdomains: [geo.content]
 severity: minor
 fixer: editor
 label:

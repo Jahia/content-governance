@@ -1,7 +1,8 @@
 ---
 id: axe.table-duplicate-name
 evaluator: axe
-domain: accessibility
+runtime: browser
+subdomains: [accessibility]
 severity: minor
 fixer: developer
 ---

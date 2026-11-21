@@ -81,7 +81,8 @@ describe('Content Governance - a tab of another module', () => {
 
     it('shows the tab after the tabs of the module, with its count, and ranks its findings in "Fix first"', () => {
         openDrawer().within(() => {
-            cy.get('[role="tab"]').should(tabs => {
+            // The tabs of the governance panel: the panel switch above them has tabs too
+            cy.get('[role="tablist"][aria-label="Sections"] [role="tab"]').should(tabs => {
                 expect([...tabs].map(tab => tab.id)).to.deep.eq([section('compliance'), section(TEST_TAB)].map(id => id.slice(1)));
             });
             cy.get(section(TEST_TAB)).should('contain.text', 'Test tab').click();

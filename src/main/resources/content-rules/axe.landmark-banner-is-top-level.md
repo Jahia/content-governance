@@ -1,7 +1,8 @@
 ---
 id: axe.landmark-banner-is-top-level
 evaluator: axe
-domain: accessibility
+runtime: browser
+subdomains: [accessibility]
 severity: moderate
 fixer: developer
 ---

@@ -4,7 +4,9 @@ import i18next from 'i18next';
 import {registry} from '@jahia/ui-extender';
 import {Header, LayoutContent, Loader} from '@jahia/moonstone';
 import {GovernanceAction} from './drawer/GovernanceAction';
-import {registerOwnTabs} from './drawer/ownTabs';
+import {registerOwnPanel, registerOwnTabs} from './drawer/ownTabs';
+import {registerDrawerApi} from './drawer/drawerApi';
+import {registerChecks} from './checks/register';
 import {PublishCheckAction} from './publish/PublishCheckAction';
 import {SectionGate} from './common/SectionGate';
 import {NS} from './common/i18n';
@@ -93,11 +95,20 @@ function register() {
         '</svg>'
     );
 
-    // The tabs of the drawer: Page quality, GEO readiness and Compliance, before those of other modules
+    // The panels of the drawer: governance before those of other modules, such as the chat of AI
+    // Assistant. The tabs of the governance panel: Page quality, GEO readiness and Compliance, before
+    // those of other modules.
+    registerOwnPanel(buttonIcon);
     registerOwnTabs();
+    // openPanel(id, context) for other modules, such as an action on a finding that opens the chat
+    registerDrawerApi();
 
-    // One button for every tab of the drawer. The component shows it only on a page or a main
-    // resource of a site that enables the module and keeps at least one tab switched on.
+    // The checks that Page quality runs in the browser: axe-core, the web vitals and eco-design
+    registerChecks();
+
+    // One button per panel of the drawer, on a site that enables the module and keeps the panel
+    // switched on. The governance panel shows on a page or a main resource that it can check, while
+    // the site keeps at least one of its tabs switched on.
     registry.add('action', 'contentGovernance', {
         targets: ['headerPrimaryActions:890'],
         buttonIcon,

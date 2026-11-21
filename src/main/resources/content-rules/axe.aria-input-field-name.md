@@ -1,7 +1,8 @@
 ---
 id: axe.aria-input-field-name
 evaluator: axe
-domain: accessibility
+runtime: browser
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

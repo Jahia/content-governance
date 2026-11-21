@@ -3,16 +3,19 @@ package org.jahia.community.contentgovernance.settings;
 import java.util.regex.Pattern;
 
 /**
- * The ids of the features a site switches on or off. A feature id is a tab of the drawer
- * ({@code geo}) or a part of a tab ({@code geo.citations}). The tabs of the module and the tabs that
- * other modules register in the drawer have ids of the same form. The server keeps no list of them:
- * the drawer's registry is the list, and a site stores the ids it switched off. A tab that a module
- * adds later therefore starts switched on.
+ * The ids of the features a site switches on or off. A feature id is a panel of the drawer
+ * ({@code governance}, {@code chat}), a tab of the governance panel ({@code geo}) or a part of a tab
+ * ({@code geo.citations}). The panels and tabs of the module and those that other modules register
+ * in the drawer have ids of the same form. The server keeps no list of them: the drawer's registry is
+ * the list, and a site stores the ids it switched off. A panel or a tab that a module adds later
+ * therefore starts switched on.
  *
  * <p>The ids are part of the stored settings and of the GraphQL API: never rename one.</p>
  */
 public final class Features {
 
+    /** The governance panel, which holds the tabs: switched off, every tab is off. */
+    public static final String GOVERNANCE = "governance";
     public static final String AUDIT = "audit";
     public static final String GEO = "geo";
     public static final String COMPLIANCE = "compliance";

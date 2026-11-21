@@ -72,15 +72,23 @@ public class GqlContentRule {
     }
 
     @GraphQLField
-    @GraphQLDescription("The group of the rule, which names the tab of its findings: accessibility, seo, readability, writing, links, health, ecodesign, geo or compliance. Null when the rule has none")
-    public String getDomain() {
-        return rule.domain();
+    @GraphQLNonNull
+    @GraphQLDescription("The ids of the subdomains of the rule, such as seo and geo.score: its findings show in each. contentDomains gives the hierarchy. Empty when the rule names none and no default applies")
+    public List<String> getSubdomains() {
+        return rule.subdomains();
     }
 
     @GraphQLField
-    @GraphQLDescription("The domain of the rule when it is not a known domain (empty for no domain): the rule then never runs. Null for a rule of a known domain")
-    public String getUnknownDomain() {
-        return status.unknownDomain();
+    @GraphQLNonNull
+    @GraphQLDescription("The keys of the sites that the rule applies to, or * for all sites")
+    public List<String> getSites() {
+        return rule.sites();
+    }
+
+    @GraphQLField
+    @GraphQLDescription("The subdomains of the rule when no module and no node declares any of them (empty when the rule names none): the rule then never runs. Null for a rule placed in a subdomain of the site")
+    public List<String> getUnknownSubdomains() {
+        return status.unknownSubdomains();
     }
 
     @GraphQLField
@@ -107,9 +115,16 @@ public class GqlContentRule {
 
     @GraphQLField
     @GraphQLNonNull
-    @GraphQLDescription("False when no started module registers the check that the evaluator names: the rule then never runs")
+    @GraphQLDescription("False when no started module registers the check that the evaluator names: the rule then never runs. A rule of the browser is active: the drawer finds its check")
     public boolean isActive() {
         return status.active();
+    }
+
+    @GraphQLField
+    @GraphQLNonNull
+    @GraphQLDescription("Where the check of the rule runs: browser for a check that the drawer runs on the preview of the page, else server")
+    public String getRuntime() {
+        return rule.inBrowser() ? ContentRule.BROWSER : ContentRule.SERVER;
     }
 
     @GraphQLField

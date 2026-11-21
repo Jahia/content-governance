@@ -1,7 +1,7 @@
 ---
 id: html.headingH1Missing
 evaluator: html.headingH1Missing
-domain: accessibility
+subdomains: [accessibility, geo.score]
 severity: moderate
 fixer: editor
 label:

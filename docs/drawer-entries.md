@@ -1,31 +1,173 @@
 # Add an entry to the drawer from another module
 
-Another module can add two kinds of entry to the drawer of content governance:
+Another module can add four kinds of entry to the drawer of content governance:
 
-- a tab in the section bar,
-- an action on a finding.
+- a panel, which is a whole screen of the drawer with its own button in the header of jContent,
+- a tab in the section bar of the governance panel,
+- an action on a finding,
+- a check that runs in the browser, on the preview of the page.
 
-A module adds an entry to the registry of jContent (`@jahia/ui-extender`) when jContent starts. The
-sections of content governance are tabs of the same registry, at the priorities 1, 2 and 3. Their
-keys are `audit` for Page quality, `geo` for GEO readiness and `compliance`. A tab that another module
-adds gets what these sections get:
+A module adds an entry to the registry of jContent (`@jahia/ui-extender`) when jContent starts.
+
+The drawer holds the panels, and one drawer is open at a time. The governance panel holds the tabs.
+Content governance registers the governance panel and its own tabs through the same registry. The
+key of the governance panel is `governance`. The keys of its own tabs are `audit` for Page quality,
+`geo` for GEO readiness and `compliance`, at the priorities 1, 2 and 3.
+
+A tab that another module adds gets what these tabs get:
 
 - a switch in the site settings, which a site administrator turns off,
 - its serious findings in "Fix first",
 - a history of its findings per page and language.
 
-Example: the AI assistant adds the action "Fix with the assistant" to each finding. On a Jahia with
-no AI assistant, the action is not there.
+Example: the AI assistant adds its chat as the panel `chat`, and the action "Fix with the assistant"
+to each finding. The action opens the chat with the finding. On a Jahia with no AI assistant, the
+drawer has no chat and the findings have no such action.
 
-## What an entry receives
+## Add a panel
 
-Each entry receives three values from the drawer.
+A panel is an entry of the type `contentGovernancePanel`.
+
+```js
+import {registry} from '@jahia/ui-extender';
+import {Comments} from '@jahia/moonstone';
+import {ChatPanel} from './ChatPanel';
+
+registry.add('contentGovernancePanel', 'chat', {
+    label: 'ai-assistant:chat.label',
+    buttonLabel: 'ai-assistant:chat.open',
+    buttonIcon: <Comments/>,
+    order: 10,
+    settingsHelp: 'ai-assistant:chat.settingsHelp',
+    component: ChatPanel
+});
+```
+
+| Field | Value |
+|---|---|
+| key | The id of the panel, as the second argument. Give a key that names your module. |
+| `label` | The name of the panel, as a translation key with its namespace. The drawer shows it as its title and in its switch between the panels. The site settings show it too. |
+| `buttonLabel` | The label of the button of the panel in the header of jContent, as a translation key. |
+| `buttonIcon` | The icon of the button, as a React element. The switch between the panels shows it too. |
+| `order` | A number. A lower order puts the panel further to the left. The governance panel has the order 0, so use 10 or more. |
+| `settingsHelp` | What the site settings say about the panel, as a translation key. Optional. |
+| `showOnNodeTypes` | The node types where the button shows. Optional. The default is `['jnt:page', 'jmix:mainResource']`. |
+| `useAvailable` | A React hook that returns `true` when the button can show. Optional. See [When the button shows](#when-the-button-shows). |
+| `component` | The React component that renders the panel. |
+
+A key starts with a letter, then holds letters, digits, `_` or `-`, at most 64 characters in all.
+The site settings store the keys of the panels and of the tabs in one list. For this reason, the
+drawer leaves out a tab whose key is the key of a panel. The drawer also leaves out a panel with
+another key, and a panel with no label, no button label or no component.
+
+The component receives these props:
 
 | Prop | Value |
 |---|---|
 | `path` | The path of the page or the main resource in the drawer, such as `/sites/digitall/home`. |
 | `language` | The language of the content in the Jahia form, such as `en` or `zh_CN`. |
-| `findings` | The list of the findings that the tabs of the drawer found so far. |
+| `context` | The object that the last call of `openPanel` gave the panel, or `null`. See [Open a panel](#open-a-panel). |
+| `onClose()` | Closes the drawer. |
+| `settings` | The site settings, such as `settings.disabled`, the ids that the site switched off. |
+| `isOn(tab, part)` | `true` when the site keeps the governance panel, a tab and its part on. |
+
+The panel mounts the first time the drawer shows it, and it stays mounted while the drawer is open.
+When the editor switches to another panel and back, the panel keeps its state. The component can be
+a `React.lazy` component, and the drawer shows a loader while the code loads. If the component
+throws an error, the panel shows a message and the console shows the error.
+
+### When the button shows
+
+The button of a panel shows when all these conditions are true:
+
+- The site enables content governance.
+- The site keeps the panel switched on.
+- The node in view has one of the node types of `showOnNodeTypes`.
+- The hook `useAvailable` returns `true`, when the entry has one.
+
+The hook `useAvailable` receives `{path, language, siteKey, settings, isOn}` as its argument. The
+hook returns `true` to show the button. Any other value hides the button, so the hook can return
+`undefined` while it loads. Example: the chat shows its button only to a user who may use the
+assistant on the site.
+
+The drawer calls the hook in the same component on every render, so the rules of React hooks apply.
+The governance panel uses the hook too: its button shows while the site keeps at least one of its
+tabs on.
+
+### The button and the switch between the panels
+
+A press on the button of a panel opens the drawer on that panel. If the drawer is open on another
+panel, the drawer shows the panel of the button. A second press on the button of the panel in view
+closes the drawer.
+
+When more than one panel can show on the page, the drawer shows a switch between the panels under
+its header.
+
+### The site switch of a panel
+
+The site settings list every panel of the registry, with a switch for each one. The tabs of the
+governance panel follow the switch of the governance panel. A panel that the site switched off has
+no button and is not in the drawer.
+
+When the site switches the governance panel off, every tab of the governance panel is off too. The
+server then refuses the calls of these tabs, and their site dashboards say that they are off. The
+tabs keep their own switches.
+
+A server may need to refuse the calls of a panel that is off. The module of the panel then reads the
+switch of its panel from the site settings:
+
+```graphql
+query {
+  contentGovernance {
+    siteSettings(siteKey: "digitall") { moduleEnabled disabled }
+  }
+}
+```
+
+The panel is off when `disabled` holds its key.
+
+## Open a panel
+
+Content governance gives other modules a function that opens the drawer on a panel. The function is
+in the registry:
+
+```js
+const drawer = registry.get('contentGovernanceApi', 'drawer');
+drawer?.openPanel('chat', {finding, path, language});
+```
+
+`openPanel(id, context)` opens the drawer of the page in view on the panel `id`. If the drawer is
+open on another panel, the drawer shows the panel `id`. The component of the panel receives `context`
+in its prop `context`.
+
+- Each call gives the panel a new object, so a second call with the same values changes the prop
+  too. A panel can react to each call with an effect on `context`.
+- A call with no context shows the panel and keeps its last context.
+- The context of a panel stays while the editor switches to another panel. It is `null` again the
+  next time the drawer opens.
+
+`openPanel` returns `true` when a drawer opened the panel. It returns `false` in these cases:
+
+- No drawer button is in view, for example in Content Editor.
+- No module registered the panel `id`.
+- The site switched the panel off.
+- The panel cannot show on the node in view.
+
+Example: the action "Fix with the assistant" is an action on a finding. Its `onClick` calls
+`openPanel('chat', {finding, path, language})`, and the chat opens with that finding.
+
+The governance panel reads `{section}` from its context, such as `{section: 'compliance'}`, and shows
+that tab.
+
+## What a tab and an action receive
+
+Each tab and each action on a finding receives three values from the drawer.
+
+| Prop | Value |
+|---|---|
+| `path` | The path of the page or the main resource in the drawer, such as `/sites/digitall/home`. |
+| `language` | The language of the content in the Jahia form, such as `en` or `zh_CN`. |
+| `findings` | The list of the findings that the tabs of the governance panel found so far. |
 
 ### A finding
 
@@ -67,6 +209,7 @@ section bar adds no finding.
 ## Add a tab
 
 A tab is an entry of the type `contentGovernanceDrawerTab`, with the target `contentGovernanceDrawer`.
+The tab shows in the section bar of the governance panel.
 
 ```js
 import {registry} from '@jahia/ui-extender';
@@ -95,7 +238,7 @@ registry.add('contentGovernanceDrawerTab', 'myModuleReview', {
 
 A key and the id of a part start with a letter, then hold letters, digits, `_` or `-`, at most 64
 characters in all. The site settings store these ids. The drawer leaves out a tab with another key,
-and a tab with no label or no component.
+and a tab whose key is the key of a panel. It also leaves out a tab with no label or no component.
 
 The component receives `path`, `language` and `findings`, and these props:
 
@@ -106,10 +249,10 @@ The component receives `path`, `language` and `findings`, and these props:
 | `isOn(part)` | `true` when the site keeps that part of the tab on. |
 | `saveFindings(findings)` | Stores the findings as the latest run of the tab on the page. It returns a promise of the stored run, or of `null` when the server refused it. |
 | `fetchHistory()` | Returns a promise of the stored runs of the tab on the page, newest first. |
-| `settings` | The site settings, such as `settings.disabled`, the ids of the tabs and parts that the site switched off. |
+| `settings` | The site settings, such as `settings.disabled`, the ids of the panels, tabs and parts that the site switched off. |
 | `requestedTab` | `{tab, at}` when "Fix first" opens a finding of the tab, so the tab shows the part `tab`. Otherwise `null`. |
 | `onClose()` | Closes the drawer. |
-| `onReopen()` | Opens the drawer again on this tab. |
+| `onReopen()` | Opens the drawer again on the governance panel and this tab. |
 
 The tab mounts the first time the editor opens it, and it stays mounted while the drawer is open. The
 component can be a `React.lazy` component, and the drawer shows a loader while the code loads. If the
@@ -118,12 +261,13 @@ of the drawer continue to work.
 
 ### The site switch
 
-The site settings list every tab of the registry, with a switch for the tab and a switch for each of
-its parts. The site stores the ids that a site administrator switched off, so a new tab is on until
-then. A tab that the site switched off is not in the drawer. The server refuses to store or read its
-history.
+The site settings list every tab of the registry under the governance panel. Each tab has a switch,
+and each of its parts has a switch too. The site stores the ids that a site administrator switched
+off, so a new tab is on until then. A tab that the site switched off is not in the drawer. The server
+refuses to store or read its history.
 
-The drawer button shows when the site keeps at least one tab on, whatever module adds it.
+The button of the governance panel shows when the site keeps the governance panel and at least one
+tab on, whatever module adds the tab.
 
 ### "Fix first"
 
@@ -188,6 +332,8 @@ const SeoFix = ({render: Render, ...props}) => (
 );
 ```
 
+An action can open a panel with the finding, as the example in [Open a panel](#open-a-panel) does.
+
 The actions of a finding show in three places:
 
 - after each finding of "Fix first",
@@ -200,7 +346,125 @@ first" only. "Fix first" lists the 5 most serious findings that are critical or 
 If an action throws an error, that action disappears from the finding and the console shows the
 error. The other actions of the finding stay.
 
+## Add a check that runs in the browser
+
+A check that needs a browser runs on the preview of the page in Page quality. Examples are axe-core,
+the web vitals and eco-design. A check is an entry of the type `contentGovernanceCheck`, and it
+applies the rules whose evaluator is its own. Content Governance registers axe-core, the web vitals
+and eco-design this way, as another module does.
+
+Example: a module measures the contrast of the brand colors. It ships the rule `acme.brandContrast`,
+with the evaluator `acme.contrast`, and it registers this check:
+
+```js
+import {registry} from '@jahia/ui-extender';
+
+registry.add('contentGovernanceCheck', 'acmeContrast', {
+    evaluator: 'acme.contrast',
+    run: async ({document, window, rules, language, signal}) => rules.map(rule => {
+        const failing = [...document.querySelectorAll('h1, h2')].filter(element => lowContrast(window, element));
+        return {
+            ruleId: rule.id,
+            passed: failing.length === 0,
+            values: {color: '#ffcc00'},
+            findings: failing.map(element => ({text: element.outerHTML, locator: cssPath(element)}))
+        };
+    })
+});
+```
+
+In this example, `lowContrast` and `cssPath` are functions of the module.
+
+| Field | Value |
+|---|---|
+| key | The id of the check, as the second argument. Give a key that names your module. |
+| `evaluator` | The evaluator of the rules that the check applies. |
+| `run` | A function that checks the preview and returns a list of results, or a promise of that list. |
+
+The drawer leaves out a check with no evaluator or no `run` function, and the console shows why.
+
+### The rule of a check
+
+A rule of a check of the browser states `runtime: browser` in its file, or on its node in jContent.
+The server never runs such a rule, and it never stops a publication on it. The site settings show
+the rule as active. The file of the rule of the example is `acme.brandContrast.md`:
+
+```markdown
+---
+id: acme.brandContrast
+evaluator: acme.contrast
+runtime: browser
+subdomains: [accessibility]
+severity: serious
+label:
+  en: "Contrast of the brand colors"
+title:
+  en:
+    one: "{{count}} heading uses {{color}} on white"
+    other: "{{count}} headings use {{color}} on white"
+---
+Use the dark variant of the brand color on a white background.
+```
+
+[The catalog of the rules](content-rules/catalog.md) states every key of a rule file. A module with no
+Java code ships its rules and its check this way.
+
+### What `run` receives
+
+| Argument | Value |
+|---|---|
+| `document` | The document of the preview, with the editing tooling removed. |
+| `window` | The window of the preview, for its performance entries and its styles. |
+| `rules` | The rules of the evaluator that the site keeps on. Each rule has the fields of the GraphQL field `contentRules`, such as `id`, `severity`, `minimum` and `maximum`. |
+| `language` | The language of the interface of the editor, such as `fr`. |
+| `signal` | An `AbortSignal`. The drawer aborts it when the time limit of the check is over. |
+
+The drawer runs the checks one after the other, in the order that the modules added them. A check
+runs only when the site keeps at least one rule of its evaluator on, and keeps on the tab of the subdomain of
+that rule. A rule of a subdomain that no tab shows never runs.
+
+Before the first check, the drawer sets the performance mark `contentGovernanceChecks` in the preview.
+A check that measures what the page loaded leaves out the resources after that mark, because other
+checks added them. The script of axe-core is one of them.
+
+### What `run` returns
+
+`run` returns one result per rule, in the shape of the results of the checks of the server:
+
+```js
+{ruleId, passed, values, findings: [{text, context, locator, values}]}
+```
+
+| Field | Value |
+|---|---|
+| `ruleId` | The id of the rule. The drawer drops a result for a rule that the check did not receive. |
+| `passed` | `true` when the page keeps the rule. Without it, a result passes when it has no finding. |
+| `values` | What the check measured, such as `{color: '#ffcc00'}`. The title and the advice of the rule can name each value that is a text, a number or a flag, as `{{color}}`. |
+| `findings` | One finding per place that breaks the rule. The drawer keeps the first 50. |
+| `text` | What the finding shows, such as the HTML of an element. |
+| `context` | An optional text beside it, such as what fails. |
+| `locator` | An optional CSS selector of the element in the preview. With it, the finding offers "Highlight on the page". |
+
+The drawer merges these results with those of the server. A failed result shows in the tab of the
+subdomain of its rule, worded by its rule, like a finding of the server. Its count is the number of its
+findings, unless `values` gives `count`.
+
+### Time limit and failure
+
+Each check has 60 seconds. A check that throws an error or runs out of time is left out. Its tabs
+show why, with **Re-run**, and the other checks still run. The drawer never stores such a partial
+audit.
+
+### Not checked
+
+A rule of the browser that no check gave a result for shows under **Not checked** in the tab of its
+subdomain. No started module registers a check of its evaluator, or the check left the rule out. Such a
+rule is neither passed nor failed.
+
 ## Limits
 
-- The drawer reads the registry when it opens. If a module adds an entry after that time, the entry
-  shows the next time the editor opens the drawer.
+- The header of jContent reads the panels when it first draws their buttons. The drawer reads the
+  tabs and the actions on a finding when it opens. An entry that a module adds after that time
+  shows the next time jContent draws its header, or the next time the drawer opens.
+- The drawer opens on a page or a main resource, unless a panel names other node types. The
+  governance panel always needs a page or a main resource.

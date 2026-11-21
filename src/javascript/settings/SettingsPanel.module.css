@@ -8,8 +8,21 @@
 }
 
 /* Paper + Paper adds a top margin that would double the gap above. */
-.content > .card {
+.content > .card,
+.panel > .card {
     margin-top: 0;
+}
+
+/* A panel of the drawer: its card, then the cards of its tabs, indented under it. */
+.panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--moon-spacing-small, 8px);
+    min-width: 0;
+}
+
+.panel > .card + .card {
+    margin-inline-start: var(--moon-spacing-large, 24px);
 }
 
 .card {

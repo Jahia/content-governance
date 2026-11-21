@@ -34,10 +34,6 @@
  - ruleId (string) mandatory primary nofulltext
  // Not mandatory: Jahia refuses a new mandatory property on a type that has nodes. Empty: pattern.
  - evaluator (string) = 'pattern' autocreated nofulltext
- // The group of the rule, which names the tab of its findings: accessibility, seo, readability, writing,
- // links, health, ecodesign, geo or compliance. Empty: the part of the rule id before the first dot when it is
- // one of them; else the rule does not run.
- - domain (string) nofulltext
  - enabled (boolean) = 'true' autocreated
  - severity (string, choicelist[resourceBundle]) = 'moderate' autocreated mandatory < 'critical', 'serious', 'moderate', 'minor'
  // A finding of a blocking rule stops the publication of the content.
@@ -79,11 +75,61 @@
  - validUntil (date, datepicker)
  // The file an import of the editorial frame read the rule from, so that a new import of that file replaces it.
  - source (string)
+ // Where the check of the rule runs. browser: the drawer runs it on the preview of the page, the server
+ // never runs it and never blocks a publication on it. Empty: server.
+ - runtime (string, choicelist[resourceBundle]) nofulltext < 'server', 'browser'
  // Set by the seeder on a rule that the site changed and that its module no longer ships.
  - retired (boolean)
  // The fingerprint of the values that the seeder last wrote, so that it tells a rule that the site changed.
  - seedDigest (string) hidden nofulltext
+ // The ids of the subdomains of the rule, such as seo and geo.score: its findings show in each. Empty: the
+ // subdomain of the prefix of the id when one is declared, else terms for the evaluator pattern. A rule whose
+ // subdomains nobody declares does not run. Version 2.0.0 replaced the property domain with it.
+ - subdomains (string) multiple nofulltext
+ // The keys of the sites that the rule applies to, or * for all sites. The rule also needs one of its
+ // subdomains and that subdomain's domain to apply to the site.
+ - sites (string, choicelist[contentGovernanceSites]) = '*' autocreated multiple nofulltext
 
 // The folder of the rules of one module, contents/content-insights/<module>/rules.
 [ccs:contentRuleFolder] > jnt:contentFolder
  + * (ccs:contentRule)
+
+// A domain of the drawer: a main tab of a panel, such as Page quality. A module ships its domains as Markdown
+// files beside its rules, and the seeder writes one node per domain under
+// systemsite/contents/content-insights/<module>/domains. A site adds or overrides one under its own contents.
+[ccs:contentDomain] > jnt:content, ccsmix:complianceContent
+ - domainId (string) mandatory primary nofulltext
+ // The panel of the drawer that shows the domain: governance, or a panel of another module, such as chat.
+ - panel (string) = 'governance' autocreated nofulltext
+ // The place among the domains of the panel: a lower order comes first.
+ - order (long)
+ // The keys of the sites that the domain applies to, or * for all sites.
+ - sites (string, choicelist[contentGovernanceSites]) = '*' autocreated multiple nofulltext
+ // The name of the tab.
+ - label (string) i18n
+ // What the domain checks, for the editor.
+ - help (string, textarea) i18n
+ // Set by the seeder on a domain that an administrator changed and that its module no longer ships.
+ - retired (boolean)
+ - seedDigest (string) hidden nofulltext
+
+// A subdomain of the drawer: a tab of a domain, such as SEO. A rule names its subdomains, and its findings
+// show in each. The seeder writes them under systemsite/contents/content-insights/<module>/subdomains.
+[ccs:contentSubdomain] > jnt:content, ccsmix:complianceContent
+ - subdomainId (string) mandatory primary nofulltext
+ // The id of the domain of the subdomain: a change moves the tab and its rules to another domain.
+ - domain (string) mandatory nofulltext
+ // The place among the subdomains of the domain: a lower order comes first.
+ - order (long)
+ // The keys of the sites that the subdomain applies to, or * for all sites.
+ - sites (string, choicelist[contentGovernanceSites]) = '*' autocreated multiple nofulltext
+ - label (string) i18n
+ - help (string, textarea) i18n
+ - retired (boolean)
+ - seedDigest (string) hidden nofulltext
+
+// The folders of the domains and the subdomains of one module, contents/content-insights/<module>/domains
+// and contents/content-insights/<module>/subdomains of the system site.
+[ccs:contentDomainFolder] > jnt:contentFolder
+ + * (ccs:contentDomain)
+ + * (ccs:contentSubdomain)

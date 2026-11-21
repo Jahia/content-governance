@@ -56,8 +56,10 @@ final class LegacyTerms {
     private static final String TERM = "term";
     private static final String SITES = "/sites/";
     private static final String ENGLISH = "en";
-    static final String COMPLIANCE_DOMAIN = "compliance";
-    static final String GLOSSARY_DOMAIN = "glossary";
+    /** The prefix of the id of a term of a Compliance glossary. Its rule goes to the subdomain {@value ContentRules#TERMS}. */
+    static final String COMPLIANCE_PREFIX = "compliance";
+    /** The prefix of the id of a glossary term, and its subdomain. */
+    static final String GLOSSARY = "glossary";
     private static final String CONTENT_FOLDER = "jnt:contentFolder";
     private static final String CONTRIBUTE_MODE = "jmix:contributeMode";
     private static final String CONTRIBUTE_TYPES = "j:contributeTypes";
@@ -173,7 +175,7 @@ final class LegacyTerms {
         while (children.hasNext()) {
             Node child = children.nextNode();
             if (child.isNodeType(COMPLIANCE_TERM) && text(child, TERM) != null) {
-                String id = id(session, child, COMPLIANCE_DOMAIN, ids, taken);
+                String id = id(session, child, COMPLIANCE_PREFIX, ids, taken);
                 conversions.add(new Conversion(child, id, complianceRule(id, text(child, TERM),
                         text(child, "matchMode"), text(child, "alternative"), language), COMPLIANCE_PROPERTIES,
                         text(child, "reason"), blank(language) ? ENGLISH : language.trim()));
@@ -238,7 +240,7 @@ final class LegacyTerms {
         for (Map.Entry<Node, FrameTerm> entry : terms.entrySet()) {
             Node node = entry.getKey();
             FrameTerm term = entry.getValue();
-            String id = id(session, node, GLOSSARY_DOMAIN, ids, taken);
+            String id = id(session, node, GLOSSARY, ids, taken);
             conversions.add(new Conversion(node, id,
                     glossaryRule(id, term, approved.get(sitePathOf(node.getPath()) + '|' + term.key())),
                     FRAME_PROPERTIES, joined(text(node, "definition"), text(node, "note")), ENGLISH));
@@ -274,7 +276,7 @@ final class LegacyTerms {
      */
     static Map<String, Object> complianceRule(String id, String term, String matchMode, String alternative,
                                               String language) {
-        Map<String, Object> values = base(id, COMPLIANCE_DOMAIN, "serious");
+        Map<String, Object> values = base(id, ContentRules.TERMS, "serious");
         values.put(RuleValues.KIND, blank(alternative) ? FORBIDDEN : REPLACE);
         values.put(RuleValues.PATTERN, patternOf(term.trim(), matchMode));
         putIfPresent(values, RuleValues.REPLACEMENT, alternative);
@@ -324,7 +326,7 @@ final class LegacyTerms {
      * @return the values of the rule
      */
     static Map<String, Object> glossaryRule(String id, FrameTerm term, FrameTerm approved) {
-        Map<String, Object> values = base(id, GLOSSARY_DOMAIN, "moderate");
+        Map<String, Object> values = base(id, GLOSSARY, "moderate");
         values.put(RuleValues.RULE_LANGUAGE, term.translationLanguage());
         if (!term.forbidden()) {
             values.put(RuleValues.KIND, REPLACE);
@@ -347,11 +349,11 @@ final class LegacyTerms {
         return values;
     }
 
-    private static Map<String, Object> base(String id, String domain, String severity) {
+    private static Map<String, Object> base(String id, String subdomain, String severity) {
         Map<String, Object> values = new LinkedHashMap<>();
         values.put(RuleValues.RULE_ID, id);
         values.put(RuleValues.EVALUATOR, ContentRule.PATTERN);
-        values.put(RuleValues.DOMAIN, domain);
+        values.put(RuleValues.SUBDOMAINS, List.of(subdomain));
         values.put(RuleValues.SEVERITY, severity);
         values.put(RuleValues.BLOCKING, false);
         values.put(RuleValues.ENABLED, true);
@@ -436,17 +438,17 @@ final class LegacyTerms {
         }
     }
 
-    /** {@code <domain>.<node name>}, or that id with a part of the identifier when the site has it already. */
-    private static String id(JCRSessionWrapper session, Node node, String domain, Map<String, String> ids,
+    /** {@code <prefix>.<node name>}, or that id with a part of the identifier when the site has it already. */
+    private static String id(JCRSessionWrapper session, Node node, String prefix, Map<String, String> ids,
                              Map<String, Set<String>> taken) throws RepositoryException {
         String known = ids.get(node.getIdentifier());
         if (known != null) {
             return known;
         }
         Set<String> siteIds = taken.computeIfAbsent(sitePathOf(node.getPath()), site -> ruleIds(session, site));
-        String id = domain + "." + node.getName();
+        String id = prefix + "." + node.getName();
         if (!RuleFile.ID_PATTERN.matcher(id).matches() || siteIds.contains(id)) {
-            id = domain + "." + node.getIdentifier().substring(0, 8);
+            id = prefix + "." + node.getIdentifier().substring(0, 8);
         }
         siteIds.add(id);
         ids.put(node.getIdentifier(), id);

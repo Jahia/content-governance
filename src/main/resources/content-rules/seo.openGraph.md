@@ -1,7 +1,7 @@
 ---
 id: seo.openGraph
 evaluator: seo.openGraph
-domain: seo
+subdomains: [seo]
 severity: moderate
 fixer: editor
 label:

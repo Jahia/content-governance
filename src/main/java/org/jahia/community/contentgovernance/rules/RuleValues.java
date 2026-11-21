@@ -23,7 +23,6 @@ public final class RuleValues {
 
     public static final String RULE_ID = "ruleId";
     public static final String EVALUATOR = "evaluator";
-    public static final String DOMAIN = "domain";
     public static final String ENABLED = "enabled";
     public static final String SEVERITY = "severity";
     public static final String BLOCKING = "blocking";
@@ -51,6 +50,11 @@ public final class RuleValues {
     /** The language of the pattern of a glossary term that the rule translates, such as {@code en}. */
     public static final String PATTERN_LANGUAGE = "patternLanguage";
     /**
+     * Where the check of the rule runs: {@value ContentRule#BROWSER} for a check that the drawer runs on the
+     * preview of the page, else on the server. The server never runs a rule of the browser.
+     */
+    public static final String RUNTIME = "runtime";
+    /**
      * Internationalized on the node: the title of a finding, with one line per plural form, such as
      * {@code one: {{count}} image has no text alternative}. The rules read and write its English value.
      */
@@ -58,65 +62,77 @@ public final class RuleValues {
     /** Internationalized on the node: a neutral name of what the rule checks, such as "Title length". */
     public static final String LABEL = "label";
     /**
+     * The ids of the subdomains of the rule, such as {@code seo} and {@code geo.score}: the findings of the
+     * rule show in each. A subdomain belongs to a domain, a main tab of the drawer.
+     */
+    public static final String SUBDOMAINS = "subdomains";
+    /** The keys of the sites that the rule applies to, or {@value #ALL_SITES} for all sites. */
+    public static final String SITES = "sites";
+    /** The value of {@value #SITES} for all sites, which a list of sites shows as "All sites". */
+    public static final String ALL_SITES = "*";
+    /**
      * Not a property: the texts of the rule in the languages other than English, as
      * {@code Map<language, Map<TITLE|LABEL|ADVICE, text>>}. The digest and the seeder ignore it.
      */
     public static final String TRANSLATIONS = "translations";
 
     /**
-     * Every property that a rule file sets, in the order of the digest. A new key goes last, so that the
-     * digest of a rule without it stays the same.
+     * Every property that a rule file sets, in the order of the digest. 2.0.0 changed the order: it removed
+     * {@code domain} and put {@value #SUBDOMAINS} and {@value #SITES} before {@value #RUNTIME}, and
+     * {@link LegacyDomains#KEYS_1} reads the fingerprints of before. A key added after 2.0.0 goes last, so
+     * that the digest of a rule without it stays the same.
      */
-    public static final List<String> KEYS = List.of(RULE_ID, EVALUATOR, DOMAIN, ENABLED, SEVERITY, BLOCKING, FIXER,
+    public static final List<String> KEYS = List.of(RULE_ID, EVALUATOR, ENABLED, SEVERITY, BLOCKING, FIXER,
             ADVICE, UNIT, MINIMUM, MAXIMUM, KIND, PATTERN, MATCH_MODE, REPLACEMENT, RULE_LANGUAGE, WRONG_EXAMPLES,
             RIGHT_EXAMPLES, OWNER, DECIDED_ON, VALID_FROM, VALID_UNTIL, PATTERN_FORMS, REPLACEMENT_FORMS,
-            PATTERN_LANGUAGE, TITLE, LABEL);
+            PATTERN_LANGUAGE, TITLE, LABEL, SUBDOMAINS, SITES, RUNTIME);
     /** The texts that a rule holds in each language. */
     public static final List<String> TRANSLATABLE = List.of(TITLE, LABEL, ADVICE);
     /** The plural forms of a title, as {@code Intl.PluralRules} and CLDR name them. */
     public static final List<String> PLURAL_FORMS = List.of("zero", "one", "two", "few", "many", "other");
     public static final List<String> BOOLEANS = List.of(ENABLED, BLOCKING);
     public static final List<String> NUMBERS = List.of(MINIMUM, MAXIMUM);
-    public static final List<String> LISTS = List.of(WRONG_EXAMPLES, RIGHT_EXAMPLES, PATTERN_FORMS, REPLACEMENT_FORMS);
+    public static final List<String> LISTS = List.of(WRONG_EXAMPLES, RIGHT_EXAMPLES, PATTERN_FORMS, REPLACEMENT_FORMS,
+            SUBDOMAINS, SITES);
     public static final List<String> DAYS = List.of(DECIDED_ON, VALID_FROM, VALID_UNTIL);
 
     private static final String DEFAULT_FIXER = "editor";
-    /** The domain of a pattern rule that names none. */
-    private static final String COMPLIANCE = "compliance";
 
     private RuleValues() {
     }
 
-    /** The domain of a rule id: the part before the first dot, or the whole id. */
-    public static String domainOf(String id) {
+    /** The prefix of a rule id: the part before the first dot, or the whole id. */
+    public static String prefixOf(String id) {
         int dot = id.indexOf('.');
         return dot > 0 ? id.substring(0, dot) : id;
     }
 
     /**
-     * The values with the defaults of the node type: on, not blocking, fixed by an editor, and for a rule
-     * with no domain the domain of the prefix of its id when it is a known domain, else {@code compliance}
-     * for a rule of the evaluator pattern, such as a term that a site adds in jContent
-     * ({@code brand.seamless}). A node that holds a default and a file that leaves it out have the same
-     * values.
+     * The values with the defaults of the node type: on, not blocking, fixed by an editor, for all sites. A
+     * node that holds a default and a file that leaves it out have the same values. The subdomains of a rule
+     * that names none depend on the subdomains of the site, so {@link ContentRules} gives them.
      */
     static Map<String, Object> withDefaults(Map<String, Object> values) {
         Map<String, Object> out = new HashMap<>(values);
         out.putIfAbsent(ENABLED, Boolean.TRUE);
         out.putIfAbsent(BLOCKING, Boolean.FALSE);
         out.putIfAbsent(FIXER, DEFAULT_FIXER);
-        Object id = out.get(RULE_ID);
-        if (id != null && !out.containsKey(DOMAIN)) {
-            String domain = RuleDomains.fromId(id.toString());
-            Object evaluator = out.get(EVALUATOR);
-            if (domain == null && (evaluator == null || ContentRule.PATTERN.equals(evaluator))) {
-                domain = COMPLIANCE;
-            }
-            if (domain != null) {
-                out.put(DOMAIN, domain);
-            }
-        }
+        out.putIfAbsent(SITES, List.of(ALL_SITES));
         return out;
+    }
+
+    /**
+     * True when a list of sites includes a site: it holds the site key or {@value #ALL_SITES}. An empty or
+     * missing list holds all sites, as a node that an older version wrote.
+     *
+     * @param sites   the value of {@value #SITES}, or null
+     * @param siteKey the key of a site
+     */
+    public static boolean includes(Object sites, String siteKey) {
+        if (!(sites instanceof List<?> list) || list.isEmpty()) {
+            return true;
+        }
+        return list.contains(ALL_SITES) || list.contains(siteKey);
     }
 
     /**
@@ -184,9 +200,13 @@ public final class RuleValues {
      * The seeder keeps the fingerprint of what it wrote, and so tells a rule that a site changed.
      */
     public static String digest(Map<String, Object> values) {
-        Map<String, Object> all = withDefaults(values);
+        return fingerprint(withDefaults(values), KEYS);
+    }
+
+    /** The SHA-256 of the values of the keys, in the order of the keys. */
+    static String fingerprint(Map<String, Object> all, List<String> keys) {
         StringBuilder canonical = new StringBuilder();
-        for (String key : KEYS) {
+        for (String key : keys) {
             Object value = all.get(key);
             if (value != null) {
                 canonical.append(key).append('=').append(text(value)).append('\n');
@@ -230,11 +250,16 @@ public final class RuleValues {
         String severity = string(all, SEVERITY);
         String fixer = string(all, FIXER);
         String evaluator = string(all, EVALUATOR);
-        return new ContentRule(id, string(all, DOMAIN), evaluator == null ? ContentRule.PATTERN : evaluator,
+        return new ContentRule(id, strings(all, SUBDOMAINS), evaluator == null ? ContentRule.PATTERN : evaluator,
                 severity != null && ContentRule.SEVERITIES.contains(severity) ? severity : "moderate",
                 Boolean.TRUE.equals(all.get(BLOCKING)), Boolean.TRUE.equals(all.get(ENABLED)),
                 ContentRule.FIXERS.contains(fixer) ? fixer : DEFAULT_FIXER, string(all, ADVICE), string(all, UNIT),
-                (Double) all.get(MINIMUM), (Double) all.get(MAXIMUM), all, null);
+                (Double) all.get(MINIMUM), (Double) all.get(MAXIMUM), all, null, false);
+    }
+
+    /** The items of a list value, or an empty list. */
+    static List<String> strings(Map<String, Object> values, String key) {
+        return values.get(key) instanceof List<?> list ? list.stream().map(String::valueOf).toList() : List.of();
     }
 
     private static String string(Map<String, Object> values, String key) {

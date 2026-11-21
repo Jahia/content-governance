@@ -51,15 +51,23 @@ class CheckRegistryTest {
 
     private static ContentRules withRule(String id, String evaluator) {
         return ContentRules.base().with(RuleValues.toRule(Map.of(RuleValues.RULE_ID, id, RuleValues.EVALUATOR, evaluator,
-                RuleValues.SEVERITY, "serious", RuleValues.DOMAIN, "writing")));
+                RuleValues.SEVERITY, "serious", RuleValues.SUBDOMAINS, List.of("writing"))));
+    }
+
+    /** The rule of the values, placed in the shipped hierarchy as a site places it. */
+    private static ContentRule placed(Map<String, Object> values) {
+        ContentRule rule = RuleValues.toRule(values);
+        return ContentRules.base().with(rule).get(rule.id());
     }
 
     @Test
     @DisplayName("a rule whose check no module registers is inactive, and names the check and its module")
     void status_namesTheMissingCheck() {
         CheckRegistry registry = new CheckRegistry();
-        ContentRule model = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.tone", RuleValues.EVALUATOR, "model", RuleValues.DOMAIN, "writing"));
-        ContentRule price = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.erpPrice", RuleValues.EVALUATOR, "acme.erpPrice", RuleValues.DOMAIN, "writing"));
+        ContentRule model = placed(Map.of(RuleValues.RULE_ID, "acme.tone", RuleValues.EVALUATOR, "model",
+                RuleValues.SUBDOMAINS, List.of("writing")));
+        ContentRule price = placed(Map.of(RuleValues.RULE_ID, "acme.erpPrice", RuleValues.EVALUATOR, "acme.erpPrice",
+                RuleValues.SUBDOMAINS, List.of("writing")));
 
         assertThat(registry.status(model)).isEqualTo(new CheckRegistry.Status(false, "model", "ai-assistant"));
         assertThat(registry.status(price)).isEqualTo(new CheckRegistry.Status(false, "acme.erpPrice", null));
@@ -161,7 +169,7 @@ class CheckRegistryTest {
             }
         }, id("acme.none"));
         ContentRules rules = withRule("acme.length", "acme.length").with(RuleValues.toRule(Map.of(
-                RuleValues.RULE_ID, "acme.none", RuleValues.EVALUATOR, "acme.none", RuleValues.DOMAIN, "writing")));
+                RuleValues.RULE_ID, "acme.none", RuleValues.EVALUATOR, "acme.none", RuleValues.SUBDOMAINS, List.of("writing"))));
 
         assertThat(registry.results(rules, CheckInput.value(PAGE, "en", "Hello"))).containsExactly(
                 new CheckResult("acme.length", true, Map.of("length", 5), List.of()));
@@ -180,7 +188,7 @@ class CheckRegistryTest {
     }
 
     @Test
-    @DisplayName("a run skips a rule that is off, an evaluator the caller applies, and a check of the browser")
+    @DisplayName("a run skips a rule that is off, an evaluator the caller applies, and a rule of the browser")
     void run_skips() {
         CheckRegistry registry = new CheckRegistry();
         registry.bindCheck(PRICE, id("acme.erpPrice"));
@@ -190,24 +198,28 @@ class CheckRegistryTest {
         assertThat(registry.run(rules.changed("acme.erpPrice", false, null, null, null), input, Set.of())).isEmpty();
         assertThat(registry.run(rules, input, Set.of("acme.erpPrice"))).isEmpty();
 
-        CheckRegistry browser = new CheckRegistry();
-        browser.bindCheck(PRICE, Map.of(ContentCheck.ID, "acme.erpPrice", CheckRegistry.RUNTIME, CheckRegistry.BROWSER));
-        assertThat(browser.has("acme.erpPrice")).isTrue();
-        assertThat(browser.run(rules, input, Set.of())).isEmpty();
+        ContentRules browser = ContentRules.base().with(inBrowser("acme.erpPrice", false));
+        assertThat(registry.run(browser, input, Set.of())).isEmpty();
     }
 
     @Test
-    @DisplayName("a rule of a check of the browser never blocks, even when its node sets blocking")
-    void blocking_isNeverTrueForTheBrowser() {
-        ContentRule rule = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.vitals", RuleValues.EVALUATOR, "acme.vitals",
-                RuleValues.BLOCKING, true));
-        CheckRegistry server = new CheckRegistry();
-        server.bindCheck(PRICE, id("acme.vitals"));
-        CheckRegistry browser = new CheckRegistry();
-        browser.bindCheck(PRICE, Map.of(ContentCheck.ID, "acme.vitals", CheckRegistry.RUNTIME, CheckRegistry.BROWSER));
+    @DisplayName("a rule of the browser is active with no check on the server, and never blocks, even when its node sets blocking")
+    void browserRule_isActiveAndNeverBlocks() {
+        CheckRegistry registry = new CheckRegistry();
+        ContentRule server = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.vitals", RuleValues.EVALUATOR, "acme.vitals",
+                RuleValues.SUBDOMAINS, List.of("ecodesign"), RuleValues.BLOCKING, true));
+        ContentRule browser = inBrowser("acme.vitals", true);
+        registry.bindCheck(PRICE, id("acme.vitals"));
 
-        assertThat(server.blocking(rule)).isTrue();
-        assertThat(browser.blocking(rule)).isFalse();
+        assertThat(registry.blocking(server)).isTrue();
+        assertThat(registry.blocking(browser)).isFalse();
+        assertThat(new CheckRegistry().status(browser)).isEqualTo(new CheckRegistry.Status(true, null, null));
+    }
+
+    /** A rule of the subdomain ecodesign that states {@code runtime: browser}, with its id as its evaluator. */
+    private static ContentRule inBrowser(String id, boolean blocking) {
+        return placed(Map.of(RuleValues.RULE_ID, id, RuleValues.EVALUATOR, id, RuleValues.SUBDOMAINS, List.of("ecodesign"),
+                RuleValues.BLOCKING, blocking, RuleValues.RUNTIME, ContentRule.BROWSER));
     }
 
     @Test
@@ -227,7 +239,7 @@ class CheckRegistryTest {
         }, id("acme.broken"));
         registry.bindCheck(PRICE, id("acme.erpPrice"));
         ContentRules rules = withRule("acme.broken", "acme.broken").with(RuleValues.toRule(Map.of(
-                RuleValues.RULE_ID, "acme.erpPrice", RuleValues.EVALUATOR, "acme.erpPrice", RuleValues.DOMAIN, "writing")));
+                RuleValues.RULE_ID, "acme.erpPrice", RuleValues.EVALUATOR, "acme.erpPrice", RuleValues.SUBDOMAINS, List.of("writing"))));
 
         assertThat(registry.run(rules, CheckInput.value(PAGE, "en", "12.50 EUR"), Set.of()))
                 .extracting(checked -> checked.rule().id()).containsExactly("acme.erpPrice");
@@ -289,7 +301,7 @@ class CheckRegistryTest {
         ContentRules rules = withRule("acme.found", "acme.found");
         for (String id : List.of("acme.opaque", "acme.opaqueFinding")) {
             rules = rules.with(RuleValues.toRule(Map.of(RuleValues.RULE_ID, id, RuleValues.EVALUATOR, id,
-                    RuleValues.DOMAIN, "writing")));
+                    RuleValues.SUBDOMAINS, List.of("writing"))));
         }
 
         assertThat(registry.results(rules, CheckInput.value(PAGE, "en", "x"))).singleElement().satisfies(result -> {
@@ -299,10 +311,9 @@ class CheckRegistryTest {
     }
 
     @Test
-    @DisplayName("Content Governance registers a check for the evaluator of each rule that it ships")
+    @DisplayName("Content Governance registers a check for the evaluator of each rule of the server that it ships")
     void everyShippedRule_hasACheckOfThisModule() {
         Set<String> registered = new HashSet<>(List.of(ContentRule.PATTERN, ContentRule.THRESHOLD, ContentRule.PRESENCE));
-        registered.addAll(BrowserChecks.IDS);
         registered.addAll(GeoChecks.IDS);
         registered.addAll(SeoChecks.IDS);
         registered.addAll(ReadabilityChecks.IDS);
@@ -311,8 +322,9 @@ class CheckRegistryTest {
         Arrays.stream(HtmlRule.values()).map(HtmlRule::id).forEach(registered::add);
 
         List<String> missing = new ArrayList<>();
+        // The drawer registers the checks of the rules of the browser: drawerChecks.test.js tests them
         for (ContentRule rule : ContentRules.base().all()) {
-            if (!registered.contains(rule.evaluator())) {
+            if (!rule.inBrowser() && !registered.contains(rule.evaluator())) {
                 missing.add(rule.id() + " -> " + rule.evaluator());
             }
         }
@@ -323,39 +335,58 @@ class CheckRegistryTest {
     }
 
     @Test
-    void aRuleOfAnUnknownDomain_isInactiveAndDoesNotRun() {
+    @DisplayName("a rule whose subdomains nobody declares is inactive, names them, and does not run")
+    void aRuleOfUnknownSubdomains_isInactiveAndDoesNotRun() {
         CheckRegistry registry = new CheckRegistry();
         registry.bindCheck(PRICE, id("acme.erpPrice"));
-        ContentRule brand = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "brand.price", RuleValues.EVALUATOR, "acme.erpPrice"));
-        ContentRule other = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.price", RuleValues.EVALUATOR, "acme.erpPrice",
-                RuleValues.DOMAIN, "acme"));
+        ContentRule brand = placed(Map.of(RuleValues.RULE_ID, "brand.price", RuleValues.EVALUATOR, "acme.erpPrice"));
+        ContentRule other = placed(Map.of(RuleValues.RULE_ID, "acme.price", RuleValues.EVALUATOR, "acme.erpPrice",
+                RuleValues.SUBDOMAINS, List.of("acme")));
 
-        assertThat(brand.domain()).isNull();
-        assertThat(registry.status(brand)).isEqualTo(new CheckRegistry.Status(false, null, null, ""));
-        assertThat(registry.status(other)).isEqualTo(new CheckRegistry.Status(false, null, null, "acme"));
+        assertThat(brand.subdomains()).isEmpty();
+        assertThat(registry.status(brand)).isEqualTo(new CheckRegistry.Status(false, null, null, List.of()));
+        assertThat(registry.status(other)).isEqualTo(new CheckRegistry.Status(false, null, null, List.of("acme")));
         CheckInput input = CheckInput.value("/sites/digitall/home/main/intro", "en", "Only 12.50 EUR");
         assertThat(registry.run(ContentRules.base().with(brand).with(other), input, Set.of())).isEmpty();
     }
 
     @Test
-    void theRulesThatTheModuleAndAiAssistantWrite_haveAKnownDomain() {
-        // LegacyTerms and the import of ai-assistant write glossary.* rules with the domain glossary
-        for (String domain : List.of("writing", "compliance", "glossary")) {
-            ContentRule rule = RuleValues.toRule(Map.of(RuleValues.RULE_ID, "x.y", RuleValues.EVALUATOR, "pattern",
-                    RuleValues.DOMAIN, domain));
-            assertThat(rule.hasKnownDomain()).as(domain).isTrue();
-        }
-        assertThat(RuleValues.toRule(Map.of(RuleValues.RULE_ID, "glossary.access-token", RuleValues.EVALUATOR, "pattern"))
-                .domain()).isEqualTo("glossary");
+    @DisplayName("a rule with one declared subdomain among unknown ones runs")
+    void aRuleWithOneDeclaredSubdomain_runs() {
+        CheckRegistry registry = new CheckRegistry();
+        registry.bindCheck(PRICE, id("acme.erpPrice"));
+        ContentRules rules = ContentRules.base().with(RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.erpPrice",
+                RuleValues.EVALUATOR, "acme.erpPrice", RuleValues.SUBDOMAINS, List.of("acme.gone", "writing"))));
+
+        assertThat(registry.status(rules.get("acme.erpPrice"))).isEqualTo(new CheckRegistry.Status(true, null, null));
+        assertThat(registry.run(rules, CheckInput.value(PAGE, "en", "12.50 EUR"), Set.of())).hasSize(1);
     }
 
     @Test
-    void aTermThatASiteAddsWithNoDomain_isACompliance() {
-        assertThat(RuleValues.toRule(Map.of(RuleValues.RULE_ID, "brand.seamless", RuleValues.EVALUATOR, "pattern")).domain())
-                .isEqualTo("compliance");
-        assertThat(RuleValues.toRule(Map.of(RuleValues.RULE_ID, "brand.seamless")).domain()).isEqualTo("compliance");
-        assertThat(RuleValues.toRule(Map.of(RuleValues.RULE_ID, "brand.tone", RuleValues.EVALUATOR, "model")).domain()).isNull();
-        assertThat(RuleValues.toRule(Map.of(RuleValues.RULE_ID, "brand.seamless", RuleValues.EVALUATOR, "pattern",
-                RuleValues.DOMAIN, "brand")).hasKnownDomain()).isFalse();
+    @DisplayName("the rules that the module and ai-assistant write are placed in the subdomains writing, terms and glossary")
+    void theRulesThatTheModuleAndAiAssistantWrite_arePlaced() {
+        // LegacyTerms and the import of ai-assistant write glossary.* rules in the subdomain glossary
+        for (String subdomain : List.of("writing", "terms", "glossary")) {
+            ContentRule rule = placed(Map.of(RuleValues.RULE_ID, "x.y", RuleValues.EVALUATOR, "pattern",
+                    RuleValues.SUBDOMAINS, List.of(subdomain)));
+            assertThat(rule.placed()).as(subdomain).isTrue();
+        }
+        assertThat(placed(Map.of(RuleValues.RULE_ID, "glossary.access-token", RuleValues.EVALUATOR, "pattern"))
+                .subdomains()).containsExactly("glossary");
+    }
+
+    @Test
+    @DisplayName("a term that a site adds with no subdomain goes to terms, and another rule with none has no place")
+    void aTermThatASiteAddsWithNoSubdomain_goesToTerms() {
+        assertThat(placed(Map.of(RuleValues.RULE_ID, "brand.seamless", RuleValues.EVALUATOR, "pattern")).subdomains())
+                .containsExactly("terms");
+        assertThat(placed(Map.of(RuleValues.RULE_ID, "brand.seamless")).subdomains()).containsExactly("terms");
+        assertThat(placed(Map.of(RuleValues.RULE_ID, "seo.slug", RuleValues.EVALUATOR, "pattern")).subdomains())
+                .containsExactly("seo");
+        ContentRule tone = placed(Map.of(RuleValues.RULE_ID, "brand.tone", RuleValues.EVALUATOR, "model"));
+        assertThat(tone.subdomains()).isEmpty();
+        assertThat(tone.placed()).isFalse();
+        assertThat(placed(Map.of(RuleValues.RULE_ID, "brand.seamless", RuleValues.EVALUATOR, "pattern",
+                RuleValues.SUBDOMAINS, List.of("brand"))).placed()).isFalse();
     }
 }

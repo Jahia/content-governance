@@ -1,7 +1,9 @@
 ---
 id: axe.table-fake-caption
 evaluator: axe
-domain: accessibility
+runtime: browser
+enabled: false
+subdomains: [accessibility]
 severity: serious
 fixer: developer
 ---

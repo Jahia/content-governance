@@ -6,7 +6,7 @@ import {
 type RuleStatus = {id: string; evaluator: string; active: boolean; missingCheck: string | null; needs: string | null};
 type CheckFinding = {ruleId: string; severity: string; text: string};
 type CheckResult = {ruleId: string; passed: boolean; values: string; findings: CheckFinding[]};
-type RuleRuntime = {id: string; evaluator: string; active: boolean; blocking: boolean};
+type RuleRuntime = {id: string; evaluator: string; runtime: string; active: boolean; blocking: boolean};
 
 const RULES = 'query R($siteKey: String!) { contentGovernance { contentRules(siteKey: $siteKey) { id evaluator active missingCheck needs } } }';
 const PAGE_CHECK = `query P($path: String!) {
@@ -15,7 +15,7 @@ const PAGE_CHECK = `query P($path: String!) {
 
 /** The findings of the results of checkPage, in the order of the rules. */
 const findingsOf = (results: CheckResult[]): CheckFinding[] => results.flatMap(result => result.findings);
-const RUNTIME = 'query R($siteKey: String!) { contentGovernance { contentRules(siteKey: $siteKey) { id evaluator active blocking } } }';
+const RUNTIME = 'query R($siteKey: String!) { contentGovernance { contentRules(siteKey: $siteKey) { id evaluator runtime active blocking } } }';
 const CHECK = `query C($path: String!, $text: String!, $scope: String) {
     contentGovernance { checkText(path: $path, language: "en", text: $text, scope: $scope) { ruleId severity text } }
 }`;
@@ -75,7 +75,7 @@ describe('Content Governance - check registry', () => {
                     name: 'acme-tone', primaryNodeType: 'ccs:contentRule', properties: [
                         {name: 'ruleId', value: 'acme.tone'},
                         {name: 'evaluator', value: 'model'},
-                        {name: 'domain', value: 'writing'},
+                        {name: 'subdomains', values: ['writing']},
                         {name: 'advice', value: 'Write in a friendly tone.', language: 'en'}
                     ]
                 }]
@@ -145,10 +145,8 @@ describe('Content Governance - check registry', () => {
                 results.forEach(result => {
                     expect(byId[result.ruleId], result.ruleId).to.include({active: true});
                     expect(result.passed, result.ruleId).to.eq(result.findings.length === 0);
-                    if (/^ecodesign\./.test(result.ruleId)) {
-                        // The browser measures eco-design: on the server its threshold has no number, and passes with no value
-                        expect(result, result.ruleId).to.deep.include({passed: true, values: '{}', findings: []});
-                    }
+                    // The browser runs eco-design: the server gives no result for it
+                    expect(result.ruleId).not.to.match(/^ecodesign\./);
                 });
                 const byRule = Object.fromEntries(results.map(result => [result.ruleId, result]));
                 expect(byRule, 'the measure rules ran').to.include.keys('seo.tags', 'readability.statistics', 'readability.headings');
@@ -186,7 +184,7 @@ describe('Content Governance - check registry', () => {
             mutateProperty(name: "blocking") { setValue(value: "true") } } } }`);
         gqlOk(asRoot(), RUNTIME, {siteKey}).then(data => {
             const rule = (data.contentGovernance.contentRules as RuleRuntime[]).find(item => item.id === 'ecodesign.lazyLoading');
-            expect(rule).to.include({active: true, blocking: false});
+            expect(rule).to.include({runtime: 'browser', evaluator: 'ecodesign.lazyLoading', active: true, blocking: false});
         });
     });
 });

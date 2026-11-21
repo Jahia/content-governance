@@ -146,7 +146,7 @@ export function AccessibilityTab({result, onHighlight}) {
             ))}
 
             {result.recommendations?.length > 0 && (
-                <Recommendations items={result.recommendations} ns="a11y" tab="a11y" title={t('a11y.serverRules')}/>
+                <Recommendations items={result.recommendations} ns="a11y" tab="a11y" title={t('a11y.otherRules')}/>
             )}
 
             {result.incomplete.length > 0 && (

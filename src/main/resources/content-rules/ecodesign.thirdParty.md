@@ -1,7 +1,8 @@
 ---
 id: ecodesign.thirdParty
-evaluator: threshold
-domain: ecodesign
+evaluator: ecodesign.thirdParty
+runtime: browser
+subdomains: [ecodesign]
 severity: moderate
 fixer: developer
 unit: hosts

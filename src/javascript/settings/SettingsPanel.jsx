@@ -5,11 +5,11 @@ import {useMutation} from '@apollo/client';
 import {useNodeChecks} from '@jahia/data-helper';
 import {Banner, Button, Chip, Header, LayoutContent, Loader, Paper, Switch, Tab, TabItem, Typography} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../common/i18n';
-import {MODULE} from '../common/module';
+import {GOVERNANCE_PANEL, MODULE} from '../common/module';
 import {useSiteSettings} from '../common/useSiteSettings';
 import {SAVE_SITE_SETTINGS} from '../common/settings.gql';
 import {CitationsSettings} from '../geo/settings/CitationsSettings';
-import {drawerTabs, tabParts} from '../drawer/entries';
+import {drawerPanels, drawerTabs, tabParts} from '../drawer/entries';
 import styles from './SettingsPanel.module.css';
 
 const PANEL_TABS = ['features', 'botrank'];
@@ -29,8 +29,11 @@ const toggle = (draft, id, on) => {
     return next;
 };
 
-/** The card of one tab of the drawer: a switch for the tab, then a switch for each of its parts. */
-const TabCard = ({entry, draft, settings, onToggle}) => {
+/**
+ * The card of one tab of the governance panel: a switch for the tab, then a switch for each of its
+ * parts. They stay as they are, greyed out, while the panel is off.
+ */
+const TabCard = ({entry, draft, settings, isPanelOn, onToggle}) => {
     const {t} = useGovernanceTranslation('settings');
     // The labels of a tab are keys with their own namespace (`my-module:tab.label`)
     const {t: translate} = useGovernanceTranslation();
@@ -48,7 +51,7 @@ const TabCard = ({entry, draft, settings, onToggle}) => {
                 </div>
                 <label className={styles.switchLabel}>
                     <Switch checked={tabOn}
-                            isDisabled={!settings.canEdit}
+                            isDisabled={!settings.canEdit || !isPanelOn}
                             aria-label={t('sectionSwitch', {section: label})}
                             onChange={(e, value, checked) => onToggle(entry.key, checked)}/>
                     <Typography variant="caption">{tabOn ? t('on') : t('off')}</Typography>
@@ -63,7 +66,7 @@ const TabCard = ({entry, draft, settings, onToggle}) => {
                         return (
                             <li key={part.id} className={styles.tab}>
                                 <Switch checked={!draft.has(id)}
-                                        isDisabled={!settings.canEdit || !tabOn}
+                                        isDisabled={!settings.canEdit || !isPanelOn || !tabOn}
                                         aria-label={partLabel}
                                         onChange={(e, value, checked) => onToggle(id, checked)}/>
                                 <Typography className={styles.tabLabel}>{partLabel}</Typography>
@@ -84,13 +87,59 @@ TabCard.propTypes = {
     // The ids switched off in the draft
     draft: PropTypes.instanceOf(Set).isRequired,
     settings: PropTypes.object.isRequired,
+    // Whether the draft keeps the governance panel on
+    isPanelOn: PropTypes.bool.isRequired,
     // (id, on): switches a tab or a part on or off in the draft
     onToggle: PropTypes.func.isRequired
 };
 
+/**
+ * One panel of the drawer: its switch, and under it what the panel holds. A panel switched off
+ * loses its button in the header of jContent.
+ */
+const PanelSettings = ({entry, draft, settings, onToggle, children}) => {
+    const {t} = useGovernanceTranslation('settings');
+    // The labels of a panel are keys with their own namespace (`my-module:panel.label`)
+    const {t: translate} = useGovernanceTranslation();
+    const on = !draft.has(entry.key);
+    const label = translate(entry.label);
+    return (
+        <section className={styles.panel} data-panel={entry.key} aria-label={label}>
+            <Paper className={styles.card}>
+                <div className={styles.cardHeader}>
+                    <div>
+                        <Typography component="h2" variant="heading">{label}</Typography>
+                        {entry.settingsHelp && (
+                            <Typography variant="caption" className={styles.muted}>{translate(entry.settingsHelp)}</Typography>
+                        )}
+                    </div>
+                    <label className={styles.switchLabel}>
+                        <Switch checked={on}
+                                isDisabled={!settings.canEdit}
+                                aria-label={t('panelSwitch', {panel: label})}
+                                onChange={(e, value, checked) => onToggle(entry.key, checked)}/>
+                        <Typography variant="caption">{on ? t('on') : t('off')}</Typography>
+                    </label>
+                </div>
+            </Paper>
+            {children}
+        </section>
+    );
+};
+
+PanelSettings.propTypes = {
+    // A registry entry of drawerPanels (drawer/entries.js)
+    entry: PropTypes.object.isRequired,
+    draft: PropTypes.instanceOf(Set).isRequired,
+    settings: PropTypes.object.isRequired,
+    onToggle: PropTypes.func.isRequired,
+    children: PropTypes.node
+};
+
 const FeaturesScreen = ({settings, toolbarLeft, title, onSaved}) => {
     const {t} = useGovernanceTranslation('settings');
-    // Every tab of the drawer, the module's own and those other modules add (drawer/entries.js)
+    // Every panel and tab of the drawer, the module's own and those other modules add (drawer/entries.js)
+    const panels = useMemo(() => drawerPanels(), []);
     const tabs = useMemo(() => drawerTabs(), []);
     const [draft, setDraft] = useState(() => new Set(settings.disabled));
     const [save, {loading: saving, error}] = useMutation(SAVE_SITE_SETTINGS);
@@ -134,8 +183,17 @@ const FeaturesScreen = ({settings, toolbarLeft, title, onSaved}) => {
                     {error && <div role="alert"><Banner variant="danger" title={t('errorTitle')}>{t('error')}</Banner></div>}
                     {saved && !dirty && <output><Banner variant="info" title={t('savedTitle')}>{t('saved')}</Banner></output>}
                     <Typography>{t('intro')}</Typography>
-                    {tabs.map(entry => (
-                        <TabCard key={entry.key} entry={entry} draft={draft} settings={settings} onToggle={onToggle}/>
+                    {panels.map(panel => (
+                        <PanelSettings key={panel.key} entry={panel} draft={draft} settings={settings} onToggle={onToggle}>
+                            {panel.key === GOVERNANCE_PANEL && tabs.map(entry => (
+                                <TabCard key={entry.key}
+                                         entry={entry}
+                                         draft={draft}
+                                         settings={settings}
+                                         isPanelOn={!draft.has(GOVERNANCE_PANEL)}
+                                         onToggle={onToggle}/>
+                            ))}
+                        </PanelSettings>
                     ))}
                 </div>
             )}
@@ -151,9 +209,9 @@ FeaturesScreen.propTypes = {
 };
 
 /**
- * Site Settings > Content governance: which tabs of the drawer, and parts of tabs, the site uses
- * (every tab of the drawer's registry, those of other modules included), and the site's BotRank
- * connection. The route hides the entry from users
+ * Site Settings > Content governance: which panels of the drawer, tabs of the governance panel and
+ * parts of tabs the site uses (every panel and tab of the drawer's registry, those of other modules
+ * included), and the site's BotRank connection. The route hides the entry from users
  * without site-admin; the component checks the module and the permission again, and the server
  * checks site-admin on every save.
  */

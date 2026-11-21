@@ -1,7 +1,7 @@
 ---
 id: links.hardcodedUrls
 evaluator: links.hardcodedUrls
-domain: links
+subdomains: [links]
 severity: moderate
 fixer: editor
 label:

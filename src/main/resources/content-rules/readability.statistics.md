@@ -1,7 +1,7 @@
 ---
 id: readability.statistics
 evaluator: readability.statistics
-domain: readability
+subdomains: [readability]
 severity: minor
 label:
   en: "Statistics of the text"
