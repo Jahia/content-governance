@@ -286,7 +286,8 @@ compliance scans stay under `complianceScan { scanPage, scanSite }`. Servlets li
 OSGi service `org.jahia.community.contentgovernance.html.HtmlCheck`, and
 [`docs/page-quality/html-rules.md`](docs/page-quality/html-rules.md) lists its rules.
 
-Another module adds a tab to the drawer, or an action on a finding, through jContent's registry:
+Another module adds a panel to the drawer, a tab to the governance panel or an action on a finding,
+through jContent's registry, and opens a panel with `openPanel`:
 [`docs/drawer-entries.md`](docs/drawer-entries.md) states what an entry declares and receives.
 
 `GET geo/report` answers `{enabled, reason, provider, model}`, and `reason` is `absent` while no

@@ -70,6 +70,19 @@ describe('drawerPanels', () => {
         expect(drawerTabs().map(entry => entry.key)).toEqual(['review']);
         expect(console.warn).toHaveBeenCalledTimes(1);
     });
+
+    it('warns once for each tab it leaves out, with the reason, though the drawer reads the tabs on every render', () => {
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        registry.add(PANEL_TYPE, 'assistant', {label: 'a', buttonLabel: 'a', component});
+        registry.add(TAB_TYPE, 'assistant', {targets: [`${TAB_TARGET}:10`], label: 'b', component});
+        registry.add(TAB_TYPE, 'bad key', {targets: [`${TAB_TARGET}:20`], label: 'c', component});
+
+        drawerTabs();
+        drawerTabs();
+        expect(console.warn).toHaveBeenCalledTimes(2);
+        expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('"assistant" has the key of a panel'));
+        expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('"bad key" has a key the site settings cannot store'));
+    });
 });
 
 describe('drawerState', () => {

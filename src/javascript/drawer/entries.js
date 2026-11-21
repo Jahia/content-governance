@@ -51,18 +51,32 @@ export function drawerPanels() {
         .map(({entry}) => entry);
 }
 
+/** The warnings already given: the drawer and its button read the tabs on every render. */
+const warned = new Set();
+
+const warnOnce = message => {
+    if (!warned.has(message)) {
+        warned.add(message);
+        console.warn(message);
+    }
+};
+
 /**
  * The tabs of the governance panel, in the order of their priority. A tab with no component or no
  * label, or whose key the site settings cannot store, is left out. So is a tab whose key is the key
- * of a panel: the site settings store both kinds of key in one list.
+ * of a panel: the site settings store both kinds of key in one list. Each tab left out warns once.
  *
  * @returns {Array<object>} the registry entries
  */
 export function drawerTabs() {
     const panels = new Set(registry.find({type: PANEL_TYPE}).map(entry => entry.key));
     return registry.find({type: TAB_TYPE, target: TAB_TARGET}).filter(entry => {
-        if (!isTabId(entry.key) || panels.has(entry.key)) {
-            console.warn(`[content-governance] the drawer tab "${entry.key}" has a key the site settings cannot store apart, and is left out`);
+        if (!isTabId(entry.key)) {
+            warnOnce(`[content-governance] the drawer tab "${entry.key}" has a key the site settings cannot store, and is left out`);
+            return false;
+        }
+        if (panels.has(entry.key)) {
+            warnOnce(`[content-governance] the drawer tab "${entry.key}" has the key of a panel, and is left out`);
             return false;
         }
         return Boolean(entry.component && entry.label);
