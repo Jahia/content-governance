@@ -20,7 +20,7 @@ export const sizeOf = entry => entry.transferSize || entry.encodedBodySize || 0;
 /** The last segment of an address, such as `app.js` for `https://example.com/js/app.js?v=2`. */
 export function shortName(url) {
     const clean = url.split('?')[0].split('#')[0];
-    return clean.split('/').filter(Boolean).pop() || clean;
+    return clean.split('/').findLast(Boolean) || clean;
 }
 
 /** The time the checks started in the timeline of the frame, or no limit when the drawer set no mark. */
