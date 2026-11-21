@@ -33,7 +33,8 @@ import java.util.regex.Pattern;
  * The checks of what only Jahia knows about a page or a content item: the raw keys of resource bundles
  * and the placeholder texts in its HTML, and the state of its content in the repository. The state
  * comes from the fact {@link #CONTENT}, which the caller reads with {@link #read}. With no such fact,
- * those two checks find nothing.
+ * those two checks find nothing and carry no value. Else their results carry the state of the content,
+ * which the Jahia health tab of the drawer shows: {@link #unpublishedValues} and {@link #untranslatedValues}.
  */
 @Component(immediate = true)
 public class HealthChecks {
@@ -50,6 +51,9 @@ public class HealthChecks {
     /** The most content items that one read looks at, as the drawer did. */
     static final int MAX_ITEMS = 400;
     private static final String SHARED = "content-governance:health";
+    private static final String SCANNED = "scanned";
+    private static final String PATH = "path";
+    private static final String TYPE = "type";
     private static final String PAGE_TYPE = "jnt:page";
     private static final String CONTENT_TYPE = "jnt:content";
     private static final Set<String> NOT_TEXT = Set.of("script", "style", "noscript", "template");
@@ -120,6 +124,7 @@ public class HealthChecks {
             }, body);
         }
         if (input.fact(CONTENT) instanceof Content content) {
+            found.values(UNPUBLISHED, unpublishedValues(content)).values(UNTRANSLATED, untranslatedValues(content));
             content.unpublished().forEach(node -> found.add(UNPUBLISHED, node.path(), node.status()));
             content.untranslated().forEach(node -> found.add(UNTRANSLATED, node.path(), String.join(", ", node.missing())));
         }
@@ -185,27 +190,33 @@ public class HealthChecks {
     }
 
     /**
-     * What the Jahia health tab of the drawer shows: the state of the content. The raw keys and the
-     * placeholder texts are findings of their rules.
+     * The values of the rule {@code health.unpublishedChanges}: what is not published in the language.
      *
-     * @param content the state of the content, or null when it could not be read
-     * @return {@code pageStatus}, {@code activeLanguages}, {@code scanned}, {@code unpublished} as
-     *     {@code {path, type, status}} and {@code untranslated} as {@code {path, type, missing}}; an empty map
-     *     with no state
+     * @param content the state of the content
+     * @return {@code pageStatus}, {@code scanned} and {@code unpublished} as {@code {path, type, status}}
      */
-    public static Map<String, Object> report(Content content) {
+    public static Map<String, Object> unpublishedValues(Content content) {
         Map<String, Object> out = new LinkedHashMap<>();
-        if (content == null) {
-            return out;
-        }
         out.put("pageStatus", content.pageStatus());
-        out.put("activeLanguages", content.activeLanguages());
-        out.put("scanned", content.scanned());
+        out.put(SCANNED, content.scanned());
         out.put("unpublished", content.unpublished().stream()
-                .map(node -> Map.of("path", node.path(), "type", node.type(), "status", node.status()))
+                .map(node -> Map.of(PATH, node.path(), TYPE, node.type(), "status", node.status()))
                 .toList());
+        return out;
+    }
+
+    /**
+     * The values of the rule {@code health.missingTranslations}: what lacks an active language of the site.
+     *
+     * @param content the state of the content
+     * @return {@code activeLanguages}, {@code scanned} and {@code untranslated} as {@code {path, type, missing}}
+     */
+    public static Map<String, Object> untranslatedValues(Content content) {
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("activeLanguages", content.activeLanguages());
+        out.put(SCANNED, content.scanned());
         out.put("untranslated", content.untranslated().stream()
-                .map(node -> Map.of("path", node.path(), "type", node.type(), "missing", node.missing()))
+                .map(node -> Map.of(PATH, node.path(), TYPE, node.type(), "missing", node.missing()))
                 .toList());
         return out;
     }

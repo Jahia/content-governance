@@ -181,6 +181,17 @@ public class ErpPriceCheck implements ContentCheck {
 }
 ```
 
+Content Governance calls `result(input, rule)` of a check, which gives the result of the rule:
+`CheckResult(ruleId, passed, values, findings)`. Its default method wraps `check`: the rule passes when
+there is no finding, with no value. A check that measures values overrides it to put them in the
+result, such as the length and the text of a title:
+
+```java
+public CheckResult result(CheckInput input, Rule rule) {
+    return CheckResult.of(rule, Map.of("length", 92, "text", "Annual report…"), check(input, rule));
+}
+```
+
 The module ships the rule of the check with the header `Jahia-Content-Rules`, as the section
 [How a module ships rules](#how-a-module-ships-rules) shows, with `evaluator: acme.erpPrice`. The test
 module of this repository, `tests/jahia-module`, does both, with no change to content-governance.
@@ -193,10 +204,10 @@ A check states the scopes in which it runs:
 | `PAGE` | The HTML of a rendered page or content item. | The page check (`HtmlCheck`): the GraphQL field `checkPage`, which the drawer reads, `frame.check` with a path, the tool `audit.accessibility`, `checkText` with the scope `PAGE`, and the SEO checks of GEO readiness on the HTML that a crawler gets. |
 | `SITE` | A whole site. | No caller yet. |
 
-A run applies each rule that the site keeps on and whose check is registered for the scope. Each
-finding carries the id of the rule, the severity that the site gives the rule, and the text that
-breaks the rule. A check that throws an exception gives no finding, and the other checks still run.
-One check gives 50 findings or fewer on one input.
+A run applies each rule that the site keeps on and whose check is registered for the scope. It gives
+one result per rule, passed or failed. Each finding carries the id of the rule, the severity
+that the site gives the rule, and the text that breaks the rule. A check that throws an exception
+gives no result, and the other checks still run. One check gives 50 findings or fewer on one input.
 
 ```graphql
 query {
@@ -210,7 +221,13 @@ query {
 
 `threshold` and `presence` judge a value that the caller measured. The caller gives it as the fact
 of the input whose key is the id of the rule: `input.withFact("seo.title", 72)`. With no such fact,
-they find nothing.
+they find nothing. The values of their result are the ones that the caller gives with
+`input.withValues("seo.title", Map.of("length", 72, "text", "…"))`. Without them, `threshold` gives
+`value`, the measured number.
+
+A measure rule has no limit: its check finds nothing and gives values only, so the rule always
+passes. The drawer shows these values, and a site turns the rule off to hide them. Example:
+`readability.statistics` gives the word count and the reading time of the Readability tab.
 
 The checks of SEO, readability, links and Jahia health run on the server, as checks of the scope
 `PAGE`, and the drawer shows their findings.
@@ -271,8 +288,8 @@ important. `minor` shows as advisory.
 
 ## What the catalog does not hold
 
-- The tabs also show values beside the findings, such as the tag checklist of SEO or the outline
-  of the headings. These values come from the page facts of the server, not from the rules.
+- The catalog holds no value of a measure rule, such as the tag checklist of SEO. A check measures
+  these values on each page.
 - The limits of a scan, such as the number of links that the Links tab checks, are not rules.
 - The length hints of the social card of the SEO assist (`og:description`) are not rules.
 - The instructions that ai-assistant gives a model for an SEO review state the default ranges of
@@ -290,6 +307,7 @@ important. `minor` shows as advisory.
 | `seo.openGraph` | `seo.openGraph` | moderate | none | editor |
 | `seo.structuredData` | `seo.structuredData` | moderate | none | developer |
 | `seo.structuredDataValid` | `seo.structuredDataValid` | serious | none | developer |
+| `seo.tags` | `seo.tags` | minor | none: a measure | none |
 | `geo.fetched` | `geo.fetched` | critical | none | administrator |
 | `geo.reachable` | `geo.reachable` | critical | none | administrator |
 | `geo.policyMatchesReality` | `geo.policyMatchesReality` | serious | none | administrator |
@@ -307,6 +325,8 @@ important. `minor` shows as advisory.
 | `readability.longSentences` | `threshold` | minor | maximum 25 words | editor |
 | `readability.longParagraphs` | `threshold` | moderate | maximum 80 words | editor |
 | `readability.thinContent` | `threshold` | minor | minimum 300 words | editor |
+| `readability.statistics` | `readability.statistics` | minor | none: a measure | none |
+| `readability.headings` | `readability.headings` | minor | none: a measure | none |
 | `ecodesign.pageWeight` | `ecodesign.pageWeight` | moderate | maximum 1024 kilobytes | developer |
 | `ecodesign.requests` | `ecodesign.requests` | moderate | maximum 70 requests | developer |
 | `ecodesign.domSize` | `ecodesign.domSize` | moderate | maximum 1500 elements | developer |

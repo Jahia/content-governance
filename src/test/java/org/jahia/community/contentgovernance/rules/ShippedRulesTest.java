@@ -14,12 +14,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ShippedRulesTest {
 
     @Test
-    @DisplayName("the module ships 59 rules and one rule per check of axe-core, and each names its evaluator and a known domain")
+    @DisplayName("the module ships 62 rules, four of them measures, and one rule per check of axe-core, and each names its evaluator and a known domain")
     void ownRules_load() {
         ShippedRules.Shipment own = ShippedRules.own();
 
         assertThat(own.complete()).isTrue();
-        assertThat(own.rules().keySet().stream().filter(id -> !id.startsWith("axe."))).hasSize(59);
+        assertThat(own.rules().keySet().stream().filter(id -> !id.startsWith("axe."))).hasSize(62);
         assertThat(own.rules().keySet().stream().filter(id -> id.startsWith("axe."))).hasSize(96);
         assertThat(own.rules().values()).allSatisfy(rule -> {
             assertThat(rule.values()).containsKey(RuleValues.EVALUATOR);

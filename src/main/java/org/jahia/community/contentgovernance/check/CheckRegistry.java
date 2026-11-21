@@ -1,6 +1,9 @@
 package org.jahia.community.contentgovernance.check;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
+import org.jahia.community.contentgovernance.check.spi.CheckResult;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck.Scope;
 import org.jahia.community.contentgovernance.check.spi.Finding;
@@ -31,6 +34,8 @@ public class CheckRegistry {
 
     /** The most findings that one check gives on one input. */
     static final int MAX_FINDINGS = 50;
+
+    private static final ObjectMapper JSON = new ObjectMapper();
     /** The module that registers a check which Content Governance does not register itself. */
     private static final Map<String, String> PROVIDERS = Map.of(ContentRule.MODEL, "ai-assistant");
     private static final Logger logger = LoggerFactory.getLogger(CheckRegistry.class);
@@ -56,6 +61,10 @@ public class CheckRegistry {
         public Status(boolean active, String missingCheck, String needs) {
             this(active, missingCheck, needs, null);
         }
+    }
+
+    /** The result of one rule, with the rule as the site applies it. */
+    private record Ran(ContentRule rule, CheckResult result) {
     }
 
     /**
@@ -132,6 +141,18 @@ public class CheckRegistry {
     }
 
     /**
+     * Runs on the input each check of a rule of the site that it keeps on, as {@link #run(CheckInput, Set)}
+     * does, and gives one result per rule that ran, passed or failed.
+     *
+     * @param rules the rules of the site of the input
+     * @param input what to check
+     * @return the results, in the order of the rules, each with at most {@value #MAX_FINDINGS} findings
+     */
+    public List<CheckResult> results(ContentRules rules, CheckInput input) {
+        return apply(rules, input, Set.of(), null).stream().map(Ran::result).toList();
+    }
+
+    /**
      * {@link #run(CheckInput, Set)} on some rules of the site only, such as the SEO rules that GEO
      * readiness reports on each page of a site.
      *
@@ -147,10 +168,19 @@ public class CheckRegistry {
         return run(rules, input, skipped, null);
     }
 
-    /** The run on the rules of the site whose id {@code ruleIds} holds, or on every rule when it is null. */
+    /** The findings of {@link #apply}, each with its rule. */
     private List<Checked> run(ContentRules rules, CheckInput input, Set<String> skipped, Set<String> ruleIds) {
-        Scope scope = input.scope();
         List<Checked> out = new ArrayList<>();
+        for (Ran ran : apply(rules, input, skipped, ruleIds)) {
+            ran.result().findings().forEach(finding -> out.add(new Checked(ran.rule(), finding)));
+        }
+        return out;
+    }
+
+    /** The run on the rules of the site whose id {@code ruleIds} holds, or on every rule when it is null. */
+    private List<Ran> apply(ContentRules rules, CheckInput input, Set<String> skipped, Set<String> ruleIds) {
+        Scope scope = input.scope();
+        List<Ran> out = new ArrayList<>();
         for (ContentRule rule : rules.all()) {
             boolean wanted = rule.enabled() && rule.hasKnownDomain() && !rule.inBrowser()
                     && !skipped.contains(rule.evaluator()) && (ruleIds == null || ruleIds.contains(rule.id()));
@@ -158,14 +188,48 @@ public class CheckRegistry {
             if (registered == null || !registered.check().scopes().contains(scope)) {
                 continue;
             }
-            try {
-                List<Finding> found = registered.check().check(input, rule);
-                found.stream().limit(MAX_FINDINGS).forEach(finding -> out.add(new Checked(rule, finding)));
-            } catch (RuntimeException e) {
-                logger.warn("The check {} failed on the rule {} at {}", registered.id(), rule.id(), input.path(), e);
+            Ran ran = applyRule(registered, rule, input);
+            if (ran != null) {
+                out.add(ran);
             }
         }
         return out;
+    }
+
+    /** The result of one rule, or null when its check failed, gave none, or gave values that JSON cannot write. */
+    private static Ran applyRule(Registered registered, ContentRule rule, CheckInput input) {
+        try {
+            CheckResult result = registered.check().result(input, rule);
+            if (result == null) {
+                logger.warn("The check {} gave no result on the rule {} at {}", registered.id(), rule.id(), input.path());
+                return null;
+            }
+            // The result belongs to the rule that ran, whatever id the check wrote, and fails when it has a finding
+            List<Finding> found = result.findings().stream().limit(MAX_FINDINGS).toList();
+            CheckResult kept = new CheckResult(rule.id(), result.passed() && found.isEmpty(), result.values(), found);
+            if (!writable(kept)) {
+                logger.warn("The check {} gave values that JSON cannot write on the rule {} at {}", registered.id(),
+                        rule.id(), input.path());
+                return null;
+            }
+            return new Ran(rule, kept);
+        } catch (RuntimeException e) {
+            logger.warn("The check {} failed on the rule {} at {}", registered.id(), rule.id(), input.path(), e);
+            return null;
+        }
+    }
+
+    /** True when JSON writes the values of the result and of each finding, as the GraphQL API sends them. */
+    private static boolean writable(CheckResult result) {
+        try {
+            JSON.writeValueAsString(result.values());
+            for (Finding finding : result.findings()) {
+                JSON.writeValueAsString(finding.values());
+            }
+            return true;
+        } catch (JsonProcessingException e) {
+            return false;
+        }
     }
 
     private Registered find(String checkId) {
