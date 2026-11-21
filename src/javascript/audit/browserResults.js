@@ -12,6 +12,20 @@ import {browserRules, VITALS} from './runChecks';
 /** The evaluator of axe-core, whose violations the Accessibility tab lists with their elements. */
 export const AXE = 'axe';
 
+/** The key of each tab in the results. */
+export const RESULT_KEYS = {
+    accessibility: 'a11y',
+    seo: 'seo',
+    vitals: 'vitals',
+    readability: 'readability',
+    ecodesign: 'ecodesign',
+    links: 'links',
+    jahia: 'jahia'
+};
+
+/** The tabs whose results the check of the server gives, by their key in the results. */
+export const SERVER_KEYS = ['seo', 'readability', 'links', 'jahia'];
+
 /** The tabs that list recommendations of rules. */
 const RECOMMENDATION_TABS = ['accessibility', 'seo', 'readability', 'links', 'jahia', 'ecodesign'];
 const LEVELS = ['A', 'AA', 'AAA', 'BP'];
@@ -182,4 +196,34 @@ export function browserTabs({results, incomplete, notChecked}, rules) {
         incomplete: unfinished,
         notChecked: labelsByTab(notChecked, rules)
     };
+}
+
+/**
+ * The results of each tab: those of the server, with the recommendations of the checks of the browser of
+ * the domain of the tab, and the rules of the tab that no check of the browser gave a result for. One rule
+ * gives one recommendation, so a rule that the server and the browser both report shows once.
+ */
+export function withBrowserResults(checked, browser) {
+    const unique = recommendations => {
+        const seen = new Set();
+        return recommendations.filter(rec => !seen.has(rec.rule) && seen.add(rec.rule));
+    };
+    const measured = {
+        // The rules of the domain accessibility that the server checks go with the checks of axe-core
+        a11y: browser.accessibility && {...browser.accessibility,
+            recommendations: [...(checked?.accessibility || []), ...browser.recommendations.accessibility]},
+        vitals: browser.vitals,
+        ecodesign: {...browser.ecodesign, recommendations: unique([...browser.recommendations.ecodesign, ...(checked?.ecodesign || [])])},
+        ...Object.fromEntries(SERVER_KEYS.filter(key => checked?.[key]).map(key => [key, {
+            ...checked[key],
+            recommendations: unique([...checked[key].recommendations, ...browser.recommendations[key]])
+        }]))
+    };
+    Object.entries(browser.notChecked).forEach(([tab, rules]) => {
+        const key = RESULT_KEYS[tab];
+        if (measured[key]) {
+            measured[key] = {...measured[key], notChecked: rules};
+        }
+    });
+    return measured;
 }

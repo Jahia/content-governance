@@ -5,7 +5,7 @@ import {useApolloClient} from '@apollo/client';
 import {fetchRules} from './rules';
 import {checkPage} from './pageCheck';
 import {rulesOfTabsOn, runChecks} from './runChecks';
-import {browserTabs} from './browserResults';
+import {browserTabs, RESULT_KEYS, SERVER_KEYS, withBrowserResults} from './browserResults';
 import {removeToolingElements} from './tooling';
 import {runStep} from './timeLimit';
 import {fetchPageAudits, fetchPageLastModified, saveAudit, storedResults} from './auditHistory';
@@ -43,9 +43,6 @@ const AUDITS_KEPT = 10;
 // the tabs SEO, Readability, Links and Jahia health. Each check of the browser has its own (runChecks.js).
 const PAGE_LIMIT_MS = 60_000;
 
-// The tabs whose results the check of the server gives, by their key in the results
-const SERVER_KEYS = ['seo', 'readability', 'links', 'jahia'];
-
 // The tabs that read the check of the server: its results, or its HTML rules
 const SERVER_TABS = ['seo', 'readability', 'links', 'jahia', 'accessibility'];
 
@@ -57,7 +54,7 @@ const UNREAD = {incomplete: 'failed', message: 'the server could not read the re
 // header). "Re-run" always performs a fresh audit. LRU-capped.
 const CACHE_PREFIX = 'content-governance:audit:';
 const CACHE_MAX_ENTRIES = 10;
-// Bump whenever the cached `results` shape changes (e.g. a new analyzer key),
+// Bump whenever the cached `results` shape changes (e.g. a new key of a tab),
 // so entries written by an older module version are ignored instead of
 // restored into UI that expects the new shape.
 const CACHE_SCHEMA = 7;
@@ -126,17 +123,6 @@ function saveCachedAudit(path, language, entry) {
 
 /** The tabs of the section, in order; each id is also its feature id (`audit.<id>`). */
 const TAB_IDS = ['accessibility', 'seo', 'vitals', 'readability', 'ecodesign', 'links', 'jahia'];
-
-/** The key of each tab in the results. */
-const RESULT_KEYS = {
-    accessibility: 'a11y',
-    seo: 'seo',
-    vitals: 'vitals',
-    readability: 'readability',
-    ecodesign: 'ecodesign',
-    links: 'links',
-    jahia: 'jahia'
-};
 
 // What a tab's tooltip adds to its help: how many issues it holds
 const tabNote = (tab, t) => (tab.badge ? t('tabs.badgeTooltip', {count: tab.badge}) : undefined);
@@ -238,7 +224,7 @@ async function auditFrame(frame, {isOn, language, uiLanguage, path, apolloClient
     }
 
     // Strip editor/preview tooling (jExperience persona panel…)
-    // before any analyzer sees the DOM.
+    // before any check of the browser sees the DOM.
     removeToolingElements(frame.contentDocument);
 
     // Read once per audit, so that a rule the site changed applies at the next run, with the texts of the
@@ -267,36 +253,6 @@ async function auditFrame(frame, {isOn, language, uiLanguage, path, apolloClient
     });
     const page = pageFactsOf(checked?.seo);
     return measuredResults(withBrowserResults(checked, browser), page, incomplete, isOn);
-}
-
-/**
- * The results of each tab: those of the server, with the recommendations of the checks of the browser of
- * the domain of the tab, and the rules of the tab that no check of the browser gave a result for. One rule
- * gives one recommendation, so a rule that the server and the browser both report shows once.
- */
-function withBrowserResults(checked, browser) {
-    const unique = recommendations => {
-        const seen = new Set();
-        return recommendations.filter(rec => !seen.has(rec.rule) && seen.add(rec.rule));
-    };
-    const measured = {
-        // The rules of the domain accessibility that the server checks go with the checks of axe-core
-        a11y: browser.accessibility && {...browser.accessibility,
-            recommendations: [...(checked?.accessibility || []), ...browser.recommendations.accessibility]},
-        vitals: browser.vitals,
-        ecodesign: {...browser.ecodesign, recommendations: unique([...browser.recommendations.ecodesign, ...(checked?.ecodesign || [])])},
-        ...Object.fromEntries(SERVER_KEYS.filter(key => checked?.[key]).map(key => [key, {
-            ...checked[key],
-            recommendations: unique([...checked[key].recommendations, ...browser.recommendations[key]])
-        }]))
-    };
-    Object.entries(browser.notChecked).forEach(([tab, rules]) => {
-        const key = RESULT_KEYS[tab];
-        if (measured[key]) {
-            measured[key] = {...measured[key], notChecked: rules};
-        }
-    });
-    return measured;
 }
 
 /**
@@ -351,10 +307,10 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
     // loading it while the drawer is still translated off-screen makes Chrome
     // throttle rendering, and FCP/LCP paint entries never fire.
     const [frameVisible, setFrameVisible] = useState(false);
-    // Hiding the preview keeps the iframe mounted at full size behind the results - analyzers and
-    // highlight still need its document, and a frame with no height never paints.
+    // Hiding the preview keeps the iframe mounted at full size behind the results - the checks of the
+    // browser and highlight still need its document, and a frame with no height never paints.
     // Beside Page Builder the page is already on screen: the preview starts hidden behind the
-    // results, where it keeps its size and paints, so the analyzers measure it as before.
+    // results, where it keeps its size and paints, so the checks of the browser measure it as before.
     const [previewCollapsed, setPreviewCollapsed] = useState(() => Boolean(findEditFrameDocument(path, language)));
     const frameRef = useRef(null);
     const previewRef = useRef(null);

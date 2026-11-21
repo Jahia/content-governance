@@ -37,9 +37,10 @@ ItemHighlight.propTypes = {
 /**
  * Shared recommendations block: severity chip + what to fix + how, the id of the rule, each finding of
  * the rule, and the actions other modules add to the finding.
- * Items come from the check of the server or the analyzers as {key, rule, severity, params, items?, title,
- * detail}: the texts come from the rule, in the editor's interface language, for a built-in rule and for a
- * rule of another module alike. An audit stored by an older version has no title, and shows its old text.
+ * Items come from the check of the server or the checks of the browser as {key, rule, severity, params,
+ * items?, title, detail}: the texts come from the rule, in the editor's interface language, for a built-in
+ * rule and for a rule of another module alike. An audit stored by an older version has no title, and shows
+ * its old text.
  */
 export function Recommendations({items, ns, tab, title}) {
     const {t} = useGovernanceTranslation('audit');

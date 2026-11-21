@@ -1,10 +1,13 @@
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {registry} from '@jahia/ui-extender';
 import {browserChecks, CHECK_TYPE, CHECKS_MARK} from '../../javascript/drawer/entries.js';
 import {ECODESIGN_EVALUATORS, registerChecks} from '../../javascript/checks/register.js';
 import {MEASURES} from '../../javascript/checks/ecodesign.js';
 import {browserRules, CHECK_LIMIT_MS, MAX_FINDINGS, resultsOf, rulesOfTabsOn, runChecks} from '../../javascript/audit/runChecks.js';
-import {browserTabs} from '../../javascript/audit/browserResults.js';
+import {browserTabs, withBrowserResults} from '../../javascript/audit/browserResults.js';
+import {NotChecked} from '../../javascript/audit/tabs/NotChecked.jsx';
 import {resultOf} from '../../javascript/checks/axe.js';
 import {ruleBook} from '../../javascript/audit/rules.js';
 import {BASE_RULES} from './baseRules.js';
@@ -201,6 +204,17 @@ describe('browserTabs', () => {
 
     it('lists the rules not checked in the tab of their domain, with their label', () => {
         expect(browserTabs(run, rules).notChecked).toEqual({ecodesign: [{rule: 'ecodesign.autoplay', label: 'No autoplay'}]});
+    });
+
+    it('keeps the rules not checked in the results of their tab, which the tab shows under Not checked', () => {
+        const browser = browserTabs({...run, notChecked: ['ecodesign.autoplay', 'axe.color-contrast']}, rules);
+        const tabs = withBrowserResults(null, browser);
+
+        expect(tabs.ecodesign.notChecked).toEqual([{rule: 'ecodesign.autoplay', label: 'No autoplay'}]);
+        expect(tabs.a11y.notChecked.map(rule => rule.rule)).toEqual(['axe.color-contrast']);
+        const markup = renderToStaticMarkup(React.createElement(NotChecked, {rules: tabs.ecodesign.notChecked}));
+        expect(markup).toContain('No autoplay');
+        expect(markup).toContain('ecodesign.autoplay');
     });
 
     it('marks the tabs of a check that did not finish, and gives no view of axe-core or the vitals then', () => {

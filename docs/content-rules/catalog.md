@@ -334,6 +334,20 @@ important. `minor` shows as advisory.
 | `ecodesign.imageFormats` | `ecodesign.imageFormats` | moderate | none | editor |
 | `ecodesign.oversizedImages` | `ecodesign.oversizedImages` | moderate | none | editor |
 | `html.*` | the id of the rule | see below | none | see below |
+| `ecodesign.imageDimensions` | `ecodesign.imageDimensions` | moderate | none | developer |
+| `ecodesign.webFonts` | `ecodesign.webFonts` | minor | maximum 2 files | developer |
+| `ecodesign.autoplay` | `ecodesign.autoplay` | moderate | none | editor |
+| `ecodesign.thirdParty` | `ecodesign.thirdParty` | moderate | maximum 5 hosts | developer |
+| `ecodesign.heavyAssets` | `ecodesign.heavyAssets` | moderate | maximum 300 kilobytes | developer |
+| `ecodesign.webVitals` | `webVitals` | minor | none: a measure, which always passes | developer |
+| `links.broken` | `links.broken` | critical | none | editor |
+| `links.hardcodedUrls` | `links.hardcodedUrls` | moderate | none | editor |
+| `links.mixedContent` | `links.mixedContent` | serious | none | developer |
+| `links.blankNoopener` | `links.blankNoopener` | minor | none | developer |
+| `health.rawI18nKeys` | `health.rawI18nKeys` | critical | none | developer |
+| `health.unpublishedChanges` | `health.unpublishedChanges` | serious | none | editor |
+| `health.missingTranslations` | `health.missingTranslations` | serious | none | editor |
+| `health.placeholderText` | `health.placeholderText` | serious | none | editor |
 
 The rules `html.*` are the rules of the HTML check, and
 [`html-rules.md`](../page-quality/html-rules.md) lists them. Each rule names a check of its own id,
@@ -355,17 +369,3 @@ unless the site writes a title on the rule.
 Six rules that axe-core marks experimental ship switched off: `axe.css-orientation-lock`,
 `axe.focus-order-semantics`, `axe.hidden-content`, `axe.p-as-heading`, `axe.table-fake-caption` and
 `axe.td-has-header`. A site switches one on in its rule.
-| `ecodesign.imageDimensions` | `ecodesign.imageDimensions` | moderate | none | developer |
-| `ecodesign.webFonts` | `ecodesign.webFonts` | minor | maximum 2 files | developer |
-| `ecodesign.autoplay` | `ecodesign.autoplay` | moderate | none | editor |
-| `ecodesign.thirdParty` | `ecodesign.thirdParty` | moderate | maximum 5 hosts | developer |
-| `ecodesign.heavyAssets` | `ecodesign.heavyAssets` | moderate | maximum 300 kilobytes | developer |
-| `ecodesign.webVitals` | `webVitals` | minor | none: a measure, which always passes | developer |
-| `links.broken` | `links.broken` | critical | none | editor |
-| `links.hardcodedUrls` | `links.hardcodedUrls` | moderate | none | editor |
-| `links.mixedContent` | `links.mixedContent` | serious | none | developer |
-| `links.blankNoopener` | `links.blankNoopener` | minor | none | developer |
-| `health.rawI18nKeys` | `health.rawI18nKeys` | critical | none | developer |
-| `health.unpublishedChanges` | `health.unpublishedChanges` | serious | none | editor |
-| `health.missingTranslations` | `health.missingTranslations` | serious | none | editor |
-| `health.placeholderText` | `health.placeholderText` | serious | none | editor |

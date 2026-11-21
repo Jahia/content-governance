@@ -204,7 +204,7 @@ The built-in checks:
 | Check | Evaluator | File | What it does |
 |---|---|---|---|
 | Web Vitals | `webVitals` | `webVitals.js` | It applies the measure rule `ecodesign.webVitals`, which always passes. Its values hold the figures of the Web Vitals tab. It reads the buffered `PerformanceObserver` entries (`largest-contentful-paint`, `layout-shift`, 700 ms window) and the measure of the page. LCP falls back to the `responseEnd` of the largest in-viewport image, else `domContentLoadedEventEnd` (`lcpApprox`). INP is always `null`. The timings are indicative figures and never a finding, because the editing preview in the editor's browser cannot match the live site. `audit/vitalsFindings.js` drops the `slowLcp`, `highCls` and `slowTtfb` findings of audits stored before 1.11 where the dashboard shows them (`auditFindings`). |
-| Eco-design | `ecodesign.<measure>` | `ecodesign.js` | There are 11 checks, one per measure. They measure the weight, the requests, the DOM size and the fonts, which must be WOFF2. They also count the heavy scripts and stylesheets, the autoplay media and the third-party origins. The last five count images: below the fold without `loading="lazy"`, in a legacy format over 30 kB, oversized, or with no dimensions. The rule gives the limit, in its `maximum`. A measure of elements passes with no element, and gives one finding per element, with its locator. The result is not an RGESN conformity score. `ecoChecklist.js` lists 8 whole-service criteria. |
+| Eco-design | `ecodesign.<measure>` | `ecodesign.js` | There are 11 checks, one per measure. They measure the weight, the requests, the DOM size and the fonts, which must be WOFF2. They also count the heavy scripts and stylesheets, the autoplay media and the third-party origins. The last four count images: below the fold without `loading="lazy"`, in a legacy format over 30 kB, oversized, or with no dimensions. The rule gives the limit, in its `maximum`. A measure of elements passes with no element, and gives one finding per element, with its locator. The result is not an RGESN conformity score. `ecoChecklist.js` lists 8 whole-service criteria. |
 | Accessibility | `axe` | `axe.js` | It injects axe-core (below) and runs the checks of the enabled rules `axe.<id>`, by rule. A rule whose check the version of axe-core lacks gives no result. A check that fails on one element fails, and one with an element to review passes with the outcome `incomplete`. The result keeps 25 elements. A card's percentage is passes / (passes + violations), floored, and `incomplete` is outside the ratio. `a11yChecklist.js` lists 14 manual criteria. The tab also lists the HTML rules of the server that no other tab words. |
 
 `checks/pageMeasure.js` measures the page once per document for the web vitals and eco-design.
@@ -335,6 +335,5 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
 
 Facts from the merge that a maintainer may trip on:
 
-- The measure of the page leaves out the resources after the performance mark
-  `contentGovernanceChecks`, so the script of axe-core and the requests of other checks do not count
-  in the page's own statistics.
+- [The checks of the browser](#the-checks-of-the-browser) states which resources the measure of the
+  page leaves out.
