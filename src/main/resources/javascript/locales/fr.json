@@ -1526,6 +1526,10 @@
         "failedTitle": "Ce contrôle a échoué",
         "failed": "Il s'est arrêté sur une erreur ({{message}}) ; les autres onglets affichent leurs résultats. Relancez l'analyse."
       },
+      "notChecked": {
+        "title": "Non vérifiées ({{count}})",
+        "note": "Ces règles s'exécutent dans le navigateur, et aucun contrôle n'a donné de résultat pour elles : aucun module de ce Jahia n'enregistre de contrôle pour leur évaluateur. Elles ne sont ni réussies ni en échec."
+      },
       "readability": {
         "score": "Score de lisibilité",
         "bands": {

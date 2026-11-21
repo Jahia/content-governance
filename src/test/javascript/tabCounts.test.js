@@ -1,7 +1,5 @@
 import {describe, expect, it} from 'vitest';
 import {tabCounts} from '../../javascript/audit/tabCounts.js';
-import {buildVitalsRecommendations} from '../../javascript/audit/analyzers/webVitals.js';
-import {BASE_RULES} from './baseRules.js';
 import {withoutTimingFindings} from '../../javascript/audit/vitalsFindings.js';
 import {auditFindings, isSerious} from '../../javascript/drawer/findings.js';
 
@@ -43,23 +41,6 @@ describe('isSerious', () => {
 });
 
 describe('Web Vitals findings', () => {
-    const diagnostics = {missingDims: 0, oversized: 0, totalBytes: 100, requests: 5, domNodes: 100, largest: []};
-
-    it('raises nothing on a timing, however slow', () => {
-        const recs = buildVitalsRecommendations({metrics: {lcp: 9000, cls: 0.9, ttfb: 5000}, diagnostics}, BASE_RULES);
-        expect(recs).toEqual([]);
-    });
-
-    it('still raises what weighs the page down', () => {
-        const recs = buildVitalsRecommendations({
-            metrics: {lcp: 100, cls: 0, ttfb: 10},
-            diagnostics: {...diagnostics, missingDims: 2, totalBytes: 3 * 1024 * 1024, requests: 120, domNodes: 2000}
-        }, BASE_RULES);
-        expect(recs.map(rec => rec.key)).toEqual(['ecodesign.imageDimensions', 'ecodesign.pageWeight', 'ecodesign.requests', 'ecodesign.domSize']);
-        expect(recs.map(rec => rec.title)).toEqual(['2 images have no width and height', 'The page weighs 3.0 MB (limit 1024 KB)',
-            'The page makes 120 requests (limit 70)', 'The page has 2000 elements (limit 1500)']);
-    });
-
     it('drops the timing findings of an audit stored before 1.11, on the tab and in the lists', () => {
         const stored = [{key: 'slowLcp', severity: 'serious'}, {key: 'heavyPage', severity: 'moderate'}, {key: 'highCls'}, {key: 'slowTtfb'}];
         expect(withoutTimingFindings(stored).map(rec => rec.key)).toEqual(['heavyPage']);

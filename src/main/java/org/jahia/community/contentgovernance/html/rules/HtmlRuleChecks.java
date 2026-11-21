@@ -38,7 +38,7 @@ public class HtmlRuleChecks {
         for (HtmlRule rule : HtmlRule.values()) {
             checks.put(rule.id(), new Check(rule));
         }
-        services.open(context, checks, false);
+        services.open(context, checks);
     }
 
     @Deactivate

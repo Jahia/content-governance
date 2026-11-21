@@ -23,16 +23,21 @@ export function EcodesignTab({result}) {
                     <span className={styles.cardValue}>{result.passed}/{result.total}</span>
                     <span className={styles.cardHint}>{t('eco.scoreHint')}</span>
                 </div>
-                <div className={styles.card}>
-                    <span className={styles.cardTitle}>{t('eco.weight')}</span>
-                    <span className={styles.cardValue}>{(result.stats.totalBytes / 1024 / 1024).toFixed(2)}</span>
-                    <span className={styles.cardHint}>MB</span>
-                </div>
-                <div className={styles.card}>
-                    <span className={styles.cardTitle}>{t('eco.requests')}</span>
-                    <span className={styles.cardValue}>{result.stats.requests}</span>
-                    <span className={styles.cardHint}>{t('eco.thirdPartyHint', {count: result.stats.thirdParty})}</span>
-                </div>
+                {/* The figures of the measure of the web vitals: none when the site turned it off */}
+                {result.stats && (
+                    <>
+                        <div className={styles.card}>
+                            <span className={styles.cardTitle}>{t('eco.weight')}</span>
+                            <span className={styles.cardValue}>{(result.stats.totalBytes / 1024 / 1024).toFixed(2)}</span>
+                            <span className={styles.cardHint}>MB</span>
+                        </div>
+                        <div className={styles.card}>
+                            <span className={styles.cardTitle}>{t('eco.requests')}</span>
+                            <span className={styles.cardValue}>{result.stats.requests}</span>
+                            <span className={styles.cardHint}>{t('eco.thirdPartyHint', {count: result.stats.thirdParty})}</span>
+                        </div>
+                    </>
+                )}
             </div>
 
             <p className={styles.note}>{t('eco.disclaimer')}</p>
@@ -45,7 +50,8 @@ export function EcodesignTab({result}) {
                     <li key={c.key}>
                         <span className={c.ok ? styles.okMark : styles.koMark}>{c.ok ? '✓' : '✗'}</span>
                         {' '}<span className={styles.levelChip}>{t(`eco.families.${c.family}`)}</span>
-                        {' '}{t(`eco.checks.${c.key}`)}: <strong>{c.value}</strong>
+                        {/* The label of the rule; an audit stored before the checks of the browser has a key of eco.checks */}
+                        {' '}{c.label || t(`eco.checks.${c.key}`)}: <strong>{c.value}</strong>
                     </li>
                 ))}
             </ul>

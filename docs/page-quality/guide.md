@@ -114,9 +114,9 @@ when they are all moderate or minor. No number means nothing to review.
 | **Accessibility** | Automated rules the page fails. One rule can fail on many elements; it counts once. Items "to verify" are not counted. |
 | **SEO**, **Web Vitals**, **Readability**, **Ecodesign**, **Links**, **Jahia** | Recommendations in the tab's **Recommendations** list. |
 
-Some problems show in two tabs, because they matter for both: heavy pages, oversized images and
-images without width and height appear in **Web Vitals** and **Ecodesign**; images without alt text
-appear in **SEO** and **Accessibility**. The section total counts them twice.
+Some figures show in two tabs. **Web Vitals** shows the weight, the requests and the images of the
+page, and **Ecodesign** gives their findings. Images without alt text appear in **SEO** and
+**Accessibility**, and the section total counts them twice.
 
 ### Severity
 
@@ -252,10 +252,10 @@ page, including the template.
 
 Page-level checks inspired by the French eco-design referential RGESN 2024.
 
-- Cards: **Page criteria met** (out of 10), **Page weight** (MB), **Requests** with the number of
+- Cards: **Page criteria met** (out of 11), **Page weight** (MB), **Requests** with the number of
   third-party origins.
-- **Recommendations**.
-- **Automated page criteria**: the 10 checks with their value.
+- **Recommendations**. Each finding on an image or a media element offers **Highlight on the page**.
+- **Automated page criteria**: the 11 checks with their value, each named by the label of its rule.
 
 | Check | Passes when |
 |---|---|
@@ -269,13 +269,14 @@ Page-level checks inspired by the French eco-design referential RGESN 2024.
 | Oversized images | no image more than twice as wide as displayed |
 | Images without dimensions | none |
 | Third-party origins | 5 or fewer |
+| Heavy scripts and stylesheets | none over 300 kB |
 
 - **Manual checklist (whole-service, not automatable)**: 8 criteria about strategy, hosting, backend
   and features, for the team responsible for the platform.
 
 This is not an RGESN conformity score. RGESN assesses a whole service, most of it outside a single
 page. The figures come from the editing version of the page and are indicative. The limits are the
-defaults of the rules `ecodesign.*`, which **Web Vitals** applies too.
+defaults of the rules `ecodesign.*`. A site changes a limit on its rule.
 
 Yours: image formats and sizes, autoplaying videos, embeds you added. A developer's: fonts, lazy
 loading in templates, third-party scripts.
@@ -314,6 +315,12 @@ The checks only Jahia can do.
 The check covers up to 400 content items stored under the page, and stops at sub-pages. Content
 displayed from elsewhere (a listing, a reused item) is not checked. A check that another module adds
 on the server, with no tab of its own, shows here with its rule id and its advice.
+
+## Not checked
+
+A module can add a check that runs in your browser, on the preview of the page, with its own rules.
+When no installed module checks such a rule, the tab of the rule lists it under **Not checked**. The
+rule is neither passed nor failed. Example: a site keeps the rule of a module that was uninstalled.
 
 ## Missing or failing
 

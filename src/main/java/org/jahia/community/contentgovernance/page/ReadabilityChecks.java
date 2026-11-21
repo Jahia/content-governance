@@ -47,7 +47,7 @@ public class ReadabilityChecks {
 
     @Activate
     void activate(BundleContext context) {
-        services.open(context, Family.checks(IDS, SHARED, ReadabilityChecks::read), false);
+        services.open(context, Family.checks(IDS, SHARED, ReadabilityChecks::read));
     }
 
     @Deactivate

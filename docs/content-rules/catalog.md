@@ -26,6 +26,7 @@ properties.
 | `patternForms`, `replacementForms` | The other forms of the term and of the replacement, such as the plurals "access tokens" and "jetons d'accès". |
 | `patternLanguage` | For a glossary term to translate, the language of the term, such as `en` for "access token" in a rule of `fr`. `frame.check` on a translation then reports a missing replacement. |
 | `wrongExamples`, `rightExamples`, `owner`, `decidedOn`, `validFrom`, `validUntil` | The examples, the decision and the dates of a writing rule. |
+| `runtime` | Where the check of the rule runs: `browser` for a check that the drawer runs on the preview of the page, else `server`. Empty: `server`. The server never runs a rule of the browser, never blocks a publication on it, and shows it as active. |
 | `retired` | Set by the module on a rule that the site changed and that its module no longer ships. |
 
 | Evaluator | What checks the rule |
@@ -143,7 +144,12 @@ Each node that the module writes keeps a fingerprint of the values it wrote, in 
 |---|---|---|
 | New | The module adds it. | The module adds it. |
 | Changed | The node takes the new values. | The node keeps its values, and gets the properties it lacks. |
+| Moved to the browser | The node takes the new values. | The node keeps its values, gets the properties it lacks, and takes the evaluator of the new version. |
 | Gone | The module removes the node. | The node stays, with `retired` set. |
+
+Example: version 2.0 moves `ecodesign.pageWeight` to the browser, with the evaluator
+`ecodesign.pageWeight`. A site that raised its maximum keeps its maximum, and its evaluator
+`threshold`, which no check of the browser has, becomes `ecodesign.pageWeight`.
 
 A module that stops keeps its rule nodes on the sites. A check that the module registered goes with
 it, so its rules show as inactive until the module starts again.
@@ -207,11 +213,14 @@ of the input whose key is the id of the rule: `input.withFact("seo.title", 72)`.
 they find nothing.
 
 The checks of SEO, readability, links and Jahia health run on the server, as checks of the scope
-`PAGE`, and the drawer shows their findings. A few rules need a browser, because they measure what a
-browser loads: the eco-design rules of the web vitals. Content-governance registers their ids with
-the property `check.runtime=browser`, so that their rules are active. A run on the server skips them,
-so the tools for agents never report them. A browser rule never blocks, even when its node sets
-`blocking`. The checks of axe-core in the Accessibility tab carry no rule of the catalog.
+`PAGE`, and the drawer shows their findings.
+
+Some rules need a browser, because they measure what a
+browser loads and runs: axe-core, the web vitals and eco-design. Such a rule states `runtime: browser`.
+Its check is an entry of the registry of jContent, and the drawer runs it on the preview of the page.
+[`drawer-entries.md`](../drawer-entries.md#add-a-check-that-runs-in-the-browser) states how a module
+adds one, with no Java code. The server never runs a rule of the browser, so the tools for agents never
+report it, and shows it as active. A browser rule never blocks, even when its node sets `blocking`.
 
 ## One id for each practice
 
@@ -244,9 +253,9 @@ severity, set it again on the node of the kept id.
   scan reads them once, at its start.
 - The checks of Page quality on the server read them through `ContentRules.forPath`, at the start of
   each check. The drawer reads them through the GraphQL field
-  `contentGovernance.contentRules(siteKey)`, at the start of each audit, for the analyzers of the
+  `contentGovernance.contentRules(siteKey)`, at the start of each audit, for the checks of the
   browser, the limits in the texts of a finding, and the advice of a rule that no tab words. Each
-  rule gives its `evaluator` and `blocking` there too.
+  rule gives its `evaluator`, `runtime` and `blocking` there too.
 - The SEO assist reads the ranges of `seo.title` and `seo.metaDescription`, and states them in its
   prompt.
 - The editorial frame reads the rules of the evaluator `pattern` from the live workspace.
@@ -298,9 +307,9 @@ important. `minor` shows as advisory.
 | `readability.longSentences` | `threshold` | minor | maximum 25 words | editor |
 | `readability.longParagraphs` | `threshold` | moderate | maximum 80 words | editor |
 | `readability.thinContent` | `threshold` | minor | minimum 300 words | editor |
-| `ecodesign.pageWeight` | `threshold` | moderate | maximum 1024 kilobytes | developer |
-| `ecodesign.requests` | `threshold` | moderate | maximum 70 requests | developer |
-| `ecodesign.domSize` | `threshold` | moderate | maximum 1500 elements | developer |
+| `ecodesign.pageWeight` | `ecodesign.pageWeight` | moderate | maximum 1024 kilobytes | developer |
+| `ecodesign.requests` | `ecodesign.requests` | moderate | maximum 70 requests | developer |
+| `ecodesign.domSize` | `ecodesign.domSize` | moderate | maximum 1500 elements | developer |
 | `ecodesign.lazyLoading` | `ecodesign.lazyLoading` | moderate | none | developer |
 | `ecodesign.imageFormats` | `ecodesign.imageFormats` | moderate | none | editor |
 | `ecodesign.oversizedImages` | `ecodesign.oversizedImages` | moderate | none | editor |
@@ -310,6 +319,12 @@ The rules `html.*` are the rules of the HTML check, and
 [`html-rules.md`](../page-quality/html-rules.md) lists them. Each rule names a check of its own id,
 and takes the domain `accessibility`.
 
+Every rule whose id starts with `axe.` or `ecodesign.` runs in the browser. Each eco-design rule
+names the check of one measure. A site that adds a rule of the same evaluator with another limit
+gets a second result.
+`ecodesign.webVitals` is a measure: it always passes, and its values are the figures of the Web Vitals
+tab. A site turns it off to hide them.
+
 Each check of axe-core that the drawer runs is a rule `axe.<id of the axe-core rule>`, such as
 `axe.color-contrast`. Its evaluator is `axe`, and its severity is the impact of axe-core. A site
 turns a check off on its rule, and axe-core then does not run it. The check gives no violation and
@@ -317,10 +332,11 @@ no item to review, and the level scores leave it out. The drawer shows the sever
 beside the impact of axe-core. It shows the help text of axe-core in the language of the editor,
 unless the site writes a title on the rule.
 | `ecodesign.imageDimensions` | `ecodesign.imageDimensions` | moderate | none | developer |
-| `ecodesign.webFonts` | `threshold` | minor | maximum 2 files | developer |
+| `ecodesign.webFonts` | `ecodesign.webFonts` | minor | maximum 2 files | developer |
 | `ecodesign.autoplay` | `ecodesign.autoplay` | moderate | none | editor |
-| `ecodesign.thirdParty` | `threshold` | moderate | maximum 5 hosts | developer |
-| `ecodesign.heavyAssets` | `threshold` | moderate | maximum 300 kilobytes | developer |
+| `ecodesign.thirdParty` | `ecodesign.thirdParty` | moderate | maximum 5 hosts | developer |
+| `ecodesign.heavyAssets` | `ecodesign.heavyAssets` | moderate | maximum 300 kilobytes | developer |
+| `ecodesign.webVitals` | `webVitals` | minor | none: a measure, which always passes | developer |
 | `links.broken` | `links.broken` | critical | none | editor |
 | `links.hardcodedUrls` | `links.hardcodedUrls` | moderate | none | editor |
 | `links.mixedContent` | `links.mixedContent` | serious | none | developer |

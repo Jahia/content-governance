@@ -1526,6 +1526,10 @@
         "failedTitle": "Diese Prüfung ist fehlgeschlagen",
         "failed": "Sie wurde mit einem Fehler abgebrochen ({{message}}); die anderen Registerkarten zeigen ihre Ergebnisse. Führen Sie das Audit erneut aus."
       },
+      "notChecked": {
+        "title": "Nicht geprüft ({{count}})",
+        "note": "Diese Regeln laufen im Browser, und keine Prüfung hat ein Ergebnis für sie geliefert: Kein Modul dieses Jahia registriert eine Prüfung für ihren Auswerter. Sie sind weder bestanden noch fehlgeschlagen."
+      },
       "readability": {
         "score": "Lesbarkeitsscore",
         "bands": {

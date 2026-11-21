@@ -28,17 +28,13 @@ public final class CheckServices {
      *
      * @param context the context of this bundle
      * @param checks  the checks by id
-     * @param browser true for checks that the drawer runs in the browser
      */
     // registerService takes a Dictionary, and OSGi core 7 has no FrameworkUtil.asDictionary.
     @SuppressWarnings("java:S1149")
-    public void open(BundleContext context, Map<String, ContentCheck> checks, boolean browser) {
+    public void open(BundleContext context, Map<String, ContentCheck> checks) {
         checks.forEach((id, check) -> {
             Hashtable<String, Object> properties = new Hashtable<>();
             properties.put(ContentCheck.ID, id);
-            if (browser) {
-                properties.put(CheckRegistry.RUNTIME, CheckRegistry.BROWSER);
-            }
             registrations.add(context.registerService(ContentCheck.class, check, properties));
         });
     }

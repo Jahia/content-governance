@@ -1526,6 +1526,10 @@
         "failedTitle": "This check failed",
         "failed": "It stopped with an error ({{message}}); the other tabs show their results. Re-run the audit."
       },
+      "notChecked": {
+        "title": "Not checked ({{count}})",
+        "note": "These rules run in the browser, and no check gave a result for them: no module of this Jahia registers a check of their evaluator. They are neither passed nor failed."
+      },
       "readability": {
         "score": "Readability score",
         "bands": {

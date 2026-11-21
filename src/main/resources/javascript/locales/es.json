@@ -1526,6 +1526,10 @@
         "failedTitle": "Esta comprobación falló",
         "failed": "Se detuvo con un error ({{message}}); las demás pestañas muestran sus resultados. Vuelva a ejecutar la auditoría."
       },
+      "notChecked": {
+        "title": "Sin comprobar ({{count}})",
+        "note": "Estas reglas se ejecutan en el navegador y ningún control dio un resultado para ellas: ningún módulo de este Jahia registra un control para su evaluador. No están ni superadas ni fallidas."
+      },
       "readability": {
         "score": "Puntuación de legibilidad",
         "bands": {
