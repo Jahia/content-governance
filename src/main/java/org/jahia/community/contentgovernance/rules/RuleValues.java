@@ -77,8 +77,10 @@ public final class RuleValues {
     public static final String TRANSLATIONS = "translations";
 
     /**
-     * Every property that a rule file sets, in the order of the digest. A new key goes last, so that the
-     * digest of a rule without it stays the same.
+     * Every property that a rule file sets, in the order of the digest. 2.0.0 changed the order: it removed
+     * {@code domain} and put {@value #SUBDOMAINS} and {@value #SITES} before {@value #RUNTIME}, and
+     * {@link LegacyDomains#KEYS_1} reads the fingerprints of before. A key added after 2.0.0 goes last, so
+     * that the digest of a rule without it stays the same.
      */
     public static final List<String> KEYS = List.of(RULE_ID, EVALUATOR, ENABLED, SEVERITY, BLOCKING, FIXER,
             ADVICE, UNIT, MINIMUM, MAXIMUM, KIND, PATTERN, MATCH_MODE, REPLACEMENT, RULE_LANGUAGE, WRONG_EXAMPLES,

@@ -111,6 +111,32 @@ class LegacyDomainsTest {
     }
 
     @Test
+    @DisplayName("a node with a runtime that a 1.x build fingerprinted, runtime last, reads as unchanged")
+    void convert_readsTheFingerprintWithRuntimeLastAsUnchanged() throws RepositoryException, NoSuchAlgorithmException {
+        Map<String, Object> values = Map.of(RuleValues.RULE_ID, "axe.document-title", RuleValues.EVALUATOR, "axe",
+                RuleValues.RUNTIME, "browser", RuleValues.SEVERITY, "serious");
+        // RuleValues.digest of 1.12.0-SNAPSHOT with #152: runtime after label, its last key.
+        String seeded = sha256("""
+                ruleId=axe.document-title
+                evaluator=axe
+                domain=accessibility
+                enabled=true
+                severity=serious
+                blocking=false
+                fixer=editor
+                runtime=browser
+                """);
+        JCRNodeWrapper node = ruleNode(values, seeded);
+        domainOf(node, "accessibility");
+
+        LegacyDomains.convert(node, node.getRealNode());
+
+        Map<String, Object> after = new HashMap<>(values);
+        after.put(RuleValues.SUBDOMAINS, List.of("accessibility"));
+        verify(node).setProperty(RuleNodes.SEED_DIGEST, RuleValues.digest(after));
+    }
+
+    @Test
     @DisplayName("a node of 1.x that the site changed takes its domain as its subdomain, loses domain, and keeps its fingerprint")
     void convert_keepsTheFingerprintOfAChangedNode() throws RepositoryException {
         JCRNodeWrapper node = ruleNode(Map.of(RuleValues.RULE_ID, "brand.tone", RuleValues.EVALUATOR, "model",

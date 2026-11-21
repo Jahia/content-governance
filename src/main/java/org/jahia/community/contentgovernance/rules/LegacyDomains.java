@@ -36,14 +36,18 @@ final class LegacyDomains {
 
     /** The property of a rule node before 2.0.0 that held its domain. */
     static final String DOMAIN = "domain";
-    /** The keys of the fingerprint before 2.0.0: {@value #DOMAIN} third, and no subdomains and no sites. */
+    /**
+     * The keys of the fingerprint before 2.0.0: {@value #DOMAIN} third, {@link RuleValues#RUNTIME} last, and no
+     * subdomains and no sites. A node that a version without the runtime fingerprinted has no runtime, and an
+     * absent key leaves the fingerprint as it was.
+     */
     static final List<String> KEYS_1 = List.of(RuleValues.RULE_ID, RuleValues.EVALUATOR, DOMAIN, RuleValues.ENABLED,
             RuleValues.SEVERITY, RuleValues.BLOCKING, RuleValues.FIXER, RuleValues.ADVICE, RuleValues.UNIT,
             RuleValues.MINIMUM, RuleValues.MAXIMUM, RuleValues.KIND, RuleValues.PATTERN, RuleValues.MATCH_MODE,
             RuleValues.REPLACEMENT, RuleValues.RULE_LANGUAGE, RuleValues.WRONG_EXAMPLES, RuleValues.RIGHT_EXAMPLES,
             RuleValues.OWNER, RuleValues.DECIDED_ON, RuleValues.VALID_FROM, RuleValues.VALID_UNTIL,
             RuleValues.PATTERN_FORMS, RuleValues.REPLACEMENT_FORMS, RuleValues.PATTERN_LANGUAGE, RuleValues.TITLE,
-            RuleValues.LABEL);
+            RuleValues.LABEL, RuleValues.RUNTIME);
     /** The mixin of Jahia that declares any property. */
     static final String UNSTRUCTURED = "jmix:unstructured";
     /** The domain before 2.0.0 that is no subdomain, and its subdomain. */

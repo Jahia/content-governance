@@ -450,7 +450,6 @@ important. `minor` shows as advisory.
 | `ecodesign.imageFormats` | `ecodesign.imageFormats` | moderate | none | editor |
 | `ecodesign.oversizedImages` | `ecodesign.oversizedImages` | moderate | none | editor |
 | `html.*` | the id of the rule | see below | none | see below |
-
 | `ecodesign.imageDimensions` | `ecodesign.imageDimensions` | moderate | none | developer |
 | `ecodesign.webFonts` | `ecodesign.webFonts` | minor | maximum 2 files | developer |
 | `ecodesign.autoplay` | `ecodesign.autoplay` | moderate | none | editor |
