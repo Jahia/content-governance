@@ -7,8 +7,8 @@ maintain it. The user-facing behaviour is in [guide.md](guide.md).
 
 The checks of SEO, readability, links and Jahia health run on the server: the GraphQL field
 `checkPage` renders the page as the editor, in the edit workspace, runs every check of the server on
-it, and gives the facts that these tabs show. `frame.check` gives an agent the same findings for the
-same path. The checks that need a browser run in the editor's browser: the section loads
+it, and gives the result of each rule that ran, with the values that these tabs show. `frame.check`
+gives an agent the same findings for the same path. The checks that need a browser run in the editor's browser: the section loads
 `/cms/render/default/{lang}{path}.html` in a same-origin iframe, waits for it to settle, strips
 editing tooling from its DOM, and runs axe-core, the web vitals and eco-design against the frame's
 document and performance entries. Results are kept
@@ -22,7 +22,7 @@ jContent / Page Builder header
   GovernanceAction (headerPrimaryActions:890)
     GovernanceDrawer  (portal into document.body)
       AuditSection
-        GraphQL checkPage (HtmlCheck)  -> seo, readability, links, jahia, HTML rules
+        GraphQL checkPage (HtmlCheck)  -> one result per rule: seo, readability, links, jahia, HTML rules
         iframe  /cms/render/default/{lang}{path}.html?pageAuditRun=N
           removeToolingElements -> webVitals -> ecodesign -> accessibility (axe-core injected)
         localStorage  content-governance:audit:{lang}:{path}
@@ -38,9 +38,9 @@ jContent / Page Builder header
 | `src/javascript/drawer/GovernanceDrawer.jsx` | The drawer: header, one section tab per switched-on section with its count badge, sections mounted on first show and kept mounted while the drawer is open. |
 | `src/javascript/drawer/useDock.js` | Docks the drawer beside the page under edit, under jContent's header, and resizes it from its left edge (see the drawer notes below). |
 | `src/javascript/audit/AuditSection.jsx` | The section: the check of the server, preview frame, analyzer pipeline, cache, staleness probe, export, tab bar and badges. |
-| `src/javascript/audit/pageCheck.js` | Calls `checkPage`, and turns its findings and facts into the results of the tabs SEO, Readability, Links and Jahia health, and the HTML rules of the Accessibility tab. |
+| `src/javascript/audit/pageCheck.js` | Calls `checkPage`, and turns the findings and the values of its results into the results of the tabs SEO, Readability, Links and Jahia health, and the HTML rules of the Accessibility tab. |
 | `src/javascript/audit/analyzers/` | The analyzers of the browser (`webVitals.js`, `ecodesign.js`, `accessibility.js`), plus `tooling.js` (DOM cleanup) and `cssPath.js` (the selector a highlight finds an element by). |
-| `src/main/java/org/jahia/community/contentgovernance/page/` | The checks of the server for each domain (`SeoChecks`, `ReadabilityChecks`, `LinkChecks`, `HealthChecks`), with the facts each one measures, and `PageFacts`, which gathers them for `checkPage`. |
+| `src/main/java/org/jahia/community/contentgovernance/page/` | The checks of the server for each domain (`SeoChecks`, `ReadabilityChecks`, `LinkChecks`, `HealthChecks`), with the values each one measures, and the checks of the measure rules `seo.tags`, `readability.statistics` and `readability.headings`. |
 | `src/javascript/audit/tabs/` | One component per tab, the shared `Recommendations` list, the two manual checklists. |
 | `src/javascript/common/useSiteSettings.js`, `settings.gql.js` | Site switches, from `contentGovernance.siteSettings`. |
 | `src/main/java/org/jahia/community/contentgovernance/settings/Features.java`, `SiteFeatures.java` | Feature ids and the server-side gate. |
@@ -133,17 +133,30 @@ schema is measured again: 6 dropped the audits from before the check of the serv
 
 `audit/pageCheck.js` calls the GraphQL field `checkPage(path, language)` (`ContentGovernanceCheckPage`,
 `fetchPolicy: 'no-cache'`). The server renders the page as the editor, in the edit workspace, with
-`HtmlCheck`, the service that `frame.check` and `audit.accessibility` call too. It answers:
+`HtmlCheck`, the service that `frame.check` and `audit.accessibility` call too. It answers `results`:
+one result per rule that ran, passed or failed, in the order of the rules,
+`{ruleId, passed, values, findings}`. A rule that the site turned off gives no result.
 
-- `findings`: each place where the page breaks a rule of the site, `{ruleId, severity, text, context}`,
-  in the order of the rules. A rule that the site turned off gives none.
-- `facts`: a JSON object of what the tabs show, by tab. `seo`: the tags of the head and the images.
-  `readability`: the statistics
-  of the main text with the formula of its language (`Readability`), its paragraphs, and the outline
-  of its headings, each with a CSS selector of the server render, which the preview resolves to
-  highlight it. `links`: the links to a page, the internal links resolved in the repository and the
-  broken ones (`missing` or `not_published`). `jahia`: the status of the page, the content items
-  read (400 at most), what is not published in the language, and what lacks an active language.
+- `findings`: each place where the page breaks the rule, `{ruleId, severity, text, context, locator,
+  values}`, at most 50.
+- `values`: a JSON object of what the check of the rule measured. Example: `seo.title` gives
+  `{length: 92, text: "Annual report…"}`.
+
+Each block of a tab reads the values of the rule that feeds it, and is left out when the site turned
+that rule off:
+
+| Rule | Tab | Values |
+|---|---|---|
+| `seo.tags` (measure) | SEO | The tags of the head and the images: the tag list and the sharing preview. |
+| `readability.statistics` (measure) | Readability | The statistics of the main text with the formula of its language (`Readability`), and its paragraphs. |
+| `readability.headings` (measure) | Readability | The outline of the headings, each with a CSS selector of the server render, which the preview resolves to highlight it. |
+| `links.broken` | Links | The links to a page, the internal links resolved in the repository and the broken ones (`missing` or `not_published`). |
+| `health.unpublishedChanges` | Jahia health | The status of the page, the content items read (400 at most), and what is not published in the language. |
+| `health.missingTranslations` | Jahia health | The active languages of the site, and what lacks one of them. |
+
+A measure rule has no limit: it always passes, and carries values only. Each other built-in rule
+carries its values too, such as the score under `readability.flesch` or the Open Graph tags under
+`seo.openGraph`, for what the drawer shows later.
 
 Each finding goes to the tab of the domain of its rule (`tabOf`, `DOMAIN_TABS`): `accessibility`,
 `seo`, `readability` (and `writing`), `links`, `health` for Jahia health, and `ecodesign`. No list

@@ -4,6 +4,7 @@ import org.jahia.community.contentgovernance.check.CheckRegistry;
 import org.jahia.community.contentgovernance.check.Registries;
 import org.jahia.community.contentgovernance.check.ThresholdCheck;
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
+import org.jahia.community.contentgovernance.check.spi.CheckResult;
 import org.jahia.community.contentgovernance.check.spi.ContentCheck;
 import org.jahia.community.contentgovernance.check.spi.Finding;
 import org.jahia.community.contentgovernance.html.HtmlCheck;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,15 +38,27 @@ class PageChecksTest {
             + "<meta property='og:image' content='/a.png'><script type='application/ld+json'>{\"@type\":\"Report\"}</script>"
             + "</head>";
 
-    /** Every check of the server on the HTML, with the shipped rules, as the service runs them. */
-    private static List<Finding> run(CheckInput input) {
+    /** Every check of the server, as the service registers them. */
+    private static CheckRegistry registry() {
         CheckRegistry registry = new CheckRegistry();
         bind(registry, SeoChecks.IDS, SeoChecks::read);
         bind(registry, ReadabilityChecks.IDS, ReadabilityChecks::read);
         bind(registry, LinkChecks.IDS, LinkChecks::read);
         bind(registry, HealthChecks.IDS, HealthChecks::read);
         Registries.bind(registry, new ThresholdCheck(), ContentRule.THRESHOLD);
-        return Registries.run(registry, ContentRules.base(), input);
+        return registry;
+    }
+
+    /** Every check of the server on the HTML, with the shipped rules, as the service runs them. */
+    private static List<Finding> run(CheckInput input) {
+        return Registries.run(registry(), ContentRules.base(), input);
+    }
+
+    /** The result of each shipped rule that ran on the HTML, by rule id. */
+    private static Map<String, CheckResult> results(CheckInput input) {
+        Map<String, CheckResult> out = new LinkedHashMap<>();
+        registry().results(ContentRules.base(), input).forEach(result -> out.put(result.ruleId(), result));
+        return out;
     }
 
     private static void bind(CheckRegistry registry, List<String> ids, Function<CheckInput, Family.Found> read) {
@@ -239,8 +253,8 @@ class PageChecksTest {
     }
 
     @Nested
-    @DisplayName("the facts that the drawer shows")
-    class Facts {
+    @DisplayName("the values that the drawer shows")
+    class Values {
 
         @SuppressWarnings("unchecked")
         private static Map<String, Object> map(Object value) {
@@ -259,9 +273,9 @@ class PageChecksTest {
         }
 
         @Test
-        @DisplayName("the SEO facts read the tags of the head and the images")
+        @DisplayName("the tags of seo.tags read the head and the images")
         void seo() {
-            Map<String, Object> seo = SeoChecks.report(Jsoup.parse("<html lang='EN'>" + GOOD_HEAD
+            Map<String, Object> seo = SeoChecks.tagsValues(Jsoup.parse("<html lang='EN'>" + GOOD_HEAD
                     + "<body><img src='a.png'><img src='b.png' alt=''>"
                     + "<p>Our yearly report is out, with every number of the year. <a href='/report'>Read more</a></p>"
                     + "<p><a href='/other'>read more »</a></p></body></html>"), "en-US");
@@ -278,10 +292,10 @@ class PageChecksTest {
         }
 
         @Test
-        @DisplayName("the readability facts give the statistics of the main text, in English with the grade level")
+        @DisplayName("readability.statistics gives the statistics of the main text, in English with the grade level")
         void readability() {
-            Map<String, Object> facts = ReadabilityChecks.report(Jsoup.parse("<body><h1>Report</h1><main>"
-                    + "<p>" + textOf("pilot") + "</p></main></body>"), "en", 9);
+            Document html = Jsoup.parse("<body><h1>Report</h1><main><p>" + textOf("pilot") + "</p></main></body>");
+            Map<String, Object> facts = ReadabilityChecks.statisticsValues(html, "en", 9);
 
             assertThat(facts).containsEntry("lang", "en").containsEntry("spaced", true).containsEntry("empty", false)
                     .containsEntry("scored", true).containsEntry("formula", "Flesch").containsEntry("scale", "flesch")
@@ -290,7 +304,9 @@ class PageChecksTest {
                     .containsEntry("avgSyllablesPerWord", 2.0).containsEntry("longSentences", 3L)
                     .containsEntry("longSentenceWords", 9).containsEntry("readingMinutes", 1)
                     .containsEntry("paragraphs", 1).containsEntry("avgWordsPerParagraph", 30)
-                    .containsEntry("h1Count", 1).containsEntry("headingSkips", 0).containsEntry("headingCount", 0);
+                    .doesNotContainKey("outline");
+            assertThat(ReadabilityChecks.headingsValues(html)).containsEntry("h1Count", 1).containsEntry("headingSkips", 0)
+                    .containsEntry("headingCount", 0);
         }
 
         @Test
@@ -308,13 +324,13 @@ class PageChecksTest {
         }
 
         @Test
-        @DisplayName("the outline lists the headings of the main text and a selector of each, and the counts cover the page")
+        @DisplayName("readability.headings lists the headings of the main text and a selector of each, and the counts cover the page")
         void outline() {
             Document html = Jsoup.parse("<body><header><h2>Menu</h2><h4>Shop</h4></header>"
                     + "<h1>Site</h1><main>"
                     + "<h2>Intro</h2><section><h4>Detail</h4></section><section id='faq'><h2><img alt='Help'></h2>"
                     + "<h3></h3></section></main></body>");
-            Map<String, Object> facts = ReadabilityChecks.report(html, "en", 25);
+            Map<String, Object> facts = ReadabilityChecks.headingsValues(html);
 
             assertThat(facts).containsEntry("h1Count", 1).containsEntry("headingSkips", 2).containsEntry("headingCount", 4);
             List<Object> outline = list(facts.get("outline"));
@@ -330,9 +346,9 @@ class PageChecksTest {
         }
 
         @Test
-        @DisplayName("the link facts count the links to a page, and the internal links that the render resolved")
+        @DisplayName("links.broken counts the links to a page, and the internal links that the render resolved")
         void links() {
-            Map<String, Object> facts = LinkChecks.report(Jsoup.parse("<a href='/sites/digitall/a.html'>A</a>"
+            Map<String, Object> facts = LinkChecks.values(Jsoup.parse("<a href='/sites/digitall/a.html'>A</a>"
                             + "<a href='https://example.com'>B</a><a href='http://localhost:8080/x'>C</a>"
                             + "<a href='#top'>D</a><a href='mailto:a@b.c'>E</a>"), Set.of("localhost"),
                     new LinkCheck.InternalLinks(1, 1, List.of(new LinkCheck.BrokenPath("/sites/digitall/a", "missing"))));
@@ -340,36 +356,118 @@ class PageChecksTest {
             assertThat(facts).containsEntry("total", 3).containsEntry("internal", 2).containsEntry("external", 1)
                     .containsEntry("checked", 1).containsEntry("skipped", 1)
                     .containsEntry("broken", List.of(Map.of("path", "/sites/digitall/a", "reason", "missing")));
-            assertThat(LinkChecks.report(Jsoup.parse(""), null, null)).containsEntry("checked", null)
+            assertThat(LinkChecks.values(Jsoup.parse(""), null, null)).containsEntry("checked", null)
                     .containsEntry("broken", List.of());
         }
 
         @Test
-        @DisplayName("the health facts give the state of the content, and nothing when it could not be read")
+        @DisplayName("the health rules give the state of the content: what is not published, and what is not translated")
         void health() {
-            Map<String, Object> facts = HealthChecks.report(new HealthChecks.Content(
+            HealthChecks.Content content = new HealthChecks.Content(
                     List.of(new HealthChecks.Unpublished(PATH, "jnt:page", "modified")),
                     List.of(new HealthChecks.Untranslated(PATH + "/main/intro", "jnt:text", List.of("fr"))),
-                    3, List.of("en", "fr"), "modified"));
+                    3, List.of("en", "fr"), "modified");
 
-            assertThat(facts).containsEntry("pageStatus", "modified").containsEntry("scanned", 3)
-                    .containsEntry("activeLanguages", List.of("en", "fr"))
+            assertThat(HealthChecks.unpublishedValues(content)).containsEntry("pageStatus", "modified")
+                    .containsEntry("scanned", 3)
                     .containsEntry("unpublished", List.of(Map.of("path", PATH, "type", "jnt:page", "status", "modified")));
-            assertThat(HealthChecks.report(null)).isEmpty();
+            assertThat(HealthChecks.untranslatedValues(content)).containsEntry("activeLanguages", List.of("en", "fr"))
+                    .containsEntry("scanned", 3).containsEntry("untranslated",
+                            List.of(Map.of("path", PATH + "/main/intro", "type", "jnt:text", "missing", List.of("fr"))));
+        }
+    }
+
+    @Nested
+    @DisplayName("the result of each rule")
+    class Results {
+
+        @Test
+        @DisplayName("a page gives one result per rule that ran, passed or failed, with the values of its check")
+        void aPage_givesOneResultPerRule() {
+            String text = String.join(" ", Collections.nCopies(40, "word")) + ".";
+            Map<String, CheckResult> results = results(page("<html lang='en'><head><title>Home</title></head><body>"
+                    + "<h1>Home</h1><main><p>" + text + "</p></main><a href='/sites/digitall/a.html'>A</a></body></html>")
+                    .withFact(LinkChecks.INTERNAL, new LinkCheck.InternalLinks(1, 0, List.of()))
+                    .withFact(ReadabilityChecks.LONG_SENTENCE_WORDS, 25));
+
+            assertThat(results.get("seo.title")).satisfies(result -> {
+                assertThat(result.passed()).isFalse();
+                assertThat(result.values()).containsEntry("length", 4).containsEntry("text", "Home");
+                assertThat(result.findings()).extracting(Finding::text).containsExactly("4");
+            });
+            assertThat(results.get("seo.canonical").values()).containsEntry("href", null);
+            assertThat(results.get("seo.openGraph").values()).containsOnlyKeys("title", "description", "image", "type");
+            assertThat(results.get("links.broken")).satisfies(result -> {
+                assertThat(result.passed()).isTrue();
+                assertThat(result.values()).containsEntry("total", 1).containsEntry("checked", 1)
+                        .containsEntry("broken", List.of());
+            });
+            assertThat(results.get("readability.thinContent")).satisfies(result -> {
+                assertThat(result.passed()).isFalse();
+                assertThat(result.values()).containsEntry("value", 40);
+            });
+            assertThat(results.get("readability.flesch").values()).containsOnlyKeys("score", "formula", "band")
+                    .containsEntry("formula", "Flesch");
+            assertThat(results.get("html.imageAltMissing")).as("a rule whose check is not bound gives no result").isNull();
         }
 
         @Test
-        @DisplayName("the facts of a page hold one entry for each tab")
-        void pageFacts() {
-            assertThat(PageFacts.of(Jsoup.parse("<html>" + GOOD_HEAD + "<body></body></html>"), Map.of(), "en", 25))
-                    .containsOnlyKeys("seo", "readability", "links", "jahia");
+        @DisplayName("a measure rule always passes, and carries what the tab of the drawer shows")
+        void aMeasureRule_passesWithItsValues() {
+            Map<String, CheckResult> results = results(page("<html lang='en'><head><title>Home</title></head><body>"
+                    + "<main><h1>Home</h1><h3>Detail</h3><p>Short.</p></main></body></html>"));
+
+            for (String measure : List.of(SeoChecks.TAGS, ReadabilityChecks.STATISTICS, ReadabilityChecks.HEADINGS)) {
+                assertThat(results.get(measure).passed()).as(measure).isTrue();
+                assertThat(results.get(measure).findings()).as(measure).isEmpty();
+                assertThat(ContentRules.base().get(measure).minimum()).as(measure).isNull();
+                assertThat(ContentRules.base().get(measure).maximum()).as(measure).isNull();
+            }
+            assertThat(map(results.get(SeoChecks.TAGS).values().get("title"))).containsEntry("text", "Home");
+            assertThat(results.get(ReadabilityChecks.STATISTICS).values()).containsEntry("words", 3)
+                    .containsEntry("longSentenceWords", null);
+            assertThat(results.get(ReadabilityChecks.HEADINGS).values()).containsEntry("h1Count", 1)
+                    .containsEntry("headingSkips", 1);
+        }
+
+        @Test
+        @DisplayName("the health rules carry the state of the content, and no value when the render could not read it")
+        void theHealthRules_carryTheStateOfTheContent() {
+            String html = "<html><body><p>Text</p></body></html>";
+            Map<String, CheckResult> read = results(page(html).withFact(HealthChecks.CONTENT, new HealthChecks.Content(
+                    List.of(), List.of(), 2, List.of("en"), "published")));
+            Map<String, CheckResult> unread = results(page(html));
+
+            assertThat(read.get("health.unpublishedChanges").values()).containsEntry("pageStatus", "published")
+                    .containsEntry("scanned", 2);
+            assertThat(read.get("health.missingTranslations").values()).containsEntry("activeLanguages", List.of("en"));
+            assertThat(unread.get("health.unpublishedChanges").values()).isEmpty();
+            assertThat(unread.get("health.missingTranslations").values()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("an item gets the tags of seo.tags, and the other SEO rules pass with no value")
+        void anItem_getsTheTagsOnly() {
+            Map<String, CheckResult> results = results(HtmlCheck.input(PATH + "/main/intro", "en",
+                    Jsoup.parse("<p>Intro <img src='a.png'></p>"), Scope.ITEM));
+
+            assertThat(results.get(SeoChecks.TAGS).values()).containsEntry("totalImages", 1);
+            assertThat(results.get("seo.canonical")).satisfies(result -> {
+                assertThat(result.passed()).isTrue();
+                assertThat(result.values()).isEmpty();
+            });
+        }
+
+        @SuppressWarnings("unchecked")
+        private static Map<String, Object> map(Object value) {
+            return (Map<String, Object>) value;
         }
     }
 
     @Test
     @DisplayName("each page check is a check of the scope PAGE, under the id of a shipped rule")
     void eachCheck_isShipped() {
-        for (List<String> ids : List.of(SeoChecks.IDS, LinkChecks.IDS, HealthChecks.IDS)) {
+        for (List<String> ids : List.of(SeoChecks.IDS, ReadabilityChecks.IDS, LinkChecks.IDS, HealthChecks.IDS)) {
             Family.checks(ids, "x", input -> new Family.Found()).forEach((id, check) -> {
                 assertThat(check.scopes()).containsExactly(ContentCheck.Scope.PAGE);
                 assertThat(ContentRules.base().get(id).evaluator()).isEqualTo(id);

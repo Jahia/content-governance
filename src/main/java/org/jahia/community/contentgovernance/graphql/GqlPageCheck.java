@@ -8,20 +8,18 @@ import graphql.annotations.annotationTypes.GraphQLNonNull;
 import java.util.List;
 
 /**
- * The check of a page or of a content item: its findings, and the facts that the tabs of the drawer show.
+ * The check of a page or of a content item: the result of each rule that ran, with its values and its findings.
  */
 @GraphQLName("ContentGovernancePageCheck")
-@GraphQLDescription("The findings of every check of the server on a page, and the facts that the drawer shows")
+@GraphQLDescription("The result of each rule that every check of the server ran on a page, with its values and its findings")
 public class GqlPageCheck {
 
     private final String path;
-    private final List<GqlCheckFinding> findings;
-    private final String facts;
+    private final List<GqlCheckResult> results;
 
-    GqlPageCheck(String path, List<GqlCheckFinding> findings, String facts) {
+    GqlPageCheck(String path, List<GqlCheckResult> results) {
         this.path = path;
-        this.findings = findings;
-        this.facts = facts;
+        this.results = results;
     }
 
     @GraphQLField
@@ -33,16 +31,8 @@ public class GqlPageCheck {
 
     @GraphQLField
     @GraphQLNonNull
-    @GraphQLDescription("The findings, in the order of the rules")
-    public List<GqlCheckFinding> getFindings() {
-        return findings;
-    }
-
-    @GraphQLField
-    @GraphQLNonNull
-    @GraphQLDescription("A JSON object of the facts that the tabs of the drawer show, by tab: seo (the tags of the page), "
-            + "readability (the statistics of the text and the headings), links and jahia (the state of the content)")
-    public String getFacts() {
-        return facts;
+    @GraphQLDescription("One result per rule that ran, passed or failed, in the order of the rules")
+    public List<GqlCheckResult> getResults() {
+        return results;
     }
 }

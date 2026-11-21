@@ -5,12 +5,16 @@ import {
 
 type RuleStatus = {id: string; evaluator: string; active: boolean; missingCheck: string | null; needs: string | null};
 type CheckFinding = {ruleId: string; severity: string; text: string};
+type CheckResult = {ruleId: string; passed: boolean; values: string; findings: CheckFinding[]};
 type RuleRuntime = {id: string; evaluator: string; active: boolean; blocking: boolean};
 
 const RULES = 'query R($siteKey: String!) { contentGovernance { contentRules(siteKey: $siteKey) { id evaluator active missingCheck needs } } }';
 const PAGE_CHECK = `query P($path: String!) {
-    contentGovernance { checkPage(path: $path, language: "en") { path findings { ruleId severity text } facts } }
+    contentGovernance { checkPage(path: $path, language: "en") { path results { ruleId passed values findings { ruleId severity text } } } }
 }`;
+
+/** The findings of the results of checkPage, in the order of the rules. */
+const findingsOf = (results: CheckResult[]): CheckFinding[] => results.flatMap(result => result.findings);
 const RUNTIME = 'query R($siteKey: String!) { contentGovernance { contentRules(siteKey: $siteKey) { id evaluator active blocking } } }';
 const CHECK = `query C($path: String!, $text: String!, $scope: String) {
     contentGovernance { checkText(path: $path, language: "en", text: $text, scope: $scope) { ruleId severity text } }
@@ -126,7 +130,7 @@ describe('Content Governance - check registry', () => {
         gqlOk(asRoot(), RUNTIME, {siteKey}).then(data => {
             const byId = Object.fromEntries((data.contentGovernance.contentRules as RuleRuntime[]).map(rule => [rule.id, rule]));
             gqlOk(asRoot(), PAGE_CHECK, {path: `${sitePath}/home/cg-links`}).then(page => {
-                const findings = page.contentGovernance.checkPage.findings as CheckFinding[];
+                const findings = findingsOf(page.contentGovernance.checkPage.results as CheckResult[]);
                 expect(findings.map(finding => finding.ruleId)).to.include.members(['html.imageAltMissing',
                     'html.linkTextVague', 'links.mixedContent', 'links.blankNoopener', 'health.unpublishedChanges']);
                 expect(findings).to.deep.include({ruleId: 'links.mixedContent', severity: 'serious',
@@ -137,13 +141,21 @@ describe('Content Governance - check registry', () => {
                 });
             });
             gqlOk(asRoot(), PAGE_CHECK, {path: `${sitePath}/home`}).then(page => {
-                (page.contentGovernance.checkPage.findings as CheckFinding[]).forEach(finding => {
-                    expect(byId[finding.ruleId], finding.ruleId).to.include({active: true});
-                    expect(finding.ruleId).not.to.match(/^ecodesign\./);
+                const results = page.contentGovernance.checkPage.results as CheckResult[];
+                results.forEach(result => {
+                    expect(byId[result.ruleId], result.ruleId).to.include({active: true});
+                    expect(result.passed, result.ruleId).to.eq(result.findings.length === 0);
+                    if (/^ecodesign\./.test(result.ruleId)) {
+                        // The browser measures eco-design: on the server its threshold has no number, and passes with no value
+                        expect(result, result.ruleId).to.deep.include({passed: true, values: '{}', findings: []});
+                    }
                 });
-                const facts = JSON.parse(page.contentGovernance.checkPage.facts);
-                expect(facts).to.have.all.keys('seo', 'readability', 'links', 'jahia');
-                expect(facts.seo.title.length).to.be.greaterThan(0);
+                const byRule = Object.fromEntries(results.map(result => [result.ruleId, result]));
+                expect(byRule, 'the measure rules ran').to.include.keys('seo.tags', 'readability.statistics', 'readability.headings');
+                expect(byRule['seo.tags'].passed).to.eq(true);
+                expect(JSON.parse(byRule['seo.tags'].values).title.length).to.be.greaterThan(0);
+                expect(JSON.parse(byRule['seo.title'].values)).to.have.all.keys('length', 'text');
+                expect(JSON.parse(byRule['readability.statistics'].values)).to.include.keys('words', 'readingMinutes');
             });
         });
     });
@@ -151,7 +163,7 @@ describe('Content Governance - check registry', () => {
     it('gives one page the same findings in checkPage and in frame.check', () => {
         const path = `${sitePath}/home`;
         gqlOk(asRoot(), PAGE_CHECK, {path}).then(page => {
-            const fromGraphql = (page.contentGovernance.checkPage.findings as CheckFinding[])
+            const fromGraphql = findingsOf(page.contentGovernance.checkPage.results as CheckResult[])
                 .map(finding => `${finding.ruleId} ${finding.severity} ${finding.text}`);
             expect(fromGraphql, 'the page has findings').not.to.be.empty;
             framePageCheck({siteKey, locale: 'en', path}).then((findings: FramePageFinding[]) => {
