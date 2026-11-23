@@ -182,7 +182,7 @@ The id is free. Name an existing subdomain, such as `writing` for `acme.tone`, s
 of the rule have a tab. A term with no subdomain, such as `brand.seamless`, takes `terms`. A site
 cannot add a domain or a subdomain. jContent refuses a rule whose id another rule of the site already
 has: "The rule acme.tone already exists at /sites/...". It also refuses the id of a rule of the system
-site, such as `seo.title`, because a site does not change the values of a rule.
+site, such as `seo.title`. A site does not change the values of a rule.
 
 ## How a new version of a module updates the rules
 
@@ -214,7 +214,8 @@ so its rules show as inactive until the module starts again.
 Content-governance converts the rules of an earlier version once, when it starts:
 
 - The folder `contents/content-insights/jahia` becomes `contents/content-insights/content-governance`.
-  A rule that the site changed keeps its values and gets its evaluator and its advice.
+  Its seeded rules then go with the other copies of the site, as the steps of version 2.0.0 below
+  state.
 - Each `efnt:writingRule` of the editorial frame becomes a `ccs:contentRule` in place, in the edit
   and the live workspace, with the same identifier. Its id is `writing.<node name>`, its subdomain is
   `writing`, and its evaluator is `pattern`. The severity `warning` becomes `moderate`, and
@@ -243,8 +244,8 @@ site. When content-governance starts on the processing server, after it converts
   changed, because a site no longer changes the values of a rule. A rule that the site wrote there
   stays, and so do the rules of `contents/content-insights/site/rules`.
 - It removes the folders `contents/content-insights/<module>/domains` and `subdomains` of the system
-  site, and every domain or subdomain node that a site wrote, and the log names the values of each
-  node. A domain or a subdomain node that holds other nodes, such as rules, stays, and the log names
+  site, and every domain or subdomain node that a site wrote. The log names the values of each node.
+  A domain or a subdomain node that holds other nodes, such as rules, stays, and the log names
   it. The seeder then writes the tree.
 - It removes each folder that holds nothing more.
 
@@ -381,10 +382,12 @@ The GraphQL field `contentDomains(siteKey, language, includeOff)` gives the doma
 order of its layout. Each domain comes with its subdomains, and with its label and its help in the
 language. With `includeOff`, the field also gives the domains and the subdomains that are off. The
 field `on` tells whether an item is on. The field `isNew` marks an item that the saved layout of the
-site names neither in an array nor in `off`, such as an item that a module shipped after the save. A
-layout that names fewer items marks the others as new too. The field `contentRules` gives the
-`subdomain`, the `order`, `enabled` and `isNew` of each rule on the site. The drawer keeps its tabs
-for now: it places a finding in the tab of the subdomain of its rule, when the drawer has one.
+site names nowhere, such as an item that a module shipped after the save. A layout that names fewer
+items marks the others as new too.
+
+The field `contentRules` gives the `subdomain`, the `order`, `enabled` and `isNew` of each rule on the
+site. The drawer keeps its tabs for now: it places a finding in the tab of the subdomain of its rule,
+when the drawer has one.
 
 ## How a module adds a check
 
@@ -425,8 +428,8 @@ A check states the scopes in which it runs:
 | `SITE` | A whole site. | No caller yet. |
 
 A run applies each rule that the site keeps on and whose check is registered for the scope. It gives
-one result per rule, passed or failed. Each finding carries the id of the rule, the severity
-that the site gives the rule, and the text that breaks the rule. A check that throws an exception
+one result per rule, passed or failed. Each finding carries the id of the rule, its severity, and
+the text that breaks the rule. A check that throws an exception
 gives no result, and the other checks still run. One rule gives 50 findings or fewer on one input.
 
 A finding on a value can also carry values, which the Compliance section and `frame.check` read:
@@ -495,7 +498,7 @@ report one practice under the same id.
 | `health.graphqlUnavailable` (2.0) | None: the drawer reads the state of the content from the check of the server, and a check that fails shows as unfinished in its tabs |
 
 The tree of the system site keeps the nodes of the removed ids until content-governance starts
-again, and then the table of
+again. Then the table of
 [How a new version of a module updates the rules](#how-a-new-version-of-a-module-updates-the-rules)
 applies. The module removes a node that nobody changed. A node that an administrator changed stays,
 with `retired` set. No module registers its check any more, so its rule shows as inactive and names
@@ -617,7 +620,7 @@ Each check of axe-core that the drawer runs is a rule `axe.<id of the axe-core r
 switches a check off in its layout, and axe-core then does not run it there. The check gives no
 violation and no item to review, and the level scores leave it out. The drawer shows the severity of
 the rule beside the impact of axe-core. It shows the help text of axe-core in the language of the
-editor, unless an administrator writes a title on the rule in the system site.
+editor. An administrator replaces this text with a title on the rule in the system site.
 
 Six rules that axe-core marks experimental ship switched off: `axe.css-orientation-lock`,
 `axe.focus-order-semantics`, `axe.hidden-content`, `axe.p-as-heading`, `axe.table-fake-caption` and
