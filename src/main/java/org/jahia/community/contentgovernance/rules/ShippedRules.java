@@ -36,11 +36,11 @@ import java.util.stream.Stream;
  * folder, at any depth, is one {@link RuleFile}, except in its subfolders {@code domains} and
  * {@code subdomains}, where each file is one {@link DomainFile}.
  *
- * <p>A subdomain names a domain, and a rule names subdomains, that this module, Content Governance or
+ * <p>A subdomain names a domain, and a rule names a subdomain, that this module, Content Governance or
  * another started module declares: a file that names another one is skipped.</p>
  *
- * <p>The seeder copies these rules into each site, where the rule nodes are the rules that the checks
- * apply. A shipped rule only fills in for a rule that a site has no node of.</p>
+ * <p>The seeder writes these domains, subdomains and rules into the tree of {@code systemsite}. A shipped
+ * rule only fills in for a rule that the tree has no node of, and for the values that the node lacks.</p>
  *
  * <p>Thread safety: the registry is a concurrent map, written by the bundle tracker of {@link RuleSeeder}.</p>
  */
@@ -290,12 +290,12 @@ public final class ShippedRules {
             });
             Set<String> knownSubdomains = declared(Level.SUBDOMAIN, others);
             rules.values().removeIf(rule -> {
-                List<String> unknown = RuleValues.strings(rule.values(), RuleValues.SUBDOMAINS).stream()
-                        .filter(id -> !knownSubdomains.contains(id)).toList();
-                if (!unknown.isEmpty()) {
-                    fail(fileOf.get(rule.id()), "the subdomains " + unknown + " are not declared");
+                Object subdomain = rule.values().get(RuleValues.SUBDOMAIN);
+                boolean unknown = !knownSubdomains.contains(String.valueOf(subdomain));
+                if (unknown) {
+                    fail(fileOf.get(rule.id()), "the subdomain " + subdomain + " is not declared");
                 }
-                return !unknown.isEmpty();
+                return unknown;
             });
             return new Shipment(module, Collections.unmodifiableMap(rules),
                     Collections.unmodifiableMap(domains.get(Level.DOMAIN)), Collections.unmodifiableMap(subdomains),

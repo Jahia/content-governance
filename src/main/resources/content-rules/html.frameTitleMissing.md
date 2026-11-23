@@ -2,7 +2,7 @@
 id: html.frameTitleMissing
 evaluator: html.frameTitleMissing
 checkType: CODE
-subdomains: [accessibility]
+subdomain: accessibility
 severity: serious
 fixer: developer
 label:

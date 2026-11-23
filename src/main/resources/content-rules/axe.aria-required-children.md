@@ -3,7 +3,7 @@ id: axe.aria-required-children
 evaluator: axe
 checkType: CODE
 runtime: browser
-subdomains: [accessibility]
+subdomain: accessibility
 severity: critical
 fixer: developer
 ---

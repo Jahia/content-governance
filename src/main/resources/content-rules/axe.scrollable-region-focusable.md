@@ -3,7 +3,7 @@ id: axe.scrollable-region-focusable
 evaluator: axe
 checkType: CODE
 runtime: browser
-subdomains: [accessibility]
+subdomain: accessibility
 severity: serious
 fixer: developer
 ---

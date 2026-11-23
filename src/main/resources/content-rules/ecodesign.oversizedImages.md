@@ -3,7 +3,7 @@ id: ecodesign.oversizedImages
 evaluator: ecodesign.oversizedImages
 checkType: CODE
 runtime: browser
-subdomains: [ecodesign]
+subdomain: ecodesign
 severity: moderate
 fixer: editor
 label:

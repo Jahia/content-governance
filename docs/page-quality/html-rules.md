@@ -37,9 +37,10 @@ gets every rule.
 
 ## The rules
 
-Each rule is a rule of the [catalog](../content-rules/catalog.md), with a node under
-`contents/content-insights/content-governance/rules`. A site switches a rule off, or changes its
-severity, on that node. A finding gives the severity that the site gives the rule. The HTML rules
+Each rule is a rule of the [catalog](../content-rules/catalog.md), with a node in the tree of the
+system site, under `contents/content-governance/quality/accessibility`. An administrator changes the
+severity of a rule on that node, for every site. A site switches a rule off in its layout. A finding
+gives the severity of the rule. The HTML rules
 report 50 findings or fewer on one page.
 
 | Rule | Scope | WCAG 2.2 | What the rule reports |

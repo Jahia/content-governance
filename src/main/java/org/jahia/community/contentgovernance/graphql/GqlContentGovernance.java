@@ -16,6 +16,7 @@ import org.jahia.community.contentgovernance.html.HtmlCheck;
 import org.jahia.community.contentgovernance.html.rules.Scope;
 import org.jahia.community.contentgovernance.rules.ContentDomains;
 import org.jahia.community.contentgovernance.rules.ContentRules;
+import org.jahia.community.contentgovernance.rules.SiteLayout;
 import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.modules.graphql.provider.dxm.DataFetchingException;
 import org.jahia.modules.graphql.provider.dxm.osgi.annotations.GraphQLOsgiService;
@@ -137,8 +138,11 @@ public class GqlContentGovernance {
             throw new DataFetchingException("Invalid language");
         }
         SiteAccess.site(siteKey);
-        return ContentRules.forSite(siteKey).all().stream()
-                .map(rule -> new GqlContentRule(rule, checks.status(rule), checks.blocking(rule), language))
+        ContentRules rules = ContentRules.forSite(siteKey);
+        SiteLayout layout = rules.hierarchy().layout();
+        return rules.all().stream()
+                .map(rule -> new GqlContentRule(rule, checks.status(rule), checks.blocking(rule), language,
+                        layout.isNew(rule.id())))
                 .toList();
     }
 
@@ -146,25 +150,45 @@ public class GqlContentGovernance {
      * The domains of a site, each with its subdomains: the hierarchy drawer › panel › domain › subdomain that
      * the rules name. Any signed-in user who can read the site may ask: the drawer of every editor needs it.
      *
-     * @param siteKey  key of the site
-     * @param language the language of the labels and the help, or null for English
-     * @return the domains that apply to the site, by order, with the subdomains that apply to it
+     * @param siteKey    key of the site
+     * @param language   the language of the labels and the help, or null for English
+     * @param includeOff true to list the domains and the subdomains that are off for the site too
+     * @return the domains of the site, in the order of its layout, with their subdomains
      */
     @GraphQLField
     @GraphQLName("contentDomains")
     @GraphQLNonNull
-    @GraphQLDescription("The domains of the drawer that apply to a site, by order, each with its subdomains")
+    @GraphQLDescription("The domains of the drawer on a site, in the order of its layout, each with its subdomains: the ones that are on, or all with includeOff")
     public List<GqlContentDomain> contentDomains(
             @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey,
-            @GraphQLName("language") @GraphQLDescription("The language of the labels and the help, such as fr: the interface language of the editor. English when null, and for a text with no translation") String language) {
+            @GraphQLName("language") @GraphQLDescription("The language of the labels and the help, such as fr: the interface language of the editor. English when null, and for a text with no translation") String language,
+            @GraphQLName("includeOff") @GraphQLDescription("True to list the domains and the subdomains that are off for the site too, as the screen of the layout does") Boolean includeOff) {
         if (language != null && !LANGUAGE.matcher(language).matches()) {
             throw new DataFetchingException("Invalid language");
         }
         SiteAccess.site(siteKey);
         ContentDomains hierarchy = ContentDomains.forSite(siteKey);
-        return hierarchy.domains().stream()
-                .map(domain -> new GqlContentDomain(domain, hierarchy, language))
+        boolean all = Boolean.TRUE.equals(includeOff);
+        return (all ? hierarchy.allDomains() : hierarchy.domains()).stream()
+                .map(domain -> new GqlContentDomain(domain, hierarchy, language, all))
                 .toList();
+    }
+
+    /**
+     * The layout that a site saved: how it arranges the domains, the subdomains and the rules of the system site.
+     * Any signed-in user who can read the site may ask.
+     *
+     * @param siteKey key of the site
+     * @return the layout, which is not saved when the site keeps the layout of the system site
+     */
+    @GraphQLField
+    @GraphQLName("siteLayout")
+    @GraphQLNonNull
+    @GraphQLDescription("The layout that a site saved: the order and the place of its domains, subdomains and rules, and what it switches off")
+    public GqlSiteLayout siteLayout(
+            @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey) {
+        SiteAccess.site(siteKey);
+        return new GqlSiteLayout(ContentDomains.forSite(siteKey).layout());
     }
 
     /**

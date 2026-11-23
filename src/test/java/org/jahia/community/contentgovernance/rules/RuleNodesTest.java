@@ -83,9 +83,50 @@ class RuleNodesTest {
         order.verify(node).setProperty(RuleValues.UNIT, "characters");
     }
 
-    /** A rule node with these values, a text, a number or a flag each, and no translation. */
+    @Test
+    @DisplayName("a rule node of the tree takes the subdomain of its parent node, and a write leaves the property out")
+    void treeNode_takesTheSubdomainOfItsParent() throws RepositoryException {
+        JCRNodeWrapper node = ruleNode(Map.of(RuleValues.RULE_ID, "seo.title", RuleValues.SUBDOMAIN, "stale"));
+        JCRNodeWrapper seo = mock(JCRNodeWrapper.class);
+        when(seo.isNodeType(ContentDomains.SUBDOMAIN_TYPE)).thenReturn(true);
+        JCRPropertyWrapper id = mock(JCRPropertyWrapper.class);
+        when(id.getString()).thenReturn("seo");
+        when(seo.hasProperty(DomainValues.Level.SUBDOMAIN.idProperty())).thenReturn(true);
+        when(seo.getProperty(DomainValues.Level.SUBDOMAIN.idProperty())).thenReturn(id);
+        when(node.getParent()).thenReturn(seo);
+
+        assertThat(RuleNodes.parentSubdomain(node)).isEqualTo("seo");
+        assertThat(RuleNodes.read(node)).containsEntry(RuleValues.SUBDOMAIN, "seo");
+
+        Map<String, Object> moved = new HashMap<>(TITLE);
+        moved.put(RuleValues.SUBDOMAIN, "accessibility");
+        RuleNodes.write(node, moved, true);
+        verify(node, never()).setProperty(eq(RuleValues.SUBDOMAIN), anyString());
+    }
+
+    @Test
+    @DisplayName("a rule node outside the tree names its subdomain, and a write sets it, but a fill never does")
+    void nodeOutsideTheTree_namesItsSubdomain() throws RepositoryException {
+        JCRNodeWrapper node = ruleNode(Map.of(RuleValues.RULE_ID, "brand.tone", RuleValues.SUBDOMAIN, "writing"));
+
+        assertThat(RuleNodes.parentSubdomain(node)).isNull();
+        assertThat(RuleNodes.read(node)).containsEntry(RuleValues.SUBDOMAIN, "writing");
+
+        Map<String, Object> values = new HashMap<>(TITLE);
+        values.put(RuleValues.SUBDOMAIN, "seo");
+        RuleNodes.write(node, values, true);
+        verify(node).setProperty(RuleValues.SUBDOMAIN, "seo");
+
+        JCRNodeWrapper bare = ruleNode(Map.of(RuleValues.RULE_ID, "seo.title", RuleValues.EVALUATOR, "threshold",
+                RuleValues.CHECK_TYPE, "CODE"));
+        RuleNodes.fillMissing(bare, values);
+        verify(bare, never()).setProperty(eq(RuleValues.SUBDOMAIN), anyString());
+    }
+
+    /** A rule node outside the tree with these values, a text, a number or a flag each, and no translation. */
     static JCRNodeWrapper ruleNode(Map<String, Object> values) throws RepositoryException {
         JCRNodeWrapper node = mock(JCRNodeWrapper.class);
+        when(node.getParent()).thenReturn(mock(JCRNodeWrapper.class));
         for (Map.Entry<String, Object> entry : new HashMap<>(values).entrySet()) {
             JCRPropertyWrapper property = mock(JCRPropertyWrapper.class);
             Object value = entry.getValue();

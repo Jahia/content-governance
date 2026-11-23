@@ -2,7 +2,7 @@
 id: html.headingLevelSkipped
 evaluator: html.headingLevelSkipped
 checkType: CODE
-subdomains: [accessibility]
+subdomain: accessibility
 severity: moderate
 fixer: editor
 label:

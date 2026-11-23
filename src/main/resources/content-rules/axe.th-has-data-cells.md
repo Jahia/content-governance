@@ -3,7 +3,7 @@ id: axe.th-has-data-cells
 evaluator: axe
 checkType: CODE
 runtime: browser
-subdomains: [accessibility]
+subdomain: accessibility
 severity: serious
 fixer: developer
 ---

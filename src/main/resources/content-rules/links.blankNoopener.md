@@ -2,7 +2,7 @@
 id: links.blankNoopener
 evaluator: links.blankNoopener
 checkType: CODE
-subdomains: [links]
+subdomain: links
 severity: minor
 fixer: developer
 label:

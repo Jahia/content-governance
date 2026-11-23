@@ -2,7 +2,7 @@
 id: health.unpublishedChanges
 evaluator: health.unpublishedChanges
 checkType: CODE
-subdomains: [health]
+subdomain: health
 severity: serious
 fixer: editor
 label:

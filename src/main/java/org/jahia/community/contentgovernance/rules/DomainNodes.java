@@ -14,24 +14,34 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Reads and writes the {@link DomainValues} of a domain or a subdomain node. The session of the node has
- * the English locale, so that the internationalized label and help are their English values.
+ * Reads and writes the {@link DomainValues} of a domain or a subdomain node of the tree. The session of the
+ * node has the English locale, so that the internationalized label and help are their English values. The
+ * domain of a subdomain is its parent node, and the tree, not a property, holds it.
  */
 final class DomainNodes {
 
     private DomainNodes() {
     }
 
-    /** The values that the node holds, with its texts in the languages other than English. */
+    /**
+     * The values that the node holds, with its texts in the languages other than English, and the domain of a
+     * subdomain from its parent node.
+     */
     static Map<String, Object> read(JCRNodeWrapper node, Level level) throws RepositoryException {
         Map<String, Object> values = new LinkedHashMap<>();
         for (String key : level.keys()) {
             String property = level.property(key);
-            if (node.hasProperty(property)) {
+            if (property != null && node.hasProperty(property)) {
                 Object value = value(node, key, property);
                 if (value != null && !"".equals(value)) {
                     values.put(key, value);
                 }
+            }
+        }
+        if (level == Level.SUBDOMAIN) {
+            JCRNodeWrapper parent = node.getParent();
+            if (parent.isNodeType(Level.DOMAIN.type()) && parent.hasProperty(Level.DOMAIN.idProperty())) {
+                values.put(DomainValues.DOMAIN, parent.getProperty(Level.DOMAIN.idProperty()).getString());
             }
         }
         Map<String, Map<String, String>> translations = translations(node);
@@ -42,10 +52,7 @@ final class DomainNodes {
     }
 
     private static Object value(JCRNodeWrapper node, String key, String property) throws RepositoryException {
-        if (DomainValues.ORDER.equals(key)) {
-            return node.getProperty(property).getLong();
-        }
-        if (DomainValues.SITES.equals(key)) {
+        if (DomainValues.SITES.equals(key) || DomainValues.COUNTS.equals(key)) {
             List<String> items = new ArrayList<>();
             for (Value item : node.getProperty(property).getValues()) {
                 items.add(item.getString());
@@ -86,10 +93,14 @@ final class DomainNodes {
     /**
      * Writes the values on the node. With {@code exact}, a property that the values do not have is
      * removed; without it, the node keeps it. The id of a node never changes: the seeder finds the node by it.
+     * The domain is not written: the seeder places the node under its domain.
      */
     static void write(JCRNodeWrapper node, Level level, Map<String, Object> values, boolean exact) throws RepositoryException {
         for (String key : level.keys()) {
             String property = level.property(key);
+            if (property == null) {
+                continue;
+            }
             Object value = values.get(key);
             if (value != null) {
                 set(node, property, value);
@@ -104,8 +115,9 @@ final class DomainNodes {
         Map<String, Object> present = read(node, level);
         boolean wrote = false;
         for (String key : level.keys()) {
-            if (values.get(key) != null && !present.containsKey(key)) {
-                set(node, level.property(key), values.get(key));
+            String property = level.property(key);
+            if (property != null && values.get(key) != null && !present.containsKey(key)) {
+                set(node, property, values.get(key));
                 wrote = true;
             }
         }

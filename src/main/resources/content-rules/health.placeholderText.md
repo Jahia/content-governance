@@ -2,7 +2,7 @@
 id: health.placeholderText
 evaluator: health.placeholderText
 checkType: CODE
-subdomains: [health]
+subdomain: health
 severity: serious
 fixer: editor
 label:

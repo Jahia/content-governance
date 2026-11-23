@@ -2,7 +2,7 @@
 id: readability.statistics
 evaluator: readability.statistics
 checkType: CODE
-subdomains: [readability]
+subdomain: readability
 severity: minor
 label:
   en: "Statistics of the text"

@@ -2,7 +2,7 @@
 id: seo.tags
 evaluator: seo.tags
 checkType: CODE
-subdomains: [seo]
+subdomain: seo
 severity: minor
 label:
   en: "Tags of the page"

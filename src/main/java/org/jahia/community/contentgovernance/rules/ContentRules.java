@@ -14,6 +14,7 @@ import javax.jcr.query.Query;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,15 +28,20 @@ import java.util.regex.Pattern;
  * The rules as one site applies them, from the most general to the most specific: the rules that the
  * modules of the site ship, then every {@value #TYPE} node of {@code systemsite}, which applies to every
  * site, then every {@value #TYPE} node of the site. Example: a rule {@code acme.noClickHere} in
- * {@code /sites/systemsite/contents} applies to {@code digitall}, and a node {@code seo.title} of
- * {@code digitall} replaces the node {@code seo.title} of {@code systemsite} there.
+ * {@code /sites/systemsite/contents} applies to {@code digitall}, and the writing rules of the frame of
+ * {@code digitall} apply there only.
  *
- * <p>A rule applies to a site when the rule, one of its subdomains and the domain of that subdomain all
- * include the site ({@link ContentDomains}), and the site installs the module that ships the rule. A rule
- * whose subdomains no module and no node declares stays, unplaced: it never runs, and the settings show
- * why. A rule that names no subdomain takes the subdomain of the prefix of its id when one is declared,
- * such as {@code seo} for {@code seo.slug}, else {@value #TERMS} for a rule of the evaluator pattern, such
- * as a term that a site adds in jContent ({@code brand.seamless}).</p>
+ * <p>A rule node of the tree of {@code systemsite} takes the subdomain of its parent node, and any other rule
+ * node names its subdomain. The {@link SiteLayout} of the site may place the rule in another subdomain. A
+ * rule that names no subdomain takes the subdomain of the prefix of its id when one is declared, such as
+ * {@code seo} for {@code seo.slug}, else {@value #TERMS} for a rule of the evaluator pattern, such as a term
+ * that a site adds in jContent ({@code brand.seamless}).</p>
+ *
+ * <p>Every rule of the site stays in the list, and {@link ContentRule#enabled} tells whether it runs: the
+ * layout does not switch it off, the layout places it or it is on by default for the site, its subdomain and
+ * the domain of that subdomain are on ({@link ContentDomains}), and the site installs the module that ships
+ * it. A rule whose subdomain no module and no node declares is unplaced: it never runs, and the settings
+ * show why.</p>
  *
  * <p>The rule nodes are read in the edit workspace with a system session, so that a change applies
  * without a publication and a scheduled scan reads the same rules as the drawer. A node replaces the
@@ -49,10 +55,6 @@ import java.util.regex.Pattern;
 public final class ContentRules {
 
     public static final String TYPE = "ccs:contentRule";
-    /** The type of the folder that takes the rules of one module. */
-    public static final String FOLDER_TYPE = "ccs:contentRuleFolder";
-    /** The folder, under the site node, of the folders of the rules: one per module, and one for the site. */
-    public static final String ROOT = "contents/content-insights";
     /** The subdomain of the terms of a site, such as the forbidden terms of its legal team. */
     public static final String TERMS = "terms";
 
@@ -72,11 +74,6 @@ public final class ContentRules {
     /** The rules that apply on the site of the hierarchy, placed in it. */
     private static ContentRules of(Map<String, ContentRule> rules, ContentDomains hierarchy) {
         return new ContentRules(scoped(rules, hierarchy), hierarchy);
-    }
-
-    /** The folder, under the site node, of the rules that a module ships. */
-    public static String folderOf(String module) {
-        return ROOT + "/" + module + "/rules";
     }
 
     /** The rules that the started modules ship, as a site with no rule node applies them, in the shipped hierarchy. */
@@ -144,18 +141,45 @@ public final class ContentRules {
      *
      * @param values the values of the node
      * @param folder the path of the folder that holds the node
+     * @param order  the place of a rule node of the tree among its siblings, or {@value #OUTSIDE_TREE}
      */
-    record RuleNode(Map<String, Object> values, String folder) {
+    record RuleNode(Map<String, Object> values, String folder, int order) {
+
+        RuleNode(Map<String, Object> values, String folder) {
+            this(values, folder, OUTSIDE_TREE);
+        }
     }
+
+    /** The order of a rule node outside the tree, after the rules of the tree. */
+    static final int OUTSIDE_TREE = 1_000_000;
 
     private static List<RuleNode> ruleNodes(JCRSessionWrapper session, String path) throws RepositoryException {
         List<RuleNode> out = new ArrayList<>();
         if (session.nodeExists(path)) {
+            Map<String, List<String>> siblings = new HashMap<>();
             for (JCRNodeWrapper node : nodes(session, path)) {
-                out.add(new RuleNode(RuleNodes.read(node), node.getParent().getPath()));
+                JCRNodeWrapper parent = node.getParent();
+                int order = OUTSIDE_TREE;
+                if (RuleNodes.parentSubdomain(node) != null) {
+                    order = siblings.computeIfAbsent(parent.getPath(), ignored -> childNames(parent)).indexOf(node.getName());
+                }
+                out.add(new RuleNode(RuleNodes.read(node), parent.getPath(), order));
             }
         }
         return out;
+    }
+
+    /** The names of the child nodes of a node, in their order. */
+    private static List<String> childNames(JCRNodeWrapper parent) {
+        List<String> names = new ArrayList<>();
+        try {
+            for (JCRNodeWrapper child : parent.getNodes()) {
+                names.add(child.getName());
+            }
+        } catch (RepositoryException e) {
+            logger.debug("The children of {} could not be read", parent.getPath(), e);
+        }
+        return names;
     }
 
     private static Set<String> shippedIds(List<ShippedRules.Shipment> shipments) {
@@ -200,48 +224,56 @@ public final class ContentRules {
             merged.putAll(node.values());
             merged.put(RuleValues.TRANSLATIONS, RuleValues.mergeTranslations(shippedValues.get(RuleValues.TRANSLATIONS),
                     node.values().get(RuleValues.TRANSLATIONS)));
-            out.put(id.toString(), RuleValues.toRule(merged).inFolder(node.folder()));
+            ContentRule rule = RuleValues.toRule(merged).inFolder(node.folder());
+            out.put(id.toString(), rule.placedIn(rule.subdomain(), false, rule.enabled(), node.order()));
         }
     }
 
     /**
-     * The rules that apply on the site of the hierarchy, each with its subdomains and whether one of them has
-     * a place on the site. A rule out of the site goes; a rule whose subdomains nobody declares stays,
-     * unplaced.
+     * Every rule of the site, each placed in its subdomain on the site, and on when it runs there.
      *
      * @param rules     the rules by id
-     * @param hierarchy the domains and the subdomains of the site
+     * @param hierarchy the domains and the subdomains of the site, with its layout
      * @return the rules of the site, in the same order
      */
     static Map<String, ContentRule> scoped(Map<String, ContentRule> rules, ContentDomains hierarchy) {
         Map<String, ContentRule> out = new LinkedHashMap<>();
         for (ContentRule rule : rules.values()) {
-            String siteKey = hierarchy.siteKey();
-            if (siteKey != null && !RuleValues.includes(rule.value(RuleValues.SITES), siteKey)) {
-                continue;
-            }
-            ContentRule placed = place(rule, hierarchy);
-            if (placed.placed() || placed.subdomains().stream().noneMatch(hierarchy::known)) {
-                out.put(rule.id(), placed);
-            }
+            out.put(rule.id(), place(rule, hierarchy));
         }
         return out;
     }
 
-    /** The rule with its subdomains, default ones included, and whether one of them has a place on the site. */
+    /**
+     * The rule in its subdomain on the site, at its place, and on or off. The layout places the rule in a
+     * declared subdomain; else the rule keeps its own subdomain, or the default one. A rule that the layout does
+     * not place comes after the rules that it places, and is on when it is on by default for the site.
+     */
     private static ContentRule place(ContentRule rule, ContentDomains hierarchy) {
-        List<String> subdomains = rule.subdomains().isEmpty()
-                ? defaultSubdomains(rule.id(), rule.evaluator(), hierarchy) : rule.subdomains();
-        return rule.placedIn(subdomains, subdomains.stream().anyMatch(hierarchy::places));
+        SiteLayout layout = hierarchy.layout();
+        String byLayout = layout.subdomainOf(rule.id());
+        String subdomain;
+        if (byLayout != null && hierarchy.known(byLayout)) {
+            subdomain = byLayout;
+        } else {
+            subdomain = rule.subdomain() != null ? rule.subdomain() : defaultSubdomain(rule.id(), rule.evaluator(), hierarchy);
+        }
+        String siteKey = hierarchy.siteKey();
+        boolean byDefault = rule.enabled() && (siteKey == null || RuleValues.includes(rule.value(RuleValues.SITES), siteKey));
+        boolean on = !layout.isOff(rule.id()) && (layout.places(rule.id()) || byDefault)
+                && subdomain != null && hierarchy.places(subdomain);
+        Integer order = layout.ruleOrder(rule.id());
+        return rule.placedIn(subdomain, subdomain != null && hierarchy.known(subdomain), on,
+                order != null ? order : ContentDomains.UNPLACED + Math.min(rule.order(), OUTSIDE_TREE));
     }
 
-    /** The subdomains of a rule that names none: the prefix of its id when declared, else {@value #TERMS} for a pattern. */
-    static List<String> defaultSubdomains(String id, String evaluator, ContentDomains hierarchy) {
+    /** The subdomain of a rule that names none: the prefix of its id when declared, else {@value #TERMS} for a pattern. */
+    static String defaultSubdomain(String id, String evaluator, ContentDomains hierarchy) {
         String prefix = RuleValues.prefixOf(id);
         if (hierarchy.known(prefix)) {
-            return List.of(prefix);
+            return prefix;
         }
-        return ContentRule.PATTERN.equals(evaluator) ? List.of(TERMS) : List.of();
+        return ContentRule.PATTERN.equals(evaluator) ? TERMS : null;
     }
 
     private static Map<String, Object> shippedValues(List<ShippedRules.Shipment> shipments, String id) {

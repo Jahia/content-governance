@@ -25,10 +25,11 @@
  - reason (string, textarea)
  - alternative (string)
 
-// A rule that the checks apply on a site. A module ships its rules as Markdown files, and the seeder
-// writes one node per rule under contents/content-insights/<module>/rules. A site changes a rule on its
-// node, and adds a rule of its own anywhere under contents, such as contents/content-insights/site/rules.
-// Each list of a site, such as the terms of the legal team, is a folder of rules with its own permissions.
+// A rule that the checks apply on a site. A module ships its rules as Markdown files, and the seeder writes
+// one node per rule in the tree of the system site, systemsite/contents/content-governance/<domain>/<subdomain>.
+// An administrator changes a rule there, for every site. A site adds a rule of its own anywhere under its
+// contents, such as contents/content-governance/ai-assistant/rules, and names its subdomain. Each list of a
+// site, such as the terms of the legal team, is a folder of rules with its own permissions.
 // The evaluator, which jContent labels Check, names what checks the rule: pattern, threshold, presence, model,
 // or the id of a check. The check type picks the mixin that holds the fields of its kind of check.
 [ccs:contentRule] > jnt:content, ccsmix:complianceContent
@@ -55,16 +56,20 @@
  // Where the check of the rule runs. browser: the drawer runs it on the preview of the page, the server
  // never runs it and never blocks a publication on it. Empty: server.
  - runtime (string, choicelist[resourceBundle]) nofulltext < 'server', 'browser'
- // Set by the seeder on a rule that the site changed and that its module no longer ships.
+ // Set by the seeder on a rule that an administrator changed and that its module no longer ships.
  - retired (boolean)
- // The fingerprint of the values that the seeder last wrote, so that it tells a rule that the site changed.
+ // The fingerprint of the values that the seeder last wrote, so that it tells a rule that an administrator
+ // changed or moved.
  - seedDigest (string) hidden nofulltext
- // The ids of the subdomains of the rule, such as seo and geo.score: its findings show in each. Empty: the
- // subdomain of the prefix of the id when one is declared, else terms for the evaluator pattern. A rule whose
- // subdomains nobody declares does not run. Version 2.0.0 replaced the property domain with it.
- - subdomains (string) multiple nofulltext
- // The keys of the sites that the rule applies to, or * for all sites. The rule also needs one of its
- // subdomains and that subdomain's domain to apply to the site.
+ // The module whose file the seeder wrote the rule from.
+ - seedModule (string) hidden nofulltext
+ // The id of the subdomain of a rule outside the tree, such as writing: its findings show in it. Empty: the
+ // subdomain of the prefix of the id when one is declared, else terms for the evaluator pattern. A rule of the
+ // tree takes the subdomain of its parent node. A rule whose subdomain nobody declares does not run. Version
+ // 2.0.0 replaced the properties domain and subdomains with it.
+ - subdomain (string) nofulltext
+ // The keys of the sites where the rule is on by default, or * for all sites. The layout of a site that
+ // places the rule wins.
  - sites (string, choicelist[contentGovernanceSites]) = '*' autocreated multiple nofulltext
 
 // The fields of a rule of the check type PATTERN: a writing rule, which the evaluator pattern checks with no
@@ -109,20 +114,33 @@
  - minimum (double)
  - maximum (double)
 
-// The folder of the rules of one module, contents/content-insights/<module>/rules.
+// The folder of the rules of one module, contents/content-insights/<module>/rules, before version 2.0.0. The
+// module removes the rules that it seeded there when it starts.
 [ccs:contentRuleFolder] > jnt:contentFolder
  + * (ccs:contentRule)
 
+// The folder systemsite/contents/content-governance: the tree of the domains, their subdomains and their rules,
+// which every site reads. A content folder does not order its children, and the order of the domains is the
+// order of the tabs.
+[ccs:governanceFolder] > jnt:contentFolder orderable
+ + * (ccs:contentDomain)
+
+// The layout of a site, on its content folder contents/content-governance: how the site arranges the tree of the
+// system site, systemsite/contents/content-governance, whose content folder holds the domains, their subdomains
+// and their rules in their order. The same folder of a site holds the folders of ai-assistant.
+[ccsmix:siteLayout] mixin
+ // The JSON of the layout: the order and the place of each domain, subdomain and rule, and the ids that the site
+ // switches off. The screen Rules & domains writes it. Empty: the layout of the system site.
+ - layout (string) hidden nofulltext
+
 // A domain of the drawer: a main tab of a panel, such as Page quality. A module ships its domains as Markdown
-// files beside its rules, and the seeder writes one node per domain under
-// systemsite/contents/content-insights/<module>/domains. A site adds or overrides one under its own contents.
-[ccs:contentDomain] > jnt:content, ccsmix:complianceContent
+// files beside its rules, and the seeder writes one node per domain in systemsite/contents/content-governance.
+// Its child nodes are its subdomains, in their order.
+[ccs:contentDomain] > jnt:content, ccsmix:complianceContent orderable
  - domainId (string) mandatory primary nofulltext
  // The panel of the drawer that shows the domain: governance, or a panel of another module, such as chat.
  - panel (string) = 'governance' autocreated nofulltext
- // The place among the domains of the panel: a lower order comes first.
- - order (long)
- // The keys of the sites that the domain applies to, or * for all sites.
+ // The keys of the sites where the domain is on by default, or * for all sites.
  - sites (string, choicelist[contentGovernanceSites]) = '*' autocreated multiple nofulltext
  // The name of the tab.
  - label (string) i18n
@@ -131,24 +149,27 @@
  // Set by the seeder on a domain that an administrator changed and that its module no longer ships.
  - retired (boolean)
  - seedDigest (string) hidden nofulltext
+ - seedModule (string) hidden nofulltext
+ + * (ccs:contentSubdomain)
 
-// A subdomain of the drawer: a tab of a domain, such as SEO. A rule names its subdomains, and its findings
-// show in each. The seeder writes them under systemsite/contents/content-insights/<module>/subdomains.
-[ccs:contentSubdomain] > jnt:content, ccsmix:complianceContent
+// A subdomain of the drawer: a tab of a domain, such as SEO. Its parent node is its domain, and its child nodes
+// are its rules, in their order. A rule outside the tree names it in its property subdomain.
+[ccs:contentSubdomain] > jnt:content, ccsmix:complianceContent orderable
  - subdomainId (string) mandatory primary nofulltext
- // The id of the domain of the subdomain: a change moves the tab and its rules to another domain.
- - domain (string) mandatory nofulltext
- // The place among the subdomains of the domain: a lower order comes first.
- - order (long)
- // The keys of the sites that the subdomain applies to, or * for all sites.
+ // The keys of the sites where the subdomain is on by default, or * for all sites.
  - sites (string, choicelist[contentGovernanceSites]) = '*' autocreated multiple nofulltext
  - label (string) i18n
  - help (string, textarea) i18n
+ // The ids of the rules of other subdomains that the subdomain counts, such as the rules of the GEO score.
+ - counts (string) multiple nofulltext
  - retired (boolean)
  - seedDigest (string) hidden nofulltext
+ - seedModule (string) hidden nofulltext
+ + * (ccs:contentRule)
 
-// The folders of the domains and the subdomains of one module, contents/content-insights/<module>/domains
-// and contents/content-insights/<module>/subdomains of the system site.
+// The folders of the domains and the subdomains of one module before version 2.0.0,
+// contents/content-insights/<module>/domains and contents/content-insights/<module>/subdomains of the system
+// site. The module removes them when it starts.
 [ccs:contentDomainFolder] > jnt:contentFolder
  + * (ccs:contentDomain)
  + * (ccs:contentSubdomain)

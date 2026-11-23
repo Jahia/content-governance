@@ -2,7 +2,7 @@
 id: html.buttonNameMissing
 evaluator: html.buttonNameMissing
 checkType: CODE
-subdomains: [accessibility]
+subdomain: accessibility
 severity: critical
 fixer: developer
 label:

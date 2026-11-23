@@ -2,6 +2,7 @@
 id: geo.score
 domain: geo
 order: 30
+counts: [html.headingH1Missing, html.headingH1Multiple, html.imageAltMissing, html.pageLanguageMissing, seo.canonical, seo.metaDescription, seo.structuredData, seo.structuredDataValid, seo.title]
 label:
   en: "Score"
   fr: "Score"

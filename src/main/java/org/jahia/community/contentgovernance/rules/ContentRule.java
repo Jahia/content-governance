@@ -11,12 +11,13 @@ import java.util.Map;
  * One rule of the catalog, as it applies to one site.
  *
  * @param id        the id that every finding of the rule carries, such as {@code seo.title}
- * @param subdomains the ids of the subdomains of the rule, such as {@code seo} and {@code geo.score}: the findings
- *                  of the rule show in each; empty when the rule names none and no default applies
+ * @param subdomain the id of the subdomain of the rule, such as {@code seo}: the findings of the rule show in it;
+ *                  null when the rule names none and no default applies
  * @param evaluator what checks the rule: one of {@link #EVALUATORS}, or the id of a check that a module registers
  * @param severity  one of {@link #SEVERITIES}
  * @param blocking  true when a finding of the rule stops the publication of the content
- * @param enabled   false when the site turned the rule off
+ * @param enabled   false when the rule is off on the site: the site, or its default, switched off the rule, its
+ *                  subdomain or its domain
  * @param fixer     the role of the person who fixes a finding: editor, developer or administrator
  * @param advice    what to do about a finding, in English; for a {@code model} rule, the criterion that the model checks
  * @param unit      the unit of the limits, or null when the rule has none
@@ -26,12 +27,13 @@ import java.util.Map;
  * @param folder    the path of the folder that holds the node of the rule, such as
  *                  {@code /sites/digitall/contents/compliance-glossaries/legal}, or null for a shipped rule
  *                  that the site has no node of
- * @param placed    true when one of the subdomains is a subdomain of the site, under a domain of the site: only
- *                  then does a finding have a place, and only then does the rule run
+ * @param placed    true when the subdomain is declared, under a declared domain: only then does a finding have a
+ *                  place, and only then does the rule run
+ * @param order     the place of the rule in its subdomain: a lower order comes first
  */
-public record ContentRule(String id, List<String> subdomains, String evaluator, String severity, boolean blocking,
+public record ContentRule(String id, String subdomain, String evaluator, String severity, boolean blocking,
                           boolean enabled, String fixer, String advice, String unit, Double minimum, Double maximum,
-                          Map<String, Object> values, String folder, boolean placed) implements Rule {
+                          Map<String, Object> values, String folder, boolean placed, int order) implements Rule {
 
     /** The severities of a rule, from the most serious to the least. */
     public static final List<String> SEVERITIES = List.of("critical", "serious", "moderate", "minor");
@@ -55,7 +57,6 @@ public record ContentRule(String id, List<String> subdomains, String evaluator, 
     public static final List<String> RUNTIMES = List.of(SERVER, BROWSER);
 
     public ContentRule {
-        subdomains = List.copyOf(subdomains);
         values = Collections.unmodifiableMap(new HashMap<>(values));
     }
 
@@ -101,18 +102,20 @@ public record ContentRule(String id, List<String> subdomains, String evaluator, 
      * @return this rule in that folder
      */
     public ContentRule inFolder(String path) {
-        return new ContentRule(id, subdomains, evaluator, severity, blocking, enabled, fixer, advice, unit, minimum,
-                maximum, values, path, placed);
+        return new ContentRule(id, subdomain, evaluator, severity, blocking, enabled, fixer, advice, unit, minimum,
+                maximum, values, path, placed, order);
     }
 
     /**
-     * @param ids         the subdomains of the rule
-     * @param inHierarchy true when one of them is a subdomain of the site, under a domain of the site
-     * @return this rule with these subdomains
+     * @param subdomainId the subdomain of the rule on the site
+     * @param declared    true when the subdomain is declared, under a declared domain
+     * @param on          true when the rule runs on the site
+     * @param place       the place of the rule in its subdomain
+     * @return this rule, placed on the site
      */
-    ContentRule placedIn(List<String> ids, boolean inHierarchy) {
-        return new ContentRule(id, ids, evaluator, severity, blocking, enabled, fixer, advice, unit, minimum,
-                maximum, values, folder, inHierarchy);
+    ContentRule placedIn(String subdomainId, boolean declared, boolean on, int place) {
+        return new ContentRule(id, subdomainId, evaluator, severity, blocking, on, fixer, advice, unit, minimum,
+                maximum, values, folder, declared, place);
     }
 
     /**
@@ -160,7 +163,7 @@ public record ContentRule(String id, List<String> subdomains, String evaluator, 
         if (newMaximum != null) {
             newValues.put(RuleValues.MAXIMUM, newMaximum);
         }
-        return new ContentRule(id, subdomains, evaluator, newSeverity, blocking, newEnabled, fixer, advice, unit,
-                newMinimum, newMaximum, newValues, folder, placed);
+        return new ContentRule(id, subdomain, evaluator, newSeverity, blocking, newEnabled, fixer, advice, unit,
+                newMinimum, newMaximum, newValues, folder, placed, order);
     }
 }

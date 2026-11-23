@@ -2,7 +2,7 @@
 id: html.duplicateId
 evaluator: html.duplicateId
 checkType: CODE
-subdomains: [accessibility]
+subdomain: accessibility
 severity: minor
 fixer: developer
 label:

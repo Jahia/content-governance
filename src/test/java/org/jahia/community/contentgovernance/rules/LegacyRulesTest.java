@@ -46,7 +46,7 @@ class LegacyRulesTest {
         order.verify(node).setProperty(RuleValues.PATTERN, mail);
         order.verify(node).setProperty(RuleValues.WRONG_EXAMPLES, examples);
         verify(node).setProperty(RuleValues.CHECK_TYPE, "PATTERN");
-        verify(node).setProperty(RuleValues.SUBDOMAINS, new String[]{LegacyRules.WRITING});
+        verify(node).setProperty(RuleValues.SUBDOMAIN, LegacyRules.WRITING);
         verify(node).setProperty(RuleValues.SEVERITY, "moderate");
     }
 

@@ -3,7 +3,7 @@ id: ecodesign.domSize
 evaluator: ecodesign.domSize
 checkType: CODE
 runtime: browser
-subdomains: [ecodesign]
+subdomain: ecodesign
 severity: moderate
 fixer: developer
 unit: elements

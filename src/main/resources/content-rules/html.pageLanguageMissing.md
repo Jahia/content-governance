@@ -2,7 +2,7 @@
 id: html.pageLanguageMissing
 evaluator: html.pageLanguageMissing
 checkType: CODE
-subdomains: [accessibility, geo.score]
+subdomain: accessibility
 severity: serious
 fixer: developer
 label:

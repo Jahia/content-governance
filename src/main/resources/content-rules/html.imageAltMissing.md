@@ -2,7 +2,7 @@
 id: html.imageAltMissing
 evaluator: html.imageAltMissing
 checkType: CODE
-subdomains: [accessibility, geo.score]
+subdomain: accessibility
 severity: critical
 fixer: editor
 label:

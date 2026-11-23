@@ -54,7 +54,7 @@ class ComplianceRulesTest {
     /** A rule of the check acme.erpPrice, which another module registers. */
     private static ContentRule price(String id, String evaluator) {
         return RuleValues.toRule(Map.of(RuleValues.RULE_ID, id, RuleValues.EVALUATOR, evaluator,
-                RuleValues.SUBDOMAINS, List.of("writing"))).inFolder(ACME);
+                RuleValues.SUBDOMAIN, "writing")).inFolder(ACME);
     }
 
     private static ComplianceRules of(String language, ContentRule... rules) {

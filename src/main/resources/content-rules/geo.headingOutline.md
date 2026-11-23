@@ -2,7 +2,7 @@
 id: geo.headingOutline
 evaluator: geo.headingOutline
 checkType: CODE
-subdomains: [geo.content]
+subdomain: geo.content
 severity: minor
 fixer: editor
 label:

@@ -3,7 +3,7 @@ id: ecodesign.requests
 evaluator: ecodesign.requests
 checkType: CODE
 runtime: browser
-subdomains: [ecodesign]
+subdomain: ecodesign
 severity: moderate
 fixer: developer
 unit: requests

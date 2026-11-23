@@ -55,10 +55,10 @@ public class CheckRegistry {
      *                     runs in the browser, where the drawer finds its check
      * @param missingCheck the id of the check that no module registers, or null for an active rule
      * @param needs        the module that registers the missing check, or null when it is not known
-     * @param unknownSubdomains the subdomains of a rule that no module and no node declares (empty when the
-     *                      rule names none), or null for a rule placed in a subdomain of the site
+     * @param unknownSubdomain the subdomain of a rule that no module and no node declares (empty when the rule
+     *                         names none), or null for a rule placed in a subdomain of the site
      */
-    public record Status(boolean active, String missingCheck, String needs, List<String> unknownSubdomains) {
+    public record Status(boolean active, String missingCheck, String needs, String unknownSubdomain) {
 
         /** The status of a rule placed in a subdomain of the site. */
         public Status(boolean active, String missingCheck, String needs) {
@@ -113,8 +113,8 @@ public class CheckRegistry {
      */
     public Status status(ContentRule rule) {
         if (!rule.placed()) {
-            // A finding of a rule whose subdomains are unknown has no place in the drawer: the rule does not run
-            return new Status(false, null, null, rule.subdomains());
+            // A finding of a rule whose subdomain is unknown has no place in the drawer: the rule does not run
+            return new Status(false, null, null, rule.subdomain() == null ? "" : rule.subdomain());
         }
         if (rule.inBrowser() || has(rule.evaluator())) {
             return new Status(true, null, null, null);

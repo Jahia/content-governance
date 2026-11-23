@@ -56,7 +56,7 @@ public record DomainFile(Level level, String id, Map<String, Object> values) {
         Map<String, Map<String, String>> translations = new TreeMap<>();
         for (Map.Entry<?, ?> entry : file.keys().entrySet()) {
             String key = String.valueOf(entry.getKey());
-            if (!level.keys().contains(key)) {
+            if (!level.fileKeys().contains(key)) {
                 throw new IllegalArgumentException(fileName + " has the unknown key " + key);
             }
             if (entry.getValue() != null) {
@@ -86,12 +86,12 @@ public record DomainFile(Level level, String id, Map<String, Object> values) {
                 throw new IllegalArgumentException(fileName + ": order is a number");
             }
             values.put(key, number.longValue());
-        } else if (DomainValues.SITES.equals(key)) {
-            List<String> sites = new ArrayList<>();
-            for (Object site : raw instanceof List<?> list ? list : List.of(raw)) {
-                sites.add(String.valueOf(site));
+        } else if (DomainValues.SITES.equals(key) || DomainValues.COUNTS.equals(key)) {
+            List<String> items = new ArrayList<>();
+            for (Object item : raw instanceof List<?> list ? list : List.of(raw)) {
+                items.add(String.valueOf(item));
             }
-            values.put(key, List.copyOf(sites));
+            values.put(key, List.copyOf(items));
         } else {
             values.put(key, String.valueOf(raw));
         }
@@ -134,6 +134,13 @@ public record DomainFile(Level level, String id, Map<String, Object> values) {
         for (Object site : (List<?>) values.get(DomainValues.SITES)) {
             if (!RuleFile.SITE.matcher(site.toString()).matches()) {
                 throw new IllegalArgumentException(fileName + ": the site " + site + " is not a site key or *");
+            }
+        }
+        if (values.get(DomainValues.COUNTS) instanceof List<?> counts) {
+            for (Object rule : counts) {
+                if (!RuleFile.ID_PATTERN.matcher(rule.toString()).matches()) {
+                    throw new IllegalArgumentException(fileName + ": " + rule + " in counts is not a rule id");
+                }
             }
         }
     }

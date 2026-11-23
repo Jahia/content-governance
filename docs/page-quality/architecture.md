@@ -114,7 +114,7 @@ schema is measured again: 6 dropped the audits from before the check of the serv
      (`PAGE_LIMIT_MS`), and each check of the browser has 60 s (`CHECK_LIMIT_MS`). A step that fails
      or runs out of time is left out. Its tabs show `IncompleteStep` (why, and **Re-run**) from
      `results.incomplete[<result key>]`: the check of the server for SEO, Readability, Links and
-     Jahia health, and a check of the browser for the tabs of the subdomains of its rules. The other tabs
+     Jahia health, and a check of the browser for the tab of the subdomain of each of its rules. The other tabs
      show their results, and such a partial audit is never cached. The late answer of a stopped step
      is ignored, and a check of the browser gets an aborted `signal`.
 - When results come from the cache, the frame still loads (preview and highlight target) but the

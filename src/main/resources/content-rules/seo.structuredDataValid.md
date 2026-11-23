@@ -2,7 +2,7 @@
 id: seo.structuredDataValid
 evaluator: seo.structuredDataValid
 checkType: CODE
-subdomains: [seo, geo.score]
+subdomain: seo
 severity: serious
 fixer: developer
 label:

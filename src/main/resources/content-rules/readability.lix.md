@@ -2,7 +2,7 @@
 id: readability.lix
 evaluator: threshold
 checkType: CODE
-subdomains: [readability]
+subdomain: readability
 severity: moderate
 fixer: editor
 unit: points

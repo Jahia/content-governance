@@ -9,10 +9,7 @@ import org.jahia.services.content.decorator.JCRSiteNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
-import javax.jcr.query.Query;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -28,14 +25,17 @@ import java.util.regex.Pattern;
  * The domains and the subdomains as one site sees them: the hierarchy drawer › panel › domain › subdomain
  * › rule, without the rules.
  *
- * <p>The nodes of the system site hold the domains and the subdomains of every site; a site adds or
- * overrides one with a node of the same id under its own {@code contents}. A node replaces the shipped
- * values of its id; a property that the node lacks keeps the shipped value. A module that the site does
- * not install ships nothing to it. A domain or a subdomain applies to a site when its {@code sites} include
- * the site, and a subdomain only under a domain that applies too.</p>
+ * <p>The tree of the system site, {@value #TREE}, holds the domains and the subdomains of every site: a domain
+ * node holds its subdomains, in their order. A node replaces the shipped values of its id; a property that the
+ * node lacks keeps the shipped value. A module that the site does not install ships nothing to it.</p>
  *
- * <p>Example: the subdomain {@code seo} names the domain {@code geo}. An administrator who changes it to
- * {@code quality} on its node moves the SEO tab and its rules, with no rule to edit.</p>
+ * <p>The {@link SiteLayout} of the site then places them: it orders the domains, puts a subdomain in another
+ * domain, and switches an item off. An item that the layout does not place keeps its place in the tree, after
+ * the items that the layout places, and is on when its {@code sites} include the site.</p>
+ *
+ * <p>Example: the layout of {@code digitall} places the subdomain {@code seo} in the domain {@code quality}.
+ * On {@code digitall}, the SEO tab and its rules move to Page quality; every other site keeps them in SEO &amp;
+ * GEO.</p>
  *
  * <p>Thread safety: immutable.</p>
  */
@@ -43,44 +43,59 @@ public final class ContentDomains {
 
     public static final String DOMAIN_TYPE = "ccs:contentDomain";
     public static final String SUBDOMAIN_TYPE = "ccs:contentSubdomain";
-    /** The type of the folders that take the domains and the subdomains of one module. */
+    /** The type of the folders of the domains and the subdomains of one module before version 2.0.0. */
     public static final String FOLDER_TYPE = "ccs:contentDomainFolder";
-    /** The site whose nodes hold the domains and the subdomains of every site. */
+    /** The site whose tree holds the domains, the subdomains and the rules of every site. */
     public static final String SYSTEM_SITE = "/sites/systemsite";
+    /** The folder of the tree, in the system site. */
+    public static final String TREE = SYSTEM_SITE + "/" + SiteLayout.FOLDER;
 
+    /** The order of an item that the layout does not place comes after this one. */
+    static final int UNPLACED = 10_000;
+    /** The order of an item that a module ships and that the tree has no node of yet comes after this one. */
+    private static final int UNSEEDED = 100_000;
+    private static final int LAST = 1_000_000;
     private static final String EDIT_WORKSPACE = "default";
     private static final String SITES = "/sites/";
     private static final Pattern SITE_KEY = Pattern.compile("[A-Za-z0-9_.-]+");
     private static final Logger logger = LoggerFactory.getLogger(ContentDomains.class);
 
     private final String siteKey;
+    private final SiteLayout layout;
     private final Map<String, Domain> domains;
     private final Map<String, Domain> subdomains;
 
     /**
      * @param siteKey the key of the site, or null for the shipped hierarchy, which every site sees
-     * @param values  the values of each domain and subdomain, by level and by id
+     * @param values  the values of each domain and subdomain, by level and by id, with their default order
+     * @param layout  the layout of the site
      */
-    ContentDomains(String siteKey, Map<Level, Map<String, Map<String, Object>>> values) {
+    ContentDomains(String siteKey, Map<Level, Map<String, Map<String, Object>>> values, SiteLayout layout) {
         this.siteKey = siteKey;
-        this.domains = build(Level.DOMAIN, values.getOrDefault(Level.DOMAIN, Map.of()));
-        this.subdomains = build(Level.SUBDOMAIN, values.getOrDefault(Level.SUBDOMAIN, Map.of()));
+        this.layout = layout;
+        this.domains = new LinkedHashMap<>();
+        values.getOrDefault(Level.DOMAIN, Map.of()).forEach((id, value) -> {
+            Domain domain = Domain.of(Level.DOMAIN, value);
+            Integer placed = layout.domainOrder(id);
+            domains.put(id, domain.at(domain.parent(), placed != null ? placed : UNPLACED + bounded(domain.order())));
+        });
+        this.subdomains = new LinkedHashMap<>();
+        values.getOrDefault(Level.SUBDOMAIN, Map.of()).forEach((id, value) -> {
+            Domain subdomain = Domain.of(Level.SUBDOMAIN, value);
+            String parent = layout.domainOf(id);
+            Integer placed = layout.subdomainOrder(id);
+            subdomains.put(id, subdomain.at(parent != null && domains.containsKey(parent) ? parent : subdomain.parent(),
+                    placed != null ? placed : UNPLACED + bounded(subdomain.order())));
+        });
     }
 
-    private static Map<String, Domain> build(Level level, Map<String, Map<String, Object>> values) {
-        Map<String, Domain> out = new LinkedHashMap<>();
-        values.forEach((id, value) -> out.put(id, Domain.of(level, value)));
-        return out;
-    }
-
-    /** The folder, under a site node, of the domains or the subdomains that a module ships. */
-    public static String folderOf(String module, Level level) {
-        return ContentRules.ROOT + "/" + module + "/" + level.folder();
+    private static int bounded(int order) {
+        return Math.max(0, Math.min(order, LAST));
     }
 
     /** The domains and the subdomains that the started modules ship, for every site. */
     public static ContentDomains base() {
-        return new ContentDomains(null, shipped(ShippedRules.all()));
+        return new ContentDomains(null, shipped(ShippedRules.all()), SiteLayout.NONE);
     }
 
     /**
@@ -103,7 +118,7 @@ public final class ContentDomains {
                     });
         } catch (RepositoryException | RuntimeException e) {
             logger.warn("The domains of the site {} could not be read, the shipped ones apply", siteKey, e);
-            return new ContentDomains(siteKey, shipped(ShippedRules.all()));
+            return new ContentDomains(siteKey, shipped(ShippedRules.all()), SiteLayout.NONE);
         }
     }
 
@@ -114,23 +129,49 @@ public final class ContentDomains {
      */
     static ContentDomains read(JCRSessionWrapper session, String siteKey, Collection<String> modules) throws RepositoryException {
         Map<Level, Map<String, Map<String, Object>>> values = shipped(ShippedRules.forModules(modules));
-        List<String> paths = new ArrayList<>(List.of(SYSTEM_SITE));
-        if (!(SITES + siteKey).equals(SYSTEM_SITE)) {
-            paths.add(SITES + siteKey);
+        if (session.nodeExists(TREE)) {
+            values.values().forEach(byId -> byId.values().forEach(value -> value.put(DomainValues.ORDER,
+                    (long) UNSEEDED + orderOf(value))));
+            readTree(session.getNode(TREE), modules, values);
         }
-        for (String path : paths) {
-            for (Level level : Level.values()) {
-                Set<String> seen = new HashSet<>();
-                for (JCRNodeWrapper node : nodes(session, level, path)) {
-                    Map<String, Object> read = DomainNodes.read(node, level);
-                    Object id = read.get(DomainValues.ID);
-                    if (id != null && seen.add(id.toString()) && shippedToSite(level, id.toString(), modules)) {
-                        values.get(level).merge(id.toString(), read, ContentDomains::over);
-                    }
+        String sitePath = SITES + siteKey;
+        SiteLayout layout = sitePath.equals(SYSTEM_SITE) ? SiteLayout.NONE : SiteLayout.read(session, sitePath);
+        return new ContentDomains(siteKey, values, layout);
+    }
+
+    private static int orderOf(Map<String, Object> value) {
+        return value.get(DomainValues.ORDER) instanceof Number number ? bounded((int) Math.min(number.longValue(), LAST)) : 0;
+    }
+
+    /** Puts the values of each domain and subdomain node of the tree over the shipped ones, with its place as its order. */
+    private static void readTree(JCRNodeWrapper tree, Collection<String> modules, Map<Level, Map<String, Map<String, Object>>> values)
+            throws RepositoryException {
+        Set<String> seen = new HashSet<>();
+        int domainIndex = 0;
+        for (JCRNodeWrapper domain : tree.getNodes()) {
+            if (!domain.isNodeType(DOMAIN_TYPE)) {
+                continue;
+            }
+            put(domain, Level.DOMAIN, domainIndex++, modules, values, seen);
+            int subdomainIndex = 0;
+            for (JCRNodeWrapper subdomain : domain.getNodes()) {
+                if (subdomain.isNodeType(SUBDOMAIN_TYPE)) {
+                    put(subdomain, Level.SUBDOMAIN, subdomainIndex++, modules, values, seen);
                 }
             }
         }
-        return new ContentDomains(siteKey, values);
+    }
+
+    /** Puts the values of one node over the shipped ones; the first node of an id wins. */
+    private static void put(JCRNodeWrapper node, Level level, int index, Collection<String> modules,
+                            Map<Level, Map<String, Map<String, Object>>> values, Set<String> seen) throws RepositoryException {
+        Map<String, Object> read = DomainNodes.read(node, level);
+        Object id = read.get(DomainValues.ID);
+        if (id == null || !shippedToSite(level, id.toString(), modules) || !seen.add(level + ":" + id)) {
+            return;
+        }
+        read.put(DomainValues.ORDER, (long) index);
+        values.get(level).merge(id.toString(), read, ContentDomains::over);
     }
 
     /** False for the node of a domain or a subdomain that a started module ships and that the site does not install. */
@@ -153,42 +194,53 @@ public final class ContentDomains {
         for (Level level : Level.values()) {
             Map<String, Map<String, Object>> byId = new LinkedHashMap<>();
             for (ShippedRules.Shipment shipment : shipments) {
-                shipment.of(level).forEach((id, file) -> byId.putIfAbsent(id, file.values()));
+                shipment.of(level).forEach((id, file) -> byId.putIfAbsent(id, new LinkedHashMap<>(file.values())));
             }
             out.put(level, byId);
         }
         return out;
     }
 
-    /** Every domain or subdomain node under a path, in path order. */
-    private static List<JCRNodeWrapper> nodes(JCRSessionWrapper session, Level level, String path) throws RepositoryException {
-        List<JCRNodeWrapper> out = new ArrayList<>();
-        if (!session.nodeExists(path)) {
-            return out;
-        }
-        Query query = session.getWorkspace().getQueryManager().createQuery(
-                "SELECT * FROM [" + level.type() + "] WHERE ISDESCENDANTNODE('" + path + "')", Query.JCR_SQL2);
-        NodeIterator found = query.execute().getNodes();
-        while (found.hasNext()) {
-            out.add((JCRNodeWrapper) found.nextNode());
-        }
-        out.sort(Comparator.comparing(JCRNodeWrapper::getPath));
-        return out;
-    }
-
-    /** The domains that apply to the site, by order and then by id. */
+    /** The domains that are on for the site, by order and then by id. */
     public List<Domain> domains() {
-        return sorted(domains.values().stream().filter(domain -> domain.includes(siteKey)).toList());
+        return sorted(domains.values().stream().filter(domain -> isOn(domain.id())).toList());
     }
 
-    /** The subdomains of a domain that apply to the site, by order and then by id. */
+    /** Every domain, on or off for the site, by order and then by id. */
+    public List<Domain> allDomains() {
+        return sorted(List.copyOf(domains.values()));
+    }
+
+    /** The subdomains of a domain that are on for the site, by order and then by id. */
     public List<Domain> subdomainsOf(String domainId) {
         return sorted(subdomains.values().stream()
-                .filter(subdomain -> domainId.equals(subdomain.parent()) && subdomain.includes(siteKey)).toList());
+                .filter(subdomain -> domainId.equals(subdomain.parent()) && isOn(subdomain.id())).toList());
+    }
+
+    /** Every subdomain of a domain, on or off for the site, by order and then by id. */
+    public List<Domain> allSubdomainsOf(String domainId) {
+        return sorted(subdomains.values().stream().filter(subdomain -> domainId.equals(subdomain.parent())).toList());
     }
 
     private static List<Domain> sorted(List<Domain> list) {
         return list.stream().sorted(Comparator.comparingInt(Domain::order).thenComparing(Domain::id)).toList();
+    }
+
+    /**
+     * True when the domain or the subdomain of this id is on for the site: the layout does not switch it off, and
+     * the layout places it or its {@code sites} include the site. A subdomain needs its domain on too.
+     */
+    public boolean isOn(String id) {
+        Domain item = domains.containsKey(id) ? domains.get(id) : subdomains.get(id);
+        if (item == null || layout.isOff(id) || !(layout.places(id) || item.includes(siteKey))) {
+            return false;
+        }
+        return item.parent() == null || isOn(item.parent());
+    }
+
+    /** True when the site saved a layout that does not name this id: a module shipped it after the save. */
+    public boolean isNew(String id) {
+        return layout.isNew(id);
     }
 
     /** True when a subdomain of this id is declared, under a declared domain, on any site. */
@@ -197,11 +249,20 @@ public final class ContentDomains {
         return subdomain != null && domains.containsKey(subdomain.parent());
     }
 
-    /** True when the subdomain and its domain apply to the site: a finding of the subdomain then has a place. */
+    /** True when the subdomain and its domain are on for the site: a finding of the subdomain then has a place. */
     public boolean places(String subdomainId) {
+        return known(subdomainId) && isOn(subdomainId);
+    }
+
+    /** The domain of a subdomain on the site, or null for an unknown subdomain. */
+    public String domainOf(String subdomainId) {
         Domain subdomain = subdomains.get(subdomainId);
-        Domain domain = subdomain == null ? null : domains.get(subdomain.parent());
-        return domain != null && subdomain.includes(siteKey) && domain.includes(siteKey);
+        return subdomain == null ? null : subdomain.parent();
+    }
+
+    /** The layout of the site. */
+    public SiteLayout layout() {
+        return layout;
     }
 
     /** The key of the site, or null for the shipped hierarchy. */

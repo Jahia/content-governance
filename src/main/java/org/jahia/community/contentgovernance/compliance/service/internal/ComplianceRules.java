@@ -137,7 +137,7 @@ record ComplianceRules(ContentRules site, Set<String> ids, boolean applies, List
      * @param subdomains the subdomains of Compliance on the site, as {@link #subdomains} gives them
      */
     static boolean inCompliance(ContentRule rule, Set<String> subdomains) {
-        return rule.subdomains().stream().anyMatch(subdomains::contains);
+        return rule.subdomain() != null && subdomains.contains(rule.subdomain());
     }
 
     /**

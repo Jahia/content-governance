@@ -2,7 +2,7 @@
 id: seo.metaDescription
 evaluator: threshold
 checkType: CODE
-subdomains: [seo, geo.score]
+subdomain: seo
 severity: serious
 fixer: editor
 unit: characters

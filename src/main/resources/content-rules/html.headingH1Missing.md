@@ -2,7 +2,7 @@
 id: html.headingH1Missing
 evaluator: html.headingH1Missing
 checkType: CODE
-subdomains: [accessibility, geo.score]
+subdomain: accessibility
 severity: moderate
 fixer: editor
 label:

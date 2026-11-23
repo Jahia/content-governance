@@ -2,7 +2,7 @@
 id: geo.dateModified
 evaluator: geo.dateModified
 checkType: CODE
-subdomains: [geo.content]
+subdomain: geo.content
 severity: minor
 fixer: developer
 label:

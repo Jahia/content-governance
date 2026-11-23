@@ -29,7 +29,7 @@ const frame = () => {
 };
 
 /** A rule of the browser of another module, such as the contrast of the brand colors. */
-const brand = {id: 'acme.brandContrast', evaluator: 'acme.contrast', runtime: 'browser', subdomains: ['accessibility'], severity: 'serious',
+const brand = {id: 'acme.brandContrast', evaluator: 'acme.contrast', runtime: 'browser', subdomain: 'accessibility', severity: 'serious',
     label: 'Contrast of the brand colors', title: [{form: 'one', text: '{{count}} element uses {{color}} on white'},
         {form: 'other', text: '{{count}} elements use {{color}} on white'}]};
 
@@ -130,7 +130,7 @@ describe('runChecks', () => {
     });
 
     it('runs no check of a tab that the site switched off, and the web vitals while one of their two tabs is on', async () => {
-        const vitals = {id: 'ecodesign.webVitals', evaluator: 'webVitals', runtime: 'browser', subdomains: ['ecodesign'], severity: 'minor'};
+        const vitals = {id: 'ecodesign.webVitals', evaluator: 'webVitals', runtime: 'browser', subdomain: 'ecodesign', severity: 'minor'};
         const rules = ruleBook([brand, vitals]);
         const run = vi.fn(async ({rules: given}) => given.map(rule => ({ruleId: rule.id, passed: true})));
         const checks = [{key: 'acme', evaluator: 'acme.contrast', run}, {key: 'webVitals', evaluator: 'webVitals', run}];

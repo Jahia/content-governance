@@ -53,10 +53,10 @@ const NO_TAGS = {title: {text: null, length: 0}, description: {text: null, lengt
 
 /**
  * The Page quality tab of each subdomain of rules (Jahia/content-governance#151). No list names the tab of a
- * rule: a finding goes to the tab of the first subdomain of its rule that has one, built-in or of another
- * module. A rule of the subdomains of SEO & GEO (but `seo`) or of Compliance (but `readability` and
- * `writing`) shows in its own section, and a rule of unknown subdomains never runs. A later issue builds
- * the tabs from the hierarchy that `contentDomains` gives.
+ * rule: a finding goes to the tab of the subdomain of its rule on the site. A rule of a subdomain of SEO & GEO
+ * (but `seo`) or of Compliance (but `readability` and `writing`) shows in its own section, and a rule of an
+ * unknown subdomain never runs. Jahia/content-governance#167 builds the tabs from the hierarchy that
+ * `contentDomains` gives.
  */
 export const DOMAIN_TABS = {
     accessibility: 'accessibility',
@@ -71,12 +71,12 @@ export const DOMAIN_TABS = {
 /**
  * The tab that shows the findings of a rule.
  *
- * @param {object} [rule] the rule of the site, whose `subdomains` name its tabs
+ * @param {object} [rule] the rule of the site, whose `subdomain` names its tab
  * @returns {?string} `accessibility`, `seo`, `readability`, `links`, `jahia` or `ecodesign`, or null for a
  *     rule that no Page quality tab shows
  */
 export function tabOf(rule) {
-    return (rule?.subdomains || []).map(subdomain => DOMAIN_TABS[subdomain]).find(Boolean) || null;
+    return DOMAIN_TABS[rule?.subdomain] || null;
 }
 
 /**
@@ -108,7 +108,7 @@ export function recommendationsByTab(findings, rules) {
         const rule = rules.find(ruleId);
         const tab = tabOf(rule);
         if (!tab) {
-            console.warn(`[content-governance] the rule ${ruleId} has the subdomains ${rule?.subdomains}, which no Page quality tab shows`);
+            console.warn(`[content-governance] the rule ${ruleId} has the subdomain ${rule?.subdomain}, which no Page quality tab shows`);
             return;
         }
         const params = {...(rule ? limits(rule) : {}), count: items.length, value: items[0].text};

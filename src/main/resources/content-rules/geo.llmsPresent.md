@@ -2,7 +2,7 @@
 id: geo.llmsPresent
 evaluator: geo.llmsPresent
 checkType: CODE
-subdomains: [geo.files]
+subdomain: geo.files
 severity: minor
 fixer: administrator
 label:

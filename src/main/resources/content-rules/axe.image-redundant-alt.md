@@ -3,7 +3,7 @@ id: axe.image-redundant-alt
 evaluator: axe
 checkType: CODE
 runtime: browser
-subdomains: [accessibility]
+subdomain: accessibility
 severity: minor
 fixer: editor
 ---

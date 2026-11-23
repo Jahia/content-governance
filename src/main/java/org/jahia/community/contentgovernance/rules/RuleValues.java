@@ -68,10 +68,11 @@ public final class RuleValues {
     /** Internationalized on the node: a neutral name of what the rule checks, such as "Title length". */
     public static final String LABEL = "label";
     /**
-     * The ids of the subdomains of the rule, such as {@code seo} and {@code geo.score}: the findings of the
-     * rule show in each. A subdomain belongs to a domain, a main tab of the drawer.
+     * The id of the subdomain of the rule, such as {@code seo}: the findings of the rule show in it. A
+     * subdomain belongs to a domain, a main tab of the drawer. On a rule node of the tree in
+     * {@code systemsite}, the parent node gives the subdomain, and the property is not set.
      */
-    public static final String SUBDOMAINS = "subdomains";
+    public static final String SUBDOMAIN = "subdomain";
     /** The keys of the sites that the rule applies to, or {@value #ALL_SITES} for all sites. */
     public static final String SITES = "sites";
     /** The value of {@value #SITES} for all sites, which a list of sites shows as "All sites". */
@@ -84,16 +85,17 @@ public final class RuleValues {
 
     /**
      * Every property that a rule file sets, in the order of the digest. 2.0.0 changed the order: it removed
-     * {@code domain} and put {@value #SUBDOMAINS} and {@value #SITES} before {@value #RUNTIME}, and
+     * {@code domain} and put {@value #SUBDOMAIN} and {@value #SITES} before {@value #RUNTIME}, and
      * {@link LegacyDomains#KEYS_1} reads the fingerprints of before. A key added after 2.0.0 goes last, so
-     * that the digest of a rule without it stays the same. An absent key adds nothing to the digest, so
+     * that the digest of a rule without it stays the same. The digest holds the subdomain, so that the seeder
+     * tells a rule that an administrator moved to another subdomain. An absent key adds nothing to the digest, so
      * {@link LegacyCheckTypes} compares a node that has no {@value #CHECK_TYPE} yet with the fingerprint that its
      * seeder kept.
      */
     public static final List<String> KEYS = List.of(RULE_ID, EVALUATOR, ENABLED, SEVERITY, BLOCKING, FIXER,
             ADVICE, UNIT, MINIMUM, MAXIMUM, KIND, PATTERN, MATCH_MODE, REPLACEMENT, RULE_LANGUAGE, WRONG_EXAMPLES,
             RIGHT_EXAMPLES, OWNER, DECIDED_ON, VALID_FROM, VALID_UNTIL, PATTERN_FORMS, REPLACEMENT_FORMS,
-            PATTERN_LANGUAGE, TITLE, LABEL, SUBDOMAINS, SITES, RUNTIME, CHECK_TYPE);
+            PATTERN_LANGUAGE, TITLE, LABEL, SUBDOMAIN, SITES, RUNTIME, CHECK_TYPE);
     /** The texts that a rule holds in each language. */
     public static final List<String> TRANSLATABLE = List.of(TITLE, LABEL, ADVICE);
     /** The plural forms of a title, as {@code Intl.PluralRules} and CLDR name them. */
@@ -101,7 +103,7 @@ public final class RuleValues {
     public static final List<String> BOOLEANS = List.of(ENABLED, BLOCKING);
     public static final List<String> NUMBERS = List.of(MINIMUM, MAXIMUM);
     public static final List<String> LISTS = List.of(WRONG_EXAMPLES, RIGHT_EXAMPLES, PATTERN_FORMS, REPLACEMENT_FORMS,
-            SUBDOMAINS, SITES);
+            SITES);
     public static final List<String> DAYS = List.of(DECIDED_ON, VALID_FROM, VALID_UNTIL);
 
     private static final String DEFAULT_FIXER = "editor";
@@ -117,8 +119,8 @@ public final class RuleValues {
 
     /**
      * The values with the defaults of the node type: on, not blocking, fixed by an editor, for all sites. A
-     * node that holds a default and a file that leaves it out have the same values. The subdomains of a rule
-     * that names none depend on the subdomains of the site, so {@link ContentRules} gives them.
+     * node that holds a default and a file that leaves it out have the same values. The subdomain of a rule
+     * that names none depends on the subdomains of the site, so {@link ContentRules} gives it.
      */
     static Map<String, Object> withDefaults(Map<String, Object> values) {
         Map<String, Object> out = new HashMap<>(values);
@@ -258,11 +260,11 @@ public final class RuleValues {
         String severity = string(all, SEVERITY);
         String fixer = string(all, FIXER);
         String evaluator = string(all, EVALUATOR);
-        return new ContentRule(id, strings(all, SUBDOMAINS), evaluator == null ? ContentRule.PATTERN : evaluator,
+        return new ContentRule(id, string(all, SUBDOMAIN), evaluator == null ? ContentRule.PATTERN : evaluator,
                 severity != null && ContentRule.SEVERITIES.contains(severity) ? severity : "moderate",
                 Boolean.TRUE.equals(all.get(BLOCKING)), Boolean.TRUE.equals(all.get(ENABLED)),
                 ContentRule.FIXERS.contains(fixer) ? fixer : DEFAULT_FIXER, string(all, ADVICE), string(all, UNIT),
-                (Double) all.get(MINIMUM), (Double) all.get(MAXIMUM), all, null, false);
+                (Double) all.get(MINIMUM), (Double) all.get(MAXIMUM), all, null, false, Integer.MAX_VALUE);
     }
 
     /** The items of a list value, or an empty list. */

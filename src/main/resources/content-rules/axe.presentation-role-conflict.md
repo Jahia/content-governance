@@ -3,7 +3,7 @@ id: axe.presentation-role-conflict
 evaluator: axe
 checkType: CODE
 runtime: browser
-subdomains: [accessibility]
+subdomain: accessibility
 severity: minor
 fixer: developer
 ---

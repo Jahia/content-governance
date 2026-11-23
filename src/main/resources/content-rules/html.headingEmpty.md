@@ -2,7 +2,7 @@
 id: html.headingEmpty
 evaluator: html.headingEmpty
 checkType: CODE
-subdomains: [accessibility]
+subdomain: accessibility
 severity: minor
 fixer: editor
 label:

@@ -7,7 +7,7 @@ export const CONTENT_RULES = gql`
         contentGovernance {
             contentRules(siteKey: $siteKey, language: $language) {
                 id
-                subdomains
+                subdomain
                 evaluator
                 runtime
                 title {

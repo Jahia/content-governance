@@ -21,7 +21,8 @@ import java.util.TreeMap;
  * Reads and writes the {@link RuleValues} of a {@value ContentRules#TYPE} node. The session of the node
  * has the English locale, so that the internationalized advice is its English value. A key of a
  * {@link CheckType} is on the mixin of that kind, so a write puts the mixin of the check type of the values
- * on the node first.
+ * on the node first. A rule node under a subdomain node of the tree takes its subdomain from that parent, so the
+ * read gives the subdomain of the parent and the write leaves the property out.
  */
 final class RuleNodes {
 
@@ -33,10 +34,15 @@ final class RuleNodes {
     private RuleNodes() {
     }
 
-    /** The values that the node holds. */
+    /** The values that the node holds, with the subdomain of its parent node in the tree. */
     static Map<String, Object> read(JCRNodeWrapper node) throws RepositoryException {
         Map<String, Object> values = new LinkedHashMap<>();
+        String parentSubdomain = parentSubdomain(node);
         for (String key : RuleValues.KEYS) {
+            if (RuleValues.SUBDOMAIN.equals(key) && parentSubdomain != null) {
+                values.put(key, parentSubdomain);
+                continue;
+            }
             if (!node.hasProperty(key)) {
                 continue;
             }
@@ -56,6 +62,14 @@ final class RuleNodes {
             values.put(RuleValues.TRANSLATIONS, translations);
         }
         return values;
+    }
+
+    /** The id of the subdomain node that holds the rule node, or null for a rule node outside the tree. */
+    static String parentSubdomain(JCRNodeWrapper node) throws RepositoryException {
+        JCRNodeWrapper parent = node.getParent();
+        String property = DomainValues.Level.SUBDOMAIN.idProperty();
+        return parent.isNodeType(ContentDomains.SUBDOMAIN_TYPE) && parent.hasProperty(property)
+                ? parent.getProperty(property).getString() : null;
     }
 
     /**
@@ -143,7 +157,11 @@ final class RuleNodes {
         if (type != null) {
             mixIn(node, type);
         }
+        boolean inTree = parentSubdomain(node) != null;
         for (String key : RuleValues.KEYS) {
+            if (inTree && RuleValues.SUBDOMAIN.equals(key)) {
+                continue;
+            }
             Object value = values.get(key);
             if (value != null) {
                 set(node, key, value);
@@ -173,7 +191,8 @@ final class RuleNodes {
         for (Map.Entry<String, Object> entry : values.entrySet()) {
             String key = entry.getKey();
             // The translations of a shipped rule stay in its file: the rule reads them from there.
-            if (RuleValues.KEYS.contains(key) && !present.containsKey(key) && CheckType.holds(type, key)) {
+            if (RuleValues.KEYS.contains(key) && !present.containsKey(key) && CheckType.holds(type, key)
+                    && !RuleValues.SUBDOMAIN.equals(key)) {
                 set(node, key, entry.getValue());
                 wrote = true;
             }

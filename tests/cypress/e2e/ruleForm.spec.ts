@@ -1,4 +1,4 @@
-import {addNodeTree, asRoot, createTestSite, deleteTestSite, gqlOk, nodeExists} from '../support/cg';
+import {addNodeTree, asRoot, createTestSite, deleteTestSite, gqlOk} from '../support/cg';
 
 type CheckType = 'PATTERN' | 'AI' | 'CODE';
 
@@ -14,23 +14,13 @@ const EDITOR = '[aria-labelledby="dialog-content-editor"]';
 
 /**
  * The form of a content rule in jContent shows the fields of its check type only: each check type keeps
- * its fields on a mixin of jmix:dynamicFieldset, which the choice of the check type adds.
+ * its fields on a mixin of jmix:dynamicFieldset, which the choice of the check type adds. The rules are rules
+ * of the site: a seeded rule lives in the tree of the system site, which every site reads, so a test leaves it
+ * as it is.
  */
 describe('Content Governance - the form of a content rule', () => {
     const siteKey = 'cg-rule-form';
-    const insights = `/sites/${siteKey}/contents/content-insights`;
-
-    /** The seeder runs on the event that enabling the module sends, so it may finish after the site does. */
-    const waitForSeed = (attempts = 20): void => {
-        nodeExists(`${insights}/content-governance/rules/seo.title`).then(exists => {
-            if (!exists && attempts > 0) {
-                cy.wait(500);
-                waitForSeed(attempts - 1);
-            } else {
-                expect(exists, 'the module seeded its rules').to.eq(true);
-            }
-        });
-    };
+    const folder = `/sites/${siteKey}/contents/brand-rules`;
 
     /**
      * Opens the editor of a node in jContent, as a link to the node in edit does, or the form that creates a
@@ -61,31 +51,39 @@ describe('Content Governance - the form of a content rule', () => {
 
     before(() => {
         createTestSite(siteKey);
-        waitForSeed();
-        addNodeTree(insights, {
-            name: 'site', type: 'jnt:contentFolder', children: [{
-                name: 'rules', primaryNodeType: 'jnt:contentFolder', children: [{
-                    name: 'acme-mail', primaryNodeType: 'ccs:contentRule', mixins: ['ccsmix:patternCheck'], properties: [
-                        {name: 'ruleId', value: 'acme.mail'},
-                        {name: 'checkType', value: 'PATTERN'},
-                        {name: 'evaluator', value: 'pattern'},
-                        {name: 'subdomains', values: ['writing']},
-                        {name: 'kind', value: 'replace'},
-                        {name: 'pattern', value: 'mail'},
-                        {name: 'matchMode', value: 'term'},
-                        {name: 'replacement', value: 'e-mail'},
-                        {name: 'advice', value: 'Write e-mail.', language: 'en'}
-                    ]
-                }, {
-                    name: 'acme-tone', primaryNodeType: 'ccs:contentRule', mixins: ['ccsmix:aiCheck'], properties: [
-                        {name: 'ruleId', value: 'acme.tone'},
-                        {name: 'checkType', value: 'AI'},
-                        {name: 'evaluator', value: 'model'},
-                        {name: 'subdomains', values: ['writing']},
-                        {name: 'minimum', value: '80'},
-                        {name: 'advice', value: 'Write in a friendly tone.', language: 'en'}
-                    ]
-                }]
+        addNodeTree(`/sites/${siteKey}/contents`, {
+            name: 'brand-rules', type: 'jnt:contentFolder', children: [{
+                name: 'acme-length', primaryNodeType: 'ccs:contentRule', mixins: ['ccsmix:codeCheck'], properties: [
+                    {name: 'ruleId', value: 'acme.length'},
+                    {name: 'checkType', value: 'CODE'},
+                    {name: 'evaluator', value: 'threshold'},
+                    {name: 'subdomain', value: 'seo'},
+                    {name: 'unit', value: 'characters'},
+                    {name: 'minimum', value: '30'},
+                    {name: 'maximum', value: '60'},
+                    {name: 'advice', value: 'Keep the title short.', language: 'en'}
+                ]
+            }, {
+                name: 'acme-mail', primaryNodeType: 'ccs:contentRule', mixins: ['ccsmix:patternCheck'], properties: [
+                    {name: 'ruleId', value: 'acme.mail'},
+                    {name: 'checkType', value: 'PATTERN'},
+                    {name: 'evaluator', value: 'pattern'},
+                    {name: 'subdomain', value: 'writing'},
+                    {name: 'kind', value: 'replace'},
+                    {name: 'pattern', value: 'mail'},
+                    {name: 'matchMode', value: 'term'},
+                    {name: 'replacement', value: 'e-mail'},
+                    {name: 'advice', value: 'Write e-mail.', language: 'en'}
+                ]
+            }, {
+                name: 'acme-tone', primaryNodeType: 'ccs:contentRule', mixins: ['ccsmix:aiCheck'], properties: [
+                    {name: 'ruleId', value: 'acme.tone'},
+                    {name: 'checkType', value: 'AI'},
+                    {name: 'evaluator', value: 'model'},
+                    {name: 'subdomain', value: 'writing'},
+                    {name: 'minimum', value: '80'},
+                    {name: 'advice', value: 'Write in a friendly tone.', language: 'en'}
+                ]
             }]
         });
     });
@@ -93,12 +91,12 @@ describe('Content Governance - the form of a content rule', () => {
     after(() => deleteTestSite(siteKey));
 
     ([
-        ['CODE', 'content-governance/rules/seo.title'],
-        ['PATTERN', 'site/rules/acme-mail'],
-        ['AI', 'site/rules/acme-tone']
-    ] as [CheckType, string][]).forEach(([type, path]) => {
+        ['CODE', 'acme-length'],
+        ['PATTERN', 'acme-mail'],
+        ['AI', 'acme-tone']
+    ] as [CheckType, string][]).forEach(([type, name]) => {
         it(`shows the fields of the check type ${type} only`, () => {
-            openEditor(`${insights}/${path}`);
+            openEditor(`${folder}/${name}`);
             cy.get(EDITOR).find(`[data-sel-content-editor-field="${CHECK_TYPE}"] .moonstone-dropdown`).should('contain.text',
                 {PATTERN: 'Pattern', AI: 'AI', CODE: 'Code'}[type]);
             assertFieldsOf(type);
@@ -110,14 +108,14 @@ describe('Content Governance - the form of a content rule', () => {
     });
 
     it('creates a rule of the check type PATTERN by default, with its mixin', () => {
-        openEditor(`${insights}/site/rules`, 'create');
+        openEditor(folder, 'create');
         assertFieldsOf('PATTERN');
         cy.get(EDITOR).find('[data-sel-content-editor-field="ccs:contentRule_ruleId"] input').type('acme.new');
         cy.get(EDITOR).find('[data-sel-content-editor-field="ccsmix:patternCheck_pattern"] input').type('synergy');
         cy.get('[data-sel-role="createButton"]').click();
         cy.get('[role="alertdialog"]').should('contain', 'Content successfully created');
 
-        gqlOk(asRoot(), `{ jcr { nodeByPath(path: "${insights}/site/rules/acme-new") { mixinTypes { name }
+        gqlOk(asRoot(), `{ jcr { nodeByPath(path: "${folder}/acme-new") { mixinTypes { name }
             properties(names: ["checkType", "pattern"]) { name value } } } }`).then(data => {
             const node = data.jcr.nodeByPath;
             const values = Object.fromEntries(node.properties.map((p: {name: string; value: string}) => [p.name, p.value]));
@@ -127,7 +125,7 @@ describe('Content Governance - the form of a content rule', () => {
     });
 
     it('shows the fields of another check type when the editor picks it, and saves the rule with its mixin', () => {
-        const path = `${insights}/content-governance/rules/seo.title`;
+        const path = `${folder}/acme-length`;
         openEditor(path);
         assertFieldsOf('CODE');
 
