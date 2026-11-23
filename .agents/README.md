@@ -21,10 +21,10 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 | `src/javascript/geo/` | GEO readiness section (`GeoSection`), its tabs, the GEO dashboard, the BotRank screen |
 | `src/javascript/compliance/` | Compliance section and the compliance dashboard |
 | `src/javascript/settings/` | Site Settings > Content governance: Features, BotRank |
-| `src/javascript/common/` | i18n hook, settings query and hook, `SectionGate`, URL helper |
+| `src/javascript/common/` | i18n hook, settings query and hook, the hook of what the drawer shows (`useDrawerDisplay`), `SectionGate`, URL helper |
 | `src/main/java/.../geo/spi/` | `GeoReportWriter` (exported, `1.0.0`), which another module implements to write the report of the GEO dashboard. Its contract is in `docs/geo-readiness/architecture.md`, "The GEO report writer" |
-| `src/main/java/.../settings/` | `Features` (section and tab ids) and `SiteFeatures` (the server-side gate) |
-| `src/main/java/.../graphql/` | `contentGovernance { siteSettings }`, `saveSiteSettings`, `complianceScan` |
+| `src/main/java/.../settings/` | `Features` (section and tab ids), `SiteFeatures` (the server-side gate) and `DrawerDisplay` (what the drawer shows to every editor of the server, from `org.jahia.community.contentgovernance.drawer.cfg`) |
+| `src/main/java/.../graphql/` | `contentGovernance { siteSettings, drawerDisplay }`, `saveSiteSettings`, `complianceScan` |
 | `src/main/java/.../{audit,geo,compliance}/` | Each section's server side, as in the original modules |
 | `src/main/resources/ccs_glossaryTerm/html/` | The glossary term's default view, which jContent's Preview shows |
 | `src/main/java/org/jahia/pm/modules/editorialframe/` | The editorial frame, moved from the module editorial-frame (1.12.0): the exported `api`, the service, the checkers of the writing rules and the glossary, and the tool `frame.check` for AI agents |

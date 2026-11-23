@@ -16,6 +16,7 @@ import org.jahia.community.contentgovernance.html.HtmlCheck;
 import org.jahia.community.contentgovernance.html.rules.Scope;
 import org.jahia.community.contentgovernance.rules.ContentDomains;
 import org.jahia.community.contentgovernance.rules.ContentRules;
+import org.jahia.community.contentgovernance.settings.DrawerDisplay;
 import org.jahia.community.contentgovernance.util.Locales;
 import org.jahia.modules.graphql.provider.dxm.DataFetchingException;
 import org.jahia.modules.graphql.provider.dxm.osgi.annotations.GraphQLOsgiService;
@@ -59,6 +60,27 @@ public class GqlContentGovernance {
     @Inject
     @GraphQLOsgiService
     private HtmlCheck pages;
+
+    // graphql-java-annotations injects OSGi services into fields only (@GraphQLOsgiService)
+    @SuppressWarnings("java:S6813")
+    @Inject
+    @GraphQLOsgiService
+    private DrawerDisplay display;
+
+    /**
+     * What the drawer shows to every editor of the server, as the cfg of the module sets it. Any
+     * signed-in user may ask: the drawer of every editor needs it.
+     *
+     * @return the elements that the cfg shows
+     */
+    @GraphQLField
+    @GraphQLName("drawerDisplay")
+    @GraphQLNonNull
+    @GraphQLDescription("The elements of the drawer that the server shows to every editor")
+    public GqlDrawerDisplay drawerDisplay() {
+        SiteAccess.signedIn();
+        return new GqlDrawerDisplay(display.shown());
+    }
 
     /**
      * What a site uses of the module, as the drawer and the settings screen read it. Any signed-in

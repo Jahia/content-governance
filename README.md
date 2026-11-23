@@ -16,7 +16,8 @@ Page quality and GEO readiness, each check is a collapsible section with its cou
 a section with a critical or serious finding opens on its own, the others stay closed. Every tab and
 every section has a tooltip saying what it is for, and why it is greyed out when it cannot be used.
 Under the tabs, **Fix first** lists up to five critical or serious findings, whatever their tab, each
-opening the section that explains it; it stays out of the way when there is none.
+opening the section that explains it; it stays out of the way when there is none. A server
+administrator shows it in `org.jahia.community.contentgovernance.drawer.cfg`: it is hidden by default.
 
 | Section | What it answers | Where it runs |
 |---|---|---|
@@ -208,6 +209,17 @@ keeps it. Copy its `AI_PROMPT_APPENDIX` value into `review.instructions` of
 | `CRAWLER_AGENTS` | empty (built-in list) | `name\|user-agent` pairs, comma separated |
 | `PUBLIC_BASE_URL` | empty | Force the public base URL when the site's server name does not resolve from the server |
 
+### `org.jahia.community.contentgovernance.drawer.cfg`: what the drawer shows
+
+The same for every site of the server. Editors see a change the next time they open the drawer.
+
+| Key | Default | What |
+|---|---|---|
+| `SHOW_FIX_FIRST` | `false` | Shows **Fix first** under the tab bar of the drawer |
+| `SHOW_PREVIEW_BUTTON` | `false` | Shows the **Show preview** button of Page quality. Hidden, the preview keeps its own behaviour: hidden beside Page Builder, shown elsewhere, opened to show an item located in it |
+
+For example, `SHOW_FIX_FIRST=true` gives every editor the list of the critical findings of the page.
+
 ### `org.jahia.se.modules.georeadiness.botrank-<id>.cfg`: one per BotRank organisation
 
 The name GEO Readiness used, so existing files keep working. No file ships with the module: a file
@@ -267,6 +279,7 @@ query {
     siteSettings(siteKey: "mysite") {
       moduleEnabled canEdit disabled
     }
+    drawerDisplay { fixFirst previewButton }
   }
 }
 

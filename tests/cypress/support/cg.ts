@@ -124,6 +124,20 @@ export function switchOff(siteKey: string, disabled: string[]): void {
 }
 
 /**
+ * Shows or hides "Fix first" and the "Show preview" button of Page quality for every editor of the
+ * server, through the cfg of the module (org.jahia.community.contentgovernance.drawer.cfg). Both are
+ * hidden until a spec shows them. Editors see a change the next time they open the drawer.
+ */
+export function setDrawerDisplay(display: {fixFirst: boolean; previewButton: boolean}): void {
+    // A step with nested properties goes as file content: the script type takes flat strings only
+    const script = [{
+        editConfiguration: 'org.jahia.community.contentgovernance.drawer',
+        properties: {SHOW_FIX_FIRST: String(display.fixFirst), SHOW_PREVIEW_BUTTON: String(display.previewButton)}
+    }];
+    cy.runProvisioningScript({script: {fileContent: JSON.stringify(script), type: 'application/json'}});
+}
+
+/**
  * Creates a node and its children as root, and fails on any GraphQL error (the @jahia/cypress
  * `addNode` helper resolves even when the mutation is refused).
  */

@@ -7,11 +7,30 @@ import {
     createTestSite,
     createTestUser,
     deleteTestSite,
+    gqlOk,
     readSettings,
-    saveSettings
+    saveSettings,
+    setDrawerDisplay
 } from '../support/cg';
 
 const SAVE_PATH = ['contentGovernance', 'saveSiteSettings'];
+const DRAWER_DISPLAY = '{ contentGovernance { drawerDisplay { fixFirst previewButton } } }';
+
+/**
+ * Reads drawerDisplay as `user` until it gives `expected`: Config Admin hands a cfg change to the
+ * module a moment after the provisioning API answers.
+ */
+function expectDrawerDisplay(user: TestUser, expected: {fixFirst: boolean; previewButton: boolean}, tries = 10): void {
+    gqlOk(user, DRAWER_DISPLAY).then(data => {
+        const display = data.contentGovernance.drawerDisplay;
+        if (tries > 1 && JSON.stringify(display) !== JSON.stringify(expected)) {
+            cy.wait(500);
+            expectDrawerDisplay(user, expected, tries - 1);
+        } else {
+            expect(display, 'what the drawer shows').to.deep.eq(expected);
+        }
+    });
+}
 
 /**
  * Per-site switches: any user who can read the site reads them (every editor's drawer does), only a
@@ -82,6 +101,15 @@ describe('Content Governance - site settings', () => {
             expect(settings.canEdit).to.eq(false);
         });
         saveSettings(asRoot(), plainSiteKey, ['geo']).then(body => assertRefused(body, SAVE_PATH));
+    });
+
+    it('gives any signed-in user what the cfg of the server shows in the drawer', () => {
+        setDrawerDisplay({fixFirst: true, previewButton: false});
+        expectDrawerDisplay(outsider, {fixFirst: true, previewButton: false});
+        setDrawerDisplay({fixFirst: false, previewButton: true});
+        expectDrawerDisplay(outsider, {fixFirst: false, previewButton: true});
+        setDrawerDisplay({fixFirst: false, previewButton: false});
+        expectDrawerDisplay(outsider, {fixFirst: false, previewButton: false});
     });
 
     it('refuses a malformed site key without reading the repository', () => {

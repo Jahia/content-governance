@@ -1,6 +1,7 @@
 import {deleteUser} from '@jahia/cypress';
 import {
-    FramePageFinding, TestUser, addPageText, asRoot, createTestSite, createTestUser, deleteTestSite, framePageCheck, gqlOk
+    FramePageFinding, TestUser, addPageText, asRoot, createTestSite, createTestUser, deleteTestSite, framePageCheck, gqlOk,
+    setDrawerDisplay
 } from '../support/cg';
 
 const BUTTON = 'Content governance';
@@ -90,13 +91,34 @@ describe('Content Governance - Page quality audit', () => {
         // (jcontent 3.7): only that error is ignored, any error of the module still fails the test.
         cy.on('uncaught:exception', error => !(error.message.includes('offsetWidth')
             && String(error.stack).includes('/modules/jcontent/')));
+        // The cfg of the server hides both until it shows them; one test hides them again
+        setDrawerDisplay({fixFirst: true, previewButton: true});
     });
 
     afterEach(() => cy.logout());
 
     after(() => {
+        setDrawerDisplay({fixFirst: false, previewButton: false});
         deleteUser(admin.username);
         deleteTestSite(siteKey);
+    });
+
+    it('hides "Fix first" and the "Show preview" button where the cfg of the server hides them', () => {
+        cy.intercept('GET', `**/cms/render/default/en/sites/${siteKey}/home.html?pageAuditRun=*`, req => {
+            req.continue(res => {
+                res.body = String(res.body).replace('</body>', `${FIXTURE}</body>`);
+            });
+        });
+        setDrawerDisplay({fixFirst: false, previewButton: false});
+        cy.login(admin.username, admin.password);
+        cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);
+        cy.contains('button', BUTTON, {timeout: 30000}).click();
+        freshAudit();
+        // The image without alt of the fixture is critical: "Fix first" would list it, and its tab turns red
+        cy.get(DRAWER).contains('a', /^image-alt$/, {timeout: 90000}).should('exist');
+        cy.get('#audit-tab-accessibility').find('.moonstone-badge').should('exist');
+        cy.get('section[aria-label="Fix first"]').should('not.exist');
+        cy.get(DRAWER).contains('button', /^(Show|Hide) preview$/).should('not.exist');
     });
 
     it('runs the axe-core version the module declares, and reports what it finds', () => {

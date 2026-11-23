@@ -3,3 +3,6 @@
 export const gql = (strings, ...values) => strings.reduce((query, part, i) => query + part + (values[i] ?? ''), '');
 
 export const useApolloClient = () => null;
+
+// No server: a query never answers, as while it loads
+export const useQuery = () => ({data: undefined, loading: true, error: undefined});
