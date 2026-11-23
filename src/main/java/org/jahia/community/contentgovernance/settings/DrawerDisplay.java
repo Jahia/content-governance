@@ -5,6 +5,7 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Modified;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * What the drawer shows to every editor of the server, beyond the switches of a site.
@@ -45,16 +46,16 @@ public class DrawerDisplay {
         }
     }
 
-    private volatile Shown shown = Shown.from(Map.of());
+    private final AtomicReference<Shown> shown = new AtomicReference<>(Shown.from(Map.of()));
 
     @Activate
     @Modified
     protected void activate(Map<String, Object> properties) {
-        shown = Shown.from(properties);
+        shown.set(Shown.from(properties));
     }
 
     /** @return the elements that the cfg shows, as it was last read */
     public Shown shown() {
-        return shown;
+        return shown.get();
     }
 }
