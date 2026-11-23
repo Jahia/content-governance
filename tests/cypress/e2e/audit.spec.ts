@@ -114,9 +114,9 @@ describe('Content Governance - Page quality audit', () => {
         cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
         freshAudit();
-        // The image without alt of the fixture is critical: "Fix first" would list it, and its tab turns red
+        // The image without alt of the fixture is critical: "Fix first" would list it, and its section turns red
         cy.get(DRAWER).contains('a', /^image-alt$/, {timeout: 90000}).should('exist');
-        cy.get('#audit-tab-accessibility').find('.moonstone-badge').should('exist');
+        cy.get('#audit-subdomain-accessibility').find('.moonstone-badge').should('exist');
         cy.get('section[aria-label="Fix first"]').should('not.exist');
         cy.get(DRAWER).contains('button', /^(Show|Hide) preview$/).should('not.exist');
     });
