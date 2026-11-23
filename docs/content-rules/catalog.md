@@ -300,8 +300,6 @@ A domain is a node of type `ccs:contentDomain`, and a subdomain a node of type
 | `counts` | The ids of the rules of other subdomains that a subdomain counts, such as the rules of the GEO score. |
 | `retired` | Set by the module on a node that an administrator changed and that its module no longer ships. |
 
-The parent node of a subdomain is its domain, and its place among its siblings is its order.
-
 ### How a module ships domains and subdomains
 
 A module ships them beside its rules, under the same manifest header. Each one is a Markdown file in

@@ -254,12 +254,6 @@ public final class ContentDomains {
         return known(subdomainId) && isOn(subdomainId);
     }
 
-    /** The domain of a subdomain on the site, or null for an unknown subdomain. */
-    public String domainOf(String subdomainId) {
-        Domain subdomain = subdomains.get(subdomainId);
-        return subdomain == null ? null : subdomain.parent();
-    }
-
     /** The layout of the site. */
     public SiteLayout layout() {
         return layout;

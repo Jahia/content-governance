@@ -4,7 +4,6 @@ import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRPropertyWrapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.InOrder;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -21,7 +20,6 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -61,8 +59,8 @@ class LegacyDomainsTest {
     }
 
     @Test
-    @DisplayName("the node declares any property for the removal of an undeclared one only, as the repository refuses it")
-    void remove_holdsTheResidualMixinForTheRemovalOnly() throws RepositoryException {
+    @DisplayName("the removal takes the property off a node that holds it, and leaves a node without it as it is")
+    void remove_takesThePropertyOff() throws RepositoryException {
         Node node = mock(Node.class);
         Property domain = mock(Property.class);
         when(node.hasProperty(LegacyDomains.DOMAIN)).thenReturn(true);
@@ -70,22 +68,12 @@ class LegacyDomainsTest {
 
         LegacyDomains.remove(node, LegacyDomains.DOMAIN);
 
-        InOrder order = inOrder(node, domain);
-        order.verify(node).addMixin(LegacyDomains.UNSTRUCTURED);
-        order.verify(domain).remove();
-        order.verify(node).removeMixin(LegacyDomains.UNSTRUCTURED);
-
-        Node unstructured = mock(Node.class);
-        when(unstructured.isNodeType(LegacyDomains.UNSTRUCTURED)).thenReturn(true);
-        when(unstructured.hasProperty(LegacyDomains.SUBDOMAINS)).thenReturn(true);
-        when(unstructured.getProperty(LegacyDomains.SUBDOMAINS)).thenReturn(domain);
-        LegacyDomains.remove(unstructured, LegacyDomains.SUBDOMAINS);
-        verify(unstructured, never()).removeMixin(LegacyDomains.UNSTRUCTURED);
+        verify(domain).remove();
 
         // A node without the property is left as it is
         Node without = mock(Node.class);
         LegacyDomains.remove(without, LegacyDomains.SUBDOMAINS);
-        verify(without, never()).addMixin(anyString());
+        verify(without, never()).getProperty(anyString());
     }
 
     @Test

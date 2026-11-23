@@ -91,8 +91,8 @@ class ContentDomainsTest {
         assertThat(luxe.known("lost")).as("its domain is not declared").isFalse();
         assertThat(luxe.known("acme.prices")).isFalse();
         assertThat(luxe.isOn("lost")).isFalse();
-        assertThat(luxe.domainOf("seo")).isEqualTo("quality");
-        assertThat(luxe.domainOf("acme.prices")).isNull();
+        assertThat(luxe.allSubdomainsOf("quality")).extracting(Domain::id).contains("seo");
+        assertThat(luxe.allDomains()).flatExtracting(domain -> luxe.allSubdomainsOf(domain.id())).extracting(Domain::id).doesNotContain("acme.prices");
     }
 
     @Test
@@ -162,13 +162,13 @@ class ContentDomainsTest {
 
         assertThat(moved.subdomainsOf("compliance")).extracting(Domain::id).containsExactly("seo", "legal");
         assertThat(moved.subdomainsOf("quality")).extracting(Domain::id).containsExactly("accessibility");
-        assertThat(moved.domainOf("seo")).isEqualTo("compliance");
+        assertThat(moved.allSubdomainsOf("compliance")).extracting(Domain::id).contains("seo");
         assertThat(moved.places("seo")).isTrue();
 
         ContentDomains nowhere = hierarchy("luxe", SiteLayout.parse("""
                 {"domains": [{"id": "acme", "subdomains": [{"id": "seo"}]}]}
                 """));
-        assertThat(nowhere.domainOf("seo")).isEqualTo("quality");
+        assertThat(nowhere.allSubdomainsOf("quality")).extracting(Domain::id).contains("seo");
         assertThat(nowhere.subdomainsOf("quality")).extracting(Domain::id).contains("seo");
     }
 

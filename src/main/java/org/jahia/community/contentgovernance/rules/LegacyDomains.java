@@ -146,22 +146,10 @@ final class LegacyDomains {
         return out;
     }
 
-    /**
-     * Removes a property that the node type no longer declares. The repository refuses to remove such a
-     * property, so the node holds {@value #UNSTRUCTURED}, whose residual definition declares any property, for
-     * the removal only.
-     */
+    /** Removes a property that the node type no longer declares, on a node that holds {@value #UNSTRUCTURED}. */
     static void remove(Node real, String property) throws RepositoryException {
-        if (!real.hasProperty(property)) {
-            return;
-        }
-        boolean added = !real.isNodeType(UNSTRUCTURED);
-        if (added) {
-            real.addMixin(UNSTRUCTURED);
-        }
-        real.getProperty(property).remove();
-        if (added) {
-            real.removeMixin(UNSTRUCTURED);
+        if (real.hasProperty(property)) {
+            real.getProperty(property).remove();
         }
     }
 
