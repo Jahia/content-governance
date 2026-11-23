@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.compliance.service.internal;
 
+import org.jahia.community.contentgovernance.rules.CheckType;
 import org.jahia.community.contentgovernance.rules.ContentRule;
 import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jahia.community.contentgovernance.rules.RuleValues;
@@ -176,8 +177,11 @@ public class GlossarySeeder extends DefaultEventListener {
         list.setProperty("jcr:description", text.getString("seed.glossary.description"));
         takesRules(list);
         JCRNodeWrapper rule = list.addNode("example-term", ContentRules.TYPE);
+        // The mixin of the check type declares the pattern and the other keys of a term.
+        rule.addMixin(CheckType.PATTERN.mixin());
         rule.setProperty(RuleValues.RULE_ID, "compliance.example-term");
         rule.setProperty(RuleValues.EVALUATOR, ContentRule.PATTERN);
+        rule.setProperty(RuleValues.CHECK_TYPE, CheckType.PATTERN.name());
         rule.setProperty(RuleValues.SUBDOMAINS, new String[]{ContentRules.TERMS});
         rule.setProperty(RuleValues.SEVERITY, "serious");
         rule.setProperty(RuleValues.KIND, "replace");

@@ -11,12 +11,14 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
+import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.query.Query;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -163,6 +165,7 @@ final class LegacyRules {
         Map<String, Object> values = new HashMap<>();
         values.put(RuleValues.RULE_ID, id);
         values.put(RuleValues.EVALUATOR, ContentRule.PATTERN);
+        values.put(RuleValues.CHECK_TYPE, CheckType.PATTERN.name());
         values.put(RuleValues.SUBDOMAINS, List.of(WRITING));
         values.put(RuleValues.SEVERITY, "style".equals(kind) ? "minor" : rank);
         values.put(RuleValues.BLOCKING, blocking);
@@ -174,8 +177,9 @@ final class LegacyRules {
     /**
      * Changes the type of one node. It works on the node of the repository, because the node of Jahia
      * refuses a change of type. The justification of each language becomes the advice of that language.
+     * The pattern and the other keys of a writing rule move to the mixin of the check type PATTERN.
      */
-    private static void convert(Node node, String id) throws RepositoryException {
+    static void convert(Node node, String id) throws RepositoryException {
         String kind = node.hasProperty(RuleValues.KIND) ? node.getProperty(RuleValues.KIND).getString() : null;
         String severity = node.hasProperty(SEVERITY) ? node.getProperty(SEVERITY).getString() : null;
         String plainJustification = node.hasProperty(JUSTIFICATION) ? node.getProperty(JUSTIFICATION).getString() : null;
@@ -185,10 +189,30 @@ final class LegacyRules {
                 node.getProperty(name).remove();
             }
         }
+        // The new type does not declare the keys of a writing rule, and its mixin would declare them twice
+        // beside the old type, so they wait aside while the type changes.
+        Map<String, Object> kept = new LinkedHashMap<>();
+        for (String name : CheckType.PATTERN.keys()) {
+            if (node.hasProperty(name)) {
+                Property property = node.getProperty(name);
+                kept.put(name, property.isMultiple() ? property.getValues() : property.getValue());
+                property.remove();
+            }
+        }
         node.setPrimaryType(ContentRules.TYPE);
+        node.addMixin(CheckType.PATTERN.mixin());
+        for (Map.Entry<String, Object> entry : kept.entrySet()) {
+            if (entry.getValue() instanceof Value[] items) {
+                node.setProperty(entry.getKey(), items);
+            } else {
+                node.setProperty(entry.getKey(), (Value) entry.getValue());
+            }
+        }
         for (Map.Entry<String, Object> entry : ruleOf(id, kind, severity).entrySet()) {
             if (entry.getValue() instanceof Boolean flag) {
                 node.setProperty(entry.getKey(), flag);
+            } else if (entry.getValue() instanceof List<?> list) {
+                node.setProperty(entry.getKey(), list.stream().map(String::valueOf).toArray(String[]::new));
             } else {
                 node.setProperty(entry.getKey(), entry.getValue().toString());
             }

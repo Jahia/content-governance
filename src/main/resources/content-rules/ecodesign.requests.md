@@ -1,6 +1,7 @@
 ---
 id: ecodesign.requests
 evaluator: ecodesign.requests
+checkType: CODE
 runtime: browser
 subdomains: [ecodesign]
 severity: moderate

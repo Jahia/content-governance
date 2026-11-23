@@ -1,6 +1,7 @@
 ---
 id: readability.headings
 evaluator: readability.headings
+checkType: CODE
 subdomains: [readability]
 severity: minor
 label:

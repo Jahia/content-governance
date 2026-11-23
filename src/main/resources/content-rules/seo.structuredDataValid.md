@@ -1,6 +1,7 @@
 ---
 id: seo.structuredDataValid
 evaluator: seo.structuredDataValid
+checkType: CODE
 subdomains: [seo, geo.score]
 severity: serious
 fixer: developer

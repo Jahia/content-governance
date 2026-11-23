@@ -1,6 +1,7 @@
 ---
 id: geo.contentInInitialHtml
 evaluator: threshold
+checkType: CODE
 subdomains: [geo.content]
 severity: critical
 fixer: developer

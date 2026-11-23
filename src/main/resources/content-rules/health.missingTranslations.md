@@ -1,6 +1,7 @@
 ---
 id: health.missingTranslations
 evaluator: health.missingTranslations
+checkType: CODE
 subdomains: [health]
 severity: serious
 fixer: editor

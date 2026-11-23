@@ -1,6 +1,7 @@
 ---
 id: ecodesign.heavyAssets
 evaluator: ecodesign.heavyAssets
+checkType: CODE
 runtime: browser
 subdomains: [ecodesign]
 severity: moderate

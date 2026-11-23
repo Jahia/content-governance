@@ -1,6 +1,7 @@
 ---
 id: seo.title
 evaluator: threshold
+checkType: CODE
 subdomains: [seo, geo.score]
 severity: serious
 fixer: editor

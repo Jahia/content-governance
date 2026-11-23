@@ -1,6 +1,7 @@
 ---
 id: html.tableHeaderMissing
 evaluator: html.tableHeaderMissing
+checkType: CODE
 subdomains: [accessibility]
 severity: moderate
 fixer: editor

@@ -1,6 +1,7 @@
 ---
 id: ecodesign.lazyLoading
 evaluator: ecodesign.lazyLoading
+checkType: CODE
 runtime: browser
 subdomains: [ecodesign]
 severity: moderate

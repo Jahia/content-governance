@@ -1,6 +1,7 @@
 ---
 id: links.broken
 evaluator: links.broken
+checkType: CODE
 subdomains: [links]
 severity: critical
 fixer: editor

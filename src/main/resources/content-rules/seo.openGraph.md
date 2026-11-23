@@ -1,6 +1,7 @@
 ---
 id: seo.openGraph
 evaluator: seo.openGraph
+checkType: CODE
 subdomains: [seo]
 severity: moderate
 fixer: editor

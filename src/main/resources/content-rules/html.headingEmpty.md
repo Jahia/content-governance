@@ -1,6 +1,7 @@
 ---
 id: html.headingEmpty
 evaluator: html.headingEmpty
+checkType: CODE
 subdomains: [accessibility]
 severity: minor
 fixer: editor

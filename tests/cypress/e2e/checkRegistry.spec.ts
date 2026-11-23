@@ -77,8 +77,9 @@ describe('Content Governance - check registry', () => {
         addNodeTree(insights, {
             name: 'site', type: 'jnt:contentFolder', children: [{
                 name: 'rules', primaryNodeType: 'jnt:contentFolder', children: [{
-                    name: 'acme-tone', primaryNodeType: 'ccs:contentRule', properties: [
+                    name: 'acme-tone', primaryNodeType: 'ccs:contentRule', mixins: ['ccsmix:aiCheck'], properties: [
                         {name: 'ruleId', value: 'acme.tone'},
+                        {name: 'checkType', value: 'AI'},
                         {name: 'evaluator', value: 'model'},
                         {name: 'subdomains', values: ['writing']},
                         {name: 'advice', value: 'Write in a friendly tone.', language: 'en'}

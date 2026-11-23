@@ -1,6 +1,7 @@
 ---
 id: geo.robotsPresent
 evaluator: geo.robotsPresent
+checkType: CODE
 subdomains: [geo.files]
 severity: serious
 fixer: administrator

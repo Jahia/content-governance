@@ -1,6 +1,7 @@
 ---
 id: html.pageLanguageMismatch
 evaluator: html.pageLanguageMismatch
+checkType: CODE
 subdomains: [accessibility]
 severity: serious
 fixer: developer

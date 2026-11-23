@@ -1,6 +1,7 @@
 ---
 id: ecodesign.domSize
 evaluator: ecodesign.domSize
+checkType: CODE
 runtime: browser
 subdomains: [ecodesign]
 severity: moderate

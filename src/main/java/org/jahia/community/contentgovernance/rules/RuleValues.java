@@ -22,7 +22,13 @@ import java.util.TreeMap;
 public final class RuleValues {
 
     public static final String RULE_ID = "ruleId";
+    /** The id of the check of the rule, which jContent labels "Check". */
     public static final String EVALUATOR = "evaluator";
+    /**
+     * The kind of check of the rule, a {@link CheckType}: {@code PATTERN}, {@code AI} or {@code CODE}. It picks the
+     * mixin that holds the fields of the kind.
+     */
+    public static final String CHECK_TYPE = "checkType";
     public static final String ENABLED = "enabled";
     public static final String SEVERITY = "severity";
     public static final String BLOCKING = "blocking";
@@ -80,12 +86,14 @@ public final class RuleValues {
      * Every property that a rule file sets, in the order of the digest. 2.0.0 changed the order: it removed
      * {@code domain} and put {@value #SUBDOMAINS} and {@value #SITES} before {@value #RUNTIME}, and
      * {@link LegacyDomains#KEYS_1} reads the fingerprints of before. A key added after 2.0.0 goes last, so
-     * that the digest of a rule without it stays the same.
+     * that the digest of a rule without it stays the same. An absent key adds nothing to the digest, so
+     * {@link LegacyCheckTypes} compares a node that has no {@value #CHECK_TYPE} yet with the fingerprint that its
+     * seeder kept.
      */
     public static final List<String> KEYS = List.of(RULE_ID, EVALUATOR, ENABLED, SEVERITY, BLOCKING, FIXER,
             ADVICE, UNIT, MINIMUM, MAXIMUM, KIND, PATTERN, MATCH_MODE, REPLACEMENT, RULE_LANGUAGE, WRONG_EXAMPLES,
             RIGHT_EXAMPLES, OWNER, DECIDED_ON, VALID_FROM, VALID_UNTIL, PATTERN_FORMS, REPLACEMENT_FORMS,
-            PATTERN_LANGUAGE, TITLE, LABEL, SUBDOMAINS, SITES, RUNTIME);
+            PATTERN_LANGUAGE, TITLE, LABEL, SUBDOMAINS, SITES, RUNTIME, CHECK_TYPE);
     /** The texts that a rule holds in each language. */
     public static final List<String> TRANSLATABLE = List.of(TITLE, LABEL, ADVICE);
     /** The plural forms of a title, as {@code Intl.PluralRules} and CLDR name them. */

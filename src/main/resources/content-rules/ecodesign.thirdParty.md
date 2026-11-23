@@ -1,6 +1,7 @@
 ---
 id: ecodesign.thirdParty
 evaluator: ecodesign.thirdParty
+checkType: CODE
 runtime: browser
 subdomains: [ecodesign]
 severity: moderate

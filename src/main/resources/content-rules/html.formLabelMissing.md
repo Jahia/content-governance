@@ -1,6 +1,7 @@
 ---
 id: html.formLabelMissing
 evaluator: html.formLabelMissing
+checkType: CODE
 subdomains: [accessibility]
 severity: critical
 fixer: developer

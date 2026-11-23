@@ -19,6 +19,7 @@ class RuleFileTest {
                 ---
                 id: seo.title
                 evaluator: threshold
+                checkType: CODE
                 subdomains: [seo, geo.score]
                 severity: serious
                 unit: characters
@@ -42,6 +43,7 @@ class RuleFileTest {
         RuleFile rule = RuleFile.parse("""
                 ---
                 evaluator: pattern
+                checkType: PATTERN
                 subdomains: writing
                 sites: [digitall, luxe]
                 severity: moderate
@@ -66,18 +68,18 @@ class RuleFileTest {
     @Test
     @DisplayName("a file with an unknown key, no evaluator, a bad severity, a limit and no unit, or a bad id is refused")
     void invalidFile_isRefused() {
-        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\nsubdomains: [seo]\nseverity: minor\nminimun: 3\n---\n", "a.b.md"))
+        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\ncheckType: CODE\nsubdomains: [seo]\nseverity: minor\nminimun: 3\n---\n", "a.b.md"))
                 .hasMessageContaining("minimun");
         assertThatThrownBy(() -> RuleFile.parse("---\nseverity: minor\n---\n", "a.b.md"))
                 .hasMessageContaining("evaluator");
-        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\nsubdomains: [seo]\nseverity: high\n---\n", "a.b.md"))
+        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\ncheckType: CODE\nsubdomains: [seo]\nseverity: high\n---\n", "a.b.md"))
                 .hasMessageContaining("severity");
-        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\nsubdomains: [seo]\nseverity: minor\nminimum: 1\n---\n", "a.b.md"))
+        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\ncheckType: CODE\nsubdomains: [seo]\nseverity: minor\nminimum: 1\n---\n", "a.b.md"))
                 .hasMessageContaining("unit");
-        assertThatThrownBy(() -> RuleFile.parse("---\nid: a/b\nevaluator: threshold\nsubdomains: [seo]\nseverity: minor\n---\n", "x.md"))
+        assertThatThrownBy(() -> RuleFile.parse("---\nid: a/b\nevaluator: threshold\ncheckType: CODE\nsubdomains: [seo]\nseverity: minor\n---\n", "x.md"))
                 .hasMessageContaining("a/b");
         assertThatThrownBy(() -> RuleFile.parse("No frontmatter", "a.b.md")).hasMessageContaining("frontmatter");
-        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: axe\nsubdomains: [accessibility]\nseverity: minor\nruntime: client\n---\n", "a.b.md"))
+        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: axe\ncheckType: CODE\nsubdomains: [accessibility]\nseverity: minor\nruntime: client\n---\n", "a.b.md"))
                 .hasMessageContaining("unknown runtime client");
     }
 
@@ -85,10 +87,10 @@ class RuleFileTest {
     @DisplayName("a rule states that its check runs in the browser, and runs on the server by default")
     void runtime_isBrowserOrServer() {
         ContentRule browser = RuleValues.toRule(RuleFile.parse(
-                "---\nevaluator: acme.brandContrast\nsubdomains: [accessibility]\nseverity: serious\nruntime: browser\n---\n",
+                "---\nevaluator: acme.brandContrast\ncheckType: CODE\nsubdomains: [accessibility]\nseverity: serious\nruntime: browser\n---\n",
                 "acme.brandContrast.md").values());
         ContentRule server = RuleValues.toRule(RuleFile.parse(
-                "---\nevaluator: threshold\nsubdomains: [seo]\nseverity: minor\n---\n", "seo.x.md").values());
+                "---\nevaluator: threshold\ncheckType: CODE\nsubdomains: [seo]\nseverity: minor\n---\n", "seo.x.md").values());
 
         assertThat(browser.inBrowser()).isTrue();
         assertThat(server.inBrowser()).isFalse();
@@ -97,22 +99,22 @@ class RuleFileTest {
     @Test
     @DisplayName("a pattern rule with no pattern is refused")
     void patternRuleWithoutPattern_isRefused() {
-        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: pattern\nsubdomains: [writing]\nseverity: minor\n---\n", "a.b.md"))
+        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: pattern\ncheckType: PATTERN\nsubdomains: [writing]\nseverity: minor\n---\n", "a.b.md"))
                 .hasMessageContaining("no pattern");
     }
 
     @Test
     @DisplayName("a file with no subdomain, the key domain of a version before 2.0.0, or a bad site is refused")
     void subdomains_areRequired() {
-        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\nseverity: minor\n---\n", "seo.title.md"))
+        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\ncheckType: CODE\nseverity: minor\n---\n", "seo.title.md"))
                 .hasMessageContaining("names no subdomain");
-        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\nsubdomains: []\nseverity: minor\n---\n", "seo.x.md"))
+        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\ncheckType: CODE\nsubdomains: []\nseverity: minor\n---\n", "seo.x.md"))
                 .hasMessageContaining("names no subdomain");
-        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\ndomain: seo\nseverity: minor\n---\n", "seo.x.md"))
+        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\ncheckType: CODE\ndomain: seo\nseverity: minor\n---\n", "seo.x.md"))
                 .hasMessageContaining("unknown key domain");
-        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\nsubdomains: [a/b]\nseverity: minor\n---\n", "seo.x.md"))
+        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\ncheckType: CODE\nsubdomains: [a/b]\nseverity: minor\n---\n", "seo.x.md"))
                 .hasMessageContaining("a/b");
-        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\nsubdomains: [seo]\nsites: [\"a b\"]\nseverity: minor\n---\n", "seo.x.md"))
+        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\ncheckType: CODE\nsubdomains: [seo]\nsites: [\"a b\"]\nseverity: minor\n---\n", "seo.x.md"))
                 .hasMessageContaining("a b");
     }
 
@@ -123,6 +125,7 @@ class RuleFileTest {
                 ---
                 id: html.imageAltMissing
                 evaluator: html.imageAltMissing
+                checkType: CODE
                 subdomains: [accessibility]
                 severity: critical
                 label:
@@ -158,9 +161,34 @@ class RuleFileTest {
     @Test
     @DisplayName("an English advice in the frontmatter, a plural label and an unknown plural form are refused")
     void texts_invalid() {
-        String head = "---\nevaluator: threshold\nsubdomains: [seo]\nseverity: minor\n";
+        String head = "---\nevaluator: threshold\ncheckType: CODE\nsubdomains: [seo]\nseverity: minor\n";
         assertThatThrownBy(() -> RuleFile.parse(head + "advice: Do it.\n---\n", "seo.x.md")).hasMessageContaining("body");
         assertThatThrownBy(() -> RuleFile.parse(head + "label:\n  en:\n    one: x\n---\n", "seo.x.md")).hasMessageContaining("plural");
         assertThatThrownBy(() -> RuleFile.parse(head + "title:\n  en:\n    several: x\n---\n", "seo.x.md")).hasMessageContaining("several");
+    }
+
+    @Test
+    @DisplayName("a rule names its check type, which is PATTERN, AI or CODE")
+    void checkType_isRequired() {
+        assertThat(RuleFile.parse("---\nevaluator: threshold\ncheckType: CODE\nsubdomains: [seo]\nseverity: minor\n---\n",
+                "seo.x.md").values()).containsEntry(RuleValues.CHECK_TYPE, "CODE");
+        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\nsubdomains: [seo]\nseverity: minor\n---\n", "seo.x.md"))
+                .hasMessageContaining("names no check type");
+        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\ncheckType: code\nsubdomains: [seo]\nseverity: minor\n---\n", "seo.x.md"))
+                .hasMessageContaining("unknown check type code");
+    }
+
+    @Test
+    @DisplayName("a rule sets only the keys of its check type, and a passing score of AI needs no unit")
+    void checkType_holdsItsKeysOnly() {
+        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: threshold\ncheckType: CODE\nsubdomains: [seo]\nseverity: minor\npattern: mail\n---\n", "seo.x.md"))
+                .hasMessageContaining("sets pattern, which a rule of the check type CODE does not hold");
+        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: model\ncheckType: AI\nsubdomains: [writing]\nseverity: minor\nunit: points\n---\n", "acme.tone.md"))
+                .hasMessageContaining("sets unit");
+        assertThatThrownBy(() -> RuleFile.parse("---\nevaluator: pattern\ncheckType: PATTERN\nsubdomains: [writing]\nseverity: minor\npattern: mail\nmaximum: 3\n---\n", "acme.mail.md"))
+                .hasMessageContaining("sets maximum");
+
+        RuleFile tone = RuleFile.parse("---\nevaluator: model\ncheckType: AI\nsubdomains: [writing]\nseverity: minor\nminimum: 80\n---\nWrite in a friendly tone.\n", "acme.tone.md");
+        assertThat(tone.values()).containsEntry(RuleValues.MINIMUM, 80.0).doesNotContainKey(RuleValues.UNIT);
     }
 }

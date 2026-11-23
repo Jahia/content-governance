@@ -1,6 +1,7 @@
 ---
 id: seo.indexable
 evaluator: seo.indexable
+checkType: CODE
 subdomains: [seo]
 severity: critical
 fixer: editor

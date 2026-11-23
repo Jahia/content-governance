@@ -1,6 +1,7 @@
 ---
 id: geo.noClientRedirect
 evaluator: geo.noClientRedirect
+checkType: CODE
 subdomains: [geo.crawlers]
 severity: critical
 fixer: developer

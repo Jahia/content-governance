@@ -1,6 +1,7 @@
 ---
 id: html.imageAltMissing
 evaluator: html.imageAltMissing
+checkType: CODE
 subdomains: [accessibility, geo.score]
 severity: critical
 fixer: editor

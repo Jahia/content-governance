@@ -1,6 +1,7 @@
 ---
 id: html.headingLevelSkipped
 evaluator: html.headingLevelSkipped
+checkType: CODE
 subdomains: [accessibility]
 severity: moderate
 fixer: editor

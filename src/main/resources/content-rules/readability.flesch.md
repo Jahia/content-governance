@@ -1,6 +1,7 @@
 ---
 id: readability.flesch
 evaluator: threshold
+checkType: CODE
 subdomains: [readability]
 severity: moderate
 fixer: editor

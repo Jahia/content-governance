@@ -42,14 +42,16 @@ describe('Content Governance - content rules', () => {
         deleteTestSite(siteKey);
     });
 
-    it('seeds the rules of the module as nodes, each with its evaluator, its subdomains and its sites', () => {
+    it('seeds the rules of the module as nodes, each with its evaluator, its check type, its subdomains and its sites', () => {
         gqlOk(asRoot(), `{ jcr { nodeByPath(path: "${customFolder}/content-governance/rules/seo.title") {
-            properties(names: ["evaluator", "minimum", "maximum"]) { name value }
+            properties(names: ["evaluator", "checkType", "minimum", "maximum"]) { name value } mixinTypes { name }
             subdomains: property(name: "subdomains") { values } sites: property(name: "sites") { values } } } }`)
             .then(data => {
                 const node = data.jcr.nodeByPath;
                 const values = Object.fromEntries(node.properties.map((p: {name: string; value: string}) => [p.name, p.value]));
-                expect(values).to.deep.eq({evaluator: 'threshold', minimum: '30.0', maximum: '60.0'});
+                expect(values).to.deep.eq({evaluator: 'threshold', checkType: 'CODE', minimum: '30.0', maximum: '60.0'});
+                expect(node.mixinTypes.map((m: {name: string}) => m.name), 'the mixin of the check type holds the limits')
+                    .to.include('ccsmix:codeCheck');
                 expect(node.subdomains.values).to.deep.eq(['seo', 'geo.score']);
                 expect(node.sites.values).to.deep.eq(['*']);
             });
@@ -107,8 +109,9 @@ describe('Content Governance - content rules', () => {
         addNodeTree(customFolder, {
             name: 'site', type: 'jnt:contentFolder', children: [{
                 name: 'rules', primaryNodeType: 'jnt:contentFolder', children: [{
-                    name: 'acme-tone', primaryNodeType: 'ccs:contentRule', properties: [
+                    name: 'acme-tone', primaryNodeType: 'ccs:contentRule', mixins: ['ccsmix:aiCheck'], properties: [
                         {name: 'ruleId', value: 'acme.tone'},
+                        {name: 'checkType', value: 'AI'},
                         {name: 'evaluator', value: 'model'},
                         {name: 'subdomains', values: ['writing']},
                         {name: 'severity', value: 'minor'},

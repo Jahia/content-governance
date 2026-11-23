@@ -1,6 +1,7 @@
 ---
 id: html.frameTitleMissing
 evaluator: html.frameTitleMissing
+checkType: CODE
 subdomains: [accessibility]
 severity: serious
 fixer: developer

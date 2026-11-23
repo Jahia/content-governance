@@ -1,6 +1,7 @@
 ---
 id: html.duplicateId
 evaluator: html.duplicateId
+checkType: CODE
 subdomains: [accessibility]
 severity: minor
 fixer: developer

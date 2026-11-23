@@ -1,6 +1,7 @@
 ---
 id: geo.policyMatchesReality
 evaluator: geo.policyMatchesReality
+checkType: CODE
 subdomains: [geo.crawlers]
 severity: serious
 fixer: administrator

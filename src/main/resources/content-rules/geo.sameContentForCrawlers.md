@@ -1,6 +1,7 @@
 ---
 id: geo.sameContentForCrawlers
 evaluator: threshold
+checkType: CODE
 subdomains: [geo.content]
 severity: critical
 fixer: administrator
