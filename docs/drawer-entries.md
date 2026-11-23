@@ -46,9 +46,9 @@ registry.add('contentGovernancePanel', 'chat', {
 | Field | Value |
 |---|---|
 | key | The id of the panel, as the second argument. Give a key that names your module. |
-| `label` | The name of the panel, as a translation key with its namespace. The drawer shows it as its title and in its switch between the panels. The site settings show it too. |
+| `label` | The name of the panel, as a translation key with its namespace. The drawer shows it as its title. The site settings show it too. |
 | `buttonLabel` | The label of the button of the panel in the header of jContent, as a translation key. |
-| `buttonIcon` | The icon of the button, as a React element. The switch between the panels shows it too. |
+| `buttonIcon` | The icon of the button, as a React element. |
 | `order` | A number. A lower order puts the panel further to the left. The governance panel has the order 0, so use 10 or more. |
 | `settingsHelp` | What the site settings say about the panel, as a translation key. Optional. |
 | `showOnNodeTypes` | The node types where the button shows. Optional. The default is `['jnt:page', 'jmix:mainResource']`. |
@@ -94,14 +94,16 @@ The drawer calls the hook in the same component on every render, so the rules of
 The governance panel uses the hook too: its button shows while the site keeps at least one of its
 tabs on.
 
-### The button and the switch between the panels
+### The button of a panel
+
+The buttons in the header of jContent are the switch between the panels. The drawer has no switch of
+its own.
 
 A press on the button of a panel opens the drawer on that panel. If the drawer is open on another
 panel, the drawer shows the panel of the button. A second press on the button of the panel in view
 closes the drawer.
 
-When more than one panel can show on the page, the drawer shows a switch between the panels under
-its header.
+The button of the panel in view is pressed: it has `aria-pressed="true"` and the accent color.
 
 ### The site switch of a panel
 
@@ -209,7 +211,8 @@ section bar adds no finding.
 ## Add a tab
 
 A tab is an entry of the type `contentGovernanceDrawerTab`, with the target `contentGovernanceDrawer`.
-The tab shows in the section bar of the governance panel.
+The tab shows in the section bar of the governance panel. The section bar is the main tab bar of the
+drawer, under its header. Each tab of the section bar is a domain, such as Page quality.
 
 ```js
 import {registry} from '@jahia/ui-extender';

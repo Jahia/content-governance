@@ -7,7 +7,7 @@ import {useSiteSettings} from '../common/useSiteSettings';
 import {GOVERNANCE_PANEL, MODULE} from '../common/module';
 import {drawerPanels, PANEL_NODE_TYPES} from './entries';
 import {onPanelRequest} from './drawerApi';
-import {openWith, pressButton, showPanel} from './drawerState';
+import {openWith, pressButton} from './drawerState';
 
 // The drawer loads apart from jContent's start: fetched when the browser is idle once a button
 // shows, and at the latest on the first click. Each panel and tab loads the first time the drawer
@@ -30,9 +30,10 @@ const useAlwaysAvailable = () => true;
 /**
  * The button of one panel, where the page can show the panel: on its node types, and when its own
  * condition (`useAvailable` of its entry) says so. It tells the action whether the panel is
- * available, so the drawer lists the same panels as the buttons.
+ * available, so the drawer lists the same panels as the buttons. The buttons are the switch
+ * between the panels: the button of the panel in view is pressed, in the accent colour.
  */
-const PanelButton = ({entry, path, language, siteKey, settings, isOn, render: Render, renderProps, onPress, onAvailable}) => {
+const PanelButton = ({entry, path, language, siteKey, settings, isOn, isActive, render: Render, renderProps, onPress, onAvailable}) => {
     // The entry of a button never changes: the hook is the same one on every render
     const useAvailable = entry.useAvailable || useAlwaysAvailable;
     const {checksResult: onType} = useNodeChecks({path}, {showOnNodeTypes: entry.showOnNodeTypes || PANEL_NODE_TYPES});
@@ -49,8 +50,11 @@ const PanelButton = ({entry, path, language, siteKey, settings, isOn, render: Re
     }
     // jContent gives a button the key of its action as data-sel-role: the governance panel keeps it
     const role = entry.key === GOVERNANCE_PANEL ? undefined : `contentGovernancePanel-${entry.key}`;
+    // jContent's renderer gives buttonProps to the Moonstone button
+    const buttonProps = {...renderProps.buttonProps, 'aria-pressed': isActive, ...(isActive ? {color: 'accent'} : {})};
     return (
         <Render {...renderProps}
+                buttonProps={buttonProps}
                 buttonLabel={entry.buttonLabel}
                 buttonIcon={entry.buttonIcon}
                 dataSelRole={role}
@@ -66,6 +70,8 @@ PanelButton.propTypes = {
     siteKey: PropTypes.string,
     settings: PropTypes.object.isRequired,
     isOn: PropTypes.func.isRequired,
+    // The drawer is open on this panel
+    isActive: PropTypes.bool.isRequired,
     render: PropTypes.elementType.isRequired,
     // What jContent gives the action, for its button renderer
     renderProps: PropTypes.object.isRequired,
@@ -99,7 +105,6 @@ export const GovernanceAction = ({path, language, render: Render, ...rest}) => {
     }, []);
     const close = useCallback(() => setState(null), []);
     const press = useCallback(id => setState(s => pressButton(s, id)), []);
-    const show = useCallback(id => setState(s => showPanel(s, id)), []);
 
     const shown = Boolean(pagePath && moduleOn && settings);
     const withButton = shown ? panels.filter(entry => isPanelOn(entry.key)) : [];
@@ -137,6 +142,7 @@ export const GovernanceAction = ({path, language, render: Render, ...rest}) => {
                              siteKey={siteKey}
                              settings={settings}
                              isOn={isOn}
+                             isActive={entry.key === active}
                              render={Render}
                              renderProps={rest}
                              onPress={press}
@@ -151,7 +157,6 @@ export const GovernanceAction = ({path, language, render: Render, ...rest}) => {
                                       contexts={state.contexts}
                                       settings={settings}
                                       isOn={isOn}
-                                      onShow={show}
                                       onClose={close}/>
                 </Suspense>,
                 document.body
