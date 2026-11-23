@@ -1,8 +1,9 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../common/i18n';
-import {Banner, Button, Tab, TabItem, Typography} from '@jahia/moonstone';
-import {HelpTab} from '../common/HelpTab';
+import {Banner, Button, Reload, Typography} from '@jahia/moonstone';
+import {CollapsibleSection, ExpandAll} from '../common/CollapsibleSection';
+import {defaultOpen, useOpenSections} from '../common/openSections';
 import {runCrawlerCheck} from './api/crawlerCheck';
 import {ScoreTab} from './tabs/ScoreTab';
 import {CrawlerTab} from './tabs/CrawlerTab';
@@ -10,10 +11,8 @@ import {SiteFilesTab} from './tabs/SiteFilesTab';
 import {SchemaTab} from './tabs/SchemaTab';
 import {CitationsTab} from './tabs/CitationsTab';
 import {fetchPageCitations} from './api/citations';
-import tabStyles from './tabs/Tabs.module.css';
 import styles from './GeoSection.module.css';
 import {fetchErrorHint} from './util/fetchError';
-import {CountBadge} from '../common/CountBadge';
 
 const CACHE_SCHEMA = 8;
 
@@ -69,13 +68,13 @@ const formatScanDate = iso => {
 };
 
 /**
- * The tabs of the section the site switched on: the report's four when there is a published
- * report, then citations, greyed out while the site has no BotRank connection.
+ * The subdomains of the section the site switched on: the report's four when there is a published
+ * report, then citations, which has no count and says so while the site has no BotRank connection.
  */
 function sectionTabs(report, isOn, citations, t) {
     const tabs = report ? [
         {id: 'score', label: t('score.tab'), count: report.score ? report.score.criticalFailed : 0, serious: true},
-        {id: 'crawler', label: t('crawler.tab'), count: report.blockedCount, serious: true},
+        {id: 'crawler', label: t('crawler.tab'), count: report.blockedCount || 0, serious: true},
         {id: 'files', label: t('files.tab'), count: filesIssueCount(report)},
         {
             id: 'schema',
@@ -84,7 +83,7 @@ function sectionTabs(report, isOn, citations, t) {
         }
     ].filter(tab => isOn(tab.id)) : [];
     if (isOn('citations')) {
-        tabs.push({id: 'citations', label: t('citations.tab'), count: 0, disabled: !citations.available});
+        tabs.push({id: 'citations', label: t('citations.tab'), count: null, disabled: !citations.available});
     }
 
     return tabs;
@@ -108,7 +107,6 @@ export const GeoSection = ({path, language, isOn, onCount, onFindings, requested
     const [report, setReport] = useState(null);
     const [ranAt, setRanAt] = useState(null);
     const [phase, setPhase] = useState('idle');
-    const [tab, setTab] = useState(null);
     const [error, setError] = useState(null);
     // Citations come from the site's last sync, not from the crawler check: loaded once per mount.
     // configured false (no binding) and 403 (tab or module off for this site) both mean unavailable.
@@ -165,13 +163,14 @@ export const GeoSection = ({path, language, isOn, onCount, onFindings, requested
         }
     }, [path, language, t]);
 
-    const citationsAvailable = citationsState === 'ready' || citationsState === 'failed';
+    // While citations load, their section opens on a loader; it is unavailable once the site turns
+    // out to have no BotRank connection
+    const citationsAvailable = citationsState !== 'notConfigured';
     const reportTabs = Boolean(report && report.published);
     const tabs = sectionTabs(reportTabs ? report : null, isOn, {available: citationsAvailable}, t);
-    const enabledTabs = tabs.filter(item => !item.disabled);
-    // The selected tab, else the first one that can be opened (only citations without a report).
-    const activeTab = enabledTabs.some(item => item.id === tab) ? tab : (enabledTabs[0] || {}).id;
     const total = tabs.reduce((sum, item) => sum + (item.count || 0), 0);
+    // A new check opens the sections with a major defect again
+    const {isOpen, setOpen} = useOpenSections(defaultOpen(tabs), ranAt);
 
     useEffect(() => {
         onCount(total);
@@ -189,18 +188,22 @@ export const GeoSection = ({path, language, isOn, onCount, onFindings, requested
         onFindings(JSON.parse(findingsKey));
     }, [onFindings, findingsKey]);
 
+    // A "Fix first" link opens its subdomain and brings it into view, once per request
+    const handledRequest = useRef(null);
     useEffect(() => {
-        if (requestedTab) {
-            setTab(requestedTab.tab);
+        if (requestedTab && requestedTab !== handledRequest.current) {
+            handledRequest.current = requestedTab;
+            setOpen([requestedTab.tab], true);
+            document.getElementById(`geo-subdomain-${requestedTab.tab}`)?.scrollIntoView({block: 'start'});
         }
-    }, [requestedTab]);
+    }, [requestedTab, setOpen]);
 
     return (
         <>
             <div className={styles.toolbar}>
                 <Button
-                    size="big"
-                    color="accent"
+                    variant="outlined"
+                    icon={report ? <Reload/> : undefined}
                     isDisabled={phase === 'running'}
                     label={t(runLabelKey(phase, report))}
                     onClick={run}
@@ -210,6 +213,7 @@ export const GeoSection = ({path, language, isOn, onCount, onFindings, requested
                         {t('drawer.lastRun', {date: new Date(ranAt).toLocaleString()})}
                     </Typography>
                 )}
+                <ExpandAll ids={tabs.map(item => item.id)} isOpen={isOpen} setOpen={setOpen}/>
             </div>
 
             {/* role="alert" carries an implicit assertive live region, so a failed check is announced without a second attribute. */}
@@ -334,32 +338,10 @@ export const GeoSection = ({path, language, isOn, onCount, onFindings, requested
                     </Banner>
                 )}
 
-                {tabs.length > 0 && (
-                    <Tab className={tabStyles.tabs}>
-                        {tabs.map(item => (
-                            <HelpTab key={item.id}
-                                     help={t(`tabHelp.${item.id}`)}
-                                     note={item.disabled ? t('citations.notConfiguredTab') : undefined}
-                                     isSelected={activeTab === item.id}
-                            >
-                                <TabItem
-                                    id={`geo-drawer-tab-${item.id}`}
-                                    aria-controls={`geo-drawer-panel-${item.id}`}
-                                    label={item.label}
-                                    isSelected={activeTab === item.id}
-                                    isDisabled={Boolean(item.disabled)}
-                                    icon={item.count > 0 ? <CountBadge count={item.count} isSerious={Boolean(item.serious)}/> : undefined}
-                                    onClick={() => setTab(item.id)}
-                                />
-                            </HelpTab>
-                        ))}
-                    </Tab>
-                )}
-
                 {/*
                   * An unpublished page has no public URL, so there is nothing to fetch and every
-                  * report tab is gated on `published`. Said here, outside the tab system, so the
-                  * answer does not depend on which tab happens to be selected.
+                  * report section is gated on `published`. Said here, above the sections, so the
+                  * answer does not depend on which section is open.
                   */}
                 {report && !report.published && (
                     <Banner variant="info" title={t('crawler.verdict.unpublishedTitle')}>
@@ -367,20 +349,26 @@ export const GeoSection = ({path, language, isOn, onCount, onFindings, requested
                     </Banner>
                 )}
 
-                {activeTab && (
-                    <div
-                        role="tabpanel"
-                        id={`geo-drawer-panel-${activeTab}`}
-                        aria-labelledby={`geo-drawer-tab-${activeTab}`}
-                        tabIndex={0}
+                {tabs.map(item => (
+                    <CollapsibleSection key={item.id}
+                                        id={`geo-subdomain-${item.id}`}
+                                        label={item.label}
+                                        help={t(`tabHelp.${item.id}`)}
+                                        status={item.disabled ? t('citations.notConfiguredLabel') : undefined}
+                                        count={item.count}
+                                        isSerious={Boolean(item.serious)}
+                                        isOpen={isOpen(item.id)}
+                                        onToggle={() => setOpen([item.id], !isOpen(item.id))}
                     >
-                        {reportTabs && activeTab === 'score' && <ScoreTab report={report} path={path}/>}
-                        {reportTabs && activeTab === 'crawler' && <CrawlerTab report={report}/>}
-                        {reportTabs && activeTab === 'files' && <SiteFilesTab report={report}/>}
-                        {reportTabs && activeTab === 'schema' && <SchemaTab report={report}/>}
-                        {activeTab === 'citations' && <CitationsTab data={citations} failed={citationsState === 'failed'}/>}
-                    </div>
-                )}
+                        {item.id === 'score' && <ScoreTab report={report} path={path}/>}
+                        {item.id === 'crawler' && <CrawlerTab report={report}/>}
+                        {item.id === 'files' && <SiteFilesTab report={report}/>}
+                        {item.id === 'schema' && <SchemaTab report={report}/>}
+                        {item.id === 'citations' && (item.disabled ?
+                            <Typography>{t('citations.notConfiguredTab')}</Typography> :
+                            <CitationsTab data={citations} failed={citationsState === 'failed'}/>)}
+                    </CollapsibleSection>
+                ))}
             </div>
         </>
     );
@@ -394,6 +382,6 @@ GeoSection.propTypes = {
     onCount: PropTypes.func.isRequired,
     // Reports the section's findings to the drawer's "Fix first" list (drawer/findings.js)
     onFindings: PropTypes.func.isRequired,
-    // {tab, at}: a tab the drawer asks the section to show (a "Fix first" link)
+    // {tab, at}: a subdomain the drawer asks the section to open (a "Fix first" link)
     requestedTab: PropTypes.shape({tab: PropTypes.string, at: PropTypes.number})
 };

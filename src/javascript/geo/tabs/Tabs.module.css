@@ -52,11 +52,6 @@
 .facts { margin: 4px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.7; }
 .facts li { color: #24343f; }
 
-/* Moonstone's Tab owns its own layout and hover states; only spacing is ours. */
-.tabs {
-    margin-bottom: 1rem;
-}
-
 .mismatch {
     margin-top: 1rem;
     padding: 0.1rem 0 0.1rem 0.9rem;

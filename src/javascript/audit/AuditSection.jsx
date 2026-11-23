@@ -19,13 +19,13 @@ import {LinksTab} from './tabs/LinksTab';
 import {JahiaTab} from './tabs/JahiaTab';
 import {IncompleteStep} from './tabs/IncompleteStep';
 import {NotChecked} from './tabs/NotChecked';
-import {Banner, Button, Download, Loader, Reload, Tab, TabItem, Typography, Visibility} from '@jahia/moonstone';
-import {HelpTab} from '../common/HelpTab';
+import {Banner, Button, Download, Loader, Reload, Typography, Visibility} from '@jahia/moonstone';
+import {CollapsibleSection, ExpandAll} from '../common/CollapsibleSection';
+import {defaultOpen, useOpenSections} from '../common/openSections';
 import {findByText, findEditFrameDocument, locateInFrame} from './editFrame';
 import styles from './AuditSection.module.css';
 import {toLocaleTag} from '../common/locale';
 import {tabCounts} from './tabCounts';
-import {CountBadge} from '../common/CountBadge';
 import {HighlightContext} from './HighlightContext';
 
 // Let client islands hydrate and layout settle before measuring
@@ -121,11 +121,40 @@ function saveCachedAudit(path, language, entry) {
     }
 }
 
-/** The tabs of the section, in order; each id is also its feature id (`audit.<id>`). */
+/** The subdomains of the section, in order; each id is also its feature id (`audit.<id>`). */
 const TAB_IDS = ['accessibility', 'seo', 'vitals', 'readability', 'ecodesign', 'links', 'jahia'];
 
-// What a tab's tooltip adds to its help: how many issues it holds
-const tabNote = (tab, t) => (tab.badge ? t('tabs.badgeTooltip', {count: tab.badge}) : undefined);
+// What the tooltip of a subdomain adds to its help: how many issues it holds
+const sectionNote = (section, t) => (section.count ? t('tabs.badgeTooltip', {count: section.count}) : undefined);
+
+/** The results of one subdomain, or nothing when the audit holds none for it. */
+function TabContent({id, results, onHighlight, onHighlightText}) {
+    switch (id) {
+        case 'accessibility':
+            return results.a11y ? <AccessibilityTab result={results.a11y} onHighlight={onHighlight}/> : null;
+        case 'seo':
+            return results.seo ? <SeoTab result={results.seo}/> : null;
+        case 'links':
+            return results.links ? <LinksTab result={results.links} onHighlight={onHighlight}/> : null;
+        case 'jahia':
+            return results.jahia ? <JahiaTab result={results.jahia} onHighlightText={onHighlightText}/> : null;
+        case 'vitals':
+            return results.vitals?.metrics ? <VitalsTab result={results.vitals}/> : null;
+        case 'readability':
+            return results.readability ? <ReadabilityTab result={results.readability} onHighlight={onHighlight}/> : null;
+        case 'ecodesign':
+            return results.ecodesign ? <EcodesignTab result={results.ecodesign}/> : null;
+        default:
+            return null;
+    }
+}
+
+TabContent.propTypes = {
+    id: PropTypes.string.isRequired,
+    results: PropTypes.object.isRequired,
+    onHighlight: PropTypes.func.isRequired,
+    onHighlightText: PropTypes.func.isRequired
+};
 
 const formatDate = (timestamp, language) => new Date(timestamp).toLocaleString(toLocaleTag(language));
 
@@ -289,7 +318,6 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
     // The texts of the rules follow the editor's interface language, not the language of the content
     const uiLanguage = i18n?.language || 'en';
     const apolloClient = useApolloClient();
-    const [activeTab, setActiveTab] = useState(null);
     const [status, setStatus] = useState('idle');
     const [results, setResults] = useState(null);
     const [error, setError] = useState(null);
@@ -524,17 +552,20 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
         URL.revokeObjectURL(a.href);
     }, [results, path, language, previewUrl, auditedAt]);
 
-    // Badge = number of issues to review in that tab; null-safe so a partial
-    // result never breaks the tab bar. Tabs the site switched off are left out.
+    // The count of a subdomain is its issues to review; null-safe so a partial result never breaks
+    // the list, and null for a subdomain the audit did not measure. Subdomains the site switched off
+    // are left out.
     const counts = tabCounts(results);
-    const tabs = TAB_IDS.filter(id => isOn(id)).map(id => ({
-        key: id,
+    const sections = TAB_IDS.filter(id => isOn(id)).map(id => ({
+        id,
         label: t(`tabs.${id}`),
-        badge: counts[id] ? counts[id].count : null,
-        serious: Boolean(counts[id] && counts[id].serious)
+        count: counts[id] ? counts[id].count : null,
+        serious: Boolean(counts[id] && counts[id].serious),
+        incomplete: Boolean(results?.incomplete?.[RESULT_KEYS[id]])
     }));
-    const currentTab = tabs.some(tab => tab.key === activeTab) ? activeTab : (tabs[0] || {}).key;
-    const total = tabs.reduce((sum, tab) => sum + (tab.badge || 0), 0);
+    const total = sections.reduce((sum, section) => sum + (section.count || 0), 0);
+    // A new audit opens the sections with a major defect again
+    const {isOpen, setOpen} = useOpenSections(defaultOpen(sections), auditedAt);
 
     useEffect(() => {
         onCount(total);
@@ -544,23 +575,27 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
         onFindings(status === 'ready' ? auditFindings(results, t) : []);
     }, [onFindings, status, results, t]);
 
+    // A "Fix first" link opens its subdomain and brings it into view, once per request
+    const handledRequest = useRef(null);
     useEffect(() => {
-        if (requestedTab) {
-            setActiveTab(requestedTab.tab);
+        if (requestedTab && requestedTab !== handledRequest.current) {
+            handledRequest.current = requestedTab;
+            setOpen([requestedTab.tab], true);
+            document.getElementById(`audit-subdomain-${requestedTab.tab}`)?.scrollIntoView({block: 'start'});
         }
-    }, [requestedTab]);
+    }, [requestedTab, setOpen]);
 
     const busy = status === 'loading' || status === 'analyzing';
+    const rerun = () => setRunId(id => id + 1);
 
     return (
         <>
             <div className={styles.toolbar}>
-                <Button size="big"
-                        color="accent"
+                <Button variant="outlined"
                         icon={<Reload/>}
                         label={t('drawer.rerun')}
                         isDisabled={busy}
-                        onClick={() => setRunId(id => id + 1)}/>
+                        onClick={rerun}/>
                 <Button variant="outlined"
                         icon={<Download/>}
                         label={t('drawer.export')}
@@ -579,6 +614,7 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
                     </Typography>
                 )}
                 <AuditTrend runs={history} language={language}/>
+                {status === 'ready' && results && <ExpandAll ids={sections.map(section => section.id)} isOpen={isOpen} setOpen={setOpen}/>}
             </div>
 
             <div ref={previewRef}
@@ -603,7 +639,7 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
                     <Banner variant="info" title={t('drawer.legacyTitle')}>
                         <div className={styles.staleRow}>
                             <Typography>{t('drawer.legacy')}</Typography>
-                            <Button size="small" variant="outlined" label={t('drawer.runAgain')} onClick={() => setRunId(id => id + 1)}/>
+                            <Button size="small" variant="outlined" label={t('drawer.runAgain')} onClick={rerun}/>
                         </div>
                     </Banner>
                 </div>
@@ -614,33 +650,14 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
                     <Banner variant="warning" title={t('drawer.staleTitle')}>
                         <div className={styles.staleRow}>
                             <Typography>{t('drawer.stale')}</Typography>
-                            <Button size="small" variant="outlined" label={t('drawer.rerun')} onClick={() => setRunId(id => id + 1)}/>
+                            <Button size="small" variant="outlined" label={t('drawer.rerun')} onClick={rerun}/>
                         </div>
                     </Banner>
                 </div>
             )}
 
-            <div className={styles.tabBar}>
-                <Tab className={styles.tabs}>
-                    {tabs.map(tab => (
-                        <HelpTab key={tab.key}
-                                 help={t(`tabHelp.${tab.key}`)}
-                                 note={tabNote(tab, t)}
-                                 isSelected={currentTab === tab.key}
-                        >
-                            <TabItem id={`audit-tab-${tab.key}`}
-                                     aria-controls="audit-tab-panel"
-                                     label={tab.label}
-                                     isSelected={currentTab === tab.key}
-                                     icon={tab.badge ? <CountBadge count={tab.badge} isSerious={tab.serious}/> : undefined}
-                                     onClick={() => setActiveTab(tab.key)}/>
-                        </HelpTab>
-                    ))}
-                </Tab>
-            </div>
-
             <HighlightContext.Provider value={highlight}>
-            <div id="audit-tab-panel" role="tabpanel" aria-labelledby={currentTab ? `audit-tab-${currentTab}` : undefined} className={styles.content}>
+            <div className={styles.content}>
                 {busy && (
                     <div className={styles.status}>
                         <Loader size="small"/>
@@ -652,29 +669,25 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
                         <Typography>{error}</Typography>
                     </Banner>
                 )}
-                {status === 'ready' && results && (
-                    <>
-                    {results.incomplete && results.incomplete[RESULT_KEYS[currentTab]] && (
-                        <IncompleteStep outcome={results.incomplete[RESULT_KEYS[currentTab]]} onRerun={() => setRunId(id => id + 1)}/>
-                    )}
-                    {currentTab === 'accessibility' && results.a11y &&
-                        <AccessibilityTab result={results.a11y} onHighlight={highlight}/>}
-                    {currentTab === 'seo' && results.seo &&
-                        <SeoTab result={results.seo}/>}
-                    {currentTab === 'links' && results.links &&
-                        <LinksTab result={results.links} onHighlight={highlight}/>}
-                    {currentTab === 'jahia' && results.jahia &&
-                        <JahiaTab result={results.jahia} onHighlightText={highlightText}/>}
-                    {currentTab === 'vitals' && results.vitals?.metrics &&
-                        <VitalsTab result={results.vitals}/>}
-                    {currentTab === 'readability' && results.readability &&
-                        <ReadabilityTab result={results.readability} onHighlight={highlight}/>}
-                    {currentTab === 'ecodesign' && results.ecodesign &&
-                        <EcodesignTab result={results.ecodesign}/>}
-                    {results[RESULT_KEYS[currentTab]]?.notChecked?.length > 0 &&
-                        <NotChecked rules={results[RESULT_KEYS[currentTab]].notChecked}/>}
-                    </>
-                )}
+                {status === 'ready' && results && sections.map(section => {
+                    const key = RESULT_KEYS[section.id];
+                    return (
+                        <CollapsibleSection key={section.id}
+                                            id={`audit-subdomain-${section.id}`}
+                                            label={section.label}
+                                            help={t(`tabHelp.${section.id}`)}
+                                            note={sectionNote(section, t)}
+                                            count={section.count}
+                                            isSerious={section.serious}
+                                            isOpen={isOpen(section.id)}
+                                            onToggle={() => setOpen([section.id], !isOpen(section.id))}
+                        >
+                            {results.incomplete?.[key] && <IncompleteStep outcome={results.incomplete[key]} onRerun={rerun}/>}
+                            <TabContent id={section.id} results={results} onHighlight={highlight} onHighlightText={highlightText}/>
+                            {results[key]?.notChecked?.length > 0 && <NotChecked rules={results[key].notChecked}/>}
+                        </CollapsibleSection>
+                    );
+                })}
             </div>
             </HighlightContext.Provider>
         </>
@@ -689,6 +702,6 @@ AuditSection.propTypes = {
     onCount: PropTypes.func.isRequired,
     // Reports the section's findings to the drawer's "Fix first" list (drawer/findings.js)
     onFindings: PropTypes.func.isRequired,
-    // {tab, at}: a tab the drawer asks the section to show (a "Fix first" link)
+    // {tab, at}: a subdomain the drawer asks the section to open (a "Fix first" link)
     requestedTab: PropTypes.shape({tab: PropTypes.string, at: PropTypes.number})
 };

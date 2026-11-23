@@ -40,7 +40,8 @@ jContent / Page Builder header
 | `src/javascript/drawer/GovernanceDrawer.jsx` | The drawer: header with the label of the panel in view, panels mounted on first show and kept mounted while the drawer is open. The drawer has no switch between the panels: the header buttons switch them. |
 | `src/javascript/drawer/GovernancePanel.jsx` | The governance panel: one section tab per switched-on section with its count badge, in the main tab bar of the drawer, in Moonstone's default size, "Fix first", sections mounted on first show and kept mounted while the drawer is open. |
 | `src/javascript/drawer/useDock.js` | Docks the drawer beside the page under edit, under jContent's header, and resizes it from its left edge (see the drawer notes below). |
-| `src/javascript/audit/AuditSection.jsx` | The section. It holds the check of the server, the preview frame and the run of the checks of the browser. It also holds the cache, the staleness probe, the export, the tab bar and the badges. |
+| `src/javascript/audit/AuditSection.jsx` | The section. It holds the check of the server, the preview frame and the run of the checks of the browser. It also holds the cache, the staleness probe, the export, and one collapsible section per subdomain with its count. |
+| `src/javascript/common/CollapsibleSection.jsx`, `openSections.js` | The subdomains of Page quality and GEO readiness: one section each, with its count left of its title in capitals, its help as tooltip, and its content mounted on first open. A section with a critical or serious finding, or whose step did not finish, opens by default. The editor's choice holds until new results (`resetKey`: `auditedAt`, `ranAt`), when the defaults apply again. **Open** in "Fix first" opens the section of `requestedTab` and scrolls to it. |
 | `src/javascript/audit/pageCheck.js` | Calls `checkPage`, and turns the findings and the values of its results into the results of the tabs SEO, Readability, Links and Jahia health, and the HTML rules of the Accessibility tab. |
 | `src/javascript/audit/runChecks.js` | Runs the checks of the browser on the preview, one after the other, each with its time limit. It gives the results, the checks that did not finish, and the rules that no check gave a result for. |
 | `src/javascript/audit/browserResults.js` | Turns the results of the checks of the browser into what each tab shows. These are the recommendations by subdomain, the view of axe-core, the figures of the web vitals and the criteria of eco-design. |
@@ -112,7 +113,7 @@ schema is measured again: 6 dropped the audits from before the check of the serv
   3. starts the check of the server, then runs the checks of the browser one after the other. Each
      step goes through `runStep` (`timeLimit.js`): the check of the server has 60 s
      (`PAGE_LIMIT_MS`), and each check of the browser has 60 s (`CHECK_LIMIT_MS`). A step that fails
-     or runs out of time is left out. Its tabs show `IncompleteStep` (why, and **Re-run**) from
+     or runs out of time is left out. Its sections open and show `IncompleteStep` (why, and **Re-run**) from
      `results.incomplete[<result key>]`: the check of the server for SEO, Readability, Links and
      Jahia health, and a check of the browser for the tabs of the subdomains of its rules. The other tabs
      show their results, and such a partial audit is never cached. The late answer of a stopped step
@@ -242,11 +243,13 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
 - Counts (`audit/tabCounts.js`): the violations of axe-core and the HTML rules of the server for
   Accessibility, `recommendations.length` for the other tabs, each with `serious` when one finding is
   critical or serious. `common/CountBadge.jsx` draws a count red (Moonstone `Badge`, danger) when
-  serious and grey (`Chip`) otherwise, on the tabs of every section and on the section tabs, where
-  the drawer reads the severities from the findings the section reports. The section total, reported
-  through `onCount`, sums the counts of the switched-on tabs. "Fix first" lists critical and serious
-  findings only (`isSerious`, `drawer/findings.js`) and shows nothing without one. GEO readiness:
-  Score and Crawler access are serious, the other tabs grey.
+  serious and grey (`Chip`) otherwise, on the subdomain sections of every section, a grey 0 included,
+  and on the section tabs, where the drawer reads the severities from the findings the section
+  reports. A subdomain with no count (its step did not finish, or AI citations without BotRank) shows
+  a dash. The section total, reported through `onCount`, sums the counts of the switched-on
+  subdomains. "Fix first" lists critical and serious findings only (`isSerious`,
+  `drawer/findings.js`) and shows nothing without one. GEO readiness: Score and Crawler access are
+  serious, the other subdomains grey.
 - Cache: `localStorage` key `content-governance:audit:{language}:{path}`, entry
   `{schema, timestamp, results}`. `CACHE_SCHEMA` is 6: bump it whenever the shape of `results`
   changes, or an old entry is restored into a UI expecting the new shape (entries with another

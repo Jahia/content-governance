@@ -877,7 +877,8 @@
         "aheadUnit": "listed before yours",
         "positionsLabel": "Average position among the sources:",
         "positionsYours": "yours",
-        "notConfiguredTab": "This site is not connected to BotRank. A site administrator connects it in Site Settings, Content governance, BotRank."
+        "notConfiguredTab": "This site is not connected to BotRank. A site administrator connects it in Site Settings, Content governance, BotRank.",
+        "notConfiguredLabel": "Not configured"
       },
       "citationsSettings": {
         "navLabel": "AI citations (BotRank)",
@@ -1787,6 +1788,8 @@
       "nothingAvailable": "No section of Content governance can be used on this content.",
       "entryFailed": "This tab, added by another module, could not be shown.",
       "panelFailed": "This panel, added by another module, could not be shown.",
+      "expandAll": "Expand all",
+      "collapseAll": "Collapse all",
       "sectionHelp": {
         "audit": "Checks the page you are editing: accessibility, SEO, speed, readability, eco-design, links and Jahia content.",
         "geo": "Whether AI assistants and their crawlers can read and cite the published page: score, crawler access, site files, structured data and AI citations.",

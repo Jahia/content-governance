@@ -37,6 +37,20 @@ const freshAudit = () => {
 };
 
 /**
+ * A subdomain of Page quality is a section that the press on its header opens, and closes when it is
+ * open. Its header shows once the audit is ready; a section with a major defect is already open.
+ */
+const openSection = (id: string, timeout = 4000) => {
+    cy.get(`#audit-subdomain-${id}`, {timeout}).then($header => {
+        if ($header.attr('aria-expanded') !== 'true') {
+            cy.wrap($header).click();
+        }
+    });
+    cy.get(`#audit-subdomain-${id}`).should('have.attr', 'aria-expanded', 'true');
+};
+const sectionPanel = (id: string) => `#audit-subdomain-${id}-panel`;
+
+/**
  * Readability per page language: the formula of a language that has one, no score (rather than
  * the English one) for a language without, characters instead of words where words are not
  * spaced. The server measures the page as it renders it, so each text is content of the page. The
@@ -98,8 +112,8 @@ describe('Content Governance - Page quality audit', () => {
             cy.contains('button', BUTTON, {timeout: 30000}).click();
             cy.get(DRAWER).should('be.visible');
             cy.wait('@preview', {timeout: 30000});
-            // The Accessibility tab opens first. The bundled engine is the declared minimum: a lockfile
-            // ahead of package.json fails here.
+            // The bundled engine is the declared minimum: a lockfile ahead of package.json fails here.
+            openSection('accessibility', 60000);
             cy.get(DRAWER).contains(`axe-core ${declared}`, {timeout: 60000}).should('exist');
             EXPECTED_RULES.forEach(rule => {
                 cy.get(DRAWER).contains('a', new RegExp(`^${rule}$`)).should('exist');
@@ -107,7 +121,7 @@ describe('Content Governance - Page quality audit', () => {
         });
     });
 
-    it('puts the most serious finding first in "Fix first", and opens its tab', () => {
+    it('puts the most serious finding first in "Fix first", and opens its section', () => {
         const fixFirst = 'section[aria-label="Fix first"]';
         cy.intercept('GET', `**/cms/render/default/en/sites/${siteKey}/home.html?pageAuditRun=*`, req => {
             req.continue(res => {
@@ -118,22 +132,25 @@ describe('Content Governance - Page quality audit', () => {
         cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
         freshAudit();
-        cy.get(DRAWER).contains('automated rules passed', {timeout: 90000}).should('exist');
-        cy.get('#audit-tab-seo').click();
-        cy.get(DRAWER).contains('automated rules passed').should('not.exist');
+        // The fixture's image without alt is critical: its section opens on its own
+        cy.get('#audit-subdomain-accessibility', {timeout: 90000}).should('have.attr', 'aria-expanded', 'true');
+        cy.get(sectionPanel('accessibility')).should('contain.text', 'automated rules passed');
+        cy.get('#audit-subdomain-accessibility').click().should('have.attr', 'aria-expanded', 'false');
+        cy.get(sectionPanel('accessibility')).should('not.be.visible');
         cy.get(fixFirst).contains('button', 'Show').click();
         // The image without alt of the fixture: a critical violation, ahead of every other finding
         cy.get('#content-governance-fix-first li').first().should('contain.text', 'Critical').and('contain.text', 'alternative text');
-        // Red is for what is critical or serious: the fixture's image without alt, on its tab and its section
-        cy.get('#audit-tab-accessibility').find('.moonstone-badge').should('exist');
+        // Red is for what is critical or serious: the fixture's image without alt, on its section and its domain
+        cy.get('#audit-subdomain-accessibility').find('.moonstone-badge').should('exist');
         cy.get('#content-governance-section-audit').find('.moonstone-badge').should('exist');
         cy.get('#content-governance-fix-first li').each($finding => {
             expect($finding.text(), 'Fix first lists critical and serious findings only').to.match(/Critical|Serious/);
         });
         // The drawer's own button: an action of another module on the finding may start with "Open" too
         cy.get('#content-governance-fix-first li').first().contains('button', /^Open$/).click();
-        // The docked drawer is as tall as the page under edit: the tab's results may start below its fold
-        cy.get(DRAWER).contains('automated rules passed').scrollIntoView().should('be.visible');
+        cy.get('#audit-subdomain-accessibility').should('have.attr', 'aria-expanded', 'true');
+        // The docked drawer is as tall as the page under edit: the section's results may start below its fold
+        cy.get(sectionPanel('accessibility')).contains('automated rules passed').scrollIntoView().should('be.visible');
     });
 
     // Beside Page Builder the page is on screen: the preview starts hidden (behind the results, where
@@ -185,9 +202,8 @@ describe('Content Governance - Page quality audit', () => {
         cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
         freshAudit();
-        cy.get(DRAWER).contains('automated rules passed', {timeout: 90000}).should('exist');
-        cy.get('#audit-tab-vitals').click();
-        cy.get('#audit-tab-panel').should('contain.text', 'Indicative figures').and('contain.text', 'LCP').within(() => {
+        openSection('vitals', 90000);
+        cy.get(sectionPanel('vitals')).should('contain.text', 'Indicative figures').and('contain.text', 'LCP').within(() => {
             ['Needs improvement', 'Poor', 'Main content renders slowly', 'Slow server response', 'Layout shifts while loading'].forEach(text => {
                 cy.contains(text).should('not.exist');
             });
@@ -204,8 +220,7 @@ describe('Content Governance - Page quality audit', () => {
         cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
         freshAudit();
-        cy.get(DRAWER).contains('automated rules passed', {timeout: 90000}).should('exist');
-        cy.get('#audit-tab-readability').click();
+        openSection('readability', 90000);
         cy.contains(`${outline} li`, 'Outline section', {timeout: 30000})
             .should('contain.text', 'H2').and('not.contain.text', 'Skips');
         cy.contains(`${outline} li`, 'Outline detail')
@@ -231,7 +246,7 @@ describe('Content Governance - Page quality audit', () => {
             cy.visit(`/jahia/jcontent/${siteKey}/${lang}/pages/home`);
             cy.contains('button', BUTTON, {timeout: 30000}).click();
             freshAudit();
-            cy.get('#audit-tab-readability', {timeout: 60000}).click();
+            openSection('readability', 90000);
             cy.get(DRAWER).contains(expect, {timeout: 90000}).should('exist');
             if (lang === 'ja') {
                 cy.get(DRAWER).contains('Characters').should('exist');
@@ -261,13 +276,13 @@ describe('Content Governance - Page quality audit', () => {
         cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
         freshAudit();
-        cy.get('#audit-tab-links', {timeout: 60000}).should('exist');
-        cy.get(DRAWER).contains('automated rules passed', {timeout: 150000}).should('exist');
-        cy.get('#audit-tab-links').click();
-        cy.get(DRAWER).contains('This check did not finish').should('exist');
-        cy.get(DRAWER).contains('It took more than 60 seconds').should('exist');
-        cy.get('#audit-tab-accessibility').click();
-        cy.get(DRAWER).contains('This check did not finish').should('not.exist');
+        // The section of a check that did not finish opens on its own, so its warning shows
+        cy.get('#audit-subdomain-links', {timeout: 150000}).should('have.attr', 'aria-expanded', 'true');
+        cy.get(sectionPanel('links')).should('contain.text', 'This check did not finish')
+            .and('contain.text', 'It took more than 60 seconds');
+        openSection('accessibility');
+        cy.get(sectionPanel('accessibility')).should('contain.text', 'automated rules passed')
+            .and('not.contain.text', 'This check did not finish');
     });
 
     // The Done when of content-governance#132: the drawer reads the page check service, so it gives one
@@ -290,9 +305,8 @@ describe('Content Governance - Page quality audit', () => {
         cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
         freshAudit();
-        cy.get(DRAWER).contains('automated rules passed', {timeout: 90000}).should('exist');
+        openSection('links', 90000);
         cy.get(DRAWER).contains(`by ${admin.username}`, {timeout: 30000}).should('exist');
-        cy.get('#audit-tab-links').click();
         cy.get(DRAWER).contains('links.mixedContent').should('exist');
         cy.get(DRAWER).contains('Not published').should('exist');
 

@@ -17,16 +17,16 @@ or Content Editor.
 1. Open a page in Page Builder or jContent. The button also appears on a content item that has its
    own URL, such as an article.
 2. Click **Content governance** in the header.
-3. The drawer opens on the right. **Page quality** is the first section tab.
+3. The drawer opens on the right. **Page quality** is its first tab.
 
 The first time, the section shows "Loading page preview…" then "Analyzing page…". The analysis
 waits for the page to settle before it measures, so expect several seconds.
 
 A page that keeps loading (an image, a font or a script that never answers) is audited after 20
 seconds as it stands. A check that takes too long (Accessibility 60 seconds, Links 45, Jahia 30, Web
-Vitals 15) or fails is stopped: its tab says "This check did not finish" or "This check failed" with
-a **Re-run** button, and the other tabs show their results. Such an audit is not kept for the next
-opening.
+Vitals 15) or fails is stopped. Its section opens and says "This check did not finish" or "This check
+failed", with a **Re-run** button. The other sections show their results. Such an audit is not kept
+for the next opening.
 
 The drawer sits beside the page under edit, which stays usable: drag its left edge to make it wider
 (the width is remembered). Close it with the **Close panel** button, the Escape key, or the **Content
@@ -34,16 +34,22 @@ governance** button again. Results are
 kept: the next time anyone opens the drawer on the same page and language, the newest audit comes
 back at once, whoever ran it.
 
-The number on the **Page quality** section tab is the total of the counts of its tabs. It is red
-when one of its findings is critical or serious, grey otherwise.
+Page quality shows one section per check: **ACCESSIBILITY**, **SEO**, **WEB VITALS**,
+**READABILITY**, **ECODESIGN**, **LINKS** and **JAHIA**. Press the title of a section to open or close
+it. A section with a critical or serious finding opens on its own, and so does a section whose check
+did not finish. The other sections stay closed. **Expand all** opens every section, and **Collapse
+all** closes them. After a new audit, the sections open and close by these rules again.
 
-Under the section tabs, **Fix first** appears when a section measured so far holds a critical or
-serious finding: it gives the most serious one on one line, with how many more there are. **Show**
-lists up to five of them (critical, then serious), whatever their section: accessibility violations
-and the recommendations of every Page quality tab, the GEO readiness score and crawler access, and
-the forbidden terms. Moderate and minor findings stay in their tabs.
-**Open** goes to the section and tab that explains it. GEO readiness and Compliance measure only once
-opened, so their findings join the list after that.
+The number on the **Page quality** tab is the total of the counts of its sections. It is red when one
+of its findings is critical or serious, grey otherwise.
+
+Under the tabs, **Fix first** appears when a tab measured so far holds a critical or serious finding:
+it gives the most serious one on one line, with how many more there are. **Show** lists up to five of
+them (critical, then serious), whatever their tab: accessibility violations and the recommendations of
+every Page quality section, the GEO readiness score and crawler access, and the forbidden terms.
+Moderate and minor findings stay in their sections. **Open** goes to the tab and opens the section that
+explains it. GEO readiness and Compliance measure only once opened, so their findings join the list
+after that.
 
 ### The language that is checked
 
@@ -60,8 +66,9 @@ Page Builder and open the drawer again. Each language has its own results.
 | **Hide preview** / **Show preview** | Hides the page preview to give the results the full height of the drawer. In Page Builder it starts hidden, since the page is beside the drawer. The preview stays loaded behind the results, so the audit measures it the same way and highlighting can still show it. |
 | "Last audit: date by user" | When the results shown were produced, and who ran the audit. |
 | "Issues over the last N audits: 12 → 9 → 7" | The total of the badges at each of the page's last audits (up to 10), oldest first. Hover a number for its date and who ran it. Shown from the second audit. |
+| **Expand all** / **Collapse all** | Opens every section of the results, or closes them all. |
 
-Under the toolbar is the page preview, hidden at first in Page Builder. In most tabs, a **Highlight
+Under the toolbar is the page preview, hidden at first in Page Builder. In most sections, a **Highlight
 on the page** button scrolls to the element concerned and draws a red outline around it: in the page
 under edit when Page Builder shows it, so you can edit it at once, otherwise in the preview, which
 opens for it. An element the page under edit does not show (one added by a script, or shown on
@@ -105,16 +112,17 @@ site switched off is left out of the line.
 
 ### Badges
 
-A number on a tab is the count of issues to review in that tab (hover it: "N issues to review"). It is
-**red** when one of them is critical or serious, the ones to deal with before publishing, and **grey**
-when they are all moderate or minor. No number means nothing to review.
+The number left of the title of a section is the count of issues to review in that section (hover the
+title: "N issues to review"). It is **red** when one of them is critical or serious, the ones to deal
+with before publishing, and **grey** when they are all moderate or minor. A grey **0** means nothing
+to review. A dash means the check did not finish.
 
-| Tab | The badge counts |
+| Section | The badge counts |
 |---|---|
 | **Accessibility** | Automated rules the page fails. One rule can fail on many elements; it counts once. Items "to verify" are not counted. |
-| **SEO**, **Web Vitals**, **Readability**, **Ecodesign**, **Links**, **Jahia** | Recommendations in the tab's **Recommendations** list. |
+| **SEO**, **Web Vitals**, **Readability**, **Ecodesign**, **Links**, **Jahia** | Recommendations in the section's **Recommendations** list. |
 
-Some figures show in two tabs. **Web Vitals** shows the weight, the requests and the images of the
+Some figures show in two sections. **Web Vitals** shows the weight, the requests and the images of the
 page, and **Ecodesign** gives their findings. Images without alt text appear in **SEO** and
 **Accessibility**, and the section total counts them twice.
 
@@ -129,7 +137,7 @@ Each finding carries one of four levels. Fix them in this order.
 | **Moderate** | Worth fixing, with a smaller effect. |
 | **Minor** | Good practice. |
 
-The **Accessibility** tab also uses **To verify**: the checking engine suspects a problem but a
+The **Accessibility** section also uses **To verify**: the checking engine suspects a problem but a
 person has to decide.
 
 ### Who fixes what
@@ -148,9 +156,9 @@ exported JSON.
 | Headings inside your content, sentence length, placeholder text | Scripts, fonts, third-party services, server response time |
 | Publishing and translating the page's content | Raw translation keys on the page (a missing label in a module) |
 
-## The tabs
+## The sections
 
-A site administrator can switch tabs off for a site. A tab switched off is not shown.
+A site administrator can switch sections off for a site. A section switched off is not shown.
 
 Page quality calls no AI model. When the module ai-assistant is installed, the AI review of the page
 is in its own **AI review** tab of the drawer.
@@ -240,12 +248,12 @@ Measures how easy the main text is to read. Navigation, header and footer are le
   shows the heading on the page (in the page under edit in Page Builder, otherwise in the preview).
   The first 200 headings are listed. An audit run before version 1.10 has no outline: **Re-run** it.
 
-Under 30 words, the tab shows "Not enough text on this page to compute readability", then the
+Under 30 words, the section shows "Not enough text on this page to compute readability", then the
 structure and the heading outline, which do not depend on the amount of text. A page in a
 language without a formula here (Finnish, Russian, Polish, Arabic...) gets no score rather than another
-language's: the tab says so, and sentence length, paragraphs and headings are still checked. Japanese,
+language's: the section says so, and sentence length, paragraphs and headings are still checked. Japanese,
 Chinese, Thai and other languages written without spaces between words get neither a score nor a word
-count: the tab counts characters and sentences, and checks the headings. The H1 count covers the whole
+count: the section counts characters and sentences, and checks the headings. The H1 count covers the whole
 page, including the template.
 
 ### Ecodesign
@@ -314,12 +322,12 @@ The checks only Jahia can do.
 
 The check covers up to 400 content items stored under the page, and stops at sub-pages. Content
 displayed from elsewhere (a listing, a reused item) is not checked. A check that another module adds
-on the server, with no tab of its own, shows here with its rule id and its advice.
+on the server, with no section of its own, shows here with its rule id and its advice.
 
 ## Not checked
 
 A module can add a check that runs in your browser, on the preview of the page, with its own rules.
-When no installed module checks such a rule, the tab of the rule lists it under **Not checked**. The
+When no installed module checks such a rule, the section of the rule lists it under **Not checked**. The
 rule is neither passed nor failed. Example: a site keeps the rule of a module that was uninstalled.
 
 ## Missing or failing

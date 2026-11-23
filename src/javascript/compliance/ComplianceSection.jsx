@@ -235,8 +235,7 @@ export const ComplianceSection = ({path, language, onClose, onReopen, onCount, o
     return (
         <>
             <div className={styles.toolbar}>
-                <Button size="big"
-                        color="accent"
+                <Button variant="outlined"
                         icon={<Reload/>}
                         label={t('dialog.rescan')}
                         isDisabled={Boolean(result.loading)}

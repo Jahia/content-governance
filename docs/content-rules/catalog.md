@@ -318,8 +318,8 @@ the site with the id of a node of the system site replaces it for that site.
 
 The GraphQL field `contentDomains(siteKey, language)` gives the domains of a site by order, each with
 its subdomains, and their labels and help in the language. The field `contentRules` gives the
-`subdomains` and the `sites` of each rule. The drawer keeps its tabs for now: it places a finding
-in the tab of the first subdomain of its rule that has one.
+`subdomains` and the `sites` of each rule. The drawer shows one section per subdomain of Page quality: it places a
+finding in the section of the first subdomain of its rule that has one.
 
 ## How a module adds a check
 
