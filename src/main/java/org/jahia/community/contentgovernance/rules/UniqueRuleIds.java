@@ -21,7 +21,9 @@ import java.util.regex.Pattern;
 
 /**
  * Refuses a rule id that another {@value ContentRules#TYPE} node of the same site already has, when a
- * rule is created or its id changes in the edit workspace. A rule id names one rule per site.
+ * rule is created or its id changes in the edit workspace. A rule id names one rule per site. In a site other
+ * than {@code systemsite}, it also refuses the id of a rule that a module ships or that {@code systemsite}
+ * holds: a site does not change the values of a rule, so {@link ContentRules} would ignore such a node.
  */
 @Component(service = {}, immediate = true)
 public class UniqueRuleIds implements PropertyInterceptor {
@@ -49,12 +51,37 @@ public class UniqueRuleIds implements PropertyInterceptor {
             throws RepositoryException {
         Matcher site = SITE.matcher(node.getPath());
         if (value != null && site.find() && "default".equals(node.getSession().getWorkspace().getName())) {
-            String other = holder(node, site.group(1), value.getString());
+            String id = value.getString();
+            String other = holder(node, site.group(1), id);
             if (other != null) {
-                throw new ConstraintViolationException("The rule " + value.getString() + " already exists at " + other);
+                throw new ConstraintViolationException("The rule " + id + " already exists at " + other);
+            }
+            if (!ContentDomains.SYSTEM_SITE.equals(site.group(1))) {
+                refuseARuleOfTheSystemSite(node, id);
             }
         }
         return value;
+    }
+
+    /** Refuses the id of a rule that a module ships or that the system site holds, which an administrator changes there. */
+    private static void refuseARuleOfTheSystemSite(JCRNodeWrapper node, String id) throws RepositoryException {
+        String module = shippedBy(id);
+        String other = module == null ? holder(node, ContentDomains.SYSTEM_SITE, id) : null;
+        if (module != null || other != null) {
+            throw new ConstraintViolationException("The rule " + id + " is a rule of the system site, "
+                    + (module != null ? "which the module " + module + " ships" : "at " + other)
+                    + ": an administrator changes it there, and a site switches it in its layout");
+        }
+    }
+
+    /** The module that ships a rule of this id, or null. */
+    static String shippedBy(String id) {
+        for (ShippedRules.Shipment shipment : ShippedRules.all()) {
+            if (shipment.rules().containsKey(id)) {
+                return shipment.module();
+            }
+        }
+        return null;
     }
 
     /** The path of another rule of the site with this id, or null. */

@@ -165,7 +165,7 @@ A measure rule has no limit: it always passes, and carries values only. Each oth
 carries its values too, such as the score under `readability.flesch` or the Open Graph tags under
 `seo.openGraph`, for what the drawer shows later.
 
-Each finding goes to the tab of the first subdomain of its rule that has one (`tabOf`,
+Each finding goes to the tab of the subdomain of its rule on the site, when the drawer has one (`tabOf`,
 `DOMAIN_TABS`): `accessibility`, `seo`, `readability` (and `writing`), `links`, `health` for Jahia
 health, and `ecodesign`. No list names the tab of one rule, so a check that another module registers
 lands like a built-in one. A
@@ -192,8 +192,8 @@ the results of the server. A rule of the browser never runs on the server, and i
 
 `browserResults.js` turns the results into what the tabs show:
 
-- A failed result becomes a recommendation of the tab of the first subdomain of its rule that has
-  one (`tabOf`), worded by its rule. Its texts take the limits of the rule and the values of the
+- A failed result becomes a recommendation of the tab of the subdomain of its rule, when the drawer
+  has one (`tabOf`), worded by its rule. Its texts take the limits of the rule and the values of the
   result, such as `size`.
   They also take `count`, the number of its findings, and `value`, the text of its first finding.
 - The results of the evaluator `axe` give the Accessibility tab its level cards, its violations and

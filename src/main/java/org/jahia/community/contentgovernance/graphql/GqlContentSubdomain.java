@@ -11,7 +11,7 @@ import org.jahia.community.contentgovernance.rules.DomainValues;
 import java.util.List;
 
 /**
- * A subdomain of the drawer as a site sees it: a tab of a domain, such as SEO. A rule names its subdomains.
+ * A subdomain of the drawer as a site sees it: a tab of a domain, such as SEO. A rule belongs to one subdomain.
  */
 @GraphQLName("ContentGovernanceSubdomain")
 @GraphQLDescription("A subdomain of the drawer of Content Governance: a tab of a domain, which the rules name")

@@ -57,7 +57,7 @@ Open the folder and create a **Content rule**. One rule holds one word or phrase
 | Rule id | A unique id with a dot, such as `compliance.guaranteed` |
 | Check type | **Pattern**, the default. The form then shows the fields of a term rule |
 | Check | `pattern` |
-| Subdomains | Leave it empty. A term rule with no subdomain takes `terms`, unless the part of its id before the first dot names a subdomain, such as `glossary` |
+| Subdomain | Leave it empty. A term rule with no subdomain takes `terms`, unless the part of its id before the first dot names a subdomain, such as `glossary` |
 | Kind | **Forbidden term** when the term has no replacement. **Term to replace** when the editor writes the replacement instead |
 | Term or pattern | The word or phrase, as you write it. The next section states the stars |
 | Match | **Whole word or phrase, any case and accents** for a term |

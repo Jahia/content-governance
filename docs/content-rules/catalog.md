@@ -22,7 +22,7 @@ properties. jContent shows a label for each property, such as **Check** for `eva
 | `sites` | The keys of the sites where the rule is on by default, or `*` for all sites, the default. jContent shows `*` as "All sites". The layout of a site wins over it. |
 | `severity` | `critical`, `serious`, `moderate` or `minor`. |
 | `blocking` | A finding of a blocking rule stops the publication of the content. |
-| `enabled` | On or off. A rule that is off reports nothing. |
+| `enabled` | On or off by default. A rule that is off reports nothing, on each site whose layout does not place it: the layout of a site wins over this switch. |
 | `fixer` | The role of the person who fixes a finding: `editor`, `developer` or `administrator`. Example: `geo.reachable`, a crawler that gets a 403, names an administrator. |
 | `title` | The title of a finding, one text per language, with one line per plural form, such as `one: {{count}} image has no text alternative` and `other: {{count}} images have no text alternative`. It takes the values `{{count}}` (the findings of the rule), `{{value}}` (what the first finding measured or matched), `{{min}}` and `{{max}}`. |
 | `label` | A neutral name of what the rule checks, one text per language, such as "Title length". GEO readiness shows it on each check. |
@@ -181,7 +181,8 @@ the severity `minor`. Its subdomain is `writing`, and its advice is "Write in a 
 The id is free. Name an existing subdomain, such as `writing` for `acme.tone`, so that the findings
 of the rule have a tab. A term with no subdomain, such as `brand.seamless`, takes `terms`. A site
 cannot add a domain or a subdomain. jContent refuses a rule whose id another rule of the site already
-has: "The rule seo.title already exists at /sites/...".
+has: "The rule acme.tone already exists at /sites/...". It also refuses the id of a rule of the system
+site, such as `seo.title`, because a site does not change the values of a rule.
 
 ## How a new version of a module updates the rules
 

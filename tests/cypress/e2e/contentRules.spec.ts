@@ -261,5 +261,12 @@ describe('Content Governance - content rules', () => {
                 expect(body.errors, 'the duplicate is refused').to.have.length.greaterThan(0);
                 expect(body.errors[0].message).to.contain('The rule acme.tone already exists');
             });
+
+        gql(asRoot(), `mutation { jcr { addNode(parentPathOrId: "${customFolder}", name: "title",
+            primaryNodeType: "ccs:contentRule", properties: [{name: "ruleId", value: "seo.title"}]) { uuid } } }`)
+            .then(body => {
+                expect(body.errors, 'a rule of the system site is refused in a site').to.have.length.greaterThan(0);
+                expect(body.errors[0].message).to.contain('The rule seo.title is a rule of the system site');
+            });
     });
 });
