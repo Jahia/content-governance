@@ -25,6 +25,8 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -129,7 +131,7 @@ class RuleSeederTest {
                     InOrder order = inOrder(LegacyCheckTypes.class, LegacyDomains.class, LegacyLayout.class);
                     order.verify(checkTypes, LegacyCheckTypes::migrate);
                     order.verify(domains, LegacyDomains::migrate);
-                    order.verify(layout, LegacyLayout::migrate);
+                    order.verify(layout, () -> LegacyLayout.migrate());
                 }
                 seeder.deactivate();
             }
@@ -186,6 +188,39 @@ class RuleSeederTest {
             seeder.removedBundle(rules, null, "acme-rules");
             seeder.removedBundle(subdomains, null, "acme-subdomains");
             seeder.deactivate();
+        }
+    }
+
+    @Test
+    @DisplayName("the processing server seeds the own tree first, and seeds again a module that waited for a parent once a module that declares domains or subdomains starts")
+    void addingBundle_seedsAgainAModuleThatWaitedForTheTree() {
+        Bundle rules = bundle("acme-rules", Map.of("content-rules/acme.price.md",
+                "---\nevaluator: erp.price\ncheckType: CODE\nsubdomain: writing\nseverity: serious\n---\nCheck the price.\n"));
+        Bundle subdomains = bundle("acme-subdomains", Map.of("content-rules/subdomains/acme.prices.md",
+                "---\ndomain: compliance\nlabel: Prices\n---\nThe prices that the ERP gives.\n"));
+        try (MockedStatic<LegacyRules> legacyRules = mockStatic(LegacyRules.class);
+             MockedStatic<LegacyTerms> terms = mockStatic(LegacyTerms.class);
+             MockedStatic<LegacyCheckTypes> checkTypes = mockStatic(LegacyCheckTypes.class);
+             MockedStatic<LegacyDomains> domains = mockStatic(LegacyDomains.class);
+             MockedStatic<LegacyLayout> layout = mockStatic(LegacyLayout.class);
+             MockedStatic<TreeSeeder> treeSeeder = mockStatic(TreeSeeder.class)) {
+            // The rules of acme-rules wait: the tree lacks the node of their subdomain
+            treeSeeder.when(() -> TreeSeeder.seed(any(ShippedRules.Shipment.class)))
+                    .thenAnswer(call -> "acme-rules".equals(call.<ShippedRules.Shipment>getArgument(0).module()));
+            RuleSeeder seeder = seeder(true);
+            seeder.activate(mock(BundleContext.class));
+            try {
+                treeSeeder.verify(() -> TreeSeeder.seed(ShippedRules.own()));
+
+                seeder.addingBundle(rules, null);
+                seeder.addingBundle(subdomains, null);
+
+                treeSeeder.verify(() -> TreeSeeder.seed(argThat(shipment -> "acme-rules".equals(shipment.module()))), times(2));
+            } finally {
+                seeder.removedBundle(rules, null, "acme-rules");
+                seeder.removedBundle(subdomains, null, "acme-subdomains");
+                seeder.deactivate();
+            }
         }
     }
 

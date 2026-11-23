@@ -130,7 +130,7 @@
 // and their rules in their order. The same folder of a site holds the folders of ai-assistant.
 [ccsmix:siteLayout] mixin
  // The JSON of the layout: the order and the place of each domain, subdomain and rule, and the ids that the site
- // switches off. The screen Rules & domains writes it. Empty: the layout of the system site.
+ // switches off. The GraphQL mutation saveSiteLayout writes it. Empty: the layout of the system site.
  - layout (string) hidden nofulltext
 
 // A domain of the drawer: a main tab of a panel, such as Page quality. A module ships its domains as Markdown

@@ -93,12 +93,14 @@ class ContentRulesTest {
     }
 
     @Test
-    void aNodeOfTheSite_replacesTheNodeOfSystemsite() {
+    @DisplayName("a node of the site with the id of a rule of the system site changes nothing: a site does not change the values of a rule")
+    void aNodeOfTheSite_doesNotReplaceTheNodeOfSystemsite() {
         ContentRule title = merge().get("seo.title");
 
-        assertThat(title.maximum()).isEqualTo(70.0);
-        assertThat(title.folder()).isEqualTo(SITE);
+        assertThat(title.maximum()).as("the maximum of the node of the system site, not 70").isNotEqualTo(70.0);
+        assertThat(title.folder()).as("the node of the system site").isNotEqualTo(SITE);
         assertThat(title.subdomain()).as("the shipped subdomain").isEqualTo("seo");
+        assertThat(merge().get("brand.luxeOnly").folder()).as("a rule of its own id still applies").isEqualTo(SITE);
     }
 
     @Test
@@ -112,13 +114,13 @@ class ContentRulesTest {
     }
 
     @Test
-    void aNodeOfTheSite_ofARuleThatAModuleShips_appliesOnlyWhereTheSiteEnablesTheModule() {
-        // A node of a rule that a module ships stays when the site removes the module
+    @DisplayName("a node of the site with the id of a rule that a module ships changes nothing, with or without the module")
+    void aNodeOfTheSite_ofARuleThatAModuleShips_changesNothing() {
         List<ContentRules.RuleNode> seeded = List.of(
                 new ContentRules.RuleNode(Map.of(RuleValues.RULE_ID, "acme.erpPrice", RuleValues.SEVERITY, "minor"), SITE));
 
         assertThat(merge(seeded).all()).extracting(ContentRule::id).doesNotContain("acme.erpPrice");
-        assertThat(merge(seeded, ACME).get("acme.erpPrice").severity()).isEqualTo("minor");
+        assertThat(merge(seeded, ACME).get("acme.erpPrice").severity()).as("the value of the system site").isEqualTo("critical");
     }
 
     @Test

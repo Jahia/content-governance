@@ -30,7 +30,7 @@ public class GqlContentRule {
     /**
      * @param language the language of the texts, such as fr: the interface language of the editor, or null
      *                 for English
-     * @param isNew    true when the site saved a layout that does not place the rule
+     * @param isNew    true when the site saved a layout that names the rule neither in an array nor in off
      */
     GqlContentRule(ContentRule rule, CheckRegistry.Status status, boolean blocking, String language, boolean isNew) {
         this.rule = rule;
@@ -90,7 +90,7 @@ public class GqlContentRule {
     @GraphQLField
     @GraphQLName("isNew")
     @GraphQLNonNull
-    @GraphQLDescription("True when the site saved a layout that does not place the rule: a module shipped it after the save")
+    @GraphQLDescription("True when the site saved a layout that names the rule neither in an array nor in off. The screen of the layout saves every item, so such an item came with a module after the save")
     public boolean isNew() {
         return isNew;
     }

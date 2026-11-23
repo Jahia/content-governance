@@ -1,4 +1,17 @@
-import {addNodeTree, asRoot, createTestSite, deleteTestSite, gql, gqlOk, nodeExists} from '../support/cg';
+import {deleteUser} from '@jahia/cypress';
+import {
+    TestUser,
+    addNodeTree,
+    asRoot,
+    assertEffectiveUser,
+    assertRefused,
+    createTestSite,
+    createTestUser,
+    deleteTestSite,
+    gql,
+    gqlOk,
+    nodeExists
+} from '../support/cg';
 
 type Rule = {id: string; evaluator: string; severity: string; blocking: boolean; enabled: boolean; minimum: number | null;
     maximum: number | null; subdomain: string | null; order: number; isNew: boolean; sites: string[]; unknownSubdomain: string | null};
@@ -14,6 +27,8 @@ const LAYOUT = 'query L($siteKey: String!) { contentGovernance { siteLayout(site
 const SAVE_LAYOUT = `mutation S($siteKey: String!, $layout: String!) { contentGovernance {
     saveSiteLayout(siteKey: $siteKey, layout: $layout) { saved off } } }`;
 const RESET_LAYOUT = 'mutation R($siteKey: String!) { contentGovernance { resetSiteLayout(siteKey: $siteKey) { saved } } }';
+const SAVE_LAYOUT_PATH = ['contentGovernance', 'saveSiteLayout'];
+const RESET_LAYOUT_PATH = ['contentGovernance', 'resetSiteLayout'];
 /** The tree of the system site: the domains, their subdomains and their rules, for every site. */
 const TREE = '/sites/systemsite/contents/content-governance';
 
@@ -27,6 +42,7 @@ describe('Content Governance - content rules', () => {
     const customFolder = `/sites/${siteKey}/contents/brand-rules`;
     const canonical = `${TREE}/geo/seo/seo.canonical`;
     const addedSubdomain = `${TREE}/compliance/acme.tone`;
+    const editor: TestUser = {username: 'cg-rules-editor', password: 'cgEditor1234'};
 
     const rules = (): Cypress.Chainable<Rule[]> => gqlOk(asRoot(), RULES, {siteKey})
         .then(data => data.contentGovernance.contentRules as Rule[]);
@@ -59,6 +75,8 @@ describe('Content Governance - content rules', () => {
 
     before(() => {
         createTestSite(siteKey);
+        // privileged lets the editor through the GraphQL API filter, so the module's own check is what refuses
+        createTestUser(editor, `/sites/${siteKey}`, ['editor', 'privileged']);
         waitForSeed();
     });
 
@@ -66,6 +84,7 @@ describe('Content Governance - content rules', () => {
         // The tree serves every site: put back what a failed test may have left in it
         setSites(canonical, ['*']);
         removeIfThere(addedSubdomain);
+        deleteUser(editor.username);
         deleteTestSite(siteKey);
     });
 
@@ -165,6 +184,33 @@ describe('Content Governance - content rules', () => {
 
         gqlOk(asRoot(), RESET_LAYOUT, {siteKey});
         domains().then(list => expect(list.map(domain => domain.id)).to.deep.eq(['quality', 'geo', 'compliance']));
+    });
+
+    it('lets only a site administrator save or reset the layout, and keeps the layout of the site', () => {
+        gqlOk(asRoot(), SAVE_LAYOUT, {siteKey, layout: JSON.stringify({off: ['seo.canonical']})});
+
+        assertEffectiveUser(editor);
+        gql(editor, SAVE_LAYOUT, {siteKey, layout: JSON.stringify({off: ['seo.title']})})
+            .then(body => assertRefused(body, SAVE_LAYOUT_PATH));
+        gql(editor, RESET_LAYOUT, {siteKey}).then(body => assertRefused(body, RESET_LAYOUT_PATH));
+
+        gqlOk(asRoot(), LAYOUT, {siteKey}).its('contentGovernance.siteLayout')
+            .should('deep.include', {saved: true, off: ['seo.canonical']});
+        gqlOk(asRoot(), RESET_LAYOUT, {siteKey});
+    });
+
+    it('refuses a layout for the system site, which holds the tree itself', () => {
+        const message = 'The system site holds the tree itself, and has no layout';
+        gql(asRoot(), SAVE_LAYOUT, {siteKey: 'systemsite', layout: JSON.stringify({off: ['seo.canonical']})})
+            .then(body => assertRefused(body, SAVE_LAYOUT_PATH, message));
+        gql(asRoot(), RESET_LAYOUT, {siteKey: 'systemsite'}).then(body => assertRefused(body, RESET_LAYOUT_PATH, message));
+    });
+
+    it('refuses a layout that names an id twice, and saves nothing', () => {
+        const layout = {domains: [{id: 'geo', subdomains: [{id: 'seo', rules: ['seo.title', 'seo.title']}]}]};
+        gql(asRoot(), SAVE_LAYOUT, {siteKey, layout: JSON.stringify(layout)})
+            .then(body => assertRefused(body, SAVE_LAYOUT_PATH, 'The layout names seo.title twice'));
+        gqlOk(asRoot(), LAYOUT, {siteKey}).its('contentGovernance.siteLayout.saved').should('eq', false);
     });
 
     it('shows a subdomain that an administrator adds to the tree, and ignores one that a site writes outside it', () => {

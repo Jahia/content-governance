@@ -272,8 +272,9 @@ public final class ShippedRules {
         }
 
         /**
-         * The shipment, without a subdomain of an undeclared domain and without a rule that names an
-         * undeclared subdomain.
+         * The shipment, without a subdomain of an undeclared domain, a subdomain that takes the id of a domain, and a
+         * rule that names an undeclared subdomain. A layout names the domains, the subdomains and the rules in one
+         * list of ids, so a subdomain never shares the id of a domain.
          *
          * @param others true when the declarations of the other modules count
          */
@@ -282,6 +283,10 @@ public final class ShippedRules {
             Set<String> knownDomains = declared(Level.DOMAIN, others);
             subdomains.values().removeIf(subdomain -> {
                 Object parent = subdomain.values().get(DomainValues.DOMAIN);
+                if (knownDomains.contains(subdomain.id())) {
+                    fail(subdomain.id() + SUFFIX, "the id " + subdomain.id() + " is the id of a domain");
+                    return true;
+                }
                 boolean unknown = !knownDomains.contains(String.valueOf(parent));
                 if (unknown) {
                     fail(subdomain.id() + SUFFIX, "the domain " + parent + " is not declared");

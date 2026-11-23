@@ -17,7 +17,7 @@ import java.util.Map;
  */
 public final class DomainValues {
 
-    /** The id, such as {@code quality} or {@code seo}: unique among the domains, or among the subdomains. */
+    /** The id, such as {@code quality} or {@code seo}: unique among the domains and the subdomains together. */
     public static final String ID = "id";
     /** The id of the domain of a subdomain: its parent node in the tree. */
     public static final String DOMAIN = "domain";

@@ -25,9 +25,10 @@ import java.util.Map;
  *       copy that the site changed goes too, and the log names its values: a rule changes in the system site
  *       only. A rule that the site wrote in such a folder, which has no fingerprint, stays.</li>
  *   <li>The folders of the domains and the subdomains of each module, under
- *       {@code systemsite/contents/content-insights/<module>}. The seeder writes the tree again.</li>
+ *       {@code systemsite/contents/content-insights/<module>}. The seeder writes the tree again, and the log names
+ *       the values of each node, so that an administrator restores a change by hand.</li>
  *   <li>A domain or a subdomain node outside the tree, which a site wrote to override one: a site arranges the
- *       tree with its layout now. The log names it.</li>
+ *       tree with its layout now. The log names it. A node that holds other nodes, such as rules, stays.</li>
  * </ul>
  * <p>A folder that holds nothing more goes too. The nodes are in the edit workspace only: the seeder never
  * published them.</p>
@@ -58,7 +59,7 @@ final class LegacyLayout {
         }
     }
 
-    private static int migrate(JCRSessionWrapper session) throws RepositoryException {
+    static int migrate(JCRSessionWrapper session) throws RepositoryException {
         int removed = removeOutsideTree(session, Level.SUBDOMAIN) + removeOutsideTree(session, Level.DOMAIN);
         for (JCRNodeWrapper site : session.getNode("/sites").getNodes()) {
             if (site.hasNode(ROOT)) {
@@ -113,9 +114,23 @@ final class LegacyLayout {
         }
         int removed = 0;
         for (JCRNodeWrapper node : found) {
-            if (!node.hasProperty(RuleNodes.SEED_DIGEST)) {
-                logger.warn("The {} {} at {} goes: a site arranges the tree of {} with its layout now",
-                        level.name().toLowerCase(Locale.ROOT), node.getName(), node.getPath(), ContentDomains.SYSTEM_SITE);
+            if (holdsNodes(node)) {
+                // Not a copy of a 2.0.0 snapshot, whose domains and subdomains held no node: it stays, and reads ignore it.
+                logger.warn("The {} {} at {} stays, because it holds other nodes, but no site reads it: the tree of {} "
+                        + "holds the domains and the subdomains", level.name().toLowerCase(Locale.ROOT), node.getName(),
+                        node.getPath(), ContentDomains.SYSTEM_SITE);
+                continue;
+            }
+            // The fingerprint of a version before 2.0.0 holds the domain and the order, which the node type no longer
+            // declares, so the conversion cannot tell a node that an administrator changed: the log names each one.
+            String what = level.name().toLowerCase(Locale.ROOT);
+            Map<String, Object> values = DomainNodes.read(node, level);
+            if (node.hasProperty(RuleNodes.SEED_DIGEST)) {
+                logger.info("The seeded {} {} at {} goes, and the tree of {} replaces it. Its values were {}", what,
+                        node.getName(), node.getPath(), ContentDomains.SYSTEM_SITE, values);
+            } else {
+                logger.warn("The {} {} at {} goes: a site arranges the tree of {} with its layout now. Its values were {}",
+                        what, node.getName(), node.getPath(), ContentDomains.SYSTEM_SITE, values);
             }
             JCRNodeWrapper parent = node.getParent();
             node.remove();
@@ -125,6 +140,16 @@ final class LegacyLayout {
             }
         }
         return removed;
+    }
+
+    /** True when the node holds a node other than a translation. */
+    private static boolean holdsNodes(JCRNodeWrapper node) throws RepositoryException {
+        for (JCRNodeWrapper child : node.getNodes()) {
+            if (!child.getName().startsWith("j:translation_")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static List<JCRNodeWrapper> children(JCRNodeWrapper node) throws RepositoryException {

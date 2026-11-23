@@ -100,6 +100,24 @@ class ShippedRulesTest {
     }
 
     @Test
+    @DisplayName("a subdomain that takes the id of a domain is skipped, because a layout names both in one list")
+    void subdomainWithTheIdOfADomain_isSkipped(@TempDir Path folder) throws IOException {
+        Files.createDirectories(folder.resolve("domains"));
+        Files.createDirectories(folder.resolve("subdomains"));
+        Files.writeString(folder.resolve("domains/acme.md"), "---\nlabel: Acme\n---\n");
+        Files.writeString(folder.resolve("subdomains/acme.md"), "---\ndomain: acme\nlabel: Acme\n---\n");
+        Files.writeString(folder.resolve("subdomains/quality.md"), "---\ndomain: acme\nlabel: Quality\n---\n");
+        Files.writeString(folder.resolve("subdomains/acme.prices.md"), "---\ndomain: acme\nlabel: Prices\n---\n");
+
+        ShippedRules.Shipment shipment = ShippedRules.load("acme-rules", folder);
+
+        assertThat(shipment.domains()).containsOnlyKeys("acme");
+        assertThat(shipment.subdomains()).as("acme is the id of a domain of this module, quality of Content Governance")
+                .containsOnlyKeys("acme.prices");
+        assertThat(shipment.complete()).isFalse();
+    }
+
+    @Test
     @DisplayName("a rule of an undeclared subdomain, and a subdomain of an undeclared domain, are skipped")
     void undeclared_isSkipped(@TempDir Path folder) throws IOException {
         Files.createDirectories(folder.resolve("subdomains"));

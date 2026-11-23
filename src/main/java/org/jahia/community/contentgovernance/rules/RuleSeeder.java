@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BooleanSupplier;
 
@@ -36,6 +37,12 @@ public class RuleSeeder implements BundleTrackerCustomizer<String> {
      * domain or a subdomain of a module that starts later, so the folder is read again when one starts.
      */
     private final Map<String, Bundle> incomplete = new ConcurrentHashMap<>();
+    /**
+     * The modules whose subdomains or rules wait for a parent node that the tree lacks, such as a rule of a module
+     * that the tracker finds before the module that declares its subdomain. The seeder seeds them again when a
+     * module that declares domains or subdomains starts.
+     */
+    private final Set<String> waitingForTree = ConcurrentHashMap.newKeySet();
     /** True on the processing server, and on a Jahia that is not a cluster: the node that writes at start. */
     private boolean processingServer;
     /** Reads whether this node is the processing server. A test replaces it, because SettingsBean needs Jahia. */
@@ -59,6 +66,8 @@ public class RuleSeeder implements BundleTrackerCustomizer<String> {
             LegacyDomains.migrate();
             // After the subdomains, before the seeder: it removes the copies that the seeder no longer writes.
             LegacyLayout.migrate();
+            // The tree of this module first: the other modules place their subdomains and rules in it.
+            TreeSeeder.seed(ShippedRules.own());
         } else {
             logger.debug("A browsing node leaves the conversions and the seeding to the processing server");
         }
@@ -86,6 +95,13 @@ public class RuleSeeder implements BundleTrackerCustomizer<String> {
                     read(other);
                 }
             });
+            // A module whose files are complete may still wait for the node of a parent in the tree.
+            for (String module : Set.copyOf(waitingForTree)) {
+                ShippedRules.Shipment waiting = ShippedRules.of(module);
+                if (!module.equals(shipment.module()) && waiting != null && processingServer) {
+                    seedTree(waiting);
+                }
+            }
         }
         return shipment.module();
     }
@@ -105,9 +121,18 @@ public class RuleSeeder implements BundleTrackerCustomizer<String> {
         logger.info("Read {} content rules, {} domains and {} subdomains from the module {}", shipment.rules().size(),
                 shipment.domains().size(), shipment.subdomains().size(), shipment.module());
         if (processingServer) {
-            TreeSeeder.seed(shipment);
+            seedTree(shipment);
         }
         return shipment;
+    }
+
+    /** Seeds the tree with one module, and remembers whether a node of it waits for a parent. */
+    private void seedTree(ShippedRules.Shipment shipment) {
+        if (TreeSeeder.seed(shipment)) {
+            waitingForTree.add(shipment.module());
+        } else {
+            waitingForTree.remove(shipment.module());
+        }
     }
 
     @Override
@@ -119,6 +144,7 @@ public class RuleSeeder implements BundleTrackerCustomizer<String> {
     public void removedBundle(Bundle bundle, BundleEvent event, String module) {
         // The nodes stay in the tree: a check that a module registered is gone with it.
         incomplete.remove(module);
+        waitingForTree.remove(module);
         ShippedRules.remove(module);
     }
 

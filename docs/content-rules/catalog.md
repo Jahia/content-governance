@@ -163,10 +163,13 @@ workspace. A property that the node lacks keeps the value that the module ships.
 
 To move a rule to another subdomain for every site, move its node under the node of that subdomain.
 A node that an administrator deletes comes back with its shipped values when the module starts
-again. Delete a node to reset its rule, and turn a rule off to stop it on every site.
+again. Delete a node to reset its rule. Turn a rule off to stop it on every site that has no layout,
+or whose layout does not name it. A site whose layout places the rule keeps it on, because the layout
+of a site wins over the default switch.
 
 A site cannot change the values of a rule. It arranges the rules and switches them on or off, as
-[The layout of a site](#the-layout-of-a-site) states.
+[The layout of a site](#the-layout-of-a-site) states. A rule node of the site with the id of a rule of
+the tree, or of a rule that a module ships, changes nothing.
 
 ## How a site adds a rule
 
@@ -278,8 +281,9 @@ Content-governance ships this layout:
 | `geo` SEO & GEO | `geo.citations` AI citations, `seo` SEO, `geo.score` Score, `geo.content` Content, `geo.files` Site files, `geo.schema` Structured data, `geo.crawlers` Crawler access |
 | `compliance` Compliance | `readability` Readability, `terms` Terms, `glossary` Glossary, `writing` Writing |
 
-The subdomain `geo.score` counts rules of other subdomains, which it names in `counts`. Example:
-`seo.title` belongs to `seo`, and the GEO score counts it.
+The GEO score counts rules of other subdomains. The subdomain `geo.score` names them in `counts`, for
+a screen that lists them. Example: `seo.title` belongs to `seo`, and the GEO score counts it. The GEO
+score keeps its own list in its code, so a change of `counts` does not change the score.
 
 ### What a domain and a subdomain hold
 
@@ -376,9 +380,11 @@ A site whose layout places the domain `geo` keeps it on.
 The GraphQL field `contentDomains(siteKey, language, includeOff)` gives the domains of a site in the
 order of its layout. Each domain comes with its subdomains, and with its label and its help in the
 language. With `includeOff`, the field also gives the domains and the subdomains that are off. The
-field `on` tells whether an item is on, and `isNew` whether a module shipped it after the site saved
-its layout. The field `contentRules` gives
-the `subdomain`, the `order`, `enabled` and `isNew` of each rule on the site. The drawer keeps its
+field `on` tells whether an item is on. The field `isNew` marks an item that the saved layout of the
+site names neither in an array nor in `off`. The screen of the layout saves every item, so such an item
+came with a module after the save. A layout that a script writes with fewer items marks the others as
+new too. The field `contentRules` gives the `subdomain`, the `order`, `enabled` and `isNew` of each rule
+on the site. The drawer keeps its
 tabs for now: it places a finding in the tab of the subdomain of its rule, when the drawer has one.
 
 ## How a module adds a check
@@ -489,11 +495,12 @@ report one practice under the same id.
 | `html.pageDescriptionMissing` | `seo.metaDescription`: a missing description has the length 0 |
 | `health.graphqlUnavailable` (2.0) | None: the drawer reads the state of the content from the check of the server, and a check that fails shows as unfinished in its tabs |
 
-A site keeps the nodes of the removed ids until content-governance starts again, and then the table
-of [How a new version of a module updates the rules](#how-a-new-version-of-a-module-updates-the-rules)
-applies. The module removes a node that nobody changed. A node that the site changed stays, with
-`retired` set. No module registers its check any more, so its rule shows as inactive and names its
-own id as the missing check. `geo.imageAlt` is the exception: its evaluator `threshold` stays
+The tree of the system site keeps the nodes of the removed ids until content-governance starts
+again, and then the table of
+[How a new version of a module updates the rules](#how-a-new-version-of-a-module-updates-the-rules)
+applies. The module removes a node that nobody changed. A node that an administrator changed stays,
+with `retired` set. No module registers its check any more, so its rule shows as inactive and names
+its own id as the missing check. `geo.imageAlt` is the exception: its evaluator `threshold` stays
 registered, but no caller measures its value, so it gives no finding. To keep a change, such as a
 severity, set it again on the node of the kept id.
 
@@ -502,15 +509,15 @@ severity, set it again on the node of the kept id.
 `ContentRules` gives the rules of a site in three layers, the most specific last:
 
 1. The rules that the modules of the site ship.
-2. The rule nodes of `systemsite`, which apply to every site.
-3. The rule nodes of the site.
+2. The rule nodes of `systemsite`, which apply to every site: the tree, and any other rule node there.
+3. The rule nodes of the site whose id no module ships and `systemsite` does not hold.
 
-A node replaces the rule of its id from the layer before it, and keeps the shipped values that it
-lacks. A node of a rule that a module ships, in either layer, applies only to a site that enables that
-module. The rules then apply as [Which rules apply to a site](#which-rules-apply-to-a-site) states. Example: a node `brand.noClickHere` in `/sites/systemsite/contents` applies to every site, and
-a node `seo.title` of `digitall` replaces the node `seo.title` of `systemsite` on `digitall`.
-[content-governance#138](https://github.com/Jahia/content-governance/issues/138) moves the rules to
-`systemsite`.
+A node of `systemsite` replaces the shipped rule of its id, and keeps the shipped values that it lacks.
+A node of `systemsite` of a rule that a module ships applies only to a site that enables that module. A
+node of the site adds a rule of its own, and a node of the site with the id of another rule changes
+nothing. The rules then apply as [Which rules apply to a site](#which-rules-apply-to-a-site) states.
+Example: a node `brand.noClickHere` in `/sites/systemsite/contents` applies to every site, and a node
+`seo.title` of `digitall` changes nothing.
 
 - The Java checks of GEO readiness read the rules of the site through `ContentRules.forSite`. A site
   scan reads them once, at its start.

@@ -52,32 +52,44 @@ final class TreeSeeder {
     private TreeSeeder() {
     }
 
-    /** Seeds the tree with the domains, the subdomains and the rules of one module. Never throws. */
-    static void seed(ShippedRules.Shipment shipment) {
+    /** What one seed did: the nodes it wrote, and whether a node waited for a parent that the tree lacks. */
+    private record Result(int changed, boolean waiting) {
+    }
+
+    /**
+     * Seeds the tree with the domains, the subdomains and the rules of one module. Never throws.
+     *
+     * @return true when a subdomain or a rule waits for a parent node that the tree lacks: the caller seeds the
+     * module again when a module that declares domains or subdomains starts
+     */
+    static boolean seed(ShippedRules.Shipment shipment) {
         synchronized (LOCK) {
             try {
-                int changed = JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, EDIT_WORKSPACE,
-                        Locale.ENGLISH, (JCRCallback<Integer>) session -> discardOnFailure(session, () -> seed(session, shipment)));
-                if (changed > 0) {
-                    logger.info("Added, updated or moved {} domains, subdomains and rules of {} in {}", changed,
+                Result result = JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, EDIT_WORKSPACE,
+                        Locale.ENGLISH, (JCRCallback<Result>) session -> discardOnFailure(session, () -> seed(session, shipment)));
+                if (result.changed() > 0) {
+                    logger.info("Added, updated or moved {} domains, subdomains and rules of {} in {}", result.changed(),
                             shipment.module(), ContentDomains.TREE);
                 }
+                return result.waiting();
             } catch (RepositoryException | RuntimeException e) {
                 logger.warn("Could not seed the tree with the rules of {}", shipment.module(), e);
+                return true;
             }
         }
     }
 
-    private static int seed(JCRSessionWrapper session, ShippedRules.Shipment shipment) throws RepositoryException {
+    private static Result seed(JCRSessionWrapper session, ShippedRules.Shipment shipment) throws RepositoryException {
         String contents = ContentDomains.SYSTEM_SITE + "/contents";
         if (!session.nodeExists(contents)) {
             logger.warn("{} is missing, so it cannot take the rules of {}", contents, shipment.module());
-            return 0;
+            return new Result(0, true);
         }
         JCRNodeWrapper tree = tree(session.getNode(contents));
         Index index = Index.of(session, tree);
         String module = shipment.module();
         int changed = 0;
+        boolean waiting = false;
         for (DomainFile file : shipment.domains().values()) {
             changed += place(index.domains, tree, file.id(), Level.DOMAIN.type(), module,
                     node -> update(node, file), node -> add(node, file, module), orderOf(Level.DOMAIN, file));
@@ -87,11 +99,15 @@ final class TreeSeeder {
             if (domain != null) {
                 changed += place(index.subdomains, domain, file.id(), Level.SUBDOMAIN.type(), module,
                         node -> update(node, file), node -> add(node, file, module), orderOf(Level.SUBDOMAIN, file));
+            } else {
+                waiting = true;
             }
         }
         for (RuleFile rule : shipment.rules().values()) {
             JCRNodeWrapper subdomain = index.subdomains.get(String.valueOf(rule.values().get(RuleValues.SUBDOMAIN)));
-            if (subdomain != null && !index.outside.contains(rule.id())) {
+            if (subdomain == null) {
+                waiting = true;
+            } else if (!index.outside.contains(rule.id())) {
                 changed += place(index.rules, subdomain, rule.id(), ContentRules.TYPE, module,
                         node -> update(node, rule), node -> add(node, rule, module), null);
             }
@@ -104,7 +120,7 @@ final class TreeSeeder {
         if (session.hasPendingChanges()) {
             session.save();
         }
-        return changed;
+        return new Result(changed, waiting);
     }
 
     /** What an update did to a node that the module still ships. */

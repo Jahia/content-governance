@@ -27,8 +27,9 @@ import java.util.regex.Pattern;
 /**
  * The rules as one site applies them, from the most general to the most specific: the rules that the
  * modules of the site ship, then every {@value #TYPE} node of {@code systemsite}, which applies to every
- * site, then every {@value #TYPE} node of the site. Example: a rule {@code acme.noClickHere} in
- * {@code /sites/systemsite/contents} applies to {@code digitall}, and the writing rules of the frame of
+ * site, then every {@value #TYPE} node of the site whose id no module ships and {@code systemsite} does not
+ * hold: a site adds rules, and does not change the values of a rule. Example: a rule {@code acme.noClickHere}
+ * in {@code /sites/systemsite/contents} applies to {@code digitall}, and the writing rules of the frame of
  * {@code digitall} apply there only.
  *
  * <p>A rule node of the tree of {@code systemsite} takes the subdomain of its parent node, and any other rule
@@ -44,11 +45,10 @@ import java.util.regex.Pattern;
  * show why.</p>
  *
  * <p>The rule nodes are read in the edit workspace with a system session, so that a change applies
- * without a publication and a scheduled scan reads the same rules as the drawer. A node replaces the
- * rule of its id that comes before it; a property that the node lacks keeps the shipped value. A node
- * whose id no module ships is a rule of its own, such as a rule of the customer. A node, of
- * {@code systemsite} or of the site, whose rule a module ships applies only to a site that enables that
- * module.</p>
+ * without a publication and a scheduled scan reads the same rules as the drawer. A node of {@code systemsite}
+ * replaces the shipped rule of its id; a property that the node lacks keeps the shipped value. A node whose id
+ * no module ships is a rule of its own, such as a rule of the customer. A node of {@code systemsite} whose rule
+ * a module ships applies only to a site that enables that module.</p>
  *
  * <p>Thread safety: immutable.</p>
  */
@@ -206,7 +206,10 @@ public final class ContentRules {
         // stays on the site when the site removes the module, and stops applying
         Predicate<String> applies = id -> enabled.contains(id) || !shippedIds.contains(id);
         put(out, shipments, platform, applies);
-        put(out, shipments, site, applies);
+        // A site does not change the values of a rule: a node of the site counts only with an id of its own
+        Set<String> platformIds = new HashSet<>();
+        platform.forEach(node -> platformIds.add(String.valueOf(node.values().get(RuleValues.RULE_ID))));
+        put(out, shipments, site, id -> !shippedIds.contains(id) && !platformIds.contains(id));
         return of(out, hierarchy);
     }
 
