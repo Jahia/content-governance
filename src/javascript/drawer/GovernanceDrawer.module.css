@@ -74,9 +74,9 @@
     text-overflow: ellipsis;
 }
 
-/* Header has a fixed height in Moonstone layouts; here the bar scrolls sideways rather than
-   wrapping, so a narrow drawer never hides a section under the content. The switch between the
-   panels uses it too. */
+/* The bar of the domains of the governance panel, under the header. Header has a fixed height in
+   Moonstone layouts; here the bar scrolls sideways rather than wrapping, so a narrow drawer never
+   hides a domain under the content. */
 .sectionBar {
     flex-shrink: 0;
     overflow-x: auto;

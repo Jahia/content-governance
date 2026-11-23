@@ -32,10 +32,11 @@ function unavailable(entry, isPage, canWrite) {
 
 /**
  * The tabs of the governance panel: one tab per entry of the registry the site switched on
- * (drawer/entries.js), "Fix first", and the content of those tabs. The module's own tabs register
- * there too, so the panel renders every tab the same way. A tab mounts the first time it is shown
- * and stays mounted while the drawer is open, so switching back to it keeps its results and any
- * answer still on its way.
+ * (drawer/entries.js), "Fix first", and the content of those tabs. Each tab is a domain, such as
+ * Page quality, and the bar of the domains is the main tab bar of the drawer, right under its
+ * header. The module's own tabs register there too, so the panel renders every tab the same way. A
+ * tab mounts the first time it is shown and stays mounted while the drawer is open, so switching
+ * back to it keeps its results and any answer still on its way.
  *
  * Tabs the page cannot use (compliance on a content item that is not a page, or without write
  * access) stay in the bar, greyed out, with the reason as a tooltip.
@@ -160,7 +161,6 @@ export const GovernanceSections = ({path, language, tabs, request, settings, isO
                                          role="tab"
                                          aria-selected={active === tab.id}
                                          aria-controls={`content-governance-panel-${tab.id}`}
-                                         size="big"
                                          label={label(tab)}
                                          isSelected={active === tab.id}
                                          isDisabled={Boolean(tab.unavailable)}

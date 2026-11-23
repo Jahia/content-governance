@@ -177,13 +177,12 @@ describe('GovernanceDrawer', () => {
         contexts: {},
         settings: {disabled: []},
         isOn: () => true,
-        onShow: () => {},
         onClose: () => {}
     };
     const switchTabs = markup => [...markup.matchAll(/id="content-governance-drawer-switch-([^"]+)"/g)].map(match => match[1]);
     const shownPanels = markup => [...markup.matchAll(/id="content-governance-drawer-panel-([^"]+)"/g)].map(match => match[1]);
 
-    it('shows the panel in view under its label, with no switch for a single panel', () => {
+    it('shows the panel in view under its label', () => {
         const markup = renderToStaticMarkup(h(GovernanceDrawer, {
             ...drawerProps,
             panels: [panel('governance', {component: () => h('p', null, 'the governance panel')})],
@@ -195,14 +194,14 @@ describe('GovernanceDrawer', () => {
         expect(markup).not.toContain('role="tablist"');
     });
 
-    it('switches between several panels, and mounts the panel in view only until another is shown', () => {
+    it('leaves the switch between several panels to their buttons, and mounts the panel in view only until another is shown', () => {
         const markup = renderToStaticMarkup(h(GovernanceDrawer, {
             ...drawerProps,
             panels: [panel('governance'), panel('chat', {component: () => h('p', null, 'the chat')})],
             active: 'chat'
         }));
-        expect(switchTabs(markup)).toEqual(['governance', 'chat']);
-        expect(markup).toContain('aria-selected="true" aria-controls="content-governance-drawer-panel-chat"');
+        expect(switchTabs(markup)).toEqual([]);
+        expect(markup).not.toContain('role="tablist"');
         expect(shownPanels(markup)).toEqual(['chat']);
         expect(markup).toContain('the chat');
         expect(markup).toMatch(/id="content-governance-drawer-title"[^>]*>chat\.label</);
