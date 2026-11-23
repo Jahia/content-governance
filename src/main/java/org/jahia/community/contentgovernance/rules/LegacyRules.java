@@ -180,27 +180,40 @@ final class LegacyRules {
      * The pattern and the other keys of a writing rule move to the mixin of the check type PATTERN.
      */
     static void convert(Node node, String id) throws RepositoryException {
-        String kind = node.hasProperty(RuleValues.KIND) ? node.getProperty(RuleValues.KIND).getString() : null;
-        String severity = node.hasProperty(SEVERITY) ? node.getProperty(SEVERITY).getString() : null;
-        String plainJustification = node.hasProperty(JUSTIFICATION) ? node.getProperty(JUSTIFICATION).getString() : null;
+        String kind = text(node, RuleValues.KIND);
+        String severity = text(node, SEVERITY);
+        String plainJustification = text(node, JUSTIFICATION);
         // The old type declares these two with other values, and the new type has no justification.
-        for (String name : List.of(SEVERITY, JUSTIFICATION)) {
-            if (node.hasProperty(name)) {
-                node.getProperty(name).remove();
-            }
-        }
+        setAside(node, List.of(SEVERITY, JUSTIFICATION));
         // The new type does not declare the keys of a writing rule, and its mixin would declare them twice
         // beside the old type, so they wait aside while the type changes.
+        Map<String, Object> kept = setAside(node, CheckType.PATTERN.keys());
+        node.setPrimaryType(ContentRules.TYPE);
+        node.addMixin(CheckType.PATTERN.mixin());
+        putBack(node, kept);
+        write(node, ruleOf(id, kind, severity));
+        moveJustifications(node, plainJustification);
+    }
+
+    private static String text(Node node, String name) throws RepositoryException {
+        return node.hasProperty(name) ? node.getProperty(name).getString() : null;
+    }
+
+    /** Removes the properties of the node, and returns the value or the values of each, by name. */
+    private static Map<String, Object> setAside(Node node, List<String> names) throws RepositoryException {
         Map<String, Object> kept = new LinkedHashMap<>();
-        for (String name : CheckType.PATTERN.keys()) {
+        for (String name : names) {
             if (node.hasProperty(name)) {
                 Property property = node.getProperty(name);
                 kept.put(name, property.isMultiple() ? property.getValues() : property.getValue());
                 property.remove();
             }
         }
-        node.setPrimaryType(ContentRules.TYPE);
-        node.addMixin(CheckType.PATTERN.mixin());
+        return kept;
+    }
+
+    /** Sets the values that {@link #setAside} returned. */
+    private static void putBack(Node node, Map<String, Object> kept) throws RepositoryException {
         for (Map.Entry<String, Object> entry : kept.entrySet()) {
             if (entry.getValue() instanceof Value[] items) {
                 node.setProperty(entry.getKey(), items);
@@ -208,7 +221,11 @@ final class LegacyRules {
                 node.setProperty(entry.getKey(), (Value) entry.getValue());
             }
         }
-        for (Map.Entry<String, Object> entry : ruleOf(id, kind, severity).entrySet()) {
+    }
+
+    /** Sets the values of {@link #ruleOf}: a flag, a list of texts, or a text. */
+    private static void write(Node node, Map<String, Object> values) throws RepositoryException {
+        for (Map.Entry<String, Object> entry : values.entrySet()) {
             if (entry.getValue() instanceof Boolean flag) {
                 node.setProperty(entry.getKey(), flag);
             } else if (entry.getValue() instanceof List<?> list) {
@@ -217,7 +234,6 @@ final class LegacyRules {
                 node.setProperty(entry.getKey(), entry.getValue().toString());
             }
         }
-        moveJustifications(node, plainJustification);
     }
 
     /**

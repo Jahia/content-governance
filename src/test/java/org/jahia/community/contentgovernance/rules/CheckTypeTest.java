@@ -68,7 +68,8 @@ class CheckTypeTest {
         for (CheckType type : CheckType.values()) {
             assertThat(rule).doesNotContainAnyElementsOf(type.keys());
         }
-        assertThat(RuleValues.KEYS).containsAll(rule.stream().filter(key -> !List.of("source", "retired", "seedDigest").contains(key)).toList());
+        assertThat(rule.stream().filter(key -> !List.of("source", "retired", "seedDigest").contains(key)).toList())
+                .isSubsetOf(RuleValues.KEYS);
     }
 
     @Test
