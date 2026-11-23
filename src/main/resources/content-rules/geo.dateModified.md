@@ -1,6 +1,7 @@
 ---
 id: geo.dateModified
 evaluator: geo.dateModified
+checkType: CODE
 subdomains: [geo.content]
 severity: minor
 fixer: developer

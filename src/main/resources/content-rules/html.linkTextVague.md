@@ -1,6 +1,7 @@
 ---
 id: html.linkTextVague
 evaluator: html.linkTextVague
+checkType: CODE
 subdomains: [accessibility]
 severity: minor
 fixer: editor

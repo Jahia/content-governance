@@ -153,6 +153,12 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   `onFindings`, with an axe-core severity (`critical serious moderate minor`) and a translated title,
   and the tab that shows it (`drawer/findings.js`). Sections report every change of their results;
   the drawer ignores an identical list, so a section never needs to deduplicate.
+- **A field of a content rule that one check type uses sits on the mixin of that type**: `rules/CheckType`
+  lists the keys of `ccsmix:patternCheck`, `ccsmix:aiCheck` and `ccsmix:codeCheck`, and `CheckTypeTest`
+  fails when the CND disagrees. Every writer of a rule node adds the mixin before it sets one of those keys
+  (`RuleNodes.mixIn`), because the repository refuses a property that no type of the node declares. A new
+  field goes on `ccs:contentRule` only when every check type uses it. ai-assistant's frame import writes rule
+  nodes too.
 - **Other modules add tabs and finding actions through jContent's registry** (#71): with none
   added, the drawer renders as before. `docs/drawer-entries.md` is the contract: what an entry
   declares, and the `path`, `language` and `findings` it receives (each finding with `rule`, its key

@@ -1,6 +1,7 @@
 ---
 id: ecodesign.webVitals
 evaluator: webVitals
+checkType: CODE
 runtime: browser
 subdomains: [ecodesign]
 severity: minor

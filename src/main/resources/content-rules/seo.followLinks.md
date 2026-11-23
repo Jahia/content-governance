@@ -1,6 +1,7 @@
 ---
 id: seo.followLinks
 evaluator: seo.followLinks
+checkType: CODE
 subdomains: [seo]
 severity: moderate
 fixer: editor

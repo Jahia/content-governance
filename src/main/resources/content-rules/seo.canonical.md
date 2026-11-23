@@ -1,6 +1,7 @@
 ---
 id: seo.canonical
 evaluator: seo.canonical
+checkType: CODE
 subdomains: [seo, geo.score]
 severity: moderate
 fixer: developer

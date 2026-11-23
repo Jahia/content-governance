@@ -1,6 +1,7 @@
 ---
 id: links.mixedContent
 evaluator: links.mixedContent
+checkType: CODE
 subdomains: [links]
 severity: serious
 fixer: developer

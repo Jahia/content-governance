@@ -1,6 +1,7 @@
 ---
 id: html.linkNameMissing
 evaluator: html.linkNameMissing
+checkType: CODE
 subdomains: [accessibility]
 severity: serious
 fixer: editor

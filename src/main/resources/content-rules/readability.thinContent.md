@@ -1,6 +1,7 @@
 ---
 id: readability.thinContent
 evaluator: threshold
+checkType: CODE
 subdomains: [readability]
 severity: minor
 fixer: editor

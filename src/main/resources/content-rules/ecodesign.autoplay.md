@@ -1,6 +1,7 @@
 ---
 id: ecodesign.autoplay
 evaluator: ecodesign.autoplay
+checkType: CODE
 runtime: browser
 subdomains: [ecodesign]
 severity: moderate

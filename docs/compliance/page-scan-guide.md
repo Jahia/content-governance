@@ -1,7 +1,7 @@
 # The Compliance section of the drawer, for editors
 
 The **Compliance** section of the **Content governance** drawer checks the page you are editing, in
-the language you are editing, against the term rules of the site: the rules of the evaluator
+the language you are editing, against the term rules of the site: the rules of the check
 `pattern`, such as the terms of the legal team or the glossary of the brand. It is informational: it tells you what to fix before publishing, it does not stop you publishing.
 
 ## Open it

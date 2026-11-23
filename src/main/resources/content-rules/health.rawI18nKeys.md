@@ -1,6 +1,7 @@
 ---
 id: health.rawI18nKeys
 evaluator: health.rawI18nKeys
+checkType: CODE
 subdomains: [health]
 severity: critical
 fixer: developer

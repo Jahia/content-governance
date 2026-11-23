@@ -7,12 +7,13 @@ a title of 30 to 60 characters. The SEO tab and the GEO tab both report a title 
 ## What a rule holds
 
 A rule is a node of type `ccs:contentRule`, and the module, a site or an import writes it with these
-properties.
+properties. jContent shows a label for each property, such as **Check** for `evaluator`.
 
 | Property | What it means |
 |---|---|
 | `ruleId` | The name of the rule, such as `seo.title`. Each finding of the rule shows it. One rule of a site has it. |
-| `evaluator` | What checks the rule. The next table lists the values. |
+| `checkType` | The check type of the rule: `PATTERN`, `AI` or `CODE`. jContent labels it **Check type**. It picks the fields of the rule, as the section [The fields of each check type](#the-fields-of-each-check-type) shows. |
+| `evaluator` | The check of the rule. jContent labels it **Check**. The table under this one lists the values. |
 | `subdomains` | The ids of the subdomains of the rule, such as `seo` and `geo.score`. The findings of the rule show in each. [Domains and subdomains](#domains-and-subdomains) lists them. A rule with no subdomain takes the subdomain of the part of its id before the first dot, when a module declares it. Else a rule of the evaluator `pattern` takes `terms`. A rule whose subdomains nobody declares never runs. |
 | `sites` | The keys of the sites that the rule applies to, or `*` for all sites, the default. jContent shows `*` as "All sites". |
 | `severity` | `critical`, `serious`, `moderate` or `minor`. |
@@ -21,29 +22,50 @@ properties.
 | `fixer` | The role of the person who fixes a finding: `editor`, `developer` or `administrator`. Example: `geo.reachable`, a crawler that gets a 403, names an administrator. |
 | `title` | The title of a finding, one text per language, with one line per plural form, such as `one: {{count}} image has no text alternative` and `other: {{count}} images have no text alternative`. It takes the values `{{count}}` (the findings of the rule), `{{value}}` (what the first finding measured or matched), `{{min}}` and `{{max}}`. |
 | `label` | A neutral name of what the rule checks, one text per language, such as "Title length". GEO readiness shows it on each check. |
-| `advice` | What to do about a finding, one text per language. For the evaluator `model`, the criterion that the model checks. |
-| `unit`, `minimum`, `maximum` | The limits of a rule of the evaluator `threshold`, in its unit. |
-| `kind`, `pattern`, `matchMode`, `replacement`, `ruleLanguage` | The pattern of a rule of the evaluator `pattern`: a forbidden term, a term to replace, a mandatory mention or a style pattern. A term ignores case and accents, a `*` at its end matches the rest of the word, and a `*` at its start lets it end another word. A regular expression ignores case, unless it starts with `(?-i)`. |
+| `advice` | What to do about a finding, one text per language. For a rule of the check type `AI`, the criterion that the model checks. |
+| `unit`, `minimum`, `maximum` | The limits of a rule of the check `threshold`, in its unit. For a rule of the check type `AI`, `minimum` is the passing score, from 0 to 100. |
+| `kind`, `pattern`, `matchMode`, `replacement`, `ruleLanguage` | The pattern of a rule of the check `pattern`: a forbidden term, a term to replace, a mandatory mention or a style pattern. A term ignores case and accents, a `*` at its end matches the rest of the word, and a `*` at its start lets it end another word. A regular expression ignores case, unless it starts with `(?-i)`. |
 | `patternForms`, `replacementForms` | The other forms of the term and of the replacement, such as the plurals "access tokens" and "jetons d'accès". |
 | `patternLanguage` | For a glossary term to translate, the language of the term, such as `en` for "access token" in a rule of `fr`. `frame.check` on a translation then reports a missing replacement. |
 | `wrongExamples`, `rightExamples`, `owner`, `decidedOn`, `validFrom`, `validUntil` | The examples, the decision and the dates of a writing rule. |
 | `runtime` | Where the check of the rule runs: `browser` for a check that the drawer runs on the preview of the page, else `server`. Empty: `server`. The server never runs a rule of the browser, never blocks a publication on it, and shows it as active. |
 | `retired` | Set by the module on a rule that the site changed and that its module no longer ships. |
 
-| Evaluator | What checks the rule |
-|---|---|
-| `pattern` | The pattern of the rule, with no model. `frame.check` reports each match. |
-| `threshold` | A measured value against `minimum` and `maximum`. Example: `seo.title` measures the length of the title. |
-| `presence` | Something that the rule names is present. |
-| `model` | A model, against the advice of the rule. Only a module that calls a model registers it, so content-governance alone checks no such rule. |
-| Any other value | The id of a check that a module registers. A built-in rule with no limit names a check of its own id, such as `seo.indexable`. |
+| Check (`evaluator`) | Check type | What checks the rule |
+|---|---|---|
+| `pattern` | `PATTERN` | The pattern of the rule, with no model. `frame.check` reports each match. |
+| `threshold` | `CODE` | A measured value against `minimum` and `maximum`. Example: `seo.title` measures the length of the title. |
+| `presence` | `CODE` | Something that the rule names is present. |
+| `model` | `AI` | A model, against the advice of the rule. Only a module that calls a model registers it, so content-governance alone checks no such rule. |
+| Any other value | The type of that check | The id of a check that a module registers. A built-in rule with no limit names a check of its own id, such as `seo.indexable`. |
 
-Each evaluator is the id of a check that a module registers, as the section
+Each value of `evaluator` is the id of a check that a module registers, as the section
 [How a module adds a check](#how-a-module-adds-a-check) shows. Content-governance registers
 `pattern`, `threshold`, `presence` and the check of each of its own rules. A rule whose check no
-started module registers is inactive and never runs. Example: a rule with the evaluator `model`
+started module registers is inactive and never runs. Example: a rule with the check `model`
 shows `active: false`, `missingCheck: "model"` and `needs: "ai-assistant"` in the GraphQL field
 `contentRules`.
+
+### The fields of each check type
+
+The check type of a rule picks the fields that the rule holds. Each check type keeps its fields on a
+mixin, and the other properties are on every rule:
+
+| Check type | Mixin | Fields | Example |
+|---|---|---|---|
+| `PATTERN` | `ccsmix:patternCheck` | `kind`, `pattern`, `matchMode`, `replacement`, `ruleLanguage`, `patternForms`, `replacementForms`, `patternLanguage`, `wrongExamples`, `rightExamples`, `owner`, `decidedOn`, `validFrom` and `validUntil` | A term rule of the check `pattern`. |
+| `AI` | `ccsmix:aiCheck` | `minimum`, the passing score | A rule of the check `model`, whose advice is the criterion. |
+| `CODE` | `ccsmix:codeCheck` | `unit`, `minimum` and `maximum` | `seo.title`, of the check `threshold`. |
+
+In jContent, the form of a rule shows the fields of its check type only. Each mixin is a
+`jmix:dynamicFieldset`, and the value of **Check type** adds its mixin to the rule. Example: a site
+picks **AI** for the rule `acme.tone`, and the form shows **Passing score** and no pattern.
+
+A module that writes a rule node with the API sets `checkType` and adds the mixin of the check type.
+It adds the mixin first, because the repository refuses a field whose mixin the node lacks.
+
+The check type copies the kind of the check that `evaluator` names. Content-governance does not yet
+compare the two: a rule of the check type `PATTERN` that names the check `model` gets no warning.
 
 ## Where the rules live
 
@@ -73,6 +95,7 @@ of that folder is one rule. This module ships its rules in `src/main/resources/c
 ---
 id: seo.title
 evaluator: threshold
+checkType: CODE
 subdomains: [seo, geo.score]
 severity: serious
 fixer: editor
@@ -89,6 +112,8 @@ English. The module skips a file with a warning in the log when the file has one
 
 - An unknown key. The key `domain` of a version before 2.0.0 is an unknown key.
 - No evaluator, or an unknown severity.
+- No check type, or a key of another check type. Example: a file of the check type `CODE` with a
+  `pattern`.
 - No subdomain, or a subdomain that no started module declares.
 
 The texts of a rule take a map of languages. The drawer shows them in the language of the
@@ -132,8 +157,9 @@ node to reset its rule, and turn a rule off to stop it.
 ## How a site adds a rule
 
 Create a **Content rule** in jContent, under **Content folders > content-insights > site > rules**.
-Give it a rule id, an evaluator, a severity and an advice. For example, the rule `acme.tone` has the
-evaluator `model`, the severity `minor` and the advice "Write in a friendly tone."
+Give it a rule id, a check type, a check, a severity and an advice. For example, the rule `acme.tone`
+has the check type **AI**, the check `model`, the severity `minor` and the advice "Write in a
+friendly tone."
 
 The id is free, but give the rule a subdomain, such as `writing` for `acme.tone`, so that its
 findings have a tab. A term with no subdomain, such as `brand.seamless`, takes `terms`. jContent refuses a
@@ -150,7 +176,7 @@ Each node that the module writes keeps a fingerprint of the values it wrote, in 
 |---|---|---|
 | New | The module adds it. | The module adds it. |
 | Changed | The node takes the new values. | The node keeps its values, and gets the properties it lacks. |
-| Moved to the browser | The node takes the new values. | The node keeps its values, gets the properties it lacks, and takes the evaluator of the new version. |
+| Moved to the browser | The node takes the new values. | The node keeps its values, gets the properties it lacks, and takes the check of the new version. |
 | Gone | The module removes the node. | The node stays, with `retired` set. |
 
 Example: version 2.0 moves `ecodesign.pageWeight` to the browser, with the evaluator
@@ -185,10 +211,21 @@ starts on the processing server, before it writes the rules:
 - A rule that nobody changed keeps a fingerprint that says so, and then takes the new values of its
   file.
 
+Version 2.0.0 also moves the fields of each check type from `ccs:contentRule` to the mixin of that
+type, and adds `checkType`. When content-governance starts on the processing server, before it
+converts the domains:
+
+- A rule with no `checkType` takes the check type of its check. The check `pattern` or no check gives
+  `PATTERN`, `model` gives `AI`, and any other check gives `CODE`. Example: `seo.title`, of the
+  check `threshold`, takes `CODE`.
+- The rule takes the mixin of its check type, which shows its fields again. A field of another check
+  type stays in the repository, out of sight, and the log names it.
+- A rule that nobody changed keeps a fingerprint that says so.
+
 No release before 2.0.0 holds the type `ccs:contentRule`, so a 1.x instance needs nothing. An
-instance that runs a 1.12.0-SNAPSHOT build refuses the new definition, because it removes `domain`.
-On such an instance, install 2.0.0 once with `ignoreChecks: true` on the `installOrUpgradeBundle`
-entry of the provisioning.
+instance that runs a 1.12.0-SNAPSHOT build refuses the new definition, because it removes `domain`
+and moves the fields of each check type. On such an instance, install 2.0.0 once with
+`ignoreChecks: true` on the `installOrUpgradeBundle` entry of the provisioning.
 
 ## Domains and subdomains
 
@@ -310,7 +347,8 @@ public CheckResult result(CheckInput input, Rule rule) {
 ```
 
 The module ships the rule of the check with the header `Jahia-Content-Rules`, as the section
-[How a module ships rules](#how-a-module-ships-rules) shows, with `evaluator: acme.erpPrice`. The test
+[How a module ships rules](#how-a-module-ships-rules) shows, with `evaluator: acme.erpPrice` and
+`checkType: CODE`. The test
 module of this repository, `tests/jahia-module`, does both, with no change to content-governance.
 
 A check states the scopes in which it runs:

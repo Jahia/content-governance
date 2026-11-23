@@ -1,6 +1,7 @@
 ---
 id: readability.longParagraphs
 evaluator: threshold
+checkType: CODE
 subdomains: [readability]
 severity: moderate
 fixer: editor

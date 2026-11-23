@@ -176,8 +176,9 @@ describe('Content Governance - example rule of a site that keeps terms', () => {
         createTestSite(siteKey, false);
         addNodeTree(`${sitePath}/contents`, {
             name: 'legal', type: 'jnt:contentFolder', children: [{
-                name: 'free', primaryNodeType: 'ccs:contentRule', properties: [
+                name: 'free', primaryNodeType: 'ccs:contentRule', mixins: ['ccsmix:patternCheck'], properties: [
                     {name: 'ruleId', value: 'compliance.free'},
+                    {name: 'checkType', value: 'PATTERN'},
                     {name: 'subdomains', values: ['terms']},
                     {name: 'pattern', value: 'free'}
                 ]

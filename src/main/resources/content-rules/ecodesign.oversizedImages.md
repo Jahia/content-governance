@@ -1,6 +1,7 @@
 ---
 id: ecodesign.oversizedImages
 evaluator: ecodesign.oversizedImages
+checkType: CODE
 runtime: browser
 subdomains: [ecodesign]
 severity: moderate

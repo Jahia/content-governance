@@ -97,7 +97,8 @@ class RuleSeederTest {
     @DisplayName("a writing rule gets the evaluator pattern, blocking as a flag next to its severity, and a style rule is minor")
     void writingRule_mapsToAContentRule() {
         assertThat(LegacyRules.ruleOf("writing.a", "forbidden", "warning"))
-                .containsEntry(RuleValues.EVALUATOR, "pattern").containsEntry(RuleValues.SEVERITY, "moderate")
+                .containsEntry(RuleValues.EVALUATOR, "pattern").containsEntry(RuleValues.CHECK_TYPE, "PATTERN")
+                .containsEntry(RuleValues.SEVERITY, "moderate")
                 .containsEntry(RuleValues.BLOCKING, false).containsEntry(RuleValues.SUBDOMAINS, List.of("writing"));
         assertThat(LegacyRules.ruleOf("writing.b", "replace", "blocking"))
                 .containsEntry(RuleValues.SEVERITY, "serious").containsEntry(RuleValues.BLOCKING, true);
@@ -114,11 +115,12 @@ class RuleSeederTest {
     }
 
     @Test
-    @DisplayName("only the processing server converts the rules, the terms and the domains of an older version")
+    @DisplayName("only the processing server converts the rules, the terms, the check types and the domains of an older version")
     void activate_convertsOnTheProcessingServerOnly() {
         for (boolean processing : List.of(false, true)) {
             try (MockedStatic<LegacyRules> rules = mockStatic(LegacyRules.class);
                  MockedStatic<LegacyTerms> terms = mockStatic(LegacyTerms.class);
+                 MockedStatic<LegacyCheckTypes> checkTypes = mockStatic(LegacyCheckTypes.class);
                  MockedStatic<LegacyDomains> domains = mockStatic(LegacyDomains.class)) {
                 RuleSeeder seeder = seeder(processing);
 
@@ -126,6 +128,7 @@ class RuleSeederTest {
 
                 rules.verify(LegacyRules::migrate, processing ? times(1) : never());
                 terms.verify(LegacyTerms::migrate, processing ? times(1) : never());
+                checkTypes.verify(LegacyCheckTypes::migrate, processing ? times(1) : never());
                 domains.verify(LegacyDomains::migrate, processing ? times(1) : never());
                 seeder.deactivate();
             }
@@ -139,6 +142,7 @@ class RuleSeederTest {
         for (boolean processing : List.of(false, true)) {
             try (MockedStatic<LegacyRules> rules = mockStatic(LegacyRules.class);
                  MockedStatic<LegacyTerms> terms = mockStatic(LegacyTerms.class);
+                 MockedStatic<LegacyCheckTypes> checkTypes = mockStatic(LegacyCheckTypes.class);
                  MockedStatic<LegacyDomains> domains = mockStatic(LegacyDomains.class);
                  MockedStatic<DomainSeeder> domainSeeder = mockStatic(DomainSeeder.class);
                  MockedStatic<ShippedRules> shipped = mockStatic(ShippedRules.class);
@@ -165,7 +169,7 @@ class RuleSeederTest {
     @DisplayName("a rule that names the subdomain of a module that starts later comes back when that module starts")
     void addingBundle_readsAgainARuleThatWaitsForItsSubdomain() {
         Bundle rules = bundle("acme-rules", Map.of("content-rules/acme.price.md",
-                "---\nevaluator: erp.price\nsubdomains: [acme.prices]\nseverity: serious\n---\nCheck the price.\n"));
+                "---\nevaluator: erp.price\ncheckType: CODE\nsubdomains: [acme.prices]\nseverity: serious\n---\nCheck the price.\n"));
         Bundle subdomains = bundle("acme-subdomains", Map.of("content-rules/subdomains/acme.prices.md",
                 "---\ndomain: compliance\nlabel: Prices\n---\nThe prices that the ERP gives.\n"));
         RuleSeeder seeder = seeder(false);

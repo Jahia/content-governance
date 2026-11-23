@@ -1,6 +1,7 @@
 ---
 id: ecodesign.imageFormats
 evaluator: ecodesign.imageFormats
+checkType: CODE
 runtime: browser
 subdomains: [ecodesign]
 severity: moderate

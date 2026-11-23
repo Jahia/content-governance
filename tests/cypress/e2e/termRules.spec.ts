@@ -30,10 +30,11 @@ const SET_ADVICE = `mutation A($path: String!, $advice: String!) { jcr { mutateN
 
 type Issue = {nodePath: string; ruleId: string; severity: string; folder: string; term: string; matchedText: string; reason: string};
 
-/** A forbidden term of the evaluator pattern, in English. */
+/** A forbidden term of the check pattern, in English, whose mixin holds the fields of the check type PATTERN. */
 const termRule = (name: string, ruleId: string, pattern: string, advice: string) => ({
-    name, primaryNodeType: 'ccs:contentRule', properties: [
+    name, primaryNodeType: 'ccs:contentRule', mixins: ['ccsmix:patternCheck'], properties: [
         {name: 'ruleId', value: ruleId},
+        {name: 'checkType', value: 'PATTERN'},
         {name: 'evaluator', value: 'pattern'},
         {name: 'severity', value: 'serious'},
         {name: 'kind', value: 'forbidden'},

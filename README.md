@@ -49,7 +49,7 @@ rewrites come from the module ai-assistant, which adds its own tab to the drawer
 
 ### Compliance
 
-Terms are content rules of the evaluator `pattern`. Each team keeps its terms in a folder of rules
+Terms are content rules of the check `pattern`. Each team keeps its terms in a folder of rules
 under the site's contents, with the permissions of that folder: the legal team keeps terms that the
 brand team cannot change. The scan reads the page and every piece of content it shows, and lists
 each term found with its rule id, its folder, its advice and its replacement. The tool `frame.check`

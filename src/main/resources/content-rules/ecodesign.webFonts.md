@@ -1,6 +1,7 @@
 ---
 id: ecodesign.webFonts
 evaluator: ecodesign.webFonts
+checkType: CODE
 runtime: browser
 subdomains: [ecodesign]
 severity: minor

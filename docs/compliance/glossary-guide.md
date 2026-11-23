@@ -1,6 +1,6 @@
 # Term rules, for the people who maintain the terms
 
-A term rule is a content rule of the evaluator `pattern`. It names a word or a phrase that the content
+A term rule is a content rule of the check `pattern`. It names a word or a phrase that the content
 of a language must not hold, or must write in another way. Each team keeps its terms in a folder of rules
 with its own permissions. Example: the legal team keeps "guaranteed" in its folder, and the brand team
 keeps "seamless" in another folder that the legal team cannot change.
@@ -55,7 +55,8 @@ Open the folder and create a **Content rule**. One rule holds one word or phrase
 | Field | What to enter |
 |---|---|
 | Rule id | A unique id with a dot, such as `compliance.guaranteed` |
-| Evaluator | `pattern` |
+| Check type | **Pattern**, the default. The form then shows the fields of a term rule |
+| Check | `pattern` |
 | Subdomains | Leave it empty. A term rule with no subdomain takes `terms`, unless the part of its id before the first dot names a subdomain, such as `glossary` |
 | Kind | **Forbidden term** when the term has no replacement. **Term to replace** when the editor writes the replacement instead |
 | Term or pattern | The word or phrase, as you write it. The next section states the stars |

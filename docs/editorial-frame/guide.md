@@ -10,7 +10,7 @@ content types and the tool name keep their names. [`architecture.md`](architectu
 the frame sits in the module.
 
 The glossary of the frame and the terms of the Compliance section are one model since
-content-governance#74: term rules of the evaluator `pattern`, which
+content-governance#74: term rules of the check `pattern`, which
 [`../compliance/glossary-guide.md`](../compliance/glossary-guide.md) describes. The Compliance section
 and `frame.check` run the term rules through the same check, so they give the same findings for the
 same text.
@@ -21,7 +21,7 @@ The frame is content of the site. These types hold it:
 
 | Type | What it holds | Edited by |
 |---|---|---|
-| `ccs:contentRule` | A writing rule is a [content rule](../content-rules/catalog.md) of the evaluator `pattern`: `kind` (forbidden, replace, mandatory, style), `pattern`, `matchMode` (term or regex), `replacement`, `ruleLanguage`, `severity` with `blocking`, `advice` (translated), `wrongExamples` and `rightExamples`, `owner`, `decidedOn`, `validFrom` and `validUntil`. It replaces `efnt:writingRule`, which the module converts when it starts. | Legal, brand manager |
+| `ccs:contentRule` | A writing rule is a [content rule](../content-rules/catalog.md) of the check type `PATTERN` and the check `pattern`: `kind` (forbidden, replace, mandatory, style), `pattern`, `matchMode` (term or regex), `replacement`, `ruleLanguage`, `severity` with `blocking`, `advice` (translated), `wrongExamples` and `rightExamples`, `owner`, `decidedOn`, `validFrom` and `validUntil`. It replaces `efnt:writingRule`, which the module converts when it starts. | Legal, brand manager |
 | `efnt:glossaryTerm` | Replaced by a `ccs:contentRule` of the language of the translation, which the module converts when it starts. The rule names the language of its term in `patternLanguage`, and its other forms in `patternForms` and `replacementForms`. | Brand manager, translators |
 
 The service finds these nodes by their type anywhere under the site, so no folder is imposed. The

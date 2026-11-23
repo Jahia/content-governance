@@ -1,6 +1,7 @@
 ---
 id: axe.aria-tooltip-name
 evaluator: axe
+checkType: CODE
 runtime: browser
 subdomains: [accessibility]
 severity: serious

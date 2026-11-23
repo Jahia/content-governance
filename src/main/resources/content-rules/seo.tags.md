@@ -1,6 +1,7 @@
 ---
 id: seo.tags
 evaluator: seo.tags
+checkType: CODE
 subdomains: [seo]
 severity: minor
 label:

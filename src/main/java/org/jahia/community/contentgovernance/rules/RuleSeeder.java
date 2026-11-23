@@ -95,7 +95,7 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
     }
 
     /**
-     * Converts the rules, the glossary terms and the domains of an older version, then tracks the modules
+     * Converts the rules, the glossary terms, the check types and the domains of an older version, then tracks the modules
      * that ship rules. The tracker seeds the system site with the domains and the subdomains of each module,
      * and every site with its rules, this module included, as it finds them. The nodes of a cluster share one repository and start the module at the same time, so only the
      * processing server converts and seeds: a browsing node never reads a node that the processing server
@@ -107,6 +107,8 @@ public class RuleSeeder extends DefaultEventListener implements BundleTrackerCus
         if (processingServer) {
             LegacyRules.migrate();
             LegacyTerms.migrate();
+            // Before the domains: their conversion reads the keys that the mixin of the check type declares.
+            LegacyCheckTypes.migrate();
             // Before the seeder: it tells a node that nobody changed by the fingerprint that the conversion keeps.
             LegacyDomains.migrate();
         } else {

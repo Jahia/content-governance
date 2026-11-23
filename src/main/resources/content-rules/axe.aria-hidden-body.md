@@ -1,6 +1,7 @@
 ---
 id: axe.aria-hidden-body
 evaluator: axe
+checkType: CODE
 runtime: browser
 subdomains: [accessibility]
 severity: critical

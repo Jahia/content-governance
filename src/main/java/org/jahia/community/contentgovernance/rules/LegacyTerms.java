@@ -353,6 +353,7 @@ final class LegacyTerms {
         Map<String, Object> values = new LinkedHashMap<>();
         values.put(RuleValues.RULE_ID, id);
         values.put(RuleValues.EVALUATOR, ContentRule.PATTERN);
+        values.put(RuleValues.CHECK_TYPE, CheckType.PATTERN.name());
         values.put(RuleValues.SUBDOMAINS, List.of(subdomain));
         values.put(RuleValues.SEVERITY, severity);
         values.put(RuleValues.BLOCKING, false);
@@ -364,7 +365,8 @@ final class LegacyTerms {
 
     /**
      * Changes the type of one node. It works on the node of the repository, because the node of Jahia
-     * refuses a change of type. The old properties go first, as the new type does not declare them.
+     * refuses a change of type. The old properties go first, as the new type does not declare them. The
+     * mixin of the check type PATTERN declares the pattern and the other keys of a term.
      */
     private static void convert(Conversion conversion) throws RepositoryException {
         Node node = conversion.node();
@@ -374,6 +376,7 @@ final class LegacyTerms {
             }
         }
         node.setPrimaryType(ContentRules.TYPE);
+        node.addMixin(CheckType.PATTERN.mixin());
         for (Map.Entry<String, Object> entry : conversion.values().entrySet()) {
             Object value = entry.getValue();
             if (value instanceof Boolean flag) {

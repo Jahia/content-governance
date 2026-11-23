@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
  * ---
  * id: seo.title
  * evaluator: threshold
+ * checkType: CODE
  * subdomains: [seo, geo.score]
  * severity: serious
  * unit: characters
@@ -31,7 +32,8 @@ import java.util.regex.Pattern;
  *
  * <p>The keys of the frontmatter are the properties of a {@value ContentRules#TYPE} node, with
  * {@code id} for {@code ruleId}. The body is the advice, or the criterion of a {@code model} rule. A rule
- * that names no {@code sites} applies to all sites. A rule whose check runs in the browser states
+ * names its {@code checkType}, and sets only the keys that its {@link CheckType} holds. A rule that names
+ * no {@code sites} applies to all sites. A rule whose check runs in the browser states
  * {@code runtime: browser}.</p>
  *
  * @param id     the id of the rule
@@ -55,9 +57,10 @@ public record RuleFile(String id, Map<String, Object> values) {
      * @param text     the text of the file
      * @param fileName the name of the file, whose stem is the id when the frontmatter has none
      * @return the rule of the file
-     * @throws IllegalArgumentException when the file has no frontmatter, an unknown key, no subdomain, or a
-     *                                  value that the node type does not allow. Whether a subdomain is declared
-     *                                  is checked by {@link ShippedRules}, which knows the declared ones
+     * @throws IllegalArgumentException when the file has no frontmatter, an unknown key, no subdomain, no check
+     *                                  type, a key that its check type does not hold, or a value that the node
+     *                                  type does not allow. Whether a subdomain is declared is checked by
+     *                                  {@link ShippedRules}, which knows the declared ones
      */
     public static RuleFile parse(String text, String fileName) {
         Frontmatter file = Frontmatter.parse(text, fileName);
@@ -195,6 +198,7 @@ public record RuleFile(String id, Map<String, Object> values) {
         if (values.get(RuleValues.EVALUATOR) == null) {
             throw new IllegalArgumentException("The rule " + id + " names no evaluator");
         }
+        checkType(id, values);
         checkPlace(id, values);
         if (!ContentRule.SEVERITIES.contains(values.get(RuleValues.SEVERITY))) {
             throw new IllegalArgumentException("The rule " + id + " has the unknown severity " + values.get(RuleValues.SEVERITY));
@@ -204,11 +208,33 @@ public record RuleFile(String id, Map<String, Object> values) {
         oneOf(id, RuleValues.MATCH_MODE, values, MATCH_MODES);
         oneOf(id, RuleValues.RUNTIME, values, ContentRule.RUNTIMES);
         boolean limited = values.containsKey(RuleValues.MINIMUM) || values.containsKey(RuleValues.MAXIMUM);
-        if (limited && !values.containsKey(RuleValues.UNIT)) {
+        if (CheckType.CODE.name().equals(values.get(RuleValues.CHECK_TYPE)) && limited
+                && !values.containsKey(RuleValues.UNIT)) {
             throw new IllegalArgumentException("The rule " + id + " has a limit and no unit");
         }
         if (ContentRule.PATTERN.equals(values.get(RuleValues.EVALUATOR)) && !values.containsKey(RuleValues.PATTERN)) {
             throw new IllegalArgumentException("The rule " + id + " has the evaluator pattern and no pattern");
+        }
+    }
+
+    /**
+     * The check type of a rule: a {@link CheckType}, whose mixin holds each key of a kind that the rule sets.
+     * Example: a rule of the check type CODE with a pattern is refused, as its node could not hold the pattern.
+     */
+    private static void checkType(String id, Map<String, Object> values) {
+        Object name = values.get(RuleValues.CHECK_TYPE);
+        if (name == null) {
+            throw new IllegalArgumentException("The rule " + id + " names no check type");
+        }
+        CheckType type = CheckType.of(name);
+        if (type == null) {
+            throw new IllegalArgumentException("The rule " + id + " has the unknown check type " + name);
+        }
+        for (String key : values.keySet()) {
+            if (!CheckType.holds(type, key)) {
+                throw new IllegalArgumentException("The rule " + id + " sets " + key + ", which a rule of the check type "
+                        + type + " does not hold");
+            }
         }
     }
 
