@@ -97,7 +97,7 @@ public class GqlContentRule {
 
     @GraphQLField
     @GraphQLNonNull
-    @GraphQLDescription("The keys of the sites that the rule applies to, or * for all sites")
+    @GraphQLDescription("The keys of the sites where the rule is on by default, or * for all sites")
     public List<String> getSites() {
         return rule.sites();
     }

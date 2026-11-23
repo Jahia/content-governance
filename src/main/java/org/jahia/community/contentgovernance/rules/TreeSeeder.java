@@ -103,6 +103,8 @@ final class TreeSeeder {
                 waiting = true;
             }
         }
+        // A move of a subdomain leaves the wrappers of its rule nodes on their old path: read the tree again
+        index = Index.of(session, tree);
         for (RuleFile rule : shipment.rules().values()) {
             JCRNodeWrapper subdomain = index.subdomains.get(String.valueOf(rule.values().get(RuleValues.SUBDOMAIN)));
             if (subdomain == null) {

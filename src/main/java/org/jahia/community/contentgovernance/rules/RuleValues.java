@@ -207,7 +207,7 @@ public final class RuleValues {
 
     /**
      * A fingerprint of the values: two maps with the same values, defaults included, have the same one.
-     * The seeder keeps the fingerprint of what it wrote, and so tells a rule that a site changed.
+     * The seeder keeps the fingerprint of what it wrote, and so tells a rule that an administrator changed.
      */
     public static String digest(Map<String, Object> values) {
         return fingerprint(withDefaults(values), KEYS);

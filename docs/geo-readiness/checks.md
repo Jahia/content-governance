@@ -82,8 +82,8 @@ The checks `title`, `singleH1`, `metaDescription`, `canonical`, `langDeclared`, 
 `imageAlt` are rules of the page check service, `HtmlCheck`, which the drawer and `frame.check` call
 too. GEO readiness runs these rules on the HTML of the control, the page as the first agent got it,
 and a check fails when the service finds the page breaks its rule. So a page gets the same verdict
-here as in the SEO tab of Page quality, under the same rule id, and a limit that the site changes
-applies to both. The value beside the verdict is what the fetch read, such as the length of the title.
+here as in the SEO tab of Page quality, under the same rule id, and a limit that an administrator changes
+in the system site applies to both. The value beside the verdict is what the fetch read, such as the length of the title.
 A page that no agent got fails these checks, except `imageAlt`: it has no image to describe.
 
 ### `contentInInitialHtml` · Real text in the initial HTML

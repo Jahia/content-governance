@@ -145,6 +145,25 @@ class TreeSeederTest {
     }
 
     @Test
+    @DisplayName("a module that moves a subdomain and changes a rule in it in one version moves the subdomain, and its rule takes the new values under it")
+    void seed_updatesARuleOfASubdomainThatItMoves() throws RepositoryException {
+        Repository repository = new Repository();
+        Fake compliance = repository.domain("compliance");
+        Fake quality = repository.domain("quality");
+        Fake prices = repository.seeded(compliance, subdomainFile("acme.prices", "compliance", 25, "Prices"));
+        repository.seeded(prices, rule("acme.price", "acme.prices", "maximum: 60\n"));
+        RuleFile price = rule("acme.price", "acme.prices", "maximum: 80\n");
+
+        seed(repository, shipment(List.of(price), List.of(subdomainFile("acme.prices", "quality", 25, "Prices")), true));
+
+        assertThat(compliance.childNames()).doesNotContain("acme.prices");
+        Fake moved = quality.child("acme.prices");
+        assertThat(moved.childNames()).containsExactly("acme.price");
+        assertThat(moved.child("acme.price").properties).containsEntry(RuleValues.MAXIMUM, 80.0)
+                .containsEntry(RuleNodes.SEED_DIGEST, RuleValues.digest(price.values()));
+    }
+
+    @Test
     @DisplayName("a node that the module no longer ships goes if nobody changed it and it holds no node, stays marked otherwise, and a node of another module or of nobody stays")
     void seed_retiresTheNodesThatTheModuleNoLongerShips() throws RepositoryException {
         Repository repository = new Repository();

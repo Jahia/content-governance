@@ -28,7 +28,7 @@ final class RuleNodes {
 
     /** The fingerprint of the values that the seeder last wrote on the node. */
     static final String SEED_DIGEST = "seedDigest";
-    /** Set on a rule that a site changed and that its module no longer ships. */
+    /** Set on a rule that an administrator changed and that its module no longer ships. */
     static final String RETIRED = "retired";
 
     private RuleNodes() {
