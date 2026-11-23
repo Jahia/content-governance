@@ -130,10 +130,11 @@ public final class ContentRules {
         }
         Collection<String> modules = session.getNode(sitePath) instanceof JCRSiteNode site
                 ? site.getInstalledModulesWithAllDependencies() : List.of();
-        List<RuleNode> platform = ContentDomains.SYSTEM_SITE.equals(sitePath) ? List.of()
-                : ruleNodes(session, ContentDomains.SYSTEM_SITE);
-        return merge(ShippedRules.forModules(modules), shippedIds(ShippedRules.all()), platform,
-                ruleNodes(session, sitePath), ContentDomains.read(session, siteKey, modules));
+        // The nodes of the system site are the platform layer, for the system site itself too: they are its tree
+        List<RuleNode> platform = ruleNodes(session, ContentDomains.SYSTEM_SITE);
+        List<RuleNode> site = ContentDomains.SYSTEM_SITE.equals(sitePath) ? List.of() : ruleNodes(session, sitePath);
+        return merge(ShippedRules.forModules(modules), shippedIds(ShippedRules.all()), platform, site,
+                ContentDomains.read(session, siteKey, modules));
     }
 
     /**

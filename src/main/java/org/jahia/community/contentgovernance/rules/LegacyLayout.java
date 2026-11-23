@@ -100,7 +100,7 @@ final class LegacyLayout {
         return removed;
     }
 
-    /** Removes every domain or subdomain node outside the tree of the system site. */
+    /** Removes every domain or subdomain node outside the tree of the system site, but one that holds other nodes. */
     private static int removeOutsideTree(JCRSessionWrapper session, Level level) throws RepositoryException {
         Query query = session.getWorkspace().getQueryManager().createQuery(
                 "SELECT * FROM [" + level.type() + "] WHERE ISDESCENDANTNODE('/sites')", Query.JCR_SQL2);

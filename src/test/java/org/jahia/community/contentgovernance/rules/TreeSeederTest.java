@@ -71,8 +71,12 @@ class TreeSeederTest {
         DomainFile prices = subdomainFile("acme.prices", "compliance", 25, "Prices");
         RuleFile price = rule("acme.price", "acme.prices", "maximum: 60\n");
 
-        seed(repository, shipment(List.of(price, rule("acme.waiting", "acme.later", "maximum: 60\n")),
+        boolean waiting = seed(repository, shipment(List.of(price, rule("acme.waiting", "acme.later", "maximum: 60\n")),
                 List.of(prices, subdomainFile("acme.lost", "acme", 10, "Lost")), true));
+
+        assertThat(waiting).as("acme.waiting and acme.lost wait for a parent").isTrue();
+        assertThat(seed(repository, shipment(List.of(price), List.of(prices), true)))
+                .as("once every parent is in the tree, nothing waits").isFalse();
 
         assertThat(compliance.childNames()).containsExactly("readability", "terms", "acme.prices", "writing");
         Fake pricesNode = compliance.child("acme.prices");
@@ -302,7 +306,7 @@ class TreeSeederTest {
     }
 
     /** Seeds the repository with a shipment of the module acme, which is started meanwhile. */
-    private static void seed(Repository repository, ShippedRules.Shipment shipment) throws RepositoryException {
+    private static boolean seed(Repository repository, ShippedRules.Shipment shipment) throws RepositoryException {
         ShippedRules.put(shipment);
         try (MockedStatic<JCRTemplate> jcr = mockStatic(JCRTemplate.class);
              MockedStatic<ContentRules> rules = mockStatic(ContentRules.class, CALLS_REAL_METHODS)) {
@@ -313,7 +317,7 @@ class TreeSeederTest {
             jcr.when(JCRTemplate::getInstance).thenReturn(template);
             when(template.doExecuteWithSystemSessionAsUser(any(), any(), any(), any()))
                     .thenAnswer(invocation -> invocation.<JCRCallback<?>>getArgument(3).doInJCR(repository.session));
-            TreeSeeder.seed(shipment);
+            return TreeSeeder.seed(shipment);
         } finally {
             ShippedRules.remove(ACME);
         }

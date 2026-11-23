@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.rules;
 
+import org.jahia.community.contentgovernance.geo.check.GeoScore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -30,7 +31,11 @@ class ShippedRulesTest {
         assertThat(own.rules().get("html.imageAltMissing").values()).containsEntry(RuleValues.SUBDOMAIN, "accessibility");
         // The GEO score counts rules of other subdomains, and each is a shipped rule
         List<String> counts = RuleValues.strings(own.subdomains().get("geo.score").values(), DomainValues.COUNTS);
-        assertThat(counts).contains("html.imageAltMissing", "seo.title");
+        assertThat(counts).as("the page rules and the geo rules that GeoScore counts")
+                .containsAll(GeoScore.PAGE_RULES)
+                .contains("geo.fetched", "geo.reachable", "geo.robotsPresent", "geo.namedInRobots", "geo.policyMatchesReality",
+                        "geo.guestReadable", "geo.sameContentForCrawlers", "geo.noClientRedirect", "geo.contentInInitialHtml",
+                        "geo.headingOutline", "geo.dateModified", "geo.llmsPresent");
         assertThat(own.rules()).containsKeys(counts.toArray(String[]::new));
         assertThat(own.rules().get("axe.color-contrast").values()).containsEntry(RuleValues.EVALUATOR, "axe")
                 .containsEntry(RuleValues.SEVERITY, "serious");

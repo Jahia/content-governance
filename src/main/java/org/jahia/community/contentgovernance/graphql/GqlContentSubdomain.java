@@ -86,7 +86,7 @@ public class GqlContentSubdomain {
     @GraphQLField
     @GraphQLName("isNew")
     @GraphQLNonNull
-    @GraphQLDescription("True when the site saved a layout that names the subdomain neither in an array nor in off. The screen of the layout saves every item, so such an item came with a module after the save")
+    @GraphQLDescription("True when the site saved a layout that names the subdomain neither in an array nor in off, such as an item that a module shipped after the save")
     public boolean isNew() {
         return hierarchy.isNew(subdomain.id());
     }

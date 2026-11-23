@@ -33,7 +33,7 @@ properties. jContent shows a label for each property, such as **Check** for `eva
 | `patternLanguage` | For a glossary term to translate, the language of the term, such as `en` for "access token" in a rule of `fr`. `frame.check` on a translation then reports a missing replacement. |
 | `wrongExamples`, `rightExamples`, `owner`, `decidedOn`, `validFrom`, `validUntil` | The examples, the decision and the dates of a writing rule. |
 | `runtime` | Where the check of the rule runs: `browser` for a check that the drawer runs on the preview of the page, else `server`. Empty: `server`. The server never runs a rule of the browser, never blocks a publication on it, and shows it as active. |
-| `retired` | Set by the module on a rule that the site changed and that its module no longer ships. |
+| `retired` | Set by the module on a rule that an administrator changed and that its module no longer ships. |
 
 | Check (`evaluator`) | Check type | What checks the rule |
 |---|---|---|
@@ -242,8 +242,9 @@ site. When content-governance starts on the processing server, after it converts
   changed, because a site no longer changes the values of a rule. A rule that the site wrote there
   stays, and so do the rules of `contents/content-insights/site/rules`.
 - It removes the folders `contents/content-insights/<module>/domains` and `subdomains` of the system
-  site, and every domain or subdomain node that a site wrote. The log names a node that the seeder
-  did not write. The seeder then writes the tree.
+  site, and every domain or subdomain node that a site wrote, and the log names the values of each
+  node. A domain or a subdomain node that holds other nodes, such as rules, stays, and the log names
+  it. The seeder then writes the tree.
 - It removes each folder that holds nothing more.
 
 Version 2.0.0 also moves the fields of each check type from `ccs:contentRule` to the mixin of that
@@ -381,9 +382,8 @@ The GraphQL field `contentDomains(siteKey, language, includeOff)` gives the doma
 order of its layout. Each domain comes with its subdomains, and with its label and its help in the
 language. With `includeOff`, the field also gives the domains and the subdomains that are off. The
 field `on` tells whether an item is on. The field `isNew` marks an item that the saved layout of the
-site names neither in an array nor in `off`. The screen of the layout saves every item, so such an item
-came with a module after the save. A layout that a script writes with fewer items marks the others as
-new too. The field `contentRules` gives the `subdomain`, the `order`, `enabled` and `isNew` of each rule
+site names neither in an array nor in `off`, such as an item that a module shipped after the save. A
+layout that names fewer items marks the others as new too. The field `contentRules` gives the `subdomain`, the `order`, `enabled` and `isNew` of each rule
 on the site. The drawer keeps its
 tabs for now: it places a finding in the tab of the subdomain of its rule, when the drawer has one.
 
@@ -465,7 +465,7 @@ they find nothing. The values of their result are the ones that the caller gives
 `value`, the measured number.
 
 A measure rule has no limit: its check finds nothing and gives values only, so the rule always
-passes. The drawer shows these values, and a site turns the rule off to hide them. Example:
+passes. The drawer shows these values, and a site switches the rule off in its layout to hide them. Example:
 `readability.statistics` gives the word count and the reading time of the Readability tab.
 
 The checks of SEO, readability, links and Jahia health run on the server, as checks of the scope

@@ -106,7 +106,7 @@ A page that no agent got fails these checks, except `imageAlt`: it has no image 
 
 **Important.** The title is what gets quoted. Too short says nothing, too long is truncated wherever it appears.
 
-*Fails when:* Missing, or out of the range of the rule `seo.title`, 30 to 60 characters unless the site changed it.
+*Fails when:* Missing, or out of the range of the rule `seo.title`, 30 to 60 characters unless an administrator changed it in the system site.
 
 *Shown in the interface as:* “A title under 30 or over 60 characters is either uninformative or truncated wherever it is quoted.”
 
@@ -130,7 +130,7 @@ A page that no agent got fails these checks, except `imageAlt`: it has no image 
 
 **Important.** Without one, the summary shown beside an answer is generated from whatever text happens to come first.
 
-*Fails when:* Missing, or out of the range of the rule `seo.metaDescription`, 50 to 160 characters unless the site changed it.
+*Fails when:* Missing, or out of the range of the rule `seo.metaDescription`, 50 to 160 characters unless an administrator changed it in the system site.
 
 *Shown in the interface as:* “Without one, the summary shown alongside an answer is generated from whatever text comes first. Keep it between 50 and 160 characters.”
 
