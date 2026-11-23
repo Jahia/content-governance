@@ -74,7 +74,7 @@ final class RuleNodes {
 
     /**
      * The title, the label and the advice of the node in each language but English. Example: the French
-     * advice that a site wrote on a shipped rule.
+     * advice that an administrator wrote on a shipped rule in the system site.
      */
     private static Map<String, Map<String, String>> translations(JCRNodeWrapper node) throws RepositoryException {
         Map<String, Map<String, String>> out = new TreeMap<>();
@@ -174,8 +174,8 @@ final class RuleNodes {
     /**
      * Writes the values that the node lacks, keeps every value it has, and returns true when it wrote one. A node
      * with no check type takes the one of the values, with its mixin. A key of a kind that the check type of the
-     * node does not hold stays out. Example: a site turned a shipped rule of the check type CODE into a rule of the
-     * check type AI, and the node gets no unit.
+     * node does not hold stays out. Example: an administrator turned a shipped rule of the check type CODE into a rule
+     * of the check type AI in the system site, and the node gets no unit.
      */
     static boolean fillMissing(JCRNodeWrapper node, Map<String, Object> values) throws RepositoryException {
         Map<String, Object> present = read(node);

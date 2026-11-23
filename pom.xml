@@ -326,7 +326,8 @@
                             org.jahia.pm.modules.editorialframe.api;version="1.0.0"
                         </Export-Package>
                         <!-- The content rules of this module, one Markdown file per rule, which the seeder
-                             copies into each site. Another module ships rules with the same header. -->
+                             writes once into the tree systemsite/contents/content-governance. Another module
+                             ships rules with the same header. -->
                         <Jahia-Content-Rules>content-rules</Jahia-Content-Rules>
                         <Embed-Dependency>snakeyaml|jsoup;scope=compile;inline=false</Embed-Dependency>
                         <!-- Named explicitly: the GraphQL packages come from graphql-dxm-provider, whose

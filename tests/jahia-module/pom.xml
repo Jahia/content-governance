@@ -70,7 +70,7 @@
                             org.jahia.community.contentgovernance.geo.spi;version="[1.0,2)",
                             *
                         </Import-Package>
-                        <!-- The rule acme.erpPrice, which the seeder of Content Governance copies into each site. -->
+                        <!-- The rule acme.erpPrice, which the seeder of Content Governance writes into the tree of the system site. -->
                         <Jahia-Content-Rules>content-rules</Jahia-Content-Rules>
                     </instructions>
                 </configuration>
