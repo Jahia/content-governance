@@ -75,8 +75,6 @@ class TreeSeederTest {
                 List.of(prices, subdomainFile("acme.lost", "acme", 10, "Lost")), true));
 
         assertThat(waiting).as("acme.waiting and acme.lost wait for a parent").isTrue();
-        assertThat(seed(repository, shipment(List.of(price), List.of(prices), true)))
-                .as("once every parent is in the tree, nothing waits").isFalse();
 
         assertThat(compliance.childNames()).containsExactly("readability", "terms", "acme.prices", "writing");
         Fake pricesNode = compliance.child("acme.prices");
@@ -97,6 +95,11 @@ class TreeSeederTest {
         assertThat(RuleValues.digest(RuleNodes.read(priceNode.node))).isEqualTo(RuleValues.digest(price.values()));
         // A subdomain of a domain that the tree lacks, and a rule of a subdomain that the tree lacks, wait
         assertThat(repository.names()).doesNotContain("acme.lost", "acme.waiting");
+
+        assertThat(seed(repository, shipment(List.of(price, rule("acme.waiting", "acme.later", "maximum: 60\n")),
+                List.of(prices, subdomainFile("acme.later", "compliance", 40, "Later")), true)))
+                .as("once the parent of acme.waiting is in the tree, nothing waits").isFalse();
+        assertThat(compliance.child("acme.later").childNames()).containsExactly("acme.waiting");
     }
 
     @Test

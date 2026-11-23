@@ -4,6 +4,7 @@ import org.jahia.community.contentgovernance.rules.DomainValues.Level;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import javax.jcr.RepositoryException;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -90,6 +91,16 @@ class ContentRulesTest {
         assertThat(description.folder()).isEqualTo(TREE_SEO);
         assertThat(description.subdomain()).isEqualTo("seo");
         assertThat(description.evaluator()).isEqualTo(ContentRules.base().get("seo.metaDescription").evaluator());
+    }
+
+    @Test
+    @DisplayName("the system site has no site layer: its nodes are its platform layer, so an administrator's change of the tree applies there too")
+    void theSystemSite_readsItsTreeAsThePlatformLayer() throws RepositoryException {
+        assertThat(ContentRules.siteLayer(ContentDomains.SYSTEM_SITE, () -> PLATFORM_NODES)).isEmpty();
+        assertThat(ContentRules.siteLayer("/sites/digitall", () -> SITE_NODES)).isSameAs(SITE_NODES);
+        ContentRule description = ContentRules.merge(List.of(ShippedRules.own()), Set.of("seo.metaDescription"),
+                PLATFORM_NODES, List.of(), ContentDomains.base()).get("seo.metaDescription");
+        assertThat(description.folder()).as("the node of the system site applies").isNotNull();
     }
 
     @Test

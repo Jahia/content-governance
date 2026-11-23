@@ -383,9 +383,9 @@ order of its layout. Each domain comes with its subdomains, and with its label a
 language. With `includeOff`, the field also gives the domains and the subdomains that are off. The
 field `on` tells whether an item is on. The field `isNew` marks an item that the saved layout of the
 site names neither in an array nor in `off`, such as an item that a module shipped after the save. A
-layout that names fewer items marks the others as new too. The field `contentRules` gives the `subdomain`, the `order`, `enabled` and `isNew` of each rule
-on the site. The drawer keeps its
-tabs for now: it places a finding in the tab of the subdomain of its rule, when the drawer has one.
+layout that names fewer items marks the others as new too. The field `contentRules` gives the
+`subdomain`, the `order`, `enabled` and `isNew` of each rule on the site. The drawer keeps its tabs
+for now: it places a finding in the tab of the subdomain of its rule, when the drawer has one.
 
 ## How a module adds a check
 
@@ -465,8 +465,8 @@ they find nothing. The values of their result are the ones that the caller gives
 `value`, the measured number.
 
 A measure rule has no limit: its check finds nothing and gives values only, so the rule always
-passes. The drawer shows these values, and a site switches the rule off in its layout to hide them. Example:
-`readability.statistics` gives the word count and the reading time of the Readability tab.
+passes. The drawer shows these values, and a site switches the rule off in its layout to hide them.
+Example: `readability.statistics` gives the word count and the reading time of the Readability tab.
 
 The checks of SEO, readability, links and Jahia health run on the server, as checks of the scope
 `PAGE`, and the drawer shows their findings.
@@ -611,15 +611,16 @@ Every rule whose id starts with `axe.` or `ecodesign.` runs in the browser. Each
 names the check of one measure. A site that adds a rule of the same evaluator with another limit
 gets a second result.
 `ecodesign.webVitals` is a measure: it always passes, and its values are the figures of the Web Vitals
-tab. A site turns it off to hide them.
+tab. A site switches it off in its layout to hide them.
 
 Each check of axe-core that the drawer runs is a rule `axe.<id of the axe-core rule>`, such as
 `axe.color-contrast`. Its evaluator is `axe`, and its severity is the impact of axe-core. A site
-turns a check off on its rule, and axe-core then does not run it. The check gives no violation and
-no item to review, and the level scores leave it out. The drawer shows the severity of the site
-beside the impact of axe-core. It shows the help text of axe-core in the language of the editor,
-unless the site writes a title on the rule.
+switches a check off in its layout, and axe-core then does not run it there. The check gives no
+violation and no item to review, and the level scores leave it out. The drawer shows the severity of
+the rule beside the impact of axe-core. It shows the help text of axe-core in the language of the
+editor, unless an administrator writes a title on the rule in the system site.
 
 Six rules that axe-core marks experimental ship switched off: `axe.css-orientation-lock`,
 `axe.focus-order-semantics`, `axe.hidden-content`, `axe.p-as-heading`, `axe.table-fake-caption` and
-`axe.td-has-header`. A site switches one on in its rule.
+`axe.td-has-header`. A site switches one on in its layout, and an administrator switches one on for
+every site on its node in the system site.

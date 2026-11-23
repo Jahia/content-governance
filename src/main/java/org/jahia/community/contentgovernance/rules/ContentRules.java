@@ -130,11 +130,25 @@ public final class ContentRules {
         }
         Collection<String> modules = session.getNode(sitePath) instanceof JCRSiteNode site
                 ? site.getInstalledModulesWithAllDependencies() : List.of();
-        // The nodes of the system site are the platform layer, for the system site itself too: they are its tree
         List<RuleNode> platform = ruleNodes(session, ContentDomains.SYSTEM_SITE);
-        List<RuleNode> site = ContentDomains.SYSTEM_SITE.equals(sitePath) ? List.of() : ruleNodes(session, sitePath);
+        List<RuleNode> site = siteLayer(sitePath, () -> ruleNodes(session, sitePath));
         return merge(ShippedRules.forModules(modules), shippedIds(ShippedRules.all()), platform, site,
                 ContentDomains.read(session, siteKey, modules));
+    }
+
+    /** Reads the rule nodes of a site. */
+    @FunctionalInterface
+    interface NodeReader {
+        List<RuleNode> read() throws RepositoryException;
+    }
+
+    /**
+     * The site layer of a site: none for the system site, whose nodes are the platform layer, for the system site
+     * itself too. Example: the drawer of a page of {@code systemsite} applies the values that an administrator set
+     * on the tree.
+     */
+    static List<RuleNode> siteLayer(String sitePath, NodeReader siteNodes) throws RepositoryException {
+        return ContentDomains.SYSTEM_SITE.equals(sitePath) ? List.of() : siteNodes.read();
     }
 
     /**
