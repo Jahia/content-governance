@@ -22,7 +22,6 @@ const PANEL_BUTTON = `[data-sel-role="contentGovernancePanel-${TEST_PANEL}"]`;
 const DRAWER = 'dialog[aria-labelledby="content-governance-drawer-title"]';
 const TITLE = '#content-governance-drawer-title';
 const FIX_FIRST = 'section[aria-label="Fix first"]';
-const panelSwitch = (key: string) => `#content-governance-drawer-switch-${key}`;
 const panelView = (key: string) => `#content-governance-drawer-panel-${key}`;
 
 const SAVE_FINDINGS = `mutation F($path: String!, $language: String!, $tab: String!, $findings: String!) {
@@ -78,30 +77,33 @@ describe('Content Governance - the panels of the drawer', () => {
         cy.get(button, {timeout: 30000}).should('exist');
     };
 
-    it('gives each panel a button that opens the one drawer on it, with a switch between the panels', () => {
+    it('gives each panel a button that opens the one drawer on it: the buttons are the switch between the panels', () => {
         visitPage();
-        cy.get(PANEL_BUTTON).should('contain.text', PANEL);
+        cy.get(PANEL_BUTTON).should('contain.text', PANEL).and('have.attr', 'aria-pressed', 'false');
 
         cy.get(GOVERNANCE_BUTTON).should('contain.text', GOVERNANCE).click();
+        cy.get(GOVERNANCE_BUTTON).should('have.attr', 'aria-pressed', 'true');
+        cy.get(PANEL_BUTTON).should('have.attr', 'aria-pressed', 'false');
         cy.get(DRAWER).should('have.length', 1).within(() => {
             cy.get(TITLE).should('have.text', GOVERNANCE);
-            cy.get('[role="tablist"][aria-label="Panels"] [role="tab"]').should(tabs => {
-                expect([...tabs].map(tab => tab.id)).to.deep.eq([panelSwitch('governance'), panelSwitch(TEST_PANEL)].map(id => id.slice(1)));
-            });
-            cy.get(panelSwitch('governance')).should('have.attr', 'aria-selected', 'true');
+            // The domains are the only tab bar of the drawer
+            cy.get('[role="tablist"]').should('have.length', 1).and('have.attr', 'aria-label', 'Sections');
             cy.get(`#content-governance-section-${TEST_TAB}`).should('exist');
         });
 
         // The button of the other panel switches the drawer that is open
         cy.get(PANEL_BUTTON).click();
+        cy.get(PANEL_BUTTON).should('have.attr', 'aria-pressed', 'true');
+        cy.get(GOVERNANCE_BUTTON).should('have.attr', 'aria-pressed', 'false');
         cy.get(DRAWER).should('have.length', 1).within(() => {
             cy.get(TITLE).should('have.text', PANEL);
-            cy.get(panelSwitch(TEST_PANEL)).should('have.attr', 'aria-selected', 'true');
             cy.get(`[data-cg-test-panel="${pagePath}"]`).should('be.visible');
             cy.get(panelView('governance')).should('not.be.visible');
+        });
 
-            // The switch shows governance again, as it was left
-            cy.get(panelSwitch('governance')).click();
+        // Its button shows governance again, as it was left
+        cy.get(GOVERNANCE_BUTTON).click();
+        cy.get(DRAWER).should('have.length', 1).within(() => {
             cy.get(TITLE).should('have.text', GOVERNANCE);
             cy.get(`#content-governance-section-${TEST_TAB}`).should('be.visible');
         });
@@ -109,6 +111,7 @@ describe('Content Governance - the panels of the drawer', () => {
         // A second press on the button of the panel in view closes the drawer
         cy.get(GOVERNANCE_BUTTON).click();
         cy.get(DRAWER).should('not.exist');
+        cy.get(GOVERNANCE_BUTTON).should('have.attr', 'aria-pressed', 'false');
     });
 
     it('opens a panel with the context that an action on a finding gives it', () => {

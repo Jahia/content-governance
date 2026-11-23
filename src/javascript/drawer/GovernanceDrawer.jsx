@@ -1,21 +1,21 @@
 import React, {Suspense, useEffect, useRef} from 'react';
 import PropTypes from 'prop-types';
-import {Button, Close, Loader, Tab, TabItem, Typography} from '@jahia/moonstone';
+import {Button, Close, Loader, Typography} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../common/i18n';
 import {EntryBoundary} from './EntryBoundary';
 import {useDock} from './useDock';
 import styles from './GovernanceDrawer.module.css';
 
 /**
- * The one drawer of the module: a header with the label of the panel in view, a switch between the
- * panels when there are several, and the panels. A panel is a registry entry (drawer/entries.js):
- * the governance panel of the module, or the panel of another module, such as a chat. A panel
- * mounts the first time it is shown and stays mounted while the drawer is open, so switching back
- * to it keeps its state.
+ * The one drawer of the module: a header with the label of the panel in view, and the panels. A
+ * panel is a registry entry (drawer/entries.js): the governance panel of the module, or the panel of
+ * another module, such as a chat. The buttons of the panels in the header of jContent switch between
+ * them (drawer/GovernanceAction.jsx). A panel mounts the first time it is shown and stays mounted
+ * while the drawer is open, so switching back to it keeps its state.
  *
  * A panel reads the page, the language and the context it was opened with from its props.
  */
-export const GovernanceDrawer = ({path, language, panels, active, contexts, settings, isOn, onShow, onClose}) => {
+export const GovernanceDrawer = ({path, language, panels, active, contexts, settings, isOn, onClose}) => {
     const {t} = useGovernanceTranslation('drawer');
     // A panel's label is a key with its own namespace (`my-module:panel.label`)
     const {t: translate} = useGovernanceTranslation();
@@ -26,7 +26,6 @@ export const GovernanceDrawer = ({path, language, panels, active, contexts, sett
     visited.current.add(active);
     const dock = useDock(drawerRef);
     const current = panels.find(panel => panel.key === active);
-    const hasSwitch = panels.length > 1;
 
     // A portal into document.body has no place in the page's focus order: take focus on open and
     // give it back on close.
@@ -102,29 +101,9 @@ export const GovernanceDrawer = ({path, language, panels, active, contexts, sett
                 <Button variant="ghost" icon={<Close/>} aria-label={t('close')} onClick={() => onClose()}/>
             </header>
 
-            {hasSwitch && (
-                <div className={styles.sectionBar}>
-                    <Tab className={styles.sectionTabs} role="tablist" aria-label={t('panels')}>
-                        {panels.map(panel => (
-                            <TabItem key={panel.key}
-                                     id={`content-governance-drawer-switch-${panel.key}`}
-                                     role="tab"
-                                     aria-selected={active === panel.key}
-                                     aria-controls={`content-governance-drawer-panel-${panel.key}`}
-                                     label={translate(panel.label)}
-                                     icon={panel.buttonIcon}
-                                     isSelected={active === panel.key}
-                                     onClick={() => onShow(panel.key)}/>
-                        ))}
-                    </Tab>
-                </div>
-            )}
-
             {panels.filter(panel => visited.current.has(panel.key)).map(panel => (
                 <div key={panel.key}
                      id={`content-governance-drawer-panel-${panel.key}`}
-                     role={hasSwitch ? 'tabpanel' : undefined}
-                     aria-labelledby={hasSwitch ? `content-governance-drawer-switch-${panel.key}` : undefined}
                      className={styles.panel}
                      hidden={active !== panel.key}
                 >
@@ -150,7 +129,5 @@ GovernanceDrawer.propTypes = {
     contexts: PropTypes.object.isRequired,
     settings: PropTypes.object.isRequired,
     isOn: PropTypes.func.isRequired,
-    // (key): shows a panel
-    onShow: PropTypes.func.isRequired,
     onClose: PropTypes.func.isRequired
 };

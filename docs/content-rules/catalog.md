@@ -386,8 +386,8 @@ site names nowhere, such as an item that a module shipped after the save. A layo
 items marks the others as new too.
 
 The field `contentRules` gives the `subdomain`, the `order`, `enabled` and `isNew` of each rule on the
-site. The drawer keeps its tabs for now: it places a finding in the tab of the subdomain of its rule,
-when the drawer has one.
+site. The drawer shows one section per subdomain of Page quality: it places a finding in the section
+of the subdomain of its rule, when the drawer has one.
 
 ## How a module adds a check
 

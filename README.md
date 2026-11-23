@@ -11,10 +11,12 @@ keeps its history when it moves.
 
 A **Content governance** button in the header of jContent and Page Builder opens a drawer on the
 right, under the header: the page under edit (or the content list) narrows beside it and stays
-usable, and the drawer's left edge drags to make it wider. It has one tab per section, each with a count of the issues to review, red only when one of them is critical or serious. Every section and
-every tab has a tooltip saying what it is for, and why it is greyed out when it cannot be used.
-Under the section tabs, **Fix first** lists up to five critical or serious findings, whatever their
-section, each opening the tab that explains it; it stays out of the way when there is none.
+usable, and the drawer's left edge drags to make it wider. It has one tab per section, each with a count of the issues to review, red only when one of them is critical or serious. Inside
+Page quality and GEO readiness, each check is a collapsible section with its count left of its title:
+a section with a critical or serious finding opens on its own, the others stay closed. Every tab and
+every section has a tooltip saying what it is for, and why it is greyed out when it cannot be used.
+Under the tabs, **Fix first** lists up to five critical or serious findings, whatever their tab, each
+opening the section that explains it; it stays out of the way when there is none.
 
 | Section | What it answers | Where it runs |
 |---|---|---|

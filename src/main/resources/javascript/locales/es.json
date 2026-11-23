@@ -877,7 +877,8 @@
         "aheadUnit": "aparece antes que la suya",
         "positionsLabel": "Posición media entre las fuentes:",
         "positionsYours": "la suya",
-        "notConfiguredTab": "Este sitio no está conectado a BotRank. Un administrador del sitio lo conecta en Configuración del sitio, Gobernanza de contenidos, BotRank."
+        "notConfiguredTab": "Este sitio no está conectado a BotRank. Un administrador del sitio lo conecta en Configuración del sitio, Gobernanza de contenidos, BotRank.",
+        "notConfiguredLabel": "No configurado"
       },
       "citationsSettings": {
         "navLabel": "Citas de IA (BotRank)",
@@ -1774,7 +1775,6 @@
       "title": "Gobernanza de contenidos",
       "close": "Cerrar el panel",
       "sections": "Secciones",
-      "panels": "Vistas",
       "section": {
         "audit": "Calidad de la página",
         "geo": "Preparación GEO",
@@ -1788,6 +1788,8 @@
       "nothingAvailable": "Ninguna sección de Gobernanza de contenidos puede usarse con este contenido.",
       "entryFailed": "Esta pestaña, añadida por otro módulo, no se pudo mostrar.",
       "panelFailed": "Esta vista, añadida por otro módulo, no se pudo mostrar.",
+      "expandAll": "Expandir todo",
+      "collapseAll": "Contraer todo",
       "sectionHelp": {
         "audit": "Revisa la página que está editando: accesibilidad, SEO, velocidad, legibilidad, ecodiseño, enlaces y contenido Jahia.",
         "geo": "Si los asistentes de IA y sus rastreadores pueden leer y citar la página publicada: puntuación, acceso de los rastreadores, archivos del sitio, datos estructurados y citas de IA.",

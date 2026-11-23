@@ -877,7 +877,8 @@
         "aheadUnit": "vor Ihrer aufgeführt",
         "positionsLabel": "Durchschnittliche Position unter den Quellen:",
         "positionsYours": "Ihre",
-        "notConfiguredTab": "Diese Website ist nicht mit BotRank verbunden. Ein Website-Administrator verbindet sie unter Website-Einstellungen, Content-Governance, BotRank."
+        "notConfiguredTab": "Diese Website ist nicht mit BotRank verbunden. Ein Website-Administrator verbindet sie unter Website-Einstellungen, Content-Governance, BotRank.",
+        "notConfiguredLabel": "Nicht eingerichtet"
       },
       "citationsSettings": {
         "navLabel": "KI-Zitate (BotRank)",
@@ -1774,7 +1775,6 @@
       "title": "Content-Governance",
       "close": "Panel schließen",
       "sections": "Bereiche",
-      "panels": "Ansichten",
       "section": {
         "audit": "Seitenqualität",
         "geo": "GEO-Bereitschaft",
@@ -1788,6 +1788,8 @@
       "nothingAvailable": "Kein Bereich von Content-Governance ist für diesen Inhalt verfügbar.",
       "entryFailed": "Dieser Reiter eines anderen Moduls konnte nicht angezeigt werden.",
       "panelFailed": "Diese Ansicht eines anderen Moduls konnte nicht angezeigt werden.",
+      "expandAll": "Alle aufklappen",
+      "collapseAll": "Alle zuklappen",
       "sectionHelp": {
         "audit": "Prüft die Seite, die Sie bearbeiten: Barrierefreiheit, SEO, Geschwindigkeit, Lesbarkeit, Ökodesign, Links und Jahia-Inhalte.",
         "geo": "Ob KI-Assistenten und ihre Crawler die veröffentlichte Seite lesen und zitieren können: Score, Crawler-Zugriff, Website-Dateien, strukturierte Daten und KI-Zitate.",

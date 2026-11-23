@@ -4,7 +4,7 @@
  * a panel while another is in view switches to it.
  */
 
-/** The panel switch of the drawer: shows a panel, each panel keeping its context. */
+/** Shows a panel, each panel keeping its context. */
 export const showPanel = (state, id) => ({panel: id, contexts: state?.contexts || {}});
 
 /**

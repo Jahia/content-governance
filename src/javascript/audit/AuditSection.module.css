@@ -66,20 +66,6 @@
     gap: var(--moon-spacing-small, 8px);
 }
 
-/* Moonstone's tab bar has a fixed height: it scrolls sideways instead of wrapping under the content. */
-.tabBar {
-    background: var(--color-light, #fff);
-    flex-shrink: 0;
-    overflow-x: auto;
-    padding: 0 12px;
-    border-bottom: 1px solid var(--color-gray_light40, #dfe3e8);
-}
-
-.tabs {
-    flex-wrap: nowrap;
-    width: max-content;
-}
-
 .content {
     background: var(--color-light, #fff);
     flex: 1 1 0%;

@@ -7,21 +7,25 @@ answers that for the page you have open, and tells you which parts are yours to 
 
 Open a page in jContent or Page Builder. A content item that has its own address (a main resource,
 such as a blog post) works too. Press **Content governance** in the header. A drawer opens on the
-right, beside the page, with one tab per section the site uses: **Page quality**, **GEO readiness** and
-**Compliance**. Choose **GEO readiness**. When it is the only section switched on, the drawer opens
-on it, still under its **GEO readiness** tab.
+right, beside the page, with one tab per domain the site uses: **Page quality**, **GEO readiness** and
+**Compliance**. Choose **GEO readiness**. When it is the only domain switched on, the drawer opens on
+it, still under its **GEO readiness** tab.
 
-The **GEO readiness** tab carries a number when the tabs inside it found problems: it is the
-total of their own numbers, red when the score or the crawler access is concerned, grey otherwise. Each tab, here and inside the section, has a tooltip saying what it is
-for.
+Inside the tab, each check is a section that opens and closes: **SCORE**, **CRAWLER ACCESS**,
+**SITE FILES**, **STRUCTURED DATA** and **AI CITATIONS**. Press the title of a section to open or close
+it. A section with a red number opens on its own. **Expand all** opens every section.
 
-Nothing in this section changes your page: it only reads and reports. The page under edit stays
+The **GEO readiness** tab carries a number when its sections found problems: it is the total of their
+own numbers, red when the score or the crawler access is concerned, grey otherwise. Each tab and each
+section has a tooltip saying what it is for.
+
+Nothing in this tab changes your page: it only reads and reports. The page under edit stays
 usable beside the drawer, and the drawer's left edge drags to make it wider. The drawer closes with
 Escape, its close button, or the **Content governance** button again.
 
 If you do not see **GEO readiness**, a site administrator switched it off for this site in
-**Site Settings > Content governance**. A single tab can be switched off the same way, and is then
-simply absent.
+**Site Settings > Content governance**. A single section can be switched off the same way, and is
+then simply absent.
 
 A companion guide covers the site-wide screen: [`dashboard-guide.md`](dashboard-guide.md).
 
@@ -44,11 +48,11 @@ language stays in your browser, so opening the drawer again shows it at once; **
 everything anew.
 
 If the page has never been published you get a single message, *This page is not published*, and
-no check tabs, because there is no public address to test yet. Publish it, then run the check.
+no check sections, because there is no public address to test yet. Publish it, then run the check.
 
 ## Coloured banners come first
 
-Some things are facts about the page rather than findings, so they sit above the tabs. You may see
+Some things are facts about the page rather than findings, so they sit above the sections. You may see
 none of these, or several.
 
 | Banner | What it means |
@@ -67,15 +71,16 @@ none of these, or several.
 
 Only the first two come from the check itself. The others are read from the last site scan, never
 fetched by the drawer, and the sitemap banners say the date of that scan: run a new scan from the
-dashboard when the sitemap changed since. These scan facts, like the context lines of the Score tab
+dashboard when the sitemap changed since. These scan facts, like the context lines of the Score section
 and the template line, appear only for people who hold the **publish** permission on the site, the
 same people who can open the dashboard.
 
-A tab showing a number has that many problems inside it: red on **Score** and **Crawler access**,
-which decide whether an assistant can read the page at all, grey on the others. A tab with no number has nothing that
-needs you.
+The number left of the title of a section is how many problems it holds: red on **Score** and
+**Crawler access**, which decide whether an assistant can read the page at all, grey on the others. A
+grey 0 means nothing needs you. **AI citations** shows a dash: it reports figures, not problems. Without
+a BotRank connection it reads *Not configured*, and opening it says how to connect the site.
 
-## Tab 1 - Score
+## Section 1 - Score
 
 **What it answers.** "Overall, is this page in good shape, and what exactly is wrong with it?" It
 is a count of checks that passed, not a mark out of a hundred, so you can disagree with one line
@@ -114,7 +119,7 @@ Being disallowed in `robots.txt` is **not** counted as a failure. Telling a craw
 a legitimate decision. What *is* counted is your file and your server disagreeing, because then one
 of the two is wrong.
 
-## Tab 2 - Crawler access
+## Section 2 - Crawler access
 
 **What it answers.** "Which crawlers got my page, and did they get the same thing a browser got?"
 
@@ -122,9 +127,9 @@ of the two is wrong.
 
 | You see | It means |
 |---|---|
-| The server could not reach the page for N crawlers. | No answer came back at all (connection refused, timeout, certificate, unknown host), and the error is named. A connection problem on the Jahia server, not a refusal by the site: on Jahia Cloud, for example, a server that cannot reach its own public address. The Score tab then marks "The server could fetch the page" as failed and does not judge whether crawlers are refused. |
+| The server could not reach the page for N crawlers. | No answer came back at all (connection refused, timeout, certificate, unknown host), and the error is named. A connection problem on the Jahia server, not a refusal by the site: on Jahia Cloud, for example, a server that cannot reach its own public address. The Score section then marks "The server could fetch the page" as failed and does not judge whether crawlers are refused. |
 | N crawlers are blocked. | The server answered, but not with the page: a refusal, a missing page or an error status. |
-| Even a browser receives almost no text before JavaScript runs | The page is an empty shell until JavaScript fills it in. Every crawler sees nothing. The most serious result on the tab. |
+| Even a browser receives almost no text before JavaScript runs | The page is an empty shell until JavaScript fills it in. Every crawler sees nothing. The most serious result of the section. |
 | Some crawlers receive far less text than a browser. | Crawlers got under half the words a browser got. Part of your content needs JavaScript. |
 | Every crawler we tested can read this page. | Nothing to do. |
 
@@ -143,10 +148,10 @@ than the browser did.
 - *"Your robots.txt tells N of these crawlers not to fetch this page."* The opposite: they could
   read it, but your own file asks them not to. If you want them in, change the file.
 
-## Tab 3 - Site files
+## Section 3 - Site files
 
 **What it answers.** "What do the two files that speak for the whole site currently say?" These
-belong to the site, not to your page, so this tab is the same whichever page you opened it from.
+belong to the site, not to your page, so this section is the same whichever page you opened it from.
 
 **robots.txt.** The file that tells crawlers where they may go. A headline says how many AI
 crawlers it *names* and how many of them cannot fetch this page, then a table with one row per
@@ -158,7 +163,7 @@ crawler.
 | For this page | **Allowed** or **Disallowed**: what the file actually permits for this crawler on this page. |
 | Matching rule | The exact line that decided it, so you can see why. |
 
-When the server could not fetch a file at all, the tab says so and names the error (connection
+When the server could not fetch a file at all, the section says so and names the error (connection
 refused, timeout, certificate, unknown host) rather than reporting the file as missing: a missing
 `robots.txt` would mean every crawler is allowed, which nobody checked.
 
@@ -171,7 +176,7 @@ file gets something it cannot use.
 **Additional > SEO > GEO readiness**, and changing them affects every page. If a crawler you want
 is turned away, that is a conversation to have, not a change to your page.
 
-## Tab 4 - Structured data
+## Section 4 - Structured data
 
 **What it answers.** "Can a machine tell what kind of thing this page is?" Structured data is a
 small block of hidden text that says, in a standard vocabulary, "this is an article, published on
@@ -185,15 +190,15 @@ this date, written by this person". Crawlers rely on it heavily.
 - A type and a verdict, such as *schema.org Article* with either "everything it needs has a source
   in the content model" or "N required properties have no source". Missing ones are listed, with
   where each value that was found came from.
-- *"This would contradict the page."* The strongest signal on the tab: the data would say something
+- *"This would contradict the page."* The strongest signal of the section: the data would say something
   the page contradicts. Wrong structured data is worse than none, so this is said loudly.
 
-**What to do.** The tab shows the finished snippet with a **COPY SNIPPET** button. Nothing is ever
+**What to do.** The section shows the finished snippet with a **COPY SNIPPET** button. Nothing is ever
 written into your page automatically: somebody places it, usually once in a template rather than
 page by page. If properties are missing, the usual fix is to fill in the matching fields on the
 content itself.
 
-## Tab 5 - AI citations
+## Section 5 - AI citations
 
 Shown unless a site administrator switched it off. It stays greyed out, with a tooltip saying why,
 until a site administrator connects the site to BotRank in **Site Settings > Content governance**,

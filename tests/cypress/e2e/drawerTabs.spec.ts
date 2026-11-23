@@ -81,9 +81,10 @@ describe('Content Governance - a tab of another module', () => {
 
     it('shows the tab after the tabs of the module, with its count, and ranks its findings in "Fix first"', () => {
         openDrawer().within(() => {
-            // The tabs of the governance panel: the panel switch above them has tabs too
+            // The domains of the governance panel, the main tabs of the drawer, in Moonstone's default size
             cy.get('[role="tablist"][aria-label="Sections"] [role="tab"]').should(tabs => {
                 expect([...tabs].map(tab => tab.id)).to.deep.eq([section('compliance'), section(TEST_TAB)].map(id => id.slice(1)));
+                expect([...tabs].every(tab => tab.classList.contains('moonstone-tabItem_default'))).to.eq(true);
             });
             cy.get(section(TEST_TAB)).should('contain.text', 'Test tab').click();
             cy.get('[data-cg-test-summary]').should('exist');
