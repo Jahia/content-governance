@@ -454,8 +454,8 @@ findings, unless `values` gives `count`.
 
 ### Time limit and failure
 
-Each check has 60 seconds. A check that throws an error or runs out of time is left out. Its tabs
-show why, with **Re-run**, and the other checks still run. The drawer never stores such a partial
+Each check has 60 seconds. A check that throws an error or runs out of time is left out. Its
+sections open and show why, with **Re-run**, and the other checks still run. The drawer never stores such a partial
 audit.
 
 ### Not checked

@@ -1,0 +1,59 @@
+.section {
+    border-bottom: 1px solid var(--color-gray_light40, #dfe3e8);
+}
+
+/* The tooltip's anchor spans the width of the drawer, as the header does. */
+.section .anchor {
+    display: flex;
+    width: 100%;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: var(--moon-spacing-small, 8px);
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 4px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.header:hover {
+    background: var(--color-gray_light20, #f4f6f8);
+}
+
+.header:focus-visible {
+    outline: 2px solid var(--color-accent, #00a0e3);
+    outline-offset: -2px;
+}
+
+/* The same width on every row, so the titles line up whatever the count. */
+.count {
+    display: inline-flex;
+    flex-shrink: 0;
+    justify-content: center;
+    min-width: 28px;
+    color: var(--color-gray, #5c6b7a);
+}
+
+.title {
+    flex: 1;
+    min-width: 0;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.status,
+.chevron {
+    flex-shrink: 0;
+    color: var(--color-gray, #5c6b7a);
+}
+
+.body {
+    padding: 4px 4px 16px;
+}

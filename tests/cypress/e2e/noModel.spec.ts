@@ -65,8 +65,9 @@ describe('Content Governance - no model call', () => {
         cy.visit(pageUrl);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
         cy.get(DRAWER).should('be.visible').within(() => {
-            cy.get('[id^="audit-tab-"]').not('#audit-tab-panel').should($tabs => {
-                expect($tabs.toArray().map(tab => tab.id)).to.deep.eq(PAGE_QUALITY_TABS.map(id => `audit-tab-${id}`));
+            // The sections show once the audit is ready
+            cy.get('button[id^="audit-subdomain-"]', {timeout: 90000}).should($headers => {
+                expect($headers.toArray().map(header => header.id)).to.deep.eq(PAGE_QUALITY_TABS.map(id => `audit-subdomain-${id}`));
             });
             cy.contains(/\bAI review\b/).should('not.exist');
         });
