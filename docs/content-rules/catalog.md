@@ -297,6 +297,7 @@ A domain is a node of type `ccs:contentDomain`, and a subdomain a node of type
 |---|---|
 | `domainId`, `subdomainId` | The id, such as `quality` or `seo`. The ids are flat and unique. A module prefixes its own, such as `acme.prices`. The name of the node is the id. |
 | `panel` | The panel of a domain: `governance`, the default, or a panel of another module. |
+| `enabled` | The default switch, on by default. Off, the item is off on every site whose layout does not place it, whatever its `sites`. The screen of the defaults writes it. |
 | `sites` | The keys of the sites where it is on by default, or `*` for all sites, the default. The layout of a site wins over it. |
 | `label`, `help` | The name of the tab and what it checks, one text per language. |
 | `counts` | The ids of the rules of other subdomains that a subdomain counts, such as the rules of the GEO score. |
@@ -358,11 +359,49 @@ the Web Vitals tab and the rule `seo.indexable`.
   rule. This rule shows in its subdomain on every site, also on a site that saved its layout before.
 - `off` switches off an item, placed or not. A subdomain that is off switches off its rules, and a
   domain that is off switches off its subdomains.
+- `off` also switches off a panel of the drawer, such as `governance` or `chat`, and a tab that another
+  module adds to the governance panel, such as `aiAssistantReview`, or a part of it, such as
+  `aiAssistantReview.summary`. A panel that is off switches off the domains that it shows.
+- A layout that places no domain only switches items off. It keeps the order of the tree, and marks no
+  item as new.
 - A site with no layout shows the tree as it is.
 
-The GraphQL mutation `saveSiteLayout(siteKey, layout)` saves the layout of a site, and
-`resetSiteLayout(siteKey)` removes it. Both need the permission `site-admin` on the site, and the
-system site has no layout. The query `siteLayout(siteKey)` gives the layout that a site saved.
+A site administrator saves the layout in jContent > Additional > Rules & domains. The GraphQL mutation
+`saveSiteLayout(siteKey, layout)` saves the layout of a site, and `resetSiteLayout(siteKey)` removes it.
+Both need the permission `site-admin` on the site. The query `siteLayout(siteKey)` gives the layout that
+a site saved. The field `siteSettings(siteKey)` gives in `disabled` every id that is off on the site:
+the ids of `off`, and each domain and subdomain that is off by default or under an item that is off.
+
+Before version 2.0.0, a site kept its switches in the property `disabledFeatures` of its node
+`/sites/<site>/content-governance`, with the keys of the drawer tabs. When the module starts, it moves
+them into the `off` list of the layout of the site, and removes the property. A site with no layout
+gets a layout that places no domain. The keys that changed take the id of their domain or subdomain:
+
+| Key before 2.0.0 | Id in the layout |
+|---|---|
+| `audit` | `quality` |
+| `audit.jahia` | `health` |
+| `audit.links`, `audit.accessibility`, `audit.vitals`, `audit.ecodesign`, `audit.seo`, `audit.readability` | `links`, `accessibility`, `vitals`, `ecodesign`, `seo`, `readability` |
+| `geo.crawler` | `geo.crawlers` |
+
+The other keys keep their id, such as `geo`, `geo.citations`, `compliance`, `governance` and `chat`.
+
+### The defaults of every site
+
+The system site has no layout: its tree is the defaults of every site. A server administrator changes
+them in Administration > Server > Configuration > Content governance rules, which is the screen of a
+site without its panels and its reset. The mutation `saveSiteLayout("systemsite", layout)` takes the
+same JSON, and needs the permission `admin` on the root node. It writes into the tree:
+
+- The order of each array becomes the order of the child nodes. A node that the layout does not name
+  keeps its place, after the named ones.
+- A subdomain moves under the domain that holds it, and a rule under its subdomain.
+- Each named node takes its default switch, the property `enabled`: off when `off` names it, on
+  otherwise.
+
+The seeder keeps a moved or switched node as an administrator change. The fields `switchedOn` of
+`contentDomains` and `contentRules` give the switch of an item itself, whatever its parent: in the layout
+of a site, else its default, and on `systemsite` its default switch.
 
 ### Which rules apply to a site
 

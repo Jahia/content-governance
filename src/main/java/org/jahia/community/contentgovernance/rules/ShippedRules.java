@@ -1,7 +1,6 @@
 package org.jahia.community.contentgovernance.rules;
 
 import org.jahia.community.contentgovernance.rules.DomainValues.Level;
-import org.jahia.community.contentgovernance.settings.SiteFeatures;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
 import org.slf4j.Logger;
@@ -47,6 +46,8 @@ import java.util.stream.Stream;
 public final class ShippedRules {
 
     public static final String HEADER = "Jahia-Content-Rules";
+    /** The id of this module, as sites list it among their modules. */
+    public static final String OWN_MODULE = "content-governance";
     /** The folder of the rules of this module, which its manifest names. */
     static final String OWN_FOLDER = "content-rules";
     private static final String SUFFIX = ".md";
@@ -91,7 +92,7 @@ public final class ShippedRules {
 
     /** The shipment of a module, or null when the module ships no rule or is not started. */
     static Shipment of(String module) {
-        return SiteFeatures.MODULE.equals(module) ? own() : BY_MODULE.get(module);
+        return OWN_MODULE.equals(module) ? own() : BY_MODULE.get(module);
     }
 
     /**
@@ -105,7 +106,7 @@ public final class ShippedRules {
             out.add(own);
         }
         new TreeMap<>(BY_MODULE).forEach((module, shipment) -> {
-            if (!SiteFeatures.MODULE.equals(module) && modules.contains(module)) {
+            if (!OWN_MODULE.equals(module) && modules.contains(module)) {
                 out.add(shipment);
             }
         });
@@ -133,7 +134,7 @@ public final class ShippedRules {
      * from the bundle of the class or from the class path.
      */
     static Shipment own() {
-        return BY_MODULE.computeIfAbsent(SiteFeatures.MODULE, module -> {
+        return BY_MODULE.computeIfAbsent(OWN_MODULE, module -> {
             Bundle bundle = FrameworkUtil.getBundle(ShippedRules.class);
             return bundle != null ? load(bundle, OWN_FOLDER, false) : loadFromClassPath(module);
         });
@@ -147,7 +148,7 @@ public final class ShippedRules {
         if (folder == null || folder.isBlank()) {
             return null;
         }
-        return load(bundle, folder.trim(), !SiteFeatures.MODULE.equals(bundle.getSymbolicName()));
+        return load(bundle, folder.trim(), !OWN_MODULE.equals(bundle.getSymbolicName()));
     }
 
     /**
@@ -200,7 +201,7 @@ public final class ShippedRules {
         } catch (IOException e) {
             throw new UncheckedIOException("The rules of " + folder + " could not be read", e);
         }
-        return reader.shipment(!SiteFeatures.MODULE.equals(module));
+        return reader.shipment(!OWN_MODULE.equals(module));
     }
 
     private static Shipment loadFromClassPath(String module) {

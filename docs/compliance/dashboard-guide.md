@@ -11,8 +11,7 @@ Who sees it:
 
 - the entry is listed for people with access to jContent on the site (`jContentAccess`), on sites
   that enable the Content Governance module;
-- when a site administrator switched the Compliance section off in **Site Settings > Content
-  governance**, the entry stays listed but shows **Switched off for this site** instead of the
+- when a site administrator switched the Compliance domain off in **jContent > Additional > Rules & domains**, the entry stays listed but shows **Switched off for this site** instead of the
   report, and the server refuses the scan.
 
 ## The summary card

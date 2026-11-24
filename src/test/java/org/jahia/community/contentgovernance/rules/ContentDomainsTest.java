@@ -224,6 +224,50 @@ class ContentDomainsTest {
         assertThat(saved.isNew("accessibility")).as("switched off: the layout names it").isFalse();
         assertThat(saved.isNew("compliance")).isTrue();
         assertThat(hierarchy("luxe").isNew("compliance")).isFalse();
-        assertThat(hierarchy("luxe", SiteLayout.parse("{}")).isNew("quality")).as("an empty saved layout places nothing").isTrue();
+        assertThat(hierarchy("luxe", SiteLayout.parse("{}")).isNew("quality")).as("a saved layout that places nothing marks nothing").isFalse();
+    }
+
+    @Test
+    @DisplayName("a domain or a subdomain that is switched off by default is off on a site that does not place it")
+    void enabled_isTheDefaultSwitch() {
+        ContentDomains none = Hierarchies.site("digitall", null);
+        ContentDomains placed = Hierarchies.site("digitall", """
+                {"domains": [{"id": "legacy", "subdomains": [{"id": "old"}]}]}
+                """);
+
+        assertThat(none.isOn("legacy")).isFalse();
+        assertThat(none.isOn("old")).as("its domain is off").isFalse();
+        assertThat(none.switchedOn("old")).as("its own switch is on").isTrue();
+        assertThat(placed.isOn("legacy")).as("the layout places it").isTrue();
+        assertThat(placed.isOn("old")).isTrue();
+    }
+
+    @Test
+    @DisplayName("the switch of an item itself follows the layout, else its default, and the default switch on the system site")
+    void switchedOn_isTheSwitchOfTheItemItself() {
+        ContentDomains geoOff = Hierarchies.site("digitall", "{\"off\": [\"geo\"]}");
+
+        assertThat(geoOff.switchedOn("geo")).isFalse();
+        assertThat(geoOff.switchedOn("seo")).as("its domain is off, its own switch is on").isTrue();
+        assertThat(geoOff.isOn("seo")).isFalse();
+        assertThat(geoOff.switchedOn("unknown")).isFalse();
+        ContentDomains system = Hierarchies.site(ContentDomains.SYSTEM_SITE_KEY, null);
+        assertThat(system.switchedOn("legacy")).isFalse();
+        assertThat(system.switchedOn("quality")).isTrue();
+    }
+
+    @Test
+    @DisplayName("an item is in the panel of its domain, wherever the layout places it")
+    void panelOf_isThePanelOfTheDomain() {
+        ContentDomains moved = Hierarchies.site("digitall", """
+                {"domains": [{"id": "assist", "subdomains": [{"id": "seo"}]}]}
+                """);
+
+        assertThat(moved.panelOf("assist")).isEqualTo("chat");
+        assertThat(moved.panelOf("seo")).as("placed in assist").isEqualTo("chat");
+        assertThat(moved.panelOf("health")).isEqualTo("governance");
+        assertThat(moved.panelOf("unknown")).isNull();
+        assertThat(moved.declares("seo")).isTrue();
+        assertThat(moved.declares("chat")).isFalse();
     }
 }

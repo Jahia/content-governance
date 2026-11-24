@@ -1,0 +1,116 @@
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--moon-spacing-medium, 16px);
+    width: 100%;
+    min-width: 0;
+    contain: inline-size;
+}
+
+/* Paper + Paper adds a top margin that would double the gap above. */
+.content > .card {
+    margin-top: 0;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--moon-spacing-small, 8px);
+    padding: var(--moon-spacing-large, 24px);
+}
+
+.cardHeader,
+.row,
+.rule,
+.panel {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--moon-spacing-small, 8px);
+    min-width: 0;
+}
+
+.cardTitle,
+.ruleText {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* In a row, the texts take the room that the switch, the chips and the menu leave. */
+.cardHeader > .cardTitle,
+.row > .ruleText,
+.rule > .ruleText,
+.panel > .ruleText {
+    flex: 1 1 200px;
+}
+
+.subdomains,
+.rules,
+.panels {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--moon-spacing-small, 8px);
+}
+
+.subdomain {
+    border-top: 1px solid var(--color-gray_light40, #e1e5ea);
+    padding-top: var(--moon-spacing-small, 8px);
+}
+
+/* The rules of a subdomain, indented under it. */
+.rules {
+    margin-inline-start: var(--moon-spacing-xlarge, 40px);
+    margin-top: var(--moon-spacing-small, 8px);
+}
+
+.handle {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    color: var(--color-gray, #5c6b7a);
+}
+
+.handle[draggable="true"] {
+    cursor: grab;
+}
+
+/* Where a dragged item drops: before this item, or last into it. */
+.over {
+    outline: 2px dashed var(--color-accent, #00a0e3);
+    outline-offset: 2px;
+}
+
+.switchLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--moon-spacing-small, 8px);
+    flex-shrink: 0;
+}
+
+.itemLabel {
+    overflow-wrap: anywhere;
+}
+
+.muted {
+    color: var(--color-gray, #5c6b7a);
+}
+
+.move {
+    flex-shrink: 0;
+}
+
+.confirm {
+    display: flex;
+    flex-direction: column;
+    gap: var(--moon-spacing-small, 8px);
+}
+
+.confirmActions {
+    display: flex;
+    gap: var(--moon-spacing-small, 8px);
+    justify-content: flex-end;
+}

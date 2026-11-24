@@ -45,8 +45,10 @@ public final class ContentDomains {
     public static final String SUBDOMAIN_TYPE = "ccs:contentSubdomain";
     /** The type of the folders of the domains and the subdomains of one module before version 2.0.0. */
     public static final String FOLDER_TYPE = "ccs:contentDomainFolder";
-    /** The site whose tree holds the domains, the subdomains and the rules of every site. */
-    public static final String SYSTEM_SITE = "/sites/systemsite";
+    /** The key of the site whose tree holds the domains, the subdomains and the rules of every site. */
+    public static final String SYSTEM_SITE_KEY = "systemsite";
+    /** The path of that site. */
+    public static final String SYSTEM_SITE = "/sites/" + SYSTEM_SITE_KEY;
     /** The folder of the tree, in the system site. */
     public static final String TREE = SYSTEM_SITE + "/" + SiteLayout.FOLDER;
 
@@ -113,13 +115,34 @@ public final class ContentDomains {
                     (JCRCallback<ContentDomains>) session -> {
                         String sitePath = SITES + siteKey;
                         Collection<String> modules = session.nodeExists(sitePath) && session.getNode(sitePath) instanceof JCRSiteNode site
-                                ? site.getInstalledModulesWithAllDependencies() : List.of();
+                                ? modulesOf(site) : List.of();
                         return read(session, siteKey, modules);
                     });
         } catch (RepositoryException | RuntimeException e) {
             logger.warn("The domains of the site {} could not be read, the shipped ones apply", siteKey, e);
             return new ContentDomains(siteKey, shipped(ShippedRules.all()), SiteLayout.NONE);
         }
+    }
+
+    /**
+     * The domains and the subdomains of a site, read through a session that the caller holds.
+     *
+     * @param session a session of the edit workspace in English
+     * @param site    the site
+     */
+    public static ContentDomains read(JCRSessionWrapper session, JCRSiteNode site) throws RepositoryException {
+        return read(session, site.getSiteKey(), modulesOf(site));
+    }
+
+    /**
+     * The modules whose domains, subdomains and rules a site sees: those it installs. The system site sees those of
+     * every started module, since its tree holds the defaults of every site, and it installs none of them.
+     */
+    static Collection<String> modulesOf(JCRSiteNode site) {
+        if (SYSTEM_SITE_KEY.equals(site.getSiteKey())) {
+            return ShippedRules.all().stream().map(ShippedRules.Shipment::module).toList();
+        }
+        return site.getInstalledModulesWithAllDependencies();
     }
 
     /**
@@ -231,11 +254,49 @@ public final class ContentDomains {
      * the layout places it or its {@code sites} include the site. A subdomain needs its domain on too.
      */
     public boolean isOn(String id) {
-        Domain item = domains.containsKey(id) ? domains.get(id) : subdomains.get(id);
-        if (item == null || layout.isOff(id) || !(layout.places(id) || item.includes(siteKey))) {
+        Domain item = item(id);
+        if (item == null || layout.isOff(id) || !(layout.places(id) || item.onByDefault(siteKey))) {
             return false;
         }
         return item.parent() == null || isOn(item.parent());
+    }
+
+    /**
+     * The switch of the domain or the subdomain of this id itself, whatever its domain: what the screen of the
+     * layout shows. On a site, the layout switches it, else its default does. In the system site, it is the
+     * default switch of the node. Example: {@code digitall} switches off the domain {@code geo}; the subdomain
+     * {@code seo} keeps its switch on, and is not on, since its domain is off.
+     */
+    public boolean switchedOn(String id) {
+        Domain item = item(id);
+        if (item == null) {
+            return false;
+        }
+        if (SYSTEM_SITE_KEY.equals(siteKey)) {
+            return item.enabled();
+        }
+        return !layout.isOff(id) && (layout.places(id) || item.onByDefault(siteKey));
+    }
+
+    /** True when a domain or a subdomain of this id is declared. */
+    public boolean declares(String id) {
+        return item(id) != null;
+    }
+
+    /**
+     * The panel of the drawer that shows the domain or the subdomain of this id on the site, such as
+     * {@value DomainValues#GOVERNANCE}, or null when the id is not declared or its domain is not.
+     */
+    public String panelOf(String id) {
+        Domain item = item(id);
+        if (item != null && item.parent() != null) {
+            item = domains.get(item.parent());
+        }
+        return item == null ? null : item.panel();
+    }
+
+    private Domain item(String id) {
+        return domains.containsKey(id) ? domains.get(id) : subdomains.get(id);
     }
 
     /** True when the site saved a layout that does not name this id: a module shipped it after the save. */

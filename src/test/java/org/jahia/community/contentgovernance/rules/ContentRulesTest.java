@@ -225,4 +225,20 @@ class ContentRulesTest {
         assertThat(placed.get("brand.luxeOnly").enabled()).isTrue();
         assertThat(placed.get("brand.luxeOnly").subdomain()).isEqualTo(ContentRules.TERMS);
     }
+
+    @Test
+    @DisplayName("the switch of a rule itself ignores its subdomain, and follows the layout, else its default")
+    void switchedOn_isTheSwitchOfTheRuleItself() {
+        ContentRules seoOff = onSite("digitall", "{\"off\": [\"seo\", \"seo.metaDescription\"]}");
+
+        assertThat(seoOff.switchedOn(seoOff.get("seo.title"))).as("its subdomain is off, its own switch is on").isTrue();
+        assertThat(seoOff.get("seo.title").enabled()).isFalse();
+        assertThat(seoOff.switchedOn(seoOff.get("seo.metaDescription"))).isFalse();
+        ContentRules base = onSite("digitall", null);
+        assertThat(base.switchedOn(base.get("axe.css-orientation-lock"))).as("off by default").isFalse();
+        assertThat(base.switchedOn(base.get("brand.luxeOnly"))).as("its sites name luxe only").isFalse();
+        ContentRules system = onSite(ContentDomains.SYSTEM_SITE_KEY, null);
+        assertThat(system.switchedOn(system.get("brand.luxeOnly"))).as("the default switch, whatever the sites").isTrue();
+        assertThat(system.switchedOn(system.get("axe.css-orientation-lock"))).isFalse();
+    }
 }

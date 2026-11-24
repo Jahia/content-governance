@@ -1,5 +1,6 @@
 import React, {Suspense, lazy} from 'react';
 import PropTypes from 'prop-types';
+import {useSelector} from 'react-redux';
 import i18next from 'i18next';
 import {registry} from '@jahia/ui-extender';
 import {Header, LayoutContent, Loader} from '@jahia/moonstone';
@@ -26,6 +27,8 @@ const named = (load, name) => lazy(() => load().then(module => ({default: module
 const GeoDashboard = named(() => import('./geo/dashboard/GeoDashboard'), 'GeoDashboard');
 const ComplianceDashboardRoute = named(() => import('./compliance/dashboard/ComplianceDashboard'), 'ComplianceDashboardRoute');
 const SettingsPanel = named(() => import('./settings/SettingsPanel'), 'SettingsPanel');
+const RulesScreen = named(() => import('./layout/RulesScreen'), 'RulesScreen');
+const DefaultRulesScreen = named(() => import('./layout/RulesScreen'), 'DefaultRulesScreen');
 const AuditDashboardRoute = named(() => import('./audit/dashboard/AuditDashboard'), 'AuditDashboardRoute');
 
 /** The language of the editor's interface that the module ships, else English (i18next's fallback). */
@@ -85,6 +88,15 @@ const PageQualityRoute = () => {
 
 const SettingsRoute = () => (
     <Loading title={i18next.t(`${NS}:settings.navLabel`)}><SettingsPanel/></Loading>
+);
+
+const RulesRoute = () => {
+    const siteKey = useSelector(state => state.site);
+    return <Loading title={i18next.t(`${NS}:rulesScreen.title`)}><RulesScreen siteKey={siteKey}/></Loading>;
+};
+
+const DefaultRulesRoute = () => (
+    <Loading title={i18next.t(`${NS}:rulesScreen.defaultsTitle`)}><DefaultRulesScreen/></Loading>
 );
 
 function register() {
@@ -156,8 +168,29 @@ function register() {
         render: () => <ComplianceRoute/>
     });
 
-    // Per-site switches and the BotRank connection: site administrators
-    // only, since the BotRank binding spends the customer's organisation key.
+    // How the site arranges the domains, the subdomains and the rules of the drawer, and which ones and which
+    // panels it switches off: site administrators only, beside the other site reports of Additional.
+    registry.add('adminRoute', 'contentGovernanceRules', {
+        targets: ['jcontent:91'],
+        label: `${NS}:rulesScreen.navLabel`,
+        icon: buttonIcon,
+        isSelectable: true,
+        requiredPermission: 'site-admin',
+        requireModuleInstalledOnSite: MODULE,
+        render: () => <RulesRoute/>
+    });
+    // The defaults of every site, in the tree of the system site: server administrators only.
+    registry.add('adminRoute', 'contentGovernanceDefaultRules', {
+        targets: ['administration-server-configuration:70'],
+        label: `${NS}:rulesScreen.defaultsNavLabel`,
+        icon: buttonIcon,
+        isSelectable: true,
+        requiredPermission: 'admin',
+        render: () => <DefaultRulesRoute/>
+    });
+
+    // The BotRank connection: site administrators only, since the BotRank binding spends the customer's
+    // organisation key.
     registry.add('adminRoute', 'contentGovernanceSettings', {
         targets: ['administration-sites:95'],
         label: `${NS}:settings.navLabel`,

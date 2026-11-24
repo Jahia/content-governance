@@ -14,11 +14,3 @@ export const SITE_SETTINGS = gql`
         }
     }
 `;
-
-export const SAVE_SITE_SETTINGS = gql`
-    mutation ContentGovernanceSaveSiteSettings($siteKey: String!, $disabled: [String]!) {
-        contentGovernance {
-            saveSiteSettings(siteKey: $siteKey, disabled: $disabled) {${SETTINGS_FIELDS}}
-        }
-    }
-`;

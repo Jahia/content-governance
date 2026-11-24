@@ -335,7 +335,7 @@ rule is neither passed nor failed. Example: a site keeps the rule of a module th
 
 | What you see | Why | Who to ask |
 |---|---|---|
-| A tab missing | A site administrator switched it off for this site. | A site administrator, in **Site Settings > Content governance**, **Features** tab. |
+| A tab missing | A site administrator switched it off for this site. | A site administrator, in **jContent > Additional > Rules & domains**. |
 | **Page quality** missing from the drawer | The section is switched off for this site. | A site administrator. |
 | No **Content governance** button | The module is not enabled on this site, every section is switched off, or the item is not a page or a content item with its own URL. | A site administrator. |
 | **Analysis failed** with "HTTP 404" | The page does not exist or does not render in this language. | Check the language; otherwise a developer. |
