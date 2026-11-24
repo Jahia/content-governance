@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import {Typography} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../common/i18n';
 import {CollapsibleSection, ExpandAll} from '../common/CollapsibleSection';
-import {defaultOpen, useOpenSections} from '../common/openSections';
+import {useOpenSections} from '../common/openSections';
 import {HighlightContext} from '../audit/HighlightContext';
 import {PageAuditStatus, PageAuditToolbar, PageFindingsOf, PageSubdomainView} from '../audit/PageAudit';
 import {GeoFacts, GeoFindingsOf, GeoSubdomainView, GeoToolbar} from '../geo/GeoParts';
@@ -49,18 +49,14 @@ SubdomainContent.propTypes = {
 
 /**
  * A domain of the drawer, such as Page quality: the toolbar of each check that its subdomains read, what holds
- * for the whole page, and one section per subdomain, in the order of the layout of the site. A section opens
- * by default when it holds a critical or serious finding, or when its check did not finish.
+ * for the whole page, and one section per subdomain, in the order of the layout of the site. Every section
+ * starts closed.
  */
 export function DomainTab({sections, checks, engines, places, path, language, requested, complianceUnavailable, onEdit}) {
     const {t} = useGovernanceTranslation('audit');
     const {t: tGeo} = useGovernanceTranslation('geo');
     const {page, geo, compliance} = engines;
-    // A new run of the check of a section opens it again when it holds a major defect. A choice that the editor
-    // makes while the check runs holds for the results of that run.
-    const runs = {[PAGE]: page.runId, [GEO]: geo.runs, [COMPLIANCE]: compliance.result.run ?? 0};
-    const resetKeys = Object.fromEntries(sections.map(section => [section.id, runs[viewOf(section.id) || PAGE]]));
-    const {isOpen, setOpen} = useOpenSections(defaultOpen(sections), resetKeys);
+    const {isOpen, setOpen} = useOpenSections();
     const usesCompliance = checks.has(COMPLIANCE) && !complianceUnavailable;
 
     // A "Fix first" link, or a request to open the drawer on a subdomain, opens its section and brings it into
@@ -123,7 +119,6 @@ DomainTab.propTypes = {
         help: PropTypes.string,
         count: PropTypes.number,
         serious: PropTypes.bool,
-        incomplete: PropTypes.bool,
         unavailable: PropTypes.bool
     })).isRequired,
     // The checks that the subdomains read (drawer/subdomains.js)

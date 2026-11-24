@@ -11,7 +11,7 @@ import {auditFindings, complianceFindings} from './findings';
  * section of the GEO score counts the critical checks of the score and the finding of `seo.title`.
  */
 
-const NONE = Object.freeze({count: null, serious: false, incomplete: false});
+const NONE = Object.freeze({count: null, serious: false});
 
 /** The count of the parts that give one, null when none does, and whether a counted part is serious. */
 const combine = parts => {
@@ -44,9 +44,9 @@ const checkStates = (engines, places, complianceUnavailable) => ({
  * @param {object} engines the state of the page check, the GEO check and the compliance scan
  * @param {object} places where the rules of the site sit
  * @param {?string} complianceUnavailable why the editor cannot use the compliance scan, or null
- * @returns {Array<{id: string, label: string, help: ?string, count: ?number, serious: boolean, incomplete: boolean,
- *     unavailable: boolean}>} `count` is null when no check counted the subdomain yet; `incomplete` is true when the
- *     step of the page check did not finish; `unavailable` is true for citations with no BotRank connection
+ * @returns {Array<{id: string, label: string, help: ?string, count: ?number, serious: boolean, unavailable: boolean}>}
+ *     `count` is null when no check counted the subdomain yet; `unavailable` is true for citations with no BotRank
+ *     connection
  */
 export function sectionsOf(domain, engines, places, complianceUnavailable) {
     const states = checkStates(engines, places, complianceUnavailable);
@@ -66,7 +66,6 @@ export function sectionsOf(domain, engines, places, complianceUnavailable) {
             label: subdomain.label,
             help: subdomain.help,
             ...combine(parts),
-            incomplete: (view === PAGE || view === null) && Boolean(page.incomplete),
             unavailable: view === GEO && Boolean(geo.unavailable)
         };
     });

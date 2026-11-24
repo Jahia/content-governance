@@ -13,8 +13,8 @@ A **Content governance** button in the header of jContent and Page Builder opens
 right, under the header: the page under edit (or the content list) narrows beside it and stays
 usable, and the drawer's left edge drags to make it wider. Its tabs are the domains of the layout of the site, such as Page quality, in the order of the
 site. Each tab has a count of the issues to review, red only when one of them is critical or serious.
-Inside a domain, each subdomain is a collapsible section with its count left of its title:
-a section with a critical or serious finding opens on its own, the others stay closed. Every tab and
+Inside a domain, each subdomain is a collapsible section with its count left of its title. Every
+section starts closed. Every tab and
 every section has a tooltip saying what it is for, and why it is greyed out when it cannot be used.
 Under the tabs, **Fix first** lists up to five critical or serious findings, whatever their tab, each
 opening the section that explains it; it stays out of the way when there is none. A server
@@ -221,6 +221,7 @@ The same for every site of the server. Editors see a change the next time they o
 |---|---|---|
 | `SHOW_FIX_FIRST` | `false` | Shows **Fix first** under the tab bar of the drawer |
 | `SHOW_PREVIEW_BUTTON` | `false` | Shows the **Show preview** button of Page quality. Hidden, the preview keeps its own behaviour: hidden beside Page Builder, shown elsewhere, opened to show an item located in it |
+| `SHOW_PAGE_SUMMARY` | `false` | Shows the **Page summary** at the top of Jahia health: the publication status of the page, the content items analyzed and the site languages checked |
 
 For example, `SHOW_FIX_FIRST=true` gives every editor the list of the critical findings of the page.
 
@@ -284,7 +285,7 @@ query {
     siteSettings(siteKey: "mysite") {
       moduleEnabled canEdit disabled
     }
-    drawerDisplay { fixFirst previewButton }
+    drawerDisplay { fixFirst previewButton pageSummary }
   }
 }
 

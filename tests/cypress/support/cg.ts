@@ -140,15 +140,21 @@ export function switchOff(siteKey: string, off: string[]): void {
 export const subdomainSection = (id: string): string => `#content-governance-subdomain-${id.split('.').join('-')}`;
 
 /**
- * Shows or hides "Fix first" and the "Show preview" button of Page quality for every editor of the
- * server, through the cfg of the module (org.jahia.community.contentgovernance.drawer.cfg). Both are
- * hidden until a spec shows them. Editors see a change the next time they open the drawer.
+ * Shows or hides "Fix first", the "Show preview" button of Page quality and the page summary of Jahia
+ * health for every editor of the server, through the cfg of the module
+ * (org.jahia.community.contentgovernance.drawer.cfg). Each is hidden until a spec shows it, and a call
+ * that leaves out `pageSummary` hides the page summary. Editors see a change the next time they open the
+ * drawer.
  */
-export function setDrawerDisplay(display: {fixFirst: boolean; previewButton: boolean}): void {
+export function setDrawerDisplay(display: {fixFirst: boolean; previewButton: boolean; pageSummary?: boolean}): void {
     // A step with nested properties goes as file content: the script type takes flat strings only
     const script = [{
         editConfiguration: 'org.jahia.community.contentgovernance.drawer',
-        properties: {SHOW_FIX_FIRST: String(display.fixFirst), SHOW_PREVIEW_BUTTON: String(display.previewButton)}
+        properties: {
+            SHOW_FIX_FIRST: String(display.fixFirst),
+            SHOW_PREVIEW_BUTTON: String(display.previewButton),
+            SHOW_PAGE_SUMMARY: String(display.pageSummary ?? false)
+        }
     }];
     cy.runProvisioningScript({script: {fileContent: JSON.stringify(script), type: 'application/json'}});
 }

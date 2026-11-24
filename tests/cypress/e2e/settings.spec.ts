@@ -16,13 +16,13 @@ import {
 
 const SAVE_PATH = ['contentGovernance', 'saveSiteLayout'];
 const RESET_PATH = ['contentGovernance', 'resetSiteLayout'];
-const DRAWER_DISPLAY = '{ contentGovernance { drawerDisplay { fixFirst previewButton } } }';
+const DRAWER_DISPLAY = '{ contentGovernance { drawerDisplay { fixFirst previewButton pageSummary } } }';
 
 /**
  * Reads drawerDisplay as `user` until it gives `expected`: Config Admin hands a cfg change to the
  * module a moment after the provisioning API answers.
  */
-function expectDrawerDisplay(user: TestUser, expected: {fixFirst: boolean; previewButton: boolean}, tries = 10): void {
+function expectDrawerDisplay(user: TestUser, expected: {fixFirst: boolean; previewButton: boolean; pageSummary: boolean}, tries = 10): void {
     gqlOk(user, DRAWER_DISPLAY).then(data => {
         const display = data.contentGovernance.drawerDisplay;
         if (tries > 1 && JSON.stringify(display) !== JSON.stringify(expected)) {
@@ -125,11 +125,13 @@ describe('Content Governance - site settings', () => {
 
     it('gives any signed-in user what the cfg of the server shows in the drawer', () => {
         setDrawerDisplay({fixFirst: true, previewButton: false});
-        expectDrawerDisplay(outsider, {fixFirst: true, previewButton: false});
+        expectDrawerDisplay(outsider, {fixFirst: true, previewButton: false, pageSummary: false});
         setDrawerDisplay({fixFirst: false, previewButton: true});
-        expectDrawerDisplay(outsider, {fixFirst: false, previewButton: true});
+        expectDrawerDisplay(outsider, {fixFirst: false, previewButton: true, pageSummary: false});
+        setDrawerDisplay({fixFirst: false, previewButton: false, pageSummary: true});
+        expectDrawerDisplay(outsider, {fixFirst: false, previewButton: false, pageSummary: true});
         setDrawerDisplay({fixFirst: false, previewButton: false});
-        expectDrawerDisplay(outsider, {fixFirst: false, previewButton: false});
+        expectDrawerDisplay(outsider, {fixFirst: false, previewButton: false, pageSummary: false});
     });
 
     it('refuses a malformed site key without reading the repository', () => {

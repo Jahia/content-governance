@@ -45,9 +45,10 @@ A site administrator can move a section to another tab, change the order of the 
 switch a section off. A finding shows in the section of the subdomain of its rule. The check runs
 once for the drawer, so every tab shows the same audit.
 
-Press the title of a section to open or close it. A section with a critical or serious finding opens on its own, and so does a section whose check
-did not finish. The other sections stay closed. **Expand all** opens every section, and **Collapse
-all** closes them. After a new audit, the sections open and close by these rules again.
+Press the title of a section to open or close it. Every section starts closed, even one with a critical
+or serious finding: its red count tells you to open it. **Expand all** opens every section, and
+**Collapse all** closes them. A section you open stays open while the drawer is open, after **Re-run**
+too.
 
 The number on the **Page quality** tab is the total of the counts of its sections. It is red when one
 of its findings is critical or serious, grey otherwise.
@@ -319,8 +320,9 @@ edit: the published site is served over `https`.
 
 The checks only Jahia can do.
 
-- **Page summary**: **Page publication status**, the number of content items analysed, the site
-  languages checked.
+- **Page summary**, at the top, when a server administrator shows it (`SHOW_PAGE_SUMMARY` in
+  `org.jahia.community.contentgovernance.drawer.cfg`): **Page publication status**, the number of
+  content items analysed, the site languages checked.
 - **Content not visible to visitors**: content items of the page that are modified, never
   published, unpublished, marked for deletion or in conflict. Publish the page to align what
   visitors see with what you edit.

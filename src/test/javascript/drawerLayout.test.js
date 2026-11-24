@@ -138,11 +138,11 @@ describe('the findings of the page check by subdomain', () => {
     });
 
     it('counts the violations of axe-core with the accessibility section, and nothing for a subdomain not measured', () => {
-        expect(pageStateOf(RESULTS, 'accessibility', places.subdomainOf)).toEqual({count: 2, serious: true, incomplete: false});
-        expect(pageStateOf(RESULTS, 'links', places.subdomainOf)).toEqual({count: 1, serious: true, incomplete: false});
+        expect(pageStateOf(RESULTS, 'accessibility', places.subdomainOf)).toEqual({count: 2, serious: true});
+        expect(pageStateOf(RESULTS, 'links', places.subdomainOf)).toEqual({count: 1, serious: true});
         expect(pageStateOf({page: {}, incomplete: {seo: {incomplete: 'timedOut'}}}, 'seo', places.subdomainOf))
-            .toEqual({count: null, serious: false, incomplete: true});
-        expect(pageStateOf(RESULTS, 'writing', places.subdomainOf)).toEqual({count: 1, serious: false, incomplete: false});
+            .toEqual({count: null, serious: false});
+        expect(pageStateOf(RESULTS, 'writing', places.subdomainOf)).toEqual({count: 1, serious: false});
     });
 });
 

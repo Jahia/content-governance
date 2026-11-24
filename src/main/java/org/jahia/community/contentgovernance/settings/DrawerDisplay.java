@@ -27,17 +27,20 @@ public class DrawerDisplay {
     static final String PID = "org.jahia.community.contentgovernance.drawer";
     static final String SHOW_FIX_FIRST = "SHOW_FIX_FIRST";
     static final String SHOW_PREVIEW_BUTTON = "SHOW_PREVIEW_BUTTON";
+    static final String SHOW_PAGE_SUMMARY = "SHOW_PAGE_SUMMARY";
 
     /**
      * The elements of the drawer that the cfg shows.
      *
      * @param fixFirst      the "Fix first" list under the tab bar
      * @param previewButton the "Show preview" button of Page quality
+     * @param pageSummary   the "Page summary" of Jahia health
      */
-    public record Shown(boolean fixFirst, boolean previewButton) {
+    public record Shown(boolean fixFirst, boolean previewButton, boolean pageSummary) {
 
         static Shown from(Map<String, ?> properties) {
-            return new Shown(isTrue(properties, SHOW_FIX_FIRST), isTrue(properties, SHOW_PREVIEW_BUTTON));
+            return new Shown(isTrue(properties, SHOW_FIX_FIRST), isTrue(properties, SHOW_PREVIEW_BUTTON),
+                    isTrue(properties, SHOW_PAGE_SUMMARY));
         }
 
         private static boolean isTrue(Map<String, ?> properties, String key) {
