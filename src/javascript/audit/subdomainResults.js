@@ -90,24 +90,22 @@ export const measures = (results, subdomainId) => Boolean(RESULT_OF[subdomainId]
 
 /**
  * What the section of a subdomain has to review from the page check: how many findings, whether one of them
- * is critical or serious (its count is then red), and whether its step did not finish. The accessibility
- * section also counts the violations of axe-core.
+ * is critical or serious (its count is then red). The accessibility section also counts the violations of
+ * axe-core.
  *
  * @param {?object} results the results of the page check
  * @param {string} subdomainId the subdomain
  * @param {function(string): (string|undefined)} subdomainOf the subdomain of a rule on the site
- * @returns {{count: ?number, serious: boolean, incomplete: boolean}} `count` is null when the audit did not
- *     measure the subdomain
+ * @returns {{count: ?number, serious: boolean}} `count` is null when the audit did not measure the subdomain
  */
 export function pageStateOf(results, subdomainId, subdomainOf) {
-    const incomplete = Boolean(incompleteIn(results, subdomainId));
     if (!measures(results, subdomainId)) {
-        return {count: null, serious: false, incomplete};
+        return {count: null, serious: false};
     }
     const violations = subdomainId === 'accessibility' ? results.a11y?.violations || [] : [];
     const severities = [
         ...violations.map(violation => violation.severity || violation.impact),
         ...recommendationsIn(results, subdomainId, subdomainOf).map(rec => rec.severity)
     ];
-    return {count: severities.length, serious: severities.some(isSerious), incomplete};
+    return {count: severities.length, serious: severities.some(isSerious)};
 }

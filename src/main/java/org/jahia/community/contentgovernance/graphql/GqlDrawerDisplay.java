@@ -31,4 +31,11 @@ public class GqlDrawerDisplay {
     public boolean isPreviewButton() {
         return shown.previewButton();
     }
+
+    /** @return whether Jahia health shows its page summary */
+    @GraphQLField
+    @GraphQLDescription("Whether Jahia health shows its Page summary (SHOW_PAGE_SUMMARY)")
+    public boolean isPageSummary() {
+        return shown.pageSummary();
+    }
 }

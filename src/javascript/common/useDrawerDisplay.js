@@ -6,20 +6,22 @@ export const DRAWER_DISPLAY = gql`
             drawerDisplay {
                 fixFirst
                 previewButton
+                pageSummary
             }
         }
     }
 `;
 
-const HIDDEN = {fixFirst: false, previewButton: false};
+const HIDDEN = {fixFirst: false, previewButton: false, pageSummary: false};
 
 /**
  * What the drawer shows to every editor of the server, as the cfg of the module sets it
  * (org.jahia.community.contentgovernance.drawer.cfg). Each element stays hidden while the answer
  * loads, and when it fails.
  *
- * @returns {{fixFirst: boolean, previewButton: boolean}} whether the drawer shows "Fix first", and
- *   whether Page quality shows its "Show preview" button
+ * @returns {{fixFirst: boolean, previewButton: boolean, pageSummary: boolean}} whether the drawer shows
+ *   "Fix first", whether Page quality shows its "Show preview" button, and whether Jahia health shows its
+ *   page summary
  */
 export function useDrawerDisplay() {
     // The cached answer at once, then the server's: an administrator may have changed the cfg since

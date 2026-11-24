@@ -13,10 +13,7 @@ import {
     switchOff
 } from '../support/cg';
 
-/**
- * Opens the section of Accessibility, which opens on its own only with a critical or serious finding. A choice made
- * while the audit runs holds for its results.
- */
+/** Opens the section of Accessibility, which starts closed. The choice holds while the drawer is open. */
 const openAccessibility = () => cy.get(subdomainSection('accessibility'), {timeout: 30000}).then($header => {
     if ($header.attr('aria-expanded') !== 'true') {
         cy.wrap($header).click();

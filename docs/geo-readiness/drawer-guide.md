@@ -14,7 +14,8 @@ domain switched on, the drawer opens on it.
 Inside the tab, each subdomain is a section that opens and closes. The checks of GEO readiness are
 **AI CITATIONS**, **SCORE**, **CONTENT**, **SITE FILES**, **STRUCTURED DATA** and **CRAWLER ACCESS**.
 The tab also shows **SEO**, which the page check feeds. Press the title of a section to open or close
-it. A section with a red number opens on its own. **Expand all** opens every section.
+it. Every section starts closed; a red number tells you which to open first. **Expand all** opens every
+section.
 
 **CONTENT** lists the checks of the score that failed on its rules: the text of the page, its headings
 and its date. A site can move a section to another tab, and the section keeps its results there.
