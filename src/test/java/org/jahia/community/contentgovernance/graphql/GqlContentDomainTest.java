@@ -72,6 +72,6 @@ class GqlContentDomainTest {
         assertThat(rule.getSites()).containsExactly("*");
         assertThat(rule.getUnknownSubdomain()).isNull();
         assertThat(rule.isNew()).isFalse();
-        assertThat(new GqlContentRule(title, new CheckRegistry().status(title), false, "fr", true).isNew()).isTrue();
+        assertThat(new GqlContentRule(title, new CheckRegistry().status(title), false, "fr", true, true).isNew()).isTrue();
     }
 }

@@ -83,7 +83,7 @@ final class AuditTools {
         if (!SiteFeatures.isEnabled(sitePath, feature)) {
             return ToolResult.error(ToolError.CODE_UNAVAILABLE,
                     "The check " + feature + " is switched off on the site " + siteKey + ".",
-                    "A site administrator switches it on in Site Settings > Content governance.");
+                    "A site administrator switches it on in jContent > Additional > Rules & domains.");
         }
         return null;
     }

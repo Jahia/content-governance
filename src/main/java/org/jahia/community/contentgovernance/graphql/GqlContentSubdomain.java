@@ -84,6 +84,13 @@ public class GqlContentSubdomain {
     }
 
     @GraphQLField
+    @GraphQLNonNull
+    @GraphQLDescription("The switch of the subdomain itself, whatever its parent: in the layout of the site, else its default. On systemsite, its default switch for every site")
+    public boolean isSwitchedOn() {
+        return hierarchy.switchedOn(subdomain.id());
+    }
+
+    @GraphQLField
     @GraphQLName("isNew")
     @GraphQLNonNull
     @GraphQLDescription("True when the site saved a layout that names the subdomain neither in an array nor in off, such as an item that a module shipped after the save")

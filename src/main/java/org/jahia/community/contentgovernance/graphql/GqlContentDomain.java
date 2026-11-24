@@ -85,6 +85,13 @@ public class GqlContentDomain {
     }
 
     @GraphQLField
+    @GraphQLNonNull
+    @GraphQLDescription("The switch of the domain itself, whatever its parent: in the layout of the site, else its default. On systemsite, its default switch for every site")
+    public boolean isSwitchedOn() {
+        return hierarchy.switchedOn(domain.id());
+    }
+
+    @GraphQLField
     @GraphQLName("isNew")
     @GraphQLNonNull
     @GraphQLDescription("True when the site saved a layout that names the domain neither in an array nor in off, such as an item that a module shipped after the save")

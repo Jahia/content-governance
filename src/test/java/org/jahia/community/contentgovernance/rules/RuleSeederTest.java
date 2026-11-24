@@ -109,14 +109,15 @@ class RuleSeederTest {
     }
 
     @Test
-    @DisplayName("only the processing server converts the rules, the terms, the check types, the subdomains and the layout of an older version, in that order")
+    @DisplayName("only the processing server converts the rules, the terms, the check types, the subdomains, the layout and the switches of an older version, in that order")
     void activate_convertsOnTheProcessingServerOnly() {
         for (boolean processing : List.of(false, true)) {
             try (MockedStatic<LegacyRules> rules = mockStatic(LegacyRules.class);
                  MockedStatic<LegacyTerms> terms = mockStatic(LegacyTerms.class);
                  MockedStatic<LegacyCheckTypes> checkTypes = mockStatic(LegacyCheckTypes.class);
                  MockedStatic<LegacyDomains> domains = mockStatic(LegacyDomains.class);
-                 MockedStatic<LegacyLayout> layout = mockStatic(LegacyLayout.class)) {
+                 MockedStatic<LegacyLayout> layout = mockStatic(LegacyLayout.class);
+                 MockedStatic<LegacyFeatures> features = mockStatic(LegacyFeatures.class)) {
                 RuleSeeder seeder = seeder(processing);
 
                 seeder.activate(mock(BundleContext.class));
@@ -126,12 +127,14 @@ class RuleSeederTest {
                 checkTypes.verify(LegacyCheckTypes::migrate, processing ? times(1) : never());
                 domains.verify(LegacyDomains::migrate, processing ? times(1) : never());
                 layout.verify(LegacyLayout::migrate, processing ? times(1) : never());
+                features.verify(LegacyFeatures::migrate, processing ? times(1) : never());
                 if (processing) {
                     // The subdomains read the keys of the check types, and the layout removes what they converted
-                    InOrder order = inOrder(LegacyCheckTypes.class, LegacyDomains.class, LegacyLayout.class);
+                    InOrder order = inOrder(LegacyCheckTypes.class, LegacyDomains.class, LegacyLayout.class, LegacyFeatures.class);
                     order.verify(checkTypes, LegacyCheckTypes::migrate);
                     order.verify(domains, LegacyDomains::migrate);
                     order.verify(layout, LegacyLayout::migrate);
+                    order.verify(features, LegacyFeatures::migrate);
                 }
                 seeder.deactivate();
             }
@@ -148,6 +151,7 @@ class RuleSeederTest {
                  MockedStatic<LegacyCheckTypes> checkTypes = mockStatic(LegacyCheckTypes.class);
                  MockedStatic<LegacyDomains> domains = mockStatic(LegacyDomains.class);
                  MockedStatic<LegacyLayout> layout = mockStatic(LegacyLayout.class);
+                 MockedStatic<LegacyFeatures> features = mockStatic(LegacyFeatures.class);
                  MockedStatic<TreeSeeder> treeSeeder = mockStatic(TreeSeeder.class);
                  MockedStatic<ShippedRules> shipped = mockStatic(ShippedRules.class);
                  MockedStatic<JCRTemplate> jcr = mockStatic(JCRTemplate.class)) {
@@ -203,6 +207,7 @@ class RuleSeederTest {
              MockedStatic<LegacyCheckTypes> checkTypes = mockStatic(LegacyCheckTypes.class);
              MockedStatic<LegacyDomains> domains = mockStatic(LegacyDomains.class);
              MockedStatic<LegacyLayout> layout = mockStatic(LegacyLayout.class);
+             MockedStatic<LegacyFeatures> features = mockStatic(LegacyFeatures.class);
              MockedStatic<TreeSeeder> treeSeeder = mockStatic(TreeSeeder.class)) {
             // The rules of acme-rules wait: the tree lacks the node of their subdomain
             treeSeeder.when(() -> TreeSeeder.seed(any(ShippedRules.Shipment.class)))

@@ -199,11 +199,14 @@ describe('Content Governance - content rules', () => {
         gqlOk(asRoot(), RESET_LAYOUT, {siteKey});
     });
 
-    it('refuses a layout for the system site, which holds the tree itself', () => {
-        const message = 'The system site holds the tree itself, and has no layout';
-        gql(asRoot(), SAVE_LAYOUT, {siteKey: 'systemsite', layout: JSON.stringify({off: ['seo.canonical']})})
-            .then(body => assertRefused(body, SAVE_LAYOUT_PATH, message));
-        gql(asRoot(), RESET_LAYOUT, {siteKey: 'systemsite'}).then(body => assertRefused(body, RESET_LAYOUT_PATH, message));
+    it('leaves the tree of the system site to a server administrator, and has no reset for it', () => {
+        assertEffectiveUser(editor);
+        gql(editor, SAVE_LAYOUT, {siteKey: 'systemsite', layout: JSON.stringify({off: []})})
+            .then(body => assertRefused(body, SAVE_LAYOUT_PATH));
+        // A layout that names nothing changes no node of the tree
+        gqlOk(asRoot(), SAVE_LAYOUT, {siteKey: 'systemsite', layout: JSON.stringify({off: []})});
+        gql(asRoot(), RESET_LAYOUT, {siteKey: 'systemsite'}).then(body => assertRefused(body, RESET_LAYOUT_PATH,
+            'The defaults of the system site have no reset: save the order and the switches'));
     });
 
     it('refuses a layout that names an id twice, and saves nothing', () => {

@@ -61,7 +61,7 @@ describe('Content Governance - the panels of the drawer', () => {
         cy.on('uncaught:exception', error => !(error.message.includes('offsetWidth')
             && String(error.stack).includes('/modules/jcontent/')));
         // Page quality and GEO readiness measure the page: off, so "Fix first" holds the findings of the test tab only
-        switchOff(siteKey, ['audit', 'geo']);
+        switchOff(siteKey, ['quality', 'geo']);
     });
 
     afterEach(() => {
@@ -133,20 +133,20 @@ describe('Content Governance - the panels of the drawer', () => {
         });
     });
 
-    it('lists each panel in the site settings, where a site administrator switches it off', () => {
+    it('lists each panel on the Rules & domains screen, where a site administrator switches it off', () => {
         cy.intercept('POST', '**/modules/graphql', req => {
             const body = JSON.stringify(req.body);
-            if (body.includes('ContentGovernanceSaveSiteSettings')) {
+            if (body.includes('ContentGovernanceSaveLayout')) {
                 req.alias = 'save';
-            } else if (body.includes('ContentGovernanceSiteSettings')) {
-                req.alias = 'settings';
+            } else if (body.includes('ContentGovernanceRulesScreen')) {
+                req.alias = 'screen';
             }
         });
         cy.login(admin.username, admin.password);
-        cy.visit(`/jahia/administration/${siteKey}/contentGovernanceSettings`);
-        cy.wait('@settings');
-        cy.get('[data-panel="governance"]', {timeout: 30000}).should('contain.text', GOVERNANCE)
-            .find(`[data-tab="${TEST_TAB}"]`).should('exist');
+        cy.visit(`/jahia/jcontent/${siteKey}/en/apps/contentGovernanceRules`);
+        cy.wait('@screen');
+        cy.get('[data-panel="governance"]', {timeout: 30000}).should('contain.text', GOVERNANCE);
+        cy.get(`[data-tab="${TEST_TAB}"]`).should('exist');
         cy.get(`[data-panel="${TEST_PANEL}"]`).should('contain.text', 'A panel that the test module adds')
             .within(() => cy.get(`[aria-label="${PANEL} panel"]`).click({force: true}));
         cy.contains('button', 'Save').click();

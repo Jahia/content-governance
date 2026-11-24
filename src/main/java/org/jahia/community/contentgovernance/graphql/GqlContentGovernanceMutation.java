@@ -8,7 +8,9 @@ import graphql.schema.DataFetchingEnvironment;
 import org.jahia.community.contentgovernance.audit.graphql.AuditFields;
 import org.jahia.community.contentgovernance.audit.graphql.GqlAuditRun;
 import org.jahia.community.contentgovernance.audit.service.spi.AuditHistoryService;
+import org.jahia.community.contentgovernance.rules.ContentDomains;
 import org.jahia.community.contentgovernance.rules.SiteLayout;
+import org.jahia.community.contentgovernance.rules.TreeLayout;
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
 import org.jahia.modules.graphql.provider.dxm.DataFetchingException;
 import org.jahia.modules.graphql.provider.dxm.osgi.annotations.GraphQLOsgiService;
@@ -20,18 +22,19 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.jcr.RepositoryException;
-import java.util.List;
 
 /**
- * Settings mutations. Authorised here, on the server: the settings route of the back office only
- * hides itself from users without {@value SiteFeatures#SETTINGS_PERMISSION}.
+ * Layout and audit mutations. Authorised here, on the server: the route of a screen only hides itself from users
+ * without {@value SiteFeatures#SETTINGS_PERMISSION} on the site, or without {@value #SERVER_PERMISSION} for the
+ * defaults of the system site.
  */
 @GraphQLName("ContentGovernanceMutation")
 @GraphQLDescription("Content Governance mutations")
 public class GqlContentGovernanceMutation {
 
     private static final Logger logger = LoggerFactory.getLogger(GqlContentGovernanceMutation.class);
-    private static final String SYSTEM_SITE = "systemsite";
+    /** The permission on the root node that the defaults of the system site require: a server administrator. */
+    static final String SERVER_PERMISSION = "admin";
 
     // graphql-java-annotations injects OSGi services into fields only (@GraphQLOsgiService)
     @SuppressWarnings("java:S6813")
@@ -40,45 +43,20 @@ public class GqlContentGovernanceMutation {
     private AuditHistoryService audits;
 
     /**
-     * Switches tabs of the drawer, and parts of tabs, off on a site; every id not listed is switched on.
-     *
-     * @param siteKey  key of the site
-     * @param disabled tab ids ({@code geo}) and part ids ({@code geo.citations}) to switch off, of any
-     *                 tab registered in the drawer; an id of another form is dropped
-     * @return the settings as stored
-     */
-    @GraphQLField
-    @GraphQLName("saveSiteSettings")
-    @GraphQLNonNull
-    @GraphQLDescription("Stores which tabs of the drawer, and parts of tabs, a site switches off")
-    public GqlSiteSettings saveSiteSettings(
-            @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey,
-            @GraphQLName("disabled") @GraphQLNonNull @GraphQLDescription("Ids of the tabs (geo) and parts of tabs (geo.citations) switched off") List<String> disabled) {
-        JCRSiteNode site = SiteAccess.site(siteKey);
-        if (!site.hasPermission(SiteFeatures.SETTINGS_PERMISSION) || !SiteFeatures.moduleEnabled(site)) {
-            throw new DataFetchingException(SiteAccess.DENIED);
-        }
-        try {
-            SiteFeatures.save(site.getPath(), disabled);
-            return GqlSiteSettings.of(site);
-        } catch (RepositoryException e) {
-            logger.warn("could not save the content governance settings of {}: {}", siteKey, e.toString());
-            throw new DataFetchingException("The settings could not be saved");
-        }
-    }
-
-    /**
      * Saves how a site arranges the domains, the subdomains and the rules of the system site. The write goes
-     * through the session of the caller, under {@code contents} of the site.
+     * through the session of the caller, under {@code contents} of the site. For {@code systemsite}, a server
+     * administrator saves the defaults of every site: the layout reorders, moves and switches the nodes of the tree
+     * ({@link TreeLayout}), and no JSON is stored.
      *
-     * @param siteKey key of the site, other than {@code systemsite}
+     * @param siteKey key of the site, or {@code systemsite} for the defaults
      * @param layout  the JSON of the layout
-     * @return the layout as stored
+     * @return the layout as stored, not saved for {@code systemsite}
      */
     @GraphQLField
     @GraphQLName("saveSiteLayout")
     @GraphQLNonNull
-    @GraphQLDescription("Saves the layout of a site: the order and the place of its domains, subdomains and rules, and what it switches off")
+    @GraphQLDescription("Saves the layout of a site: the order and the place of its domains, subdomains and rules, and what it switches off. "
+            + "For systemsite, writes the order, the places and the default switches into the tree of the defaults")
     public GqlSiteLayout saveSiteLayout(
             @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey,
             @GraphQLName("layout") @GraphQLNonNull @GraphQLDescription("The JSON of the layout, {domains: [{id, subdomains: [{id, rules: [id]}]}], off: [id]}") String layout) {
@@ -92,7 +70,7 @@ public class GqlContentGovernanceMutation {
     }
 
     /**
-     * Removes the layout of a site, which then keeps the layout of the system site.
+     * Removes the layout of a site, which then keeps the layout of the system site. The system site has no reset.
      *
      * @param siteKey key of the site, other than {@code systemsite}
      * @return the layout of the site, not saved
@@ -108,8 +86,8 @@ public class GqlContentGovernanceMutation {
 
     private static GqlSiteLayout writeLayout(String siteKey, SiteLayout layout) {
         JCRSiteNode site = SiteAccess.site(siteKey);
-        if (SYSTEM_SITE.equals(siteKey)) {
-            throw new DataFetchingException("The system site holds the tree itself, and has no layout");
+        if (ContentDomains.SYSTEM_SITE_KEY.equals(siteKey)) {
+            return writeDefaults(layout);
         }
         if (!site.hasPermission(SiteFeatures.SETTINGS_PERMISSION) || !SiteFeatures.moduleEnabled(site)) {
             throw new DataFetchingException(SiteAccess.DENIED);
@@ -122,6 +100,26 @@ public class GqlContentGovernanceMutation {
         } catch (RepositoryException e) {
             logger.warn("could not save the layout of {}: {}", siteKey, e.toString());
             throw new DataFetchingException("The layout could not be saved");
+        }
+    }
+
+    /** Writes the defaults of every site into the tree of the system site, for a server administrator. */
+    private static GqlSiteLayout writeDefaults(SiteLayout layout) {
+        if (!layout.saved()) {
+            throw new DataFetchingException("The defaults of the system site have no reset: save the order and the switches");
+        }
+        try {
+            JCRSessionWrapper session = JCRSessionFactory.getInstance().getCurrentUserSession("default");
+            if (!session.getRootNode().hasPermission(SERVER_PERMISSION)) {
+                throw new DataFetchingException(SiteAccess.DENIED);
+            }
+            int changed = TreeLayout.write(session, layout);
+            session.save();
+            logger.info("A server administrator changed {} nodes of the defaults in {}", changed, ContentDomains.TREE);
+            return new GqlSiteLayout(SiteLayout.NONE);
+        } catch (RepositoryException e) {
+            logger.warn("could not save the defaults in {}: {}", ContentDomains.TREE, e.toString());
+            throw new DataFetchingException("The defaults could not be saved");
         }
     }
 

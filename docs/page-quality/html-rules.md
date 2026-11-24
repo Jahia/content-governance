@@ -114,8 +114,7 @@ A tool answers only when three conditions are true:
 
 - The user has the permission `jContentAccess` on the site.
 - The site enables the module.
-- The tab of **Page quality** with the same id is on for the site. Example: `audit.links` needs the
-  tab `audit.links`, which a site administrator switches on or off in **Site Settings > Content
-  governance**.
+- The subdomain of **Page quality** of the tool is on for the site. Example: `audit.links` needs the
+  subdomain `links`, which a site administrator switches on or off in **jContent > Additional > Rules & domains**.
 
 A site that does not exist and a site that the user cannot open get the same answer.

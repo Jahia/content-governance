@@ -1,6 +1,5 @@
 package org.jahia.community.contentgovernance.rules;
 
-import org.jahia.community.contentgovernance.settings.SiteFeatures;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
@@ -79,7 +78,7 @@ final class LegacyRules {
             if (!(node instanceof JCRSiteNode site)) {
                 continue;
             }
-            String target = LegacyLayout.ROOT + "/" + SiteFeatures.MODULE;
+            String target = LegacyLayout.ROOT + "/" + ShippedRules.OWN_MODULE;
             if (site.hasNode(LEGACY_FOLDER) && !site.hasNode(target)) {
                 session.move(site.getPath() + "/" + LEGACY_FOLDER, site.getPath() + "/" + target);
                 logger.info("Moved the content rules of {} to {}", site.getPath(), target);

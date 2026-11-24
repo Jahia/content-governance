@@ -185,7 +185,7 @@ describe('Content Governance - drawer', () => {
     });
 
     it('shows no button once every tab is off', () => {
-        switchOff(siteKey, ['audit', 'geo', 'compliance', TEST_TAB]);
+        switchOff(siteKey, ['quality', 'geo', 'compliance', TEST_TAB]);
         cy.login(admin.username, admin.password);
         cy.visit(pageUrl);
         // The header is drawn once its other actions are: wait for one before asserting an absence.

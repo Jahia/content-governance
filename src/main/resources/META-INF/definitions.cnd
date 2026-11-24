@@ -140,6 +140,8 @@
  - domainId (string) mandatory primary nofulltext
  // The panel of the drawer that shows the domain: governance, or a panel of another module, such as chat.
  - panel (string) = 'governance' autocreated nofulltext
+ // The default switch. Off: the domain is off on every site whose layout does not place it, whatever its sites.
+ - enabled (boolean) = 'true' autocreated
  // The keys of the sites where the domain is on by default, or * for all sites.
  - sites (string, choicelist[contentGovernanceSites]) = '*' autocreated multiple nofulltext
  // The name of the tab.
@@ -156,6 +158,8 @@
 // are its rules, in their order. A rule outside the tree names it in its property subdomain.
 [ccs:contentSubdomain] > jnt:content, ccsmix:complianceContent orderable
  - subdomainId (string) mandatory primary nofulltext
+ // The default switch. Off: the subdomain is off on every site whose layout does not place it, whatever its sites.
+ - enabled (boolean) = 'true' autocreated
  // The keys of the sites where the subdomain is on by default, or * for all sites.
  - sites (string, choicelist[contentGovernanceSites]) = '*' autocreated multiple nofulltext
  - label (string) i18n

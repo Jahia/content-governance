@@ -112,15 +112,28 @@ export function readSettings(user: TestUser, siteKey: string): Cypress.Chainable
         {siteKey});
 }
 
-export function saveSettings(user: TestUser, siteKey: string, disabled: string[]): Cypress.Chainable<GqlBody> {
-    return gql(user, `mutation S($siteKey: String!, $disabled: [String]!) {
-        contentGovernance { saveSiteSettings(siteKey: $siteKey, disabled: $disabled) { ${SETTINGS_FIELDS} } }
-    }`, {siteKey, disabled});
+/** Saves the layout of a site, or the defaults of every site for `systemsite`. */
+export function saveLayout(user: TestUser, siteKey: string, layout: object): Cypress.Chainable<GqlBody> {
+    return gql(user, `mutation S($siteKey: String!, $layout: String!) {
+        contentGovernance { saveSiteLayout(siteKey: $siteKey, layout: $layout) { saved json off } }
+    }`, {siteKey, layout: JSON.stringify(layout)});
 }
 
-/** Switches tabs of the drawer, and parts of tabs, off on a site as root (every id not listed is switched on). */
-export function switchOff(siteKey: string, disabled: string[]): void {
-    saveSettings(asRoot(), siteKey, disabled).its('errors').should('be.undefined');
+/** Removes the layout of a site, which then follows the defaults. */
+export function resetLayout(user: TestUser, siteKey: string): Cypress.Chainable<GqlBody> {
+    return gql(user, `mutation S($siteKey: String!) {
+        contentGovernance { resetSiteLayout(siteKey: $siteKey) { saved } }
+    }`, {siteKey});
+}
+
+/**
+ * Switches panels, domains, subdomains and tabs off on a site as root, with a layout that places no domain, so the
+ * order stays the default one; an empty list removes the layout. The ids are those of the layout: `quality` for
+ * Page quality, `geo.crawlers` for Crawler access.
+ */
+export function switchOff(siteKey: string, off: string[]): void {
+    const call = off.length === 0 ? resetLayout(asRoot(), siteKey) : saveLayout(asRoot(), siteKey, {domains: [], off});
+    call.its('errors').should('be.undefined');
 }
 
 /**

@@ -53,10 +53,10 @@ permission on the site. Without it the dashboard does not appear, and nor do the
 That is deliberate: these settings affect every page. The server checks the same permission on
 every call behind the screen.
 
-A site administrator can switch the GEO readiness section off for a site in **Site Settings >
-Content governance**. The entry stays in the menu, but opening it then shows *Switched off for this
-site*, and the server refuses the dashboard's calls. The **AI citations** group follows its own
-switch, the **AI citations** tab of the GEO readiness section: switched off, the group is not shown.
+A site administrator can switch the **SEO & GEO** domain off for a site in **jContent > Additional > Rules & domains**.
+The entry stays in the menu, but opening it then shows *Switched off for this site*, and the server
+refuses the dashboard's calls. The **AI citations** group follows its own switch, the subdomain **AI
+citations**: switched off, the group is not shown.
 
 ## Overview
 
@@ -240,7 +240,7 @@ has been written yet, or only its placeholder is published, the tab says that to
 What AI answers actually do with the site, from the last daily sync with BotRank. It is not a
 readiness check: nothing here is computed from your pages, and nothing on it moves the site score.
 It needs the same **publish** permission as the rest of the dashboard. Until a site administrator
-connects the site (**Site Settings > Content governance**, **BotRank** tab), the group says *Not
+connects the site (**Site Settings > Content governance**), the group says *Not
 connected to BotRank*. A line of dates at the top says when BotRank counted its latest answer, the
 period, and when the site last synced.
 
@@ -286,19 +286,18 @@ Worth a conversation rather than a quick toggle.
 
 ## For site administrators: switches and BotRank
 
-Both live in **Site Settings > Content governance**, which needs the **site-admin** permission on
-the site. The server checks it again on every save.
+Both need the **site-admin** permission on the site. The server checks it again on every save.
 
-**Features tab.** One card per section with an **On**/**Off** switch, and one switch per tab of the
-section. For GEO readiness the tabs are **Score**, **Crawler access**, **Site files**,
-**Structured data** and **AI citations**. Everything is on until someone switches it off. With GEO
-readiness switched off, the section disappears from the drawer, the dashboard says it is switched
-off, and the server refuses the dashboard's and BotRank's calls; the tabs keep their own setting
-for when it comes back. A tab switched off disappears from the drawer. The **AI citations** switch
+**Switches.** **jContent > Additional > Rules & domains** shows one card per domain with an **On**/**Off** switch, and one
+switch per subdomain. For **SEO & GEO** the subdomains are **AI citations**, **SEO**, **Score**,
+**Content**, **Site files**, **Structured data** and **Crawler access**. Everything is on until someone
+switches it off. With **SEO & GEO** switched off, the domain disappears from the drawer, the dashboard
+says it is switched off, and the server refuses the dashboard's and BotRank's calls; the subdomains
+keep their own switch for when it comes back. A tab switched off disappears from the drawer. The **AI citations** switch
 also hides the dashboard's **AI citations** group and pauses the site's daily BotRank sync: its runs
 are skipped while the switch is off, and the first run after it is back on syncs again. Press **Save**; editors see the change the next time they open the drawer.
 
-**BotRank tab.** Connects the site to BotRank, which feeds the drawer's **AI citations** tab and the
+**BotRank.** **Site Settings > Content governance** connects the site to BotRank, which feeds the drawer's **AI citations** tab and the
 dashboard's **AI citations** group.
 
 - **BotRank connection**: the BotRank organisation whose data this site reads. The list holds the
