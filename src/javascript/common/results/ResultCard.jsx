@@ -1,20 +1,24 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import {Check, HelpOutline, Information, Report, Warning} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../i18n';
 import {LEVELS} from './levels';
 import styles from './Results.module.css';
 
+/** The icon of each level. Each has its own shape, so that the level never rests on its colour alone (WCAG 1.4.1). */
+const LEVEL_ICON = {serious: Report, moderate: Warning, minor: Information, passed: Check, review: HelpOutline};
+
 /**
- * One finding of one rule. Its level is the colour of the left border, and a word that only a screen
- * reader reads. The title line ends with the actions. What to do follows. The last line holds the
- * occurrences, and the id of the rule at its right end.
+ * One finding of one rule. Its level is the colour of the left border, and the icon that opens the
+ * title line, whose name and tooltip are the word of the level. The title line ends with the actions.
+ * What to do follows. The last line holds the occurrences, and the id of the rule at its right end.
  *
  * The action follows the occurrences. A rule with one occurrence, or with none (a rule of the whole
  * page), shows that occurrence's action on the title line. A rule with several occurrences shows each
  * action on its own row. The `menu` (the ⋮ of the actions of other modules) always ends the title line.
  *
- * Example: "Open Graph tags are missing: og:image", Moderate: an orange border, the title and its ⋮,
- * the advice, then `og:image` with `seo.openGraph` at the right of the same line.
+ * Example: "Open Graph tags are missing: og:image", Moderate: an orange border, a triangle, the title
+ * and its ⋮, the advice, then `og:image` with `seo.openGraph` at the right of the same line.
  */
 export const ResultCard = ({level, title, detail, rule, chips, occurrences = [], occurrencesLabel, action, menu, children, isCompact}) => {
     const {t} = useGovernanceTranslation('common');
@@ -22,12 +26,18 @@ export const ResultCard = ({level, title, detail, rule, chips, occurrences = [],
     const cardAction = single ? single.action : action;
     const singleContent = single?.content;
     const isFolded = occurrences.length > 1;
+    const LevelIcon = LEVEL_ICON[level];
+    const word = t(`results.levels.${level}`);
 
     return (
         <article className={`${styles.card} ${styles['level_' + level]} ${isCompact ? styles.compact : ''}`}>
             <div className={styles.cardHead}>
-                <span className={styles.srOnly}>{t(`results.levels.${level}`)}</span>
                 <div className={styles.titleLine}>
+                    {/* The word as a tooltip, and as hidden text for a screen reader */}
+                    <span className={styles.levelIcon} title={word}>
+                        <LevelIcon aria-hidden="true"/>
+                        <span className={styles.srOnly}>{word}</span>
+                    </span>
                     <div className={styles.cardTitle}>
                         {chips && <span className={styles.chips}>{chips}</span>}
                         {title}

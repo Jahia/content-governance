@@ -1,9 +1,12 @@
 /* The four ways the drawer shows a result: card, fact block, score block and banner. */
 
-/* Card. --level is the colour of the left border, the only mark of the level on screen. */
+/*
+ * Card. --level is the colour of the left border, --level-icon the colour of the icon of the level: a
+ * darker shade, so that the icon keeps a contrast of 3:1 on white (WCAG 1.4.11), which orange lacks.
+ */
 .card {
     --level: #8a99a6;
-    position: relative;
+    --level-icon: #4f5d68;
     border: 1px solid #e4e4e4;
     border-left: 4px solid var(--level);
     border-radius: 6px;
@@ -13,22 +16,36 @@
 
 .level_serious {
     --level: #e0182d;
+    --level-icon: #b3122a;
 }
 
 .level_moderate {
     --level: #f08c00;
+    --level-icon: #9a5300;
 }
 
 .level_minor {
     --level: #8a99a6;
+    --level-icon: #4f5d68;
 }
 
 .level_passed {
     --level: #2e9e5b;
+    --level-icon: #1b7d3e;
 }
 
 .level_review {
     --level: #3a7bd5;
+    --level-icon: #1a5b96;
+}
+
+/* The icon of the level, at the start of the title line, on the height of its first row of text */
+.levelIcon {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--level-icon);
 }
 
 /*

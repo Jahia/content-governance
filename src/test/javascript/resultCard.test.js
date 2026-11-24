@@ -31,19 +31,22 @@ const occurrence = (key, text) => ({key, content: h('code', null, text)});
 const card = props => renderToStaticMarkup(h(ResultCard, {level: 'moderate', title: TITLE, detail: DETAIL, menu, ...props}));
 
 describe('ResultCard', () => {
-    it('shows the level only as the colour of the border, and as a word for a screen reader', () => {
+    it('shows the level as the colour of the border and as an icon named by its word, never as visible text', () => {
         const markup = card({rule: 'seo.openGraph', occurrences: [occurrence('0', 'og:image')]});
-        const word = elementOf(markup, styles.srOnly);
+        const icon = elementOf(markup, styles.levelIcon);
 
         expect(elementOf(markup, styles.card)).toContain(styles.level_moderate);
-        expect(word).toContain('results.levels.moderate');
-        expect(markup.replace(word, '')).not.toContain('results.levels');
+        expect(icon).toContain('<svg aria-hidden="true">');
+        expect(icon).toMatch(/title="[^"]*results\.levels\.moderate"/);
+        expect(elementOf(icon, styles.srOnly)).toContain('results.levels.moderate');
+        expect(markup.replace(icon, '')).not.toContain('results.levels');
     });
 
-    it('starts the title line with the chips and ends it with the actions, and leaves the advice below it', () => {
+    it('opens the title line with the icon and the chips, ends it with the actions, and leaves the advice below it', () => {
         const line = elementOf(card({rule: 'seo.openGraph', chips: h('span', null, 'WCAG-AA')}), styles.titleLine);
 
-        expect(line.indexOf('WCAG-AA')).toBeGreaterThan(-1);
+        expect(line.indexOf(styles.levelIcon)).toBeGreaterThan(-1);
+        expect(line.indexOf('WCAG-AA')).toBeGreaterThan(line.indexOf(styles.levelIcon));
         expect(line.indexOf(TITLE)).toBeGreaterThan(line.indexOf('WCAG-AA'));
         expect(line.indexOf('More actions')).toBeGreaterThan(line.indexOf(TITLE));
         expect(line).not.toContain(DETAIL);
