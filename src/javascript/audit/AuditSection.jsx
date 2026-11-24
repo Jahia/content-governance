@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../common/i18n';
+import {useDrawerDisplay} from '../common/useDrawerDisplay';
 import {useApolloClient} from '@apollo/client';
 import {fetchRules} from './rules';
 import {checkPage} from './pageCheck';
@@ -318,6 +319,8 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
     // The texts of the rules follow the editor's interface language, not the language of the content
     const uiLanguage = i18n?.language || 'en';
     const apolloClient = useApolloClient();
+    // The "Show preview" button shows where the cfg of the server shows it
+    const {previewButton} = useDrawerDisplay();
     const [status, setStatus] = useState('idle');
     const [results, setResults] = useState(null);
     const [error, setError] = useState(null);
@@ -601,11 +604,13 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
                         label={t('drawer.export')}
                         isDisabled={!results}
                         onClick={exportJson}/>
-                <Button variant="ghost"
-                        icon={<Visibility/>}
-                        label={previewCollapsed ? t('drawer.showPreview') : t('drawer.hidePreview')}
-                        aria-expanded={!previewCollapsed}
-                        onClick={() => setPreviewCollapsed(c => !c)}/>
+                {previewButton && (
+                    <Button variant="ghost"
+                            icon={<Visibility/>}
+                            label={previewCollapsed ? t('drawer.showPreview') : t('drawer.hidePreview')}
+                            aria-expanded={!previewCollapsed}
+                            onClick={() => setPreviewCollapsed(c => !c)}/>
+                )}
                 {auditedAt && (
                     <Typography variant="caption" className={styles.lastAudit}>
                         {auditedBy ?

@@ -6,6 +6,7 @@ import {Loader, Tab, TabItem, Typography} from '@jahia/moonstone';
 import {HelpTab} from '../common/HelpTab';
 import {useGovernanceTranslation} from '../common/i18n';
 import {GOVERNANCE_PANEL} from '../common/module';
+import {useDrawerDisplay} from '../common/useDrawerDisplay';
 import {fetchPageAudits, saveFindings} from '../audit/auditHistory';
 import {FixFirst} from './FixFirst';
 import {entryFindings, isSerious, rankFindings} from './findings';
@@ -50,6 +51,8 @@ export const GovernanceSections = ({path, language, tabs, request, settings, isO
     const {t: translate} = useGovernanceTranslation();
     // Read once per opening: modules add their entries when jContent starts
     const actions = useMemo(() => findingActions(), []);
+    // "Fix first" shows where the cfg of the server shows it
+    const display = useDrawerDisplay();
     // The client of jContent, with which a tab stores and reads its history
     const client = useApolloClient();
     const usable = tabs.filter(s => !s.unavailable);
@@ -172,7 +175,7 @@ export const GovernanceSections = ({path, language, tabs, request, settings, isO
                 </div>
             )}
 
-            <FixFirst findings={ranked} onGo={goTo}/>
+            {display.fixFirst && <FixFirst findings={ranked} onGo={goTo}/>}
 
             {!active && (
                 <div className={styles.empty}>

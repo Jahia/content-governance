@@ -274,6 +274,10 @@ tab on, whatever module adds the tab.
 
 ### "Fix first"
 
+"Fix first" shows only where the server shows it (`SHOW_FIX_FIRST` in
+`org.jahia.community.contentgovernance.drawer.cfg`, hidden by default). A tab gives its findings
+through `onFindings` all the same: they also colour its count and reach the other entries.
+
 "Fix first" lists the 5 most serious findings that are critical or serious, from the tabs that the
 page can use. Findings of the same severity keep the order of the tabs. The drawer sets the field
 `section` of each finding to the key of the tab, so "Open" in "Fix first" opens that tab. The tab
