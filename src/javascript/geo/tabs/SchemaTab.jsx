@@ -1,9 +1,11 @@
 import React, {useCallback, useState} from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../../common/i18n';
-import {Banner, Button, Chip, Typography} from '@jahia/moonstone';
+import {Button} from '@jahia/moonstone';
+import {FactBlock} from '../../common/results/FactBlock';
+import {PassedFold, ResultCard} from '../../common/results/ResultCard';
+import {ResultBanner} from '../../common/results/ResultBanner';
 import styles from './Tabs.module.css';
-
 
 /**
  * GEO-23, for one page: the JSON-LD its content type produces.
@@ -34,53 +36,39 @@ export const SchemaTab = ({report}) => {
     }, [snippet]);
 
     if (!schema) {
-        return <p className={styles.explain}>{t('schema.none')}</p>;
+        return <ResultBanner>{t('schema.none')}</ResultBanner>;
     }
 
     if (!schema.mapped) {
         return (
-            <div>
-                <Banner variant="info" title={t('schema.unmappedTitle')}>
-                    {t('schema.unmapped', {nodeType: schema.nodeType})}
-                </Banner>
-                <p className={styles.explain}>{t('schema.unmappedHelp')}</p>
-            </div>
+            <ResultBanner variant="info" title={t('schema.unmappedTitle')}>
+                {t('schema.unmapped', {nodeType: schema.nodeType})} {t('schema.unmappedHelp')}
+            </ResultBanner>
         );
     }
+    const headline = t('schema.headline', {type: schema.schemaType});
 
     return (
         <div>
-            <div className={`${styles.verdict} ${schema.valid ? styles.good : styles.warn}`}>
-                <span className={styles.scoreHeadline}>
-                    {t('schema.headline', {type: schema.schemaType})}
-                </span>
-                <span className={styles.scoreCount}>
-                    {schema.valid ?
-                        t('schema.complete') :
-                        t('schema.incomplete', {count: (schema.missing || []).length})}
-                </span>
-            </div>
-
             {/*
-              * The one thing that makes structured data worse than none. Said
-              * first, and loudly, because the snippet below is otherwise
-              * perfectly valid and looks fine.
+              * A conflict is the one thing that makes structured data worse than none. Said first,
+              * because the snippet below is otherwise perfectly valid and looks fine.
               */}
             {schema.conflict && (
-                <Banner variant="warning" title={t('schema.conflictTitle')}>
-                    {t('schema.conflict', {
-                        property: schema.conflict.property,
-                        generated: schema.conflict.generated,
-                        page: schema.conflict.page
-                    })}
-                </Banner>
+                <ResultCard level="serious"
+                            title={t('schema.conflictTitle')}
+                            detail={t('schema.conflict', {
+                                property: schema.conflict.property,
+                                generated: schema.conflict.generated,
+                                page: schema.conflict.page
+                            })}/>
             )}
-
             {(schema.missing || []).length > 0 && (
-                <Banner variant="warning" title={t('schema.missingTitle')}>
-                    {t('schema.missing', {properties: schema.missing.join(', ')})}
-                </Banner>
+                <ResultCard level="moderate"
+                            title={`${headline}: ${t('schema.incomplete', {count: schema.missing.length})}`}
+                            detail={t('schema.missing', {properties: schema.missing.join(', ')})}/>
             )}
+            {schema.valid && !schema.conflict && <PassedFold items={[{key: 'schema', title: `${headline}: ${t('schema.complete')}`}]}/>}
 
             <div className={styles.actions}>
                 <Button
@@ -93,23 +81,9 @@ export const SchemaTab = ({report}) => {
 
             <pre className={styles.snippet}>{snippet}</pre>
 
-            <Typography variant="subheading" component="h3" className={styles.panelSub}>
-                {t('schema.sources')}
-            </Typography>
-            <ul className={styles.checkList}>
-                {(schema.sourced || []).map(s => (
-                    <li key={s.property} className={styles.checkItem}>
-                        <span className={styles.checkText}>
-                            <Typography variant="body" className={styles.checkLabel}>{s.property}</Typography>
-                        </span>
-                        <span className={styles.checkMeta}>
-                            <Chip label={s.from} color="default"/>
-                        </span>
-                    </li>
-                ))}
-            </ul>
-
-            <p className={styles.explain}>{t('schema.limits')}</p>
+            <FactBlock title={t('schema.sources')}
+                       rows={(schema.sourced || []).map(source => ({key: source.property, label: source.property, value: source.from}))}/>
+            <ResultBanner variant="info">{t('schema.limits')}</ResultBanner>
         </div>
     );
 };

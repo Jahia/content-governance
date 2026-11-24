@@ -12,9 +12,10 @@ export const Tooltip = ({children}) => children;
 export const Loader = () => h('span', null, 'loading');
 export const Close = () => null;
 export const Chip = ({label}) => h('span', null, label);
-export const Banner = ({title, children}) => h('div', {role: 'status'}, title, children);
-// Icons draw nothing here
-const icon = () => null;
+// Moonstone draws the title of a banner in bold, above its text
+export const Banner = ({title, children, className}) => h('div', {role: 'status', className}, title && h('strong', null, title), children);
+// Icons draw an empty svg here, with the props they get, such as an aria-label
+const icon = ({size, color, ...rest}) => h('svg', rest);
 export const Reload = icon;
 export const Download = icon;
 export const Visibility = icon;
@@ -24,3 +25,5 @@ export const Check = icon;
 export const Edit = icon;
 export const Information = icon;
 export const Warning = icon;
+export const Report = icon;
+export const HelpOutline = icon;

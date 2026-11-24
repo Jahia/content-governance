@@ -1,22 +1,24 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Button, Chip, Typography, Visibility} from '@jahia/moonstone';
+import {Button, Chip, Visibility} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../../common/i18n';
-import styles from './Tabs.module.css';
+import {FactBlock} from '../../common/results/FactBlock';
+import {ResultBanner} from '../../common/results/ResultBanner';
 
 /**
- * The page's headings as a tree: one row per heading of the main content, in page order, indented
- * by level, with what is wrong with it (a level skipped, no text) and a button that shows it on
- * the page. An audit stored before the outline existed has none: it says to re-run.
+ * The page's headings as a fact block: one row per heading of the main content, in page order,
+ * indented by level, with a button that shows it on the page. A level skipped or a heading with no
+ * text is a finding of its rule (html.headingLevelSkipped, html.headingEmpty): a result card, not a
+ * mark here. An audit stored before the outline existed has none: it says to re-run.
  */
 export function HeadingOutline({outline, total, onHighlight}) {
     const {t} = useGovernanceTranslation('audit');
 
     if (!outline) {
-        return <p className={styles.note}>{t('readability.outline.rerun')}</p>;
+        return <ResultBanner>{t('readability.outline.rerun')}</ResultBanner>;
     }
     if (outline.length === 0) {
-        return <p className={styles.note}>{t('readability.outline.none')}</p>;
+        return <ResultBanner>{t('readability.outline.none')}</ResultBanner>;
     }
 
     // A selector names one element, unless the page repeats an id: the rank keeps the keys apart
@@ -24,45 +26,30 @@ export function HeadingOutline({outline, total, onHighlight}) {
     const rows = outline.map(heading => {
         const rank = seen.get(heading.selector) || 0;
         seen.set(heading.selector, rank + 1);
-        // H1 has no indent class
-        const indent = styles[`outlineLevel${heading.level}`];
         return {
-            ...heading,
             key: `${heading.selector}#${rank}`,
-            className: indent ? `${styles.outlineRow} ${indent}` : styles.outlineRow
+            indent: heading.level - 1,
+            label: (
+                <>
+                    <Chip label={`H${heading.level}`} color={heading.level === 1 ? 'accent' : 'default'}/>
+                    {' '}{heading.empty ? t('readability.outline.noText') : heading.text}
+                </>
+            ),
+            action: (
+                <Button variant="ghost"
+                        size="small"
+                        icon={<Visibility/>}
+                        aria-label={`${t('a11y.highlight')}: H${heading.level} ${heading.text}`}
+                        title={t('a11y.highlight')}
+                        onClick={() => onHighlight(heading.selector)}/>
+            )
         };
     });
 
     return (
-        <>
-            <p className={styles.note}>{t('readability.outline.intro')}</p>
-            <ol className={styles.outline} aria-label={t('readability.outline.title')}>
-                {rows.map(heading => (
-                    <li key={heading.key} className={heading.className}>
-                        <Chip label={`H${heading.level}`} color={heading.level === 1 ? 'accent' : 'default'}/>
-                        <div className={styles.outlineText}>
-                            <Typography component="span" variant="body">
-                                {heading.empty ? t('readability.outline.noText') : heading.text}
-                            </Typography>
-                        </div>
-                        {Boolean(heading.skippedFrom) && (
-                            <Chip color="warning"
-                                  label={t('readability.outline.skipped', {from: heading.skippedFrom, to: heading.level})}/>
-                        )}
-                        {heading.empty && <Chip color="danger" label={t('readability.outline.empty')}/>}
-                        <Button variant="ghost"
-                                size="small"
-                                icon={<Visibility/>}
-                                aria-label={`${t('a11y.highlight')}: H${heading.level} ${heading.text}`}
-                                title={t('a11y.highlight')}
-                                onClick={() => onHighlight(heading.selector)}/>
-                    </li>
-                ))}
-            </ol>
-            {total > outline.length && (
-                <p className={styles.note}>{t('readability.outline.more', {shown: outline.length, count: total})}</p>
-            )}
-        </>
+        <FactBlock title={t('readability.outline.title')}
+                   rows={rows}
+                   note={total > outline.length ? t('readability.outline.more', {shown: outline.length, count: total}) : null}/>
     );
 }
 

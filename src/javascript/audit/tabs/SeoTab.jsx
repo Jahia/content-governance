@@ -1,10 +1,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../../common/i18n';
+import {PassedFold} from '../../common/results/ResultCard';
+import {ResultBanner} from '../../common/results/ResultBanner';
 import {Recommendations} from './Recommendations';
 import styles from './Tabs.module.css';
 
-/** The SEO recommendations, and the sharing preview and the tag list that the rule seo.tags gives. */
+/**
+ * The SEO recommendations as result cards, the tags of the page that pass folded below them with their
+ * values, and the sharing preview. A missing tag is a finding only through its rule, such as
+ * seo.metaDescription: it shows as that rule's card.
+ */
 export function SeoTab({result}) {
     const {t} = useGovernanceTranslation('audit');
 
@@ -31,6 +37,7 @@ export function SeoTab({result}) {
     return (
         <div>
             <Recommendations items={result.recommendations} ns="seo" tab="seo"/>
+            <PassedFold items={rows.filter(row => row.ok).map(row => ({key: row.key, title: t(`seo.fields.${row.key}`), detail: row.value}))}/>
 
             <h4 className={styles.sectionTitle}>{t('seo.preview')}</h4>
             {(result.og.title || result.title.text) ? (
@@ -46,21 +53,8 @@ export function SeoTab({result}) {
                     </div>
                 </div>
             ) : (
-                <p className={styles.note}>{t('seo.noPreview')}</p>
+                <ResultBanner>{t('seo.noPreview')}</ResultBanner>
             )}
-
-            <h4 className={styles.sectionTitle}>{t('seo.tags')}</h4>
-            <ul className={styles.statList}>
-                {rows.map(row => (
-                    <li key={row.key}>
-                        <span className={row.ok ? styles.okMark : styles.koMark}>{row.ok ? '✓' : '✗'}</span>
-                        {' '}{t(`seo.fields.${row.key}`)}:{' '}
-                        {row.value ?
-                            <strong className={styles.tagValue}>{row.value}</strong> :
-                            <span className={styles.warn}>{t('seo.missing')}</span>}
-                    </li>
-                ))}
-            </ul>
         </div>
     );
 }

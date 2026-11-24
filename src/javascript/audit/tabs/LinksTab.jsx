@@ -2,8 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {Button} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../../common/i18n';
+import {FactBlock} from '../../common/results/FactBlock';
 import {Recommendations} from './Recommendations';
-import styles from './Tabs.module.css';
 
 // A broken link names a path of the repository, which its address ends with (/cms/render/default/en/sites/...
 // .html), with no other page whose path starts with it: /sites/x/news, and never /sites/x/news-archive
@@ -12,46 +12,29 @@ const selectorFor = path => {
     return [`a[href$="${escaped}.html"]`, `a[href*="${escaped}.html?"]`, `a[href*="${escaped}.html#"]`, `a[href$="${escaped}"]`].join(', ');
 };
 
-/** The links of the page, as the rule links.broken reads them, and the internal links a visitor cannot open. */
+/** The links of the page: one result card per rule, each broken link an occurrence, then the counts of the page. */
 export function LinksTab({result, onHighlight}) {
     const {t} = useGovernanceTranslation('audit');
+    const itemAction = (rec, item) => (rec.rule === 'links.broken' ?
+        <Button size="small" variant="outlined" label={t('a11y.highlight')} onClick={() => onHighlight(selectorFor(item.text))}/> :
+        null);
+    const internal = [
+        result.checked !== null && result.checked !== undefined && t('links.checked', {count: result.checked}),
+        result.skipped > 0 && t('links.skipped', {count: result.skipped})
+    ].filter(Boolean);
 
     return (
         <div>
-            <Recommendations items={result.recommendations} ns="links" tab="links"/>
-
+            <Recommendations items={result.recommendations} ns="links" tab="links" itemAction={itemAction}/>
             {result.total !== undefined && (
-                <>
-                    <h4 className={styles.sectionTitle}>{t('links.summary')}</h4>
-                    <ul className={styles.statList}>
-                        <li>{t('links.total')}: <strong>{result.total}</strong></li>
-                        <li>
-                            {t('links.internal')}: <strong>{result.internal}</strong>
-                            {result.checked !== null && <span> · {t('links.checked', {count: result.checked})}</span>}
-                            {result.skipped > 0 && <span> · {t('links.skipped', {count: result.skipped})}</span>}
-                        </li>
-                        <li>{t('links.external')}: <strong>{result.external}</strong> · <span className={styles.note}>{t('links.externalNote')}</span></li>
-                    </ul>
-                </>
+                <FactBlock title={t('links.summary')}
+                           rows={[
+                               {key: 'total', label: t('links.total'), value: result.total},
+                               {key: 'internal', label: t('links.internal'), value: [result.internal, ...internal].join(' · ')},
+                               {key: 'external', label: t('links.external'), value: result.external}
+                           ]}
+                           note={t('links.externalNote')}/>
             )}
-
-            {result.broken?.length > 0 && (
-                <>
-                    <h4 className={styles.sectionTitle}>{t('links.broken')}</h4>
-                    {result.broken.map(link => (
-                        <div key={link.path} className={styles.rec}>
-                            <span className={`${styles.impact} ${styles.impact_critical}`}>
-                                {t(`links.reasons.${link.reason}`, link.reason)}
-                            </span>
-                            <div className={styles.recBody}>
-                                <div className={styles.recTitle}>{link.path}</div>
-                                <Button size="small" variant="outlined" label={t('a11y.highlight')} onClick={() => onHighlight(selectorFor(link.path))}/>
-                            </div>
-                        </div>
-                    ))}
-                </>
-            )}
-
         </div>
     );
 }

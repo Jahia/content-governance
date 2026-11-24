@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import {Button} from '@jahia/moonstone';
 import {DisplayAction} from '@jahia/ui-extender';
 import {useGovernanceTranslation} from '../common/i18n';
+import {MoreActions} from '../common/results/MoreActions';
 import {DrawerEntryContext} from './DrawerEntryContext';
 import {EntryBoundary} from './EntryBoundary';
 import {FINDING_ACTIONS_TARGET} from './entries';
@@ -70,6 +71,27 @@ export const FindingActions = ({findingKey}) => {
 };
 
 FindingActions.propTypes = {
+    // The key of the finding, as drawer/findings.js builds it
+    findingKey: PropTypes.string.isRequired
+};
+
+/**
+ * The ⋯ of a result card: the actions that other modules add to its finding, such as the
+ * assistant's Fix. Nothing when no module adds one or the drawer does not know the finding.
+ */
+export const FindingMenu = ({findingKey}) => {
+    const {findings, actions} = useContext(DrawerEntryContext);
+    if (actions.length === 0 || !findings.some(item => item.key === findingKey)) {
+        return null;
+    }
+    return (
+        <MoreActions>
+            <FindingActions findingKey={findingKey}/>
+        </MoreActions>
+    );
+};
+
+FindingMenu.propTypes = {
     // The key of the finding, as drawer/findings.js builds it
     findingKey: PropTypes.string.isRequired
 };

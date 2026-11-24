@@ -1,9 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../../common/i18n';
+import {FactBlock} from '../../common/results/FactBlock';
+import {ResultBanner} from '../../common/results/ResultBanner';
+import {ScoreBlock} from '../../common/results/ScoreBlock';
 import {Recommendations} from './Recommendations';
 import {HeadingOutline} from './HeadingOutline';
-import styles from './Tabs.module.css';
 import {languageDisplayName} from '../../common/locale';
 
 /** The page language's name in the editor's language, else its code. */
@@ -17,15 +19,12 @@ function Structure({result, onHighlight}) {
     return (
         <>
             {result.h1Count !== undefined && (
-                <>
-                    <h4 className={styles.sectionTitle}>{t('readability.structure')}</h4>
-                    <ul className={styles.statList}>
-                        <li>{t('readability.h1Count')}: <strong>{result.h1Count}</strong></li>
-                        <li>{t('readability.headingSkips')}: <strong>{result.headingSkips}</strong></li>
-                    </ul>
-                </>
+                <FactBlock title={t('readability.structure')}
+                           rows={[
+                               {key: 'h1', label: t('readability.h1Count'), value: result.h1Count},
+                               {key: 'skips', label: t('readability.headingSkips'), value: result.headingSkips}
+                           ]}/>
             )}
-            <h4 className={styles.sectionTitle}>{t('readability.outline.title')}</h4>
             <HeadingOutline outline={result.outline} total={result.headingCount} onHighlight={onHighlight}/>
         </>
     );
@@ -54,78 +53,47 @@ export function ReadabilityTab({result, onHighlight}) {
     if (result.empty) {
         return (
             <div>
-                <p className={styles.note}>{t('readability.noText', {count: result.words || 0})}</p>
+                <ResultBanner>{t('readability.noText', {count: result.words || 0})}</ResultBanner>
                 {structure}
             </div>
         );
     }
 
     // By band: a LIX score reads the other way round from a Flesch one
-    let scoreBandClass = styles.cardGood;
+    let band = 'good';
     if (result.band === 'veryDifficult') {
-        scoreBandClass = styles.cardBad;
+        band = 'poor';
     } else if (result.band === 'difficult') {
-        scoreBandClass = styles.band_ni;
+        band = 'average';
     }
+    const scores = [
+        result.scored && {key: 'score', label: `${t('readability.score')} (${result.formula})`, value: result.score, hint: t(`readability.bands.${result.band}`), band},
+        result.gradeLevel !== null && {key: 'grade', label: t('readability.gradeLevel'), value: result.gradeLevel, hint: 'Flesch-Kincaid'},
+        result.readingMinutes !== null && {key: 'reading', label: t('readability.readingTime'), value: result.readingMinutes, hint: t('readability.minutes')}
+    ].filter(Boolean);
+    const paragraphs = result.avgWordsPerParagraph !== null && result.avgWordsPerParagraph !== undefined ?
+        `${result.paragraphs} (${t('readability.avgWordsPerParagraph')}: ${result.avgWordsPerParagraph})` :
+        result.paragraphs;
+    const stats = result.spaced ? [
+        {key: 'words', label: t('readability.words'), value: result.words},
+        {key: 'sentences', label: t('readability.sentences'), value: result.sentences},
+        {key: 'avg', label: t('readability.avgSentenceLength'), value: result.avgSentenceLength},
+        {key: 'long', label: t('readability.longSentences', {max: result.longSentenceWords}), value: result.longSentences},
+        {key: 'paragraphs', label: t('readability.paragraphs'), value: paragraphs}
+    ] : [
+        {key: 'characters', label: t('readability.characters'), value: result.characters},
+        {key: 'sentences', label: t('readability.sentences'), value: result.sentences},
+        {key: 'paragraphs', label: t('readability.paragraphs'), value: result.paragraphs}
+    ];
 
     return (
         <div>
             {!result.scored && (
-                <p className={styles.note}>
-                    {t(result.spaced ? 'readability.noFormula' : 'readability.noWords', {language: languageName(result.lang, i18n.language)})}
-                </p>
+                <ResultBanner>{t(result.spaced ? 'readability.noFormula' : 'readability.noWords', {language: languageName(result.lang, i18n.language)})}</ResultBanner>
             )}
-            {(result.scored || result.readingMinutes !== null) && (
-                <div className={styles.cards}>
-                    {result.scored && (
-                        <div className={`${styles.card} ${scoreBandClass}`}>
-                            <span className={styles.cardTitle}>
-                                {t('readability.score')} ({result.formula})
-                            </span>
-                            <span className={styles.cardValue}>{result.score}</span>
-                            <span className={styles.cardHint}>{t(`readability.bands.${result.band}`)}</span>
-                        </div>
-                    )}
-                    {result.gradeLevel !== null && (
-                        <div className={styles.card}>
-                            <span className={styles.cardTitle}>{t('readability.gradeLevel')}</span>
-                            <span className={styles.cardValue}>{result.gradeLevel}</span>
-                            <span className={styles.cardHint}>Flesch-Kincaid</span>
-                        </div>
-                    )}
-                    {result.readingMinutes !== null && (
-                        <div className={styles.card}>
-                            <span className={styles.cardTitle}>{t('readability.readingTime')}</span>
-                            <span className={styles.cardValue}>{result.readingMinutes}</span>
-                            <span className={styles.cardHint}>{t('readability.minutes')}</span>
-                        </div>
-                    )}
-                </div>
-            )}
-
+            <ScoreBlock items={scores}/>
             <Recommendations items={result.recommendations} ns="readability" tab="readability"/>
-
-            <h4 className={styles.sectionTitle}>{t('readability.textStats')}</h4>
-            <ul className={styles.statList}>
-                {result.spaced ? (
-                    <>
-                        <li>{t('readability.words')}: <strong>{result.words}</strong></li>
-                        <li>{t('readability.sentences')}: <strong>{result.sentences}</strong></li>
-                        <li>{t('readability.avgSentenceLength')}: <strong>{result.avgSentenceLength}</strong></li>
-                        <li>{t('readability.longSentences', {max: result.longSentenceWords})}: <strong>{result.longSentences}</strong></li>
-                        <li>{t('readability.paragraphs')}: <strong>{result.paragraphs}</strong>
-                            {result.avgWordsPerParagraph !== null && ` (${t('readability.avgWordsPerParagraph')}: ${result.avgWordsPerParagraph})`}
-                        </li>
-                    </>
-                ) : (
-                    <>
-                        <li>{t('readability.characters')}: <strong>{result.characters}</strong></li>
-                        <li>{t('readability.sentences')}: <strong>{result.sentences}</strong></li>
-                        <li>{t('readability.paragraphs')}: <strong>{result.paragraphs}</strong></li>
-                    </>
-                )}
-            </ul>
-
+            <FactBlock title={t('readability.textStats')} rows={stats}/>
             {structure}
         </div>
     );

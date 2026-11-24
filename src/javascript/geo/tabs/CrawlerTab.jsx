@@ -1,10 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../../common/i18n';
-import {Chip, Typography} from '@jahia/moonstone';
-import styles from './Tabs.module.css';
+import {FactBlock} from '../../common/results/FactBlock';
+import {PassedFold, ResultCard} from '../../common/results/ResultCard';
+import {ResultBanner} from '../../common/results/ResultBanner';
+import results from '../../common/results/Results.module.css';
 import {fetchErrorHint} from '../util/fetchError';
-
 
 /** A crawler that gets far less text than a browser is usually looking at a JS-only page. */
 const THIN_RATIO = 0.5;
@@ -43,91 +44,81 @@ function verdictOf(report, t) {
     return {tone: 'good', text: t('crawler.verdict.ok')};
 }
 
+const LEVEL_OF_TONE = {bad: 'serious', warn: 'moderate'};
+
+/** What one crawler found in the page it got, as a short line: "H1 · canonical · 42 links". */
+function foundOf(agent, t) {
+    if (!agent.html) {
+        return agent.error ? t('crawler.noResponse') : '—';
+    }
+    return [
+        agent.html.h1Count && t('crawler.h1'),
+        agent.html.metaDescription && t('crawler.metaDescription'),
+        agent.html.canonical && t('crawler.canonical'),
+        agent.html.jsonLd && t('crawler.jsonLd'),
+        `${agent.html.links} ${t('crawler.links')}`
+    ].filter(Boolean).join(' · ');
+}
+
+/**
+ * The crawlers of the GEO check: the verdict as a result card (or a passed line), each crawler that
+ * failed as an occurrence of it, then every crawler and what it read as a fact block.
+ */
 export const CrawlerTab = ({report}) => {
     const {t} = useGovernanceTranslation('geo');
     const verdict = verdictOf(report, t);
     const control = report.controlWords || 0;
-    const controlAgent = (report.agents || []).find(a => a.status === 200 && a.html);
+    const agents = report.agents || [];
+    const controlAgent = agents.find(a => a.status === 200 && a.html);
     const metaRefresh = controlAgent && controlAgent.html.metaRefresh;
 
     if (!report.published) {
-        return <div className={`${styles.verdict} ${styles.warn}`}>{verdict.text}</div>;
+        return <ResultBanner variant="warning">{verdict.text}</ResultBanner>;
     }
+
+    const isThin = a => a.status === 200 && control > 0 && (a.html ? a.html.words : 0) < control * THIN_RATIO;
+    const explanations = [
+        report.blockedButAllowedCount > 0 && t('crawler.explain.blockedButAllowed', {count: report.blockedButAllowedCount}),
+        report.reachableButDisallowedCount > 0 && t('crawler.explain.reachableButDisallowed', {count: report.reachableButDisallowedCount}),
+        agents.some(a => a.status === 403) && t('crawler.explain.403'),
+        control < MIN_CONTROL_WORDS && t('crawler.explain.empty'),
+        control >= MIN_CONTROL_WORDS && agents.some(a => a.html && a.html.words < control * THIN_RATIO) && t('crawler.explain.jsOnly')
+    ].filter(Boolean);
+    const failing = agents.filter(a => a.status !== 200 || isThin(a)).map(a => ({
+        key: a.name,
+        content: (
+            <>
+                <strong>{a.name}</strong>
+                <span className={results.muted}> · {a.status === null || a.status === undefined ? '—' : a.status}
+                    {isThin(a) ? ` · ${t('crawler.thinMark')}` : ''} · {foundOf(a, t)}</span>
+            </>
+        )
+    }));
 
     return (
         <div>
-            <div className={`${styles.verdict} ${styles[verdict.tone]}`}>{verdict.text}</div>
+            {verdict.tone === 'good' ?
+                <PassedFold items={[{key: 'verdict', title: verdict.text}]}/> :
+                <ResultCard level={LEVEL_OF_TONE[verdict.tone]}
+                            title={verdict.text}
+                            detail={explanations.join(' ')}
+                            occurrences={failing}/>}
 
-            <Typography variant="caption" className={styles.url}>
-                {t('drawer.url')}: <a href={report.url} target="_blank" rel="noopener noreferrer">{report.url}</a>
-            </Typography>
-            {metaRefresh && (
-                <Typography variant="caption" className={styles.url}>
-                    {t('crawler.metaRefresh', {url: metaRefresh})}
-                </Typography>
-            )}
+            <FactBlock rows={[
+                {key: 'url', label: t('drawer.url'), value: <a href={report.url} target="_blank" rel="noopener noreferrer">{report.url}</a>},
+                metaRefresh && {key: 'refresh', label: t('crawler.metaRefresh', {url: metaRefresh})}
+            ].filter(Boolean)}/>
 
-            {/*
-              * A list, not a Table. Moonstone rows are a fixed height and the cell
-              * wraps its children in a Typography, so the wrapping marks below
-              * overlapped the line above. Each agent gets a headline row and its
-              * marks underneath, free to wrap.
-              */}
-            <ul className={styles.agentList}>
-                {(report.agents || []).map(a => {
-                    const ok = a.status === 200;
-                    const words = a.html ? a.html.words : 0;
-                    const thin = ok && control > 0 && words < control * THIN_RATIO;
-                    return (
-                        <li key={a.name} className={styles.agentItem}>
-                            <div className={styles.agentHead}>
-                                <Chip
-                                    label={a.status === null || a.status === undefined ? '—' : String(a.status)}
-                                    color={ok ? 'success' : 'danger'}
-                                />
-                                <Typography variant="body" className={styles.agentName}>{a.name}</Typography>
-                                <Typography variant="caption" className={styles.agentMetrics}>
-                                    {a.ms}ms · {t('crawler.wordCount', {count: words})}
-                                </Typography>
-                            </div>
-                            {a.html ? (
-                                <div className={styles.marks}>
-                                    <span className={a.html.h1Count ? styles.on : styles.off}>{t('crawler.h1')}</span>
-                                    <span className={a.html.metaDescription ? styles.on : styles.off}>{t('crawler.metaDescription')}</span>
-                                    <span className={a.html.canonical ? styles.on : styles.off}>{t('crawler.canonical')}</span>
-                                    <span className={styles.plain}>{a.html.links} {t('crawler.links')}</span>
-                                    <span className={a.html.jsonLd ? styles.on : styles.off}>{t('crawler.jsonLd')}</span>
-                                    {thin && <span className={styles.markWarn}>{t('crawler.thinMark')}</span>}
-                                </div>
-                            ) : (
-                                <div className={styles.marks}>
-                                    <span className={styles.off}>{a.error ? t('crawler.noResponse') : '—'}</span>
-                                </div>
-                            )}
-                        </li>
-                    );
-                })}
-            </ul>
-
-            {report.blockedButAllowedCount > 0 && (
-                <p className={styles.mismatch}>
-                    {t('crawler.explain.blockedButAllowed', {count: report.blockedButAllowedCount})}
-                </p>
-            )}
-            {report.reachableButDisallowedCount > 0 && (
-                <p className={styles.mismatch}>
-                    {t('crawler.explain.reachableButDisallowed', {count: report.reachableButDisallowedCount})}
-                </p>
-            )}
-            {(report.agents || []).some(a => a.status === 403) && (
-                <p className={styles.explain}>{t('crawler.explain.403')}</p>
-            )}
-            {control < MIN_CONTROL_WORDS && (
-                <p className={styles.explain}>{t('crawler.explain.empty')}</p>
-            )}
-            {control >= MIN_CONTROL_WORDS && (report.agents || []).some(a => a.html && a.html.words < control * THIN_RATIO) && (
-                <p className={styles.explain}>{t('crawler.explain.jsOnly')}</p>
-            )}
+            <FactBlock rows={agents.map(a => ({
+                key: a.name,
+                label: (
+                    <>
+                        {a.name}
+                        <span className={results.muted}> · {foundOf(a, t)}</span>
+                    </>
+                ),
+                value: `${a.status === null || a.status === undefined ? '—' : a.status} · ${a.ms}ms · ${t('crawler.wordCount', {count: a.html ? a.html.words : 0})}`
+            }))}/>
         </div>
     );
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Banner, Button, Reload, Typography} from '@jahia/moonstone';
+import {Button, Reload, Typography} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../common/i18n';
 import {ScoreTab, FailedChecks} from './tabs/ScoreTab';
 import {CrawlerTab} from './tabs/CrawlerTab';
@@ -8,7 +8,9 @@ import {SiteFilesTab} from './tabs/SiteFilesTab';
 import {SchemaTab} from './tabs/SchemaTab';
 import {CitationsTab} from './tabs/CitationsTab';
 import {fetchErrorHint} from './util/fetchError';
-import {publishedReport} from './geoState';
+import {pageFindingsOf, publishedReport} from './geoState';
+import {ResultCard} from '../common/results/ResultCard';
+import {ResultBanner} from '../common/results/ResultBanner';
 import styles from './GeoParts.module.css';
 
 /**
@@ -57,8 +59,9 @@ GeoToolbar.propTypes = {
 };
 
 /**
- * Why the check failed, what it is for while it never ran, and the facts of the page that frame every number
- * of the GEO views: they sit above the sections, so the answer does not depend on which section is open.
+ * The state of the GEO check, above the sections: why it failed, what it is for while it never ran, and that
+ * an unpublished page has nothing to fetch. The facts of the page that are findings, such as a page missing
+ * from the sitemap, are result cards in their subdomain (`GeoPageFindings`).
  */
 export function GeoFacts({geo}) {
     const {t} = useGovernanceTranslation('geo');
@@ -73,124 +76,14 @@ export function GeoFacts({geo}) {
             )}
 
             {/*
-              * Its own wording, not the score check's. A check label is
-              * phrased as the passing condition because it sits beside a
-              * pass mark; as a failure banner that reads as the opposite of
-              * what happened.
-              */}
-            {report && report.visibility && report.visibility.guestReadable === false && (
-                <Banner variant="danger" title={t('visibility.gatedTitle')}>
-                    {t('visibility.gated')}
-                </Banner>
-            )}
-
-            {report && report.visibility && report.visibility.noindex && (
-                <Banner variant="info" title={t('visibility.noindexTitle')}>
-                    {t('visibility.noindex')}
-                </Banner>
-            )}
-
-            {/*
-              * The drawer never fetches the sitemap: these facts come from the last site
-              * scan, so they carry its date, and a scan that could not reach the file says
-              * so rather than leaving the page silently "not missing".
-              */}
-            {report && report.sitemap && report.sitemap.unreachable && (
-                <Banner variant="warning" title={t('sitemap.unreachablePageTitle')}>
-                    {t('sitemap.unreachablePage', {url: report.sitemap.url, date: formatScanDate(report.sitemap.checkedAt)})}
-                    {report.sitemap.error && ` ${fetchErrorHint(t, report.sitemap.error)}`}
-                </Banner>
-            )}
-
-            {report && report.sitemap && report.sitemap.missing && (
-                <Banner variant="warning" title={t('sitemap.notListedTitle')}>
-                    {t('sitemap.notListed')}
-                    {report.sitemap.checkedAt && ` ${t('sitemap.fromScan', {date: formatScanDate(report.sitemap.checkedAt)})}`}
-                </Banner>
-            )}
-
-            {/*
-              * Listed and noindex is two of our own files contradicting each
-              * other, and the contradiction is only visible per page.
-              */}
-            {report && report.sitemap && report.sitemap.noindexListed && (
-                <Banner variant="warning" title={t('sitemap.noindexListedTitle')}>
-                    {t('sitemap.noindexListedPage')}
-                    {report.sitemap.checkedAt && ` ${t('sitemap.fromScan', {date: formatScanDate(report.sitemap.checkedAt)})}`}
-                </Banner>
-            )}
-
-            {/*
-              * GEO-22. Nothing pointing here is the loudest version of this;
-              * only the menu pointing here is the quieter one. Both are read
-              * from the last site scan, which is the only thing that sees
-              * the whole graph.
-              */}
-            {report && report.links && report.links.content === 0 && report.links.nav === 0 && (
-                <Banner variant="warning" title={t('links.orphanTitle')}>
-                    {t('links.orphanPage')}
-                </Banner>
-            )}
-
-            {report && report.links && report.links.content === 0 && report.links.nav > 0 && (
-                <Banner variant="info" title={t('links.navOnlyTitle')}>
-                    {t('links.navOnlyPage', {count: report.links.nav})}
-                </Banner>
-            )}
-
-            {/*
-              * GEO-20. Directly actionable while editing: the author in
-              * front of this page is the person who would write the missing
-              * translation.
-              */}
-            {report && report.languages && (report.languages.missing || []).length > 0 && (
-                <Banner variant="info" title={t('languages.pageMissingTitle')}>
-                    {t('languages.pageMissing', {
-                        languages: report.languages.missing.join(', ')
-                    })}
-                </Banner>
-            )}
-
-            {report && report.languages && (report.languages.notPublished || []).length > 0 && (
-                <Banner variant="warning" title={t('languages.pageUnpublishedTitle')}>
-                    {t('languages.pageUnpublished', {
-                        languages: report.languages.notPublished.join(', ')
-                    })}
-                </Banner>
-            )}
-
-            {/*
-              * GEO-25. One banner for whichever conflict applies: the three
-              * kinds are mutually exclusive per page, and the detail names
-              * the addresses so the fix is obvious.
-              */}
-            {report && report.vanity && (
-                <Banner
-                    variant={report.vanity.kind === 'unresolvable' ? 'warning' : 'info'}
-                    title={t(`vanity.page.${report.vanity.why || report.vanity.kind}Title`)}
-                >
-                    {t(`vanity.page.${report.vanity.why || report.vanity.kind}`, {
-                        detail: report.vanity.detail
-                    })}
-                </Banner>
-            )}
-
-            {report && report.sitemap && report.sitemap.staleDetail && (
-                <Banner variant="info" title={t('sitemap.staleTitle')}>
-                    {t('sitemap.stalePage', {detail: report.sitemap.staleDetail})}
-                    {report.sitemap.checkedAt && ` ${t('sitemap.fromScan', {date: formatScanDate(report.sitemap.checkedAt)})}`}
-                </Banner>
-            )}
-
-            {/*
               * An unpublished page has no public URL, so there is nothing to fetch and every
               * report view is gated on `published`. Said here, above the sections, so the
               * answer does not depend on which section is open.
               */}
             {report && !report.published && (
-                <Banner variant="info" title={t('crawler.verdict.unpublishedTitle')}>
+                <ResultBanner variant="info" title={t('crawler.verdict.unpublishedTitle')}>
                     {t('crawler.verdict.unpublished')} {t('error.notPublished')}
-                </Banner>
+                </ResultBanner>
             )}
         </>
     );
@@ -198,6 +91,57 @@ export function GeoFacts({geo}) {
 
 GeoFacts.propTypes = {
     geo: PropTypes.object.isRequired
+};
+
+/** The title and the detail of each finding of `pageFindingsOf`, worded from the report. */
+const PAGE_FINDING_TEXT = {
+    gated: (report, t) => [t('visibility.gatedTitle'), t('visibility.gated')],
+    noindex: (report, t) => [t('visibility.noindexTitle'), t('visibility.noindex')],
+    notListed: (report, t) => [t('sitemap.notListedTitle'), t('sitemap.notListed')],
+    noindexListed: (report, t) => [t('sitemap.noindexListedTitle'), t('sitemap.noindexListedPage')],
+    stale: (report, t) => [t('sitemap.staleTitle'), t('sitemap.stalePage', {detail: report.sitemap.staleDetail})],
+    vanity: (report, t) => {
+        const key = `vanity.page.${report.vanity.why || report.vanity.kind}`;
+        return [t(`${key}Title`), t(key, {detail: report.vanity.detail})];
+    },
+    orphan: (report, t) => [t('links.orphanTitle'), t('links.orphanPage')],
+    navOnly: (report, t) => [t('links.navOnlyTitle'), t('links.navOnlyPage', {count: report.links.nav})],
+    languagesMissing: (report, t) => [t('languages.pageMissingTitle'), t('languages.pageMissing', {languages: report.languages.missing.join(', ')})],
+    languagesUnpublished: (report, t) => [t('languages.pageUnpublishedTitle'), t('languages.pageUnpublished', {languages: report.languages.notPublished.join(', ')})]
+};
+
+// The findings read from the last site scan carry its date
+const FROM_SCAN = new Set(['notListed', 'noindexListed', 'stale']);
+
+/**
+ * The facts of the page that are findings in a subdomain, one result card each: a gated page in the
+ * crawlers, a page missing from the sitemap in the site files, an orphan page in the content. In the site
+ * files, a sitemap the last scan could not reach is a banner: it is no finding about the page.
+ */
+export function GeoPageFindings({report, id}) {
+    const {t} = useGovernanceTranslation('geo');
+    const sitemap = report.sitemap || {};
+    const scanDate = sitemap.checkedAt ? ` ${t('sitemap.fromScan', {date: formatScanDate(sitemap.checkedAt)})}` : '';
+    return (
+        <>
+            {id === 'geo.files' && sitemap.unreachable && (
+                <ResultBanner variant="warning" title={t('sitemap.unreachablePageTitle')}>
+                    {t('sitemap.unreachablePage', {url: sitemap.url, date: formatScanDate(sitemap.checkedAt)})}
+                    {sitemap.error && ` ${fetchErrorHint(t, sitemap.error)}`}
+                </ResultBanner>
+            )}
+            {pageFindingsOf(report).filter(finding => finding.place === id).map(finding => {
+                const [title, detail] = PAGE_FINDING_TEXT[finding.id](report, t);
+                return <ResultCard key={finding.id} level={finding.level} title={title} detail={FROM_SCAN.has(finding.id) ? `${detail}${scanDate}` : detail}/>;
+            })}
+        </>
+    );
+}
+
+GeoPageFindings.propTypes = {
+    report: PropTypes.object.isRequired,
+    // The subdomain
+    id: PropTypes.string.isRequired
 };
 
 /**
@@ -208,20 +152,30 @@ export function GeoSubdomainView({geo, id, path}) {
     const {t} = useGovernanceTranslation('geo');
     if (id === 'geo.citations') {
         return geo.citationsState === 'notConfigured' ?
-            <Typography>{t('citations.notConfiguredTab')}</Typography> :
+            <ResultBanner>{t('citations.notConfiguredTab')}</ResultBanner> :
             <CitationsTab data={geo.citations} failed={geo.citationsState === 'failed'}/>;
     }
     const report = publishedReport(geo);
     if (!report) {
-        return <Typography variant="caption" className={styles.empty}>{t('drawer.runFirst')}</Typography>;
+        return <ResultBanner>{t('drawer.runFirst')}</ResultBanner>;
     }
     switch (id) {
         case 'geo.score':
             return <ScoreTab report={report} path={path}/>;
         case 'geo.crawlers':
-            return <CrawlerTab report={report}/>;
+            return (
+                <>
+                    <GeoPageFindings report={report} id={id}/>
+                    <CrawlerTab report={report}/>
+                </>
+            );
         case 'geo.files':
-            return <SiteFilesTab report={report}/>;
+            return (
+                <>
+                    <GeoPageFindings report={report} id={id}/>
+                    <SiteFilesTab report={report}/>
+                </>
+            );
         case 'geo.schema':
             return <SchemaTab report={report}/>;
         default:
@@ -237,16 +191,24 @@ GeoSubdomainView.propTypes = {
 };
 
 /**
- * The checks of the GEO score that failed on the rules that a site places in a subdomain with no GEO view,
- * such as `geo.content`. Nothing while the page has no report, or when none failed.
+ * In a subdomain with no GEO view, such as `geo.content`: the facts of the page placed there, and the checks
+ * of the GEO score that failed on the rules that the site places there. Nothing while the page has no report,
+ * or when there is nothing to show.
  */
-export function GeoFindingsOf({geo, path, ruleIds}) {
+export function GeoFindingsOf({geo, id, path, ruleIds}) {
     const report = publishedReport(geo);
-    return report ? <FailedChecks report={report} path={path} ruleIds={ruleIds}/> : null;
+    return report ? (
+        <>
+            <GeoPageFindings report={report} id={id}/>
+            <FailedChecks report={report} path={path} ruleIds={ruleIds}/>
+        </>
+    ) : null;
 }
 
 GeoFindingsOf.propTypes = {
     geo: PropTypes.object.isRequired,
+    // The subdomain
+    id: PropTypes.string.isRequired,
     path: PropTypes.string.isRequired,
     // The rules on in the subdomain
     ruleIds: PropTypes.instanceOf(Set).isRequired

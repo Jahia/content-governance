@@ -1,12 +1,14 @@
 import React, {useState} from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../../common/i18n';
-import {Banner, Button, Chip, Loader, Typography} from '@jahia/moonstone';
+import {Button, Loader, Typography} from '@jahia/moonstone';
+import {FactBlock} from '../../common/results/FactBlock';
+import {ResultBanner} from '../../common/results/ResultBanner';
+import {ScoreBlock} from '../../common/results/ScoreBlock';
 import {BarList, Histogram} from '../charts/Charts';
 import styles from './Tabs.module.css';
 import cit from './CitationsTab.module.css';
 import {toLocaleTag} from '../../common/locale';
-
 
 // An unparsable value is shown as BotRank sent it; Date never throws, it is only invalid.
 const formatDate = iso => {
@@ -18,36 +20,6 @@ const formatDay = day => {
     const d = new Date(`${day}T12:00:00Z`);
     return Number.isNaN(d.getTime()) ? day : d.toLocaleDateString();
 };
-
-/** A variation as a chip, or nothing when BotRank has no comparable previous period. */
-const Variation = ({value, t}) => {
-    if (value === null || value === undefined) {
-        return <Chip label={t('citations.variationNone')} color="default"/>;
-    }
-
-    if (value === 0) {
-        return <Chip label={t('citations.variationSame')} color="default"/>;
-    }
-
-    return (
-        <Chip
-            label={t(value > 0 ? 'citations.variationUp' : 'citations.variationDown', {count: Math.abs(value)})}
-            color={value > 0 ? 'success' : 'warning'}
-        />
-    );
-};
-
-Variation.propTypes = {value: PropTypes.number, t: PropTypes.func.isRequired};
-Variation.defaultProps = {value: null};
-
-/**
- * The variation of one row (a question, a theme, a competing page), or nothing. Unlike the page's
- * own, a missing comparison is not repeated on every row: the page already says why.
- */
-const RowVariation = ({value, t}) => (typeof value === 'number' ? <Variation value={value} t={t}/> : null);
-
-RowVariation.propTypes = {value: PropTypes.number, t: PropTypes.func.isRequired};
-RowVariation.defaultProps = {value: null};
 
 // A position as BotRank sends it (two decimals), shown with one.
 const formatRank = (rank, lang) => Number(rank).toLocaleString(toLocaleTag(lang), {maximumFractionDigits: 1});
@@ -77,126 +49,78 @@ const splitUrl = url => {
     return m ? {host: m[1].replace(/^www\./i, ''), path: m[2]} : {host: url, path: ''};
 };
 
+/** The name of an AI engine, as BotRank names it when the interface has no text for it. */
+const surfaceName = (surface, t) => t('citations.surface.' + surface.aiSurface, surface.aiSurface);
+
 /**
- * One question that cites the page: its text first, its weight in the page's citations as a bar,
- * then where and by which engines. The share is of this page's citations over the same 30 days.
+ * One question that cites the page, as a fact row: its text, then its share of the page's citations
+ * over the same 30 days, its market, when it last cited the page and by which engines.
  */
-const PromptCard = ({prompt, pageTotal, t}) => {
+const promptRow = (prompt, pageTotal, t) => {
     const share = pageTotal > 0 ? Math.min(1, prompt.citationCount / pageTotal) : 0;
-    return (
-        <li className={cit.card}>
-            <div className={cit.cardHead}>
-                <span className={cit.cardTitle}>{prompt.text}</span>
-                <span className={cit.figure}>
-                    <span className={cit.figureValue}>{prompt.citationCount}</span>
-                    <span className={cit.figureUnit}>{t('citations.citationsUnit', {count: prompt.citationCount})}</span>
-                </span>
-            </div>
-            <div className={cit.share} aria-hidden="true">
-                <div className={cit.shareFill} style={{width: `${share * 100}%`}}/>
-            </div>
-            <div className={cit.meta}>
-                {prompt.market && <span className={cit.badge}>{prompt.market.toUpperCase()}</span>}
-                <span>{t('citations.shareOfPage', {percent: Math.round(share * 100)})}</span>
-                {prompt.lastCitationDay && <span>{t('citations.lastCited', {day: formatDay(prompt.lastCitationDay)})}</span>}
-                <RowVariation value={prompt.variation} t={t}/>
-            </div>
-            {(prompt.aiSurfaces || []).length > 0 && (
-                <ul className={cit.engines} aria-label={t('citations.byEngine')}>
-                    {prompt.aiSurfaces.map(s => (
-                        <li key={s.aiSurface} className={cit.engine}>
-                            {t(`citations.surface.${s.aiSurface}`, s.aiSurface)}
-                            <span className={cit.engineCount}>{s.citationCount}</span>
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </li>
-    );
+    const meta = [
+        prompt.market && prompt.market.toUpperCase(),
+        t('citations.shareOfPage', {percent: Math.round(share * 100)}),
+        prompt.lastCitationDay && t('citations.lastCited', {day: formatDay(prompt.lastCitationDay)}),
+        typeof prompt.variation === 'number' && variationText(prompt.variation, t),
+        ...(prompt.aiSurfaces || []).map(surface => `${surfaceName(surface, t)} ${surface.citationCount}`)
+    ].filter(Boolean);
+    return {
+        key: prompt.id,
+        label: (
+            <>
+                {prompt.text}
+                <span className={cit.rowMeta}>{meta.join(' · ')}</span>
+            </>
+        ),
+        value: `${prompt.citationCount} ${t('citations.citationsUnit', {count: prompt.citationCount})}`
+    };
 };
 
-PromptCard.propTypes = {prompt: PropTypes.object.isRequired, pageTotal: PropTypes.number, t: PropTypes.func.isRequired};
-PromptCard.defaultProps = {pageTotal: 0};
-
 /**
- * A page cited in the same answers: whose it is, in how many answers the two meet, in how many of
- * them it comes before this page, and which of the two sits higher among the sources on average
- * (1 is the first source). One bar, one meaning: the share of shared answers it wins.
+ * A page cited in the same answers, as a fact row: whose it is, in how many answers the two meet, in how
+ * many of them it comes before this page, and the average position of each among the sources (1 is the
+ * first source).
  */
-const CoCitedCard = ({page, t}) => {
-    // The UI language, so a position reads 6,5 in French: the browser's own locale may differ.
-    const {i18n} = useGovernanceTranslation('geo');
-    const lang = i18n && i18n.language;
+const coCitedRow = (page, t, lang) => {
     const {host, path} = splitUrl(page.url);
     const shared = page.sharedAnswerCount || 0;
     const ahead = Math.min(page.outrankingAnswerCount || 0, shared);
-    // Status tone, always beside its own words: orange when it comes first in half the answers or more.
-    const aheadTone = shared > 0 && ahead * 2 >= shared ? cit.toneBad : cit.toneGood;
     const theirs = page.averageRank;
     const ours = page.requestedPageAverageRank;
     const ranked = typeof theirs === 'number' && typeof ours === 'number';
-    const oursBetter = ranked && ours <= theirs;
-    return (
-        <li className={cit.card}>
-            <div className={cit.cardHead}>
-                <span className={cit.cardTitle}>
-                    <span className={cit.host}>{host}</span>
-                    {path && path !== '/' && <span className={cit.path}>{path}</span>}
-                </span>
-                {shared > 0 && (
-                    <span className={cit.figure}>
-                        <span className={`${cit.figureValue} ${aheadTone}`}>
-                            {ahead}<span className={cit.figureOf}>/{shared}</span>
-                        </span>
-                        <span className={cit.figureUnit}>{t('citations.aheadUnit')}</span>
-                    </span>
-                )}
-            </div>
-            {shared > 0 && (
-                <>
-                    <div className={cit.share} aria-hidden="true">
-                        <div className={cit.aheadFill} style={{width: `${(ahead / shared) * 100}%`}}/>
-                    </div>
-                    <div className={cit.fact}>{t('citations.aheadOf', {ahead, count: shared})}</div>
-                </>
-            )}
-            <div className={cit.meta}>
-                {ranked && (
-                    <span className={cit.positions}>
-                        {t('citations.positionsLabel')}{' '}
-                        <strong className={cit.rankValue}>{formatRank(theirs, lang)}</strong>
-                        {' · '}{t('citations.positionsYours')}{' '}
-                        <strong className={`${cit.rankValue} ${oursBetter ? cit.toneGood : cit.toneBad}`}>{formatRank(ours, lang)}</strong>
-                    </span>
-                )}
-                {ranked && (
-                    <Chip
-                        label={oursBetter ? t('citations.youRankHigher') : t('citations.theyRankHigher')}
-                        color={oursBetter ? 'success' : 'warning'}
-                    />
-                )}
-                {!ranked && typeof theirs === 'number' && <span>{t('citations.coCitedRankOnly', {theirs: formatRank(theirs, lang)})}</span>}
-            </div>
-            <div className={cit.meta}>
-                <span>{t('citations.coCitedTotal', {count: page.citationCount})}</span>
-                <RowVariation value={page.variation} t={t}/>
-            </div>
-        </li>
-    );
+    const meta = [
+        shared > 0 && t('citations.aheadOf', {ahead, count: shared}),
+        ranked && `${t('citations.positionsLabel')} ${formatRank(theirs, lang)} · ${t('citations.positionsYours')} ${formatRank(ours, lang)}`,
+        !ranked && typeof theirs === 'number' && t('citations.coCitedRankOnly', {theirs: formatRank(theirs, lang)}),
+        t('citations.coCitedTotal', {count: page.citationCount}),
+        typeof page.variation === 'number' && variationText(page.variation, t)
+    ].filter(Boolean);
+    return {
+        key: page.url,
+        label: (
+            <>
+                <span className={cit.host}>{host}</span>
+                {path && path !== '/' && <span className={cit.path}>{path}</span>}
+                <span className={cit.rowMeta}>{meta.join(' · ')}</span>
+            </>
+        ),
+        value: shared > 0 ? `${ahead}/${shared} ${t('citations.aheadUnit')}` : null
+    };
 };
 
-CoCitedCard.propTypes = {page: PropTypes.object.isRequired, t: PropTypes.func.isRequired};
 
-/** The first few co-cited pages, the rest one click away: ten cards in a drawer is a wall. */
+
+/** The first few co-cited pages, the rest one click away: ten rows in a drawer is a wall. */
 const CO_CITED_SHOWN = 5;
 const CoCitedList = ({pages, t}) => {
+    // The UI language, so a position reads 6,5 in French: the browser's own locale may differ.
+    const {i18n} = useGovernanceTranslation('geo');
     const [all, setAll] = useState(false);
     const shown = all ? pages : pages.slice(0, CO_CITED_SHOWN);
     return (
         <>
-            <ul className={cit.cards}>
-                {shown.map(c => <CoCitedCard key={c.url} page={c} t={t}/>)}
-            </ul>
+            <FactBlock title={t('citations.coCited')} note={t('citations.coCitedIntro')} rows={shown.map(page => coCitedRow(page, t, i18n?.language))}/>
             {pages.length > CO_CITED_SHOWN && (
                 <Button
                     className={cit.more}
@@ -211,6 +135,21 @@ const CoCitedList = ({pages, t}) => {
 
 CoCitedList.propTypes = {pages: PropTypes.array.isRequired, t: PropTypes.func.isRequired};
 
+/** The headline numbers of the citations of a page: how often, its change over 30 days, its rank in the site. */
+const citationScores = (page, t) => [
+    {key: 'citations', label: t('citations.tab'), value: page.citations, hint: t('citations.verdict', {count: page.citations})},
+    ...(typeof page.variation === 'number' ? [{key: 'variation', label: t('citations.variationLabel'), value: variationText(page.variation, t), band: page.variation >= 0 ? 'good' : 'average'}] : []),
+    ...(page.rank ? [{key: 'rank', label: t('citations.rankLabel'), value: `${page.rank}/${page.rankOf}`, hint: t('citations.rank', {rank: page.rank, of: page.rankOf})}] : [])
+];
+
+/** What frames the numbers: citations since tracking began, several addresses, a mapping, a withheld change. */
+const citationFacts = (page, t) => [
+    page.everCitations > page.citations && {key: 'ever', label: t('citations.everCitations', {count: page.everCitations})},
+    (page.urls || []).length > 1 && {key: 'urls', label: t('citations.severalUrls', {count: page.urls.length})},
+    page.via === 'mapping' && {key: 'mapped', label: t('citations.mapped')},
+    page.variation === null && page.previousRunDays === 0 && {key: 'withheld', label: t('citations.variationWithheld')}
+].filter(Boolean);
+
 /**
  * GEO-4: whether AI answers cite this page, from the last BotRank sync of the site.
  *
@@ -221,7 +160,7 @@ export const CitationsTab = ({data, failed}) => {
     const {t} = useGovernanceTranslation('geo');
 
     if (failed) {
-        return <Banner variant="danger" title={t('citations.loadErrorTitle')}>{t('citations.loadError')}</Banner>;
+        return <ResultBanner variant="danger" title={t('citations.loadErrorTitle')}>{t('citations.loadError')}</ResultBanner>;
     }
 
     if (!data) {
@@ -238,14 +177,14 @@ export const CitationsTab = ({data, failed}) => {
     );
 
     if (!data.syncedAt) {
-        return <Banner variant="info" title={t('citations.notSyncedTitle')}>{t('citations.notSynced')}</Banner>;
+        return <ResultBanner variant="info" title={t('citations.notSyncedTitle')}>{t('citations.notSynced')}</ResultBanner>;
     }
 
     if (!data.published) {
         return (
             <div>
                 {asOf}
-                <Banner variant="info" title={t('citations.notPublishedTitle')}>{t('citations.notPublished')}</Banner>
+                <ResultBanner variant="info" title={t('citations.notPublishedTitle')}>{t('citations.notPublished')}</ResultBanner>
             </div>
         );
     }
@@ -254,7 +193,7 @@ export const CitationsTab = ({data, failed}) => {
         return (
             <div>
                 {asOf}
-                <Banner variant="info" title={t('citations.neverTitle')}>{t('citations.never')}</Banner>
+                <ResultBanner variant="info" title={t('citations.neverTitle')}>{t('citations.never')}</ResultBanner>
             </div>
         );
     }
@@ -263,9 +202,9 @@ export const CitationsTab = ({data, failed}) => {
         return (
             <div>
                 {asOf}
-                <Banner variant="info" title={t('citations.notRecentTitle')}>
+                <ResultBanner variant="info" title={t('citations.notRecentTitle')}>
                     {t('citations.notRecent', {count: page.everCitations})}
-                </Banner>
+                </ResultBanner>
             </div>
         );
     }
@@ -279,27 +218,16 @@ export const CitationsTab = ({data, failed}) => {
     return (
         <div>
             {asOf}
-            <div className={`${styles.verdict} ${styles.good}`}>
-                <Typography variant="subheading" component="p">
-                    {t('citations.verdict', {count: page.citations})}
-                </Typography>
-                <Variation value={page.variation} t={t}/>
-            </div>
-            <ul className={styles.facts}>
-                {page.rank && <li>{t('citations.rank', {rank: page.rank, of: page.rankOf})}</li>}
-                {page.everCitations > page.citations && <li>{t('citations.everCitations', {count: page.everCitations})}</li>}
-                {(page.urls || []).length > 1 && <li>{t('citations.severalUrls', {count: page.urls.length})}</li>}
-                {page.via === 'mapping' && <li>{t('citations.mapped')}</li>}
-                {page.variation === null && page.previousRunDays === 0 && <li>{t('citations.variationWithheld')}</li>}
-            </ul>
+            <ScoreBlock items={citationScores(page, t)}/>
+            <FactBlock rows={citationFacts(page, t)}/>
             {page.detailsMissing && (
-                <Banner variant="warning" title={t('citations.detailsMissingTitle')}>{t('citations.detailsMissing')}</Banner>
+                <ResultBanner variant="warning" title={t('citations.detailsMissingTitle')}>{t('citations.detailsMissing')}</ResultBanner>
             )}
 
             {surfaces.length > 0 && (
                 <>
                     <Typography variant="heading" component="h3" className={styles.sectionTitle}>{t('citations.engines')}</Typography>
-                    <BarList rows={surfaces.map(s => ({key: s.aiSurface, label: t(`citations.surface.${s.aiSurface}`, s.aiSurface), value: s.citationCount}))}/>
+                    <BarList rows={surfaces.map(s => ({key: s.aiSurface, label: surfaceName(s, t), value: s.citationCount}))}/>
                 </>
             )}
 
@@ -317,14 +245,7 @@ export const CitationsTab = ({data, failed}) => {
                 </>
             )}
 
-            {prompts.length > 0 && (
-                <section className={cit.section}>
-                    <Typography variant="heading" component="h3" className={styles.sectionTitle}>{t('citations.prompts')}</Typography>
-                    <ul className={cit.cards}>
-                        {prompts.map(p => <PromptCard key={p.id} prompt={p} pageTotal={page.citations} t={t}/>)}
-                    </ul>
-                </section>
-            )}
+            <FactBlock title={t('citations.prompts')} rows={prompts.map(p => promptRow(p, page.citations, t))}/>
 
             {tags.length > 0 && (
                 <section className={cit.section}>
@@ -340,13 +261,7 @@ export const CitationsTab = ({data, failed}) => {
                 </section>
             )}
 
-            {coCited.length > 0 && (
-                <section className={cit.section}>
-                    <Typography variant="heading" component="h3" className={styles.sectionTitle}>{t('citations.coCited')}</Typography>
-                    <Typography variant="caption" className={styles.explain}>{t('citations.coCitedIntro')}</Typography>
-                    <CoCitedList pages={coCited} t={t}/>
-                </section>
-            )}
+            {coCited.length > 0 && <CoCitedList pages={coCited} t={t}/>}
 
             <Typography variant="caption" className={styles.explain}>{t('citations.source')}</Typography>
         </div>

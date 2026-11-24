@@ -879,7 +879,9 @@
         "positionsLabel": "Average position among the sources:",
         "positionsYours": "yours",
         "notConfiguredTab": "This site is not connected to BotRank. A site administrator connects it in Site Settings, Content governance, BotRank.",
-        "notConfiguredLabel": "Not configured"
+        "notConfiguredLabel": "Not configured",
+        "rankLabel": "Rank in the site",
+        "variationLabel": "Over 30 days"
       },
       "citationsSettings": {
         "navLabel": "AI citations (BotRank)",
@@ -1749,6 +1751,20 @@
       "sectionOff": {
         "title": "Switched off for this site",
         "message": "A site administrator switched this section off in Site Settings, Content governance."
+      },
+      "results": {
+        "levels": {
+          "serious": "Serious",
+          "moderate": "Moderate",
+          "minor": "Minor",
+          "passed": "Passed",
+          "review": "To verify"
+        },
+        "occurrences": "{{count}} item",
+        "occurrences_plural": "{{count}} items",
+        "passed": "✓ {{count}} passed",
+        "passed_plural": "✓ {{count}} passed",
+        "moreActions": "More actions"
       }
     },
     "publishCheck": {
