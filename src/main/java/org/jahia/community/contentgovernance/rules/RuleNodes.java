@@ -21,26 +21,30 @@ import java.util.TreeMap;
  * Reads and writes the {@link RuleValues} of a {@value ContentRules#TYPE} node. The session of the node
  * has the English locale, so that the internationalized advice is its English value. A key of a
  * {@link CheckType} is on the mixin of that kind, so a write puts the mixin of the check type of the values
- * on the node first.
+ * on the node first. A rule node under a subdomain node of the tree takes its subdomain from that parent, so the
+ * read gives the subdomain of the parent and the write leaves the property out.
  */
 final class RuleNodes {
 
     /** The fingerprint of the values that the seeder last wrote on the node. */
     static final String SEED_DIGEST = "seedDigest";
-    /** Set on a rule that a site changed and that its module no longer ships. */
+    /** Set on a rule that an administrator changed and that its module no longer ships. */
     static final String RETIRED = "retired";
 
     private RuleNodes() {
     }
 
-    /** The values that the node holds. */
+    /** The values that the node holds, with the subdomain of its parent node in the tree. */
     static Map<String, Object> read(JCRNodeWrapper node) throws RepositoryException {
         Map<String, Object> values = new LinkedHashMap<>();
+        String parentSubdomain = parentSubdomain(node);
         for (String key : RuleValues.KEYS) {
-            if (!node.hasProperty(key)) {
-                continue;
+            Object value;
+            if (RuleValues.SUBDOMAIN.equals(key) && parentSubdomain != null) {
+                value = parentSubdomain;
+            } else {
+                value = node.hasProperty(key) ? value(node, key) : null;
             }
-            Object value = value(node, key);
             if (value != null && !"".equals(value)) {
                 values.put(key, value);
             }
@@ -58,9 +62,17 @@ final class RuleNodes {
         return values;
     }
 
+    /** The id of the subdomain node that holds the rule node, or null for a rule node outside the tree. */
+    static String parentSubdomain(JCRNodeWrapper node) throws RepositoryException {
+        JCRNodeWrapper parent = node.getParent();
+        String property = DomainValues.Level.SUBDOMAIN.idProperty();
+        return parent.isNodeType(ContentDomains.SUBDOMAIN_TYPE) && parent.hasProperty(property)
+                ? parent.getProperty(property).getString() : null;
+    }
+
     /**
      * The title, the label and the advice of the node in each language but English. Example: the French
-     * advice that a site wrote on a shipped rule.
+     * advice that an administrator wrote on a shipped rule in the system site.
      */
     private static Map<String, Map<String, String>> translations(JCRNodeWrapper node) throws RepositoryException {
         Map<String, Map<String, String>> out = new TreeMap<>();
@@ -143,7 +155,11 @@ final class RuleNodes {
         if (type != null) {
             mixIn(node, type);
         }
+        boolean inTree = parentSubdomain(node) != null;
         for (String key : RuleValues.KEYS) {
+            if (inTree && RuleValues.SUBDOMAIN.equals(key)) {
+                continue;
+            }
             Object value = values.get(key);
             if (value != null) {
                 set(node, key, value);
@@ -156,8 +172,8 @@ final class RuleNodes {
     /**
      * Writes the values that the node lacks, keeps every value it has, and returns true when it wrote one. A node
      * with no check type takes the one of the values, with its mixin. A key of a kind that the check type of the
-     * node does not hold stays out. Example: a site turned a shipped rule of the check type CODE into a rule of the
-     * check type AI, and the node gets no unit.
+     * node does not hold stays out. Example: an administrator turned a shipped rule of the check type CODE into a rule
+     * of the check type AI in the system site, and the node gets no unit.
      */
     static boolean fillMissing(JCRNodeWrapper node, Map<String, Object> values) throws RepositoryException {
         Map<String, Object> present = read(node);
@@ -173,7 +189,8 @@ final class RuleNodes {
         for (Map.Entry<String, Object> entry : values.entrySet()) {
             String key = entry.getKey();
             // The translations of a shipped rule stay in its file: the rule reads them from there.
-            if (RuleValues.KEYS.contains(key) && !present.containsKey(key) && CheckType.holds(type, key)) {
+            if (RuleValues.KEYS.contains(key) && !present.containsKey(key) && CheckType.holds(type, key)
+                    && !RuleValues.SUBDOMAIN.equals(key)) {
                 set(node, key, entry.getValue());
                 wrote = true;
             }

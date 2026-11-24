@@ -46,7 +46,7 @@ folder of rules, with the permissions of that folder.
 
 Since [content-governance#154](https://github.com/Jahia/content-governance/issues/154), the scan
 applies each rule of the domain `compliance` that the check registry runs on a value. A rule belongs to
-the domain through one of its subdomains, as the site places them: `terms`, `glossary`, `writing`, and
+the domain through its subdomain, as the site places it: `terms`, `glossary`, `writing`, and
 a subdomain that an administrator adds under Compliance. The subdomain `readability` is the exception:
 its rules measure a whole page, and the Readability tab of the page shows them. Two kinds of rules
 qualify:

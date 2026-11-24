@@ -354,7 +354,7 @@ final class LegacyTerms {
         values.put(RuleValues.RULE_ID, id);
         values.put(RuleValues.EVALUATOR, ContentRule.PATTERN);
         values.put(RuleValues.CHECK_TYPE, CheckType.PATTERN.name());
-        values.put(RuleValues.SUBDOMAINS, List.of(subdomain));
+        values.put(RuleValues.SUBDOMAIN, subdomain);
         values.put(RuleValues.SEVERITY, severity);
         values.put(RuleValues.BLOCKING, false);
         values.put(RuleValues.ENABLED, true);

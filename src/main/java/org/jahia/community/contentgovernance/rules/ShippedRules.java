@@ -36,11 +36,11 @@ import java.util.stream.Stream;
  * folder, at any depth, is one {@link RuleFile}, except in its subfolders {@code domains} and
  * {@code subdomains}, where each file is one {@link DomainFile}.
  *
- * <p>A subdomain names a domain, and a rule names subdomains, that this module, Content Governance or
+ * <p>A subdomain names a domain, and a rule names a subdomain, that this module, Content Governance or
  * another started module declares: a file that names another one is skipped.</p>
  *
- * <p>The seeder copies these rules into each site, where the rule nodes are the rules that the checks
- * apply. A shipped rule only fills in for a rule that a site has no node of.</p>
+ * <p>The seeder writes these domains, subdomains and rules into the tree of {@code systemsite}. A shipped
+ * rule only fills in for a rule that the tree has no node of, and for the values that the node lacks.</p>
  *
  * <p>Thread safety: the registry is a concurrent map, written by the bundle tracker of {@link RuleSeeder}.</p>
  */
@@ -50,6 +50,7 @@ public final class ShippedRules {
     /** The folder of the rules of this module, which its manifest names. */
     static final String OWN_FOLDER = "content-rules";
     private static final String SUFFIX = ".md";
+    private static final String THE_ID = "the id ";
     private static final Logger logger = LoggerFactory.getLogger(ShippedRules.class);
     private static final Map<String, Shipment> BY_MODULE = new ConcurrentHashMap<>();
 
@@ -252,13 +253,13 @@ public final class ShippedRules {
                 if (level == null) {
                     RuleFile rule = RuleFile.parse(text, fileName);
                     if (rules.putIfAbsent(rule.id(), rule) != null) {
-                        fail(fileName, "the id " + rule.id() + " is already taken");
+                        fail(fileName, THE_ID + rule.id() + " is already taken");
                     }
                     fileOf.put(rule.id(), fileName);
                 } else {
                     DomainFile domain = DomainFile.parse(text, fileName, level);
                     if (domains.get(level).putIfAbsent(domain.id(), domain) != null) {
-                        fail(fileName, "the id " + domain.id() + " is already taken");
+                        fail(fileName, THE_ID + domain.id() + " is already taken");
                     }
                 }
             } catch (IllegalArgumentException e) {
@@ -272,8 +273,9 @@ public final class ShippedRules {
         }
 
         /**
-         * The shipment, without a subdomain of an undeclared domain and without a rule that names an
-         * undeclared subdomain.
+         * The shipment, without a subdomain of an undeclared domain, a subdomain that takes the id of a domain, and a
+         * rule that names an undeclared subdomain. A layout names the domains, the subdomains and the rules in one
+         * list of ids, so a subdomain never shares the id of a domain.
          *
          * @param others true when the declarations of the other modules count
          */
@@ -282,6 +284,10 @@ public final class ShippedRules {
             Set<String> knownDomains = declared(Level.DOMAIN, others);
             subdomains.values().removeIf(subdomain -> {
                 Object parent = subdomain.values().get(DomainValues.DOMAIN);
+                if (knownDomains.contains(subdomain.id())) {
+                    fail(subdomain.id() + SUFFIX, THE_ID + subdomain.id() + " is the id of a domain");
+                    return true;
+                }
                 boolean unknown = !knownDomains.contains(String.valueOf(parent));
                 if (unknown) {
                     fail(subdomain.id() + SUFFIX, "the domain " + parent + " is not declared");
@@ -290,12 +296,12 @@ public final class ShippedRules {
             });
             Set<String> knownSubdomains = declared(Level.SUBDOMAIN, others);
             rules.values().removeIf(rule -> {
-                List<String> unknown = RuleValues.strings(rule.values(), RuleValues.SUBDOMAINS).stream()
-                        .filter(id -> !knownSubdomains.contains(id)).toList();
-                if (!unknown.isEmpty()) {
-                    fail(fileOf.get(rule.id()), "the subdomains " + unknown + " are not declared");
+                Object subdomain = rule.values().get(RuleValues.SUBDOMAIN);
+                boolean unknown = !knownSubdomains.contains(String.valueOf(subdomain));
+                if (unknown) {
+                    fail(fileOf.get(rule.id()), "the subdomain " + subdomain + " is not declared");
                 }
-                return !unknown.isEmpty();
+                return unknown;
             });
             return new Shipment(module, Collections.unmodifiableMap(rules),
                     Collections.unmodifiableMap(domains.get(Level.DOMAIN)), Collections.unmodifiableMap(subdomains),

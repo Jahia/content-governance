@@ -3,11 +3,11 @@ package org.jahia.community.contentgovernance.rules;
 import org.jahia.services.content.JCRTemplate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.mockito.MockedStatic;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 
-import javax.jcr.RepositoryException;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -23,8 +23,10 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -99,7 +101,7 @@ class RuleSeederTest {
         assertThat(LegacyRules.ruleOf("writing.a", "forbidden", "warning"))
                 .containsEntry(RuleValues.EVALUATOR, "pattern").containsEntry(RuleValues.CHECK_TYPE, "PATTERN")
                 .containsEntry(RuleValues.SEVERITY, "moderate")
-                .containsEntry(RuleValues.BLOCKING, false).containsEntry(RuleValues.SUBDOMAINS, List.of("writing"));
+                .containsEntry(RuleValues.BLOCKING, false).containsEntry(RuleValues.SUBDOMAIN, "writing");
         assertThat(LegacyRules.ruleOf("writing.b", "replace", "blocking"))
                 .containsEntry(RuleValues.SEVERITY, "serious").containsEntry(RuleValues.BLOCKING, true);
         assertThat(LegacyRules.ruleOf("writing.c", "style", "warning"))
@@ -107,21 +109,14 @@ class RuleSeederTest {
     }
 
     @Test
-    @DisplayName("only a change of the installed modules of a site triggers a seed")
-    void sitePathOf_readsTheInstalledModules() {
-        assertThat(RuleSeeder.sitePathOf("/sites/digitall/j:installedModules")).isEqualTo("/sites/digitall");
-        assertThat(RuleSeeder.sitePathOf("/sites/digitall/home/j:installedModules")).isNull();
-        assertThat(RuleSeeder.sitePathOf("/sites/digitall/j:title")).isNull();
-    }
-
-    @Test
-    @DisplayName("only the processing server converts the rules, the terms, the check types and the domains of an older version")
+    @DisplayName("only the processing server converts the rules, the terms, the check types, the subdomains and the layout of an older version, in that order")
     void activate_convertsOnTheProcessingServerOnly() {
         for (boolean processing : List.of(false, true)) {
             try (MockedStatic<LegacyRules> rules = mockStatic(LegacyRules.class);
                  MockedStatic<LegacyTerms> terms = mockStatic(LegacyTerms.class);
                  MockedStatic<LegacyCheckTypes> checkTypes = mockStatic(LegacyCheckTypes.class);
-                 MockedStatic<LegacyDomains> domains = mockStatic(LegacyDomains.class)) {
+                 MockedStatic<LegacyDomains> domains = mockStatic(LegacyDomains.class);
+                 MockedStatic<LegacyLayout> layout = mockStatic(LegacyLayout.class)) {
                 RuleSeeder seeder = seeder(processing);
 
                 seeder.activate(mock(BundleContext.class));
@@ -130,36 +125,43 @@ class RuleSeederTest {
                 terms.verify(LegacyTerms::migrate, processing ? times(1) : never());
                 checkTypes.verify(LegacyCheckTypes::migrate, processing ? times(1) : never());
                 domains.verify(LegacyDomains::migrate, processing ? times(1) : never());
+                layout.verify(LegacyLayout::migrate, processing ? times(1) : never());
+                if (processing) {
+                    // The subdomains read the keys of the check types, and the layout removes what they converted
+                    InOrder order = inOrder(LegacyCheckTypes.class, LegacyDomains.class, LegacyLayout.class);
+                    order.verify(checkTypes, LegacyCheckTypes::migrate);
+                    order.verify(domains, LegacyDomains::migrate);
+                    order.verify(layout, LegacyLayout::migrate);
+                }
                 seeder.deactivate();
             }
         }
     }
 
     @Test
-    @DisplayName("every node reads the rules that a module ships, and only the processing server seeds the system site and the sites")
-    void addingBundle_seedsOnTheProcessingServerOnly() throws RepositoryException {
+    @DisplayName("every node reads the rules that a module ships, and only the processing server seeds the tree of the system site")
+    void addingBundle_seedsOnTheProcessingServerOnly() {
         ShippedRules.Shipment shipment = new ShippedRules.Shipment("acme", Map.of(), true);
         for (boolean processing : List.of(false, true)) {
             try (MockedStatic<LegacyRules> rules = mockStatic(LegacyRules.class);
                  MockedStatic<LegacyTerms> terms = mockStatic(LegacyTerms.class);
                  MockedStatic<LegacyCheckTypes> checkTypes = mockStatic(LegacyCheckTypes.class);
                  MockedStatic<LegacyDomains> domains = mockStatic(LegacyDomains.class);
-                 MockedStatic<DomainSeeder> domainSeeder = mockStatic(DomainSeeder.class);
+                 MockedStatic<LegacyLayout> layout = mockStatic(LegacyLayout.class);
+                 MockedStatic<TreeSeeder> treeSeeder = mockStatic(TreeSeeder.class);
                  MockedStatic<ShippedRules> shipped = mockStatic(ShippedRules.class);
                  MockedStatic<JCRTemplate> jcr = mockStatic(JCRTemplate.class)) {
                 Bundle bundle = mock(Bundle.class);
                 shipped.when(() -> ShippedRules.load(bundle)).thenReturn(shipment);
-                JCRTemplate template = mock(JCRTemplate.class);
-                jcr.when(JCRTemplate::getInstance).thenReturn(template);
-                when(template.doExecuteWithSystemSessionAsUser(any(), any(), any(), any())).thenReturn(List.of());
                 RuleSeeder seeder = seeder(processing);
                 seeder.activate(mock(BundleContext.class));
 
                 assertThat(seeder.addingBundle(bundle, null)).isEqualTo("acme");
 
                 shipped.verify(() -> ShippedRules.put(shipment));
-                domainSeeder.verify(() -> DomainSeeder.seed(shipment), processing ? times(1) : never());
-                jcr.verify(JCRTemplate::getInstance, processing ? times(1) : never());
+                treeSeeder.verify(() -> TreeSeeder.seed(shipment), processing ? times(1) : never());
+                // The sites get no copy of the rules: the seeder writes the system site only
+                jcr.verifyNoInteractions();
                 seeder.deactivate();
             }
         }
@@ -169,7 +171,7 @@ class RuleSeederTest {
     @DisplayName("a rule that names the subdomain of a module that starts later comes back when that module starts")
     void addingBundle_readsAgainARuleThatWaitsForItsSubdomain() {
         Bundle rules = bundle("acme-rules", Map.of("content-rules/acme.price.md",
-                "---\nevaluator: erp.price\ncheckType: CODE\nsubdomains: [acme.prices]\nseverity: serious\n---\nCheck the price.\n"));
+                "---\nevaluator: erp.price\ncheckType: CODE\nsubdomain: acme.prices\nseverity: serious\n---\nCheck the price.\n"));
         Bundle subdomains = bundle("acme-subdomains", Map.of("content-rules/subdomains/acme.prices.md",
                 "---\ndomain: compliance\nlabel: Prices\n---\nThe prices that the ERP gives.\n"));
         RuleSeeder seeder = seeder(false);
@@ -186,6 +188,39 @@ class RuleSeederTest {
             seeder.removedBundle(rules, null, "acme-rules");
             seeder.removedBundle(subdomains, null, "acme-subdomains");
             seeder.deactivate();
+        }
+    }
+
+    @Test
+    @DisplayName("the processing server seeds the own tree first, and seeds again a module that waited for a parent once a module that declares domains or subdomains starts")
+    void addingBundle_seedsAgainAModuleThatWaitedForTheTree() {
+        Bundle rules = bundle("acme-rules", Map.of("content-rules/acme.price.md",
+                "---\nevaluator: erp.price\ncheckType: CODE\nsubdomain: writing\nseverity: serious\n---\nCheck the price.\n"));
+        Bundle subdomains = bundle("acme-subdomains", Map.of("content-rules/subdomains/acme.prices.md",
+                "---\ndomain: compliance\nlabel: Prices\n---\nThe prices that the ERP gives.\n"));
+        try (MockedStatic<LegacyRules> legacyRules = mockStatic(LegacyRules.class);
+             MockedStatic<LegacyTerms> terms = mockStatic(LegacyTerms.class);
+             MockedStatic<LegacyCheckTypes> checkTypes = mockStatic(LegacyCheckTypes.class);
+             MockedStatic<LegacyDomains> domains = mockStatic(LegacyDomains.class);
+             MockedStatic<LegacyLayout> layout = mockStatic(LegacyLayout.class);
+             MockedStatic<TreeSeeder> treeSeeder = mockStatic(TreeSeeder.class)) {
+            // The rules of acme-rules wait: the tree lacks the node of their subdomain
+            treeSeeder.when(() -> TreeSeeder.seed(any(ShippedRules.Shipment.class)))
+                    .thenAnswer(call -> "acme-rules".equals(call.<ShippedRules.Shipment>getArgument(0).module()));
+            RuleSeeder seeder = seeder(true);
+            seeder.activate(mock(BundleContext.class));
+            try {
+                treeSeeder.verify(() -> TreeSeeder.seed(ShippedRules.own()));
+
+                seeder.addingBundle(rules, null);
+                seeder.addingBundle(subdomains, null);
+
+                treeSeeder.verify(() -> TreeSeeder.seed(argThat(shipment -> "acme-rules".equals(shipment.module()))), times(2));
+            } finally {
+                seeder.removedBundle(rules, null, "acme-rules");
+                seeder.removedBundle(subdomains, null, "acme-subdomains");
+                seeder.deactivate();
+            }
         }
     }
 

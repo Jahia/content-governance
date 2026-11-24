@@ -3,7 +3,7 @@ id: axe.skip-link
 evaluator: axe
 checkType: CODE
 runtime: browser
-subdomains: [accessibility]
+subdomain: accessibility
 severity: moderate
 fixer: developer
 ---

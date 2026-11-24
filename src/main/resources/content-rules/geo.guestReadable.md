@@ -2,7 +2,7 @@
 id: geo.guestReadable
 evaluator: geo.guestReadable
 checkType: CODE
-subdomains: [geo.crawlers]
+subdomain: geo.crawlers
 severity: critical
 fixer: administrator
 label:

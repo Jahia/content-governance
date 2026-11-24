@@ -24,6 +24,11 @@ const RUNTIME = 'query R($siteKey: String!) { contentGovernance { contentRules(s
 const CHECK = `query C($path: String!, $text: String!, $scope: String) {
     contentGovernance { checkText(path: $path, language: "en", text: $text, scope: $scope) { ruleId severity text } }
 }`;
+const SAVE_LAYOUT = `mutation S($siteKey: String!, $layout: String!) { contentGovernance {
+    saveSiteLayout(siteKey: $siteKey, layout: $layout) { saved } } }`;
+const RESET_LAYOUT = 'mutation R($siteKey: String!) { contentGovernance { resetSiteLayout(siteKey: $siteKey) { saved } } }';
+/** The tree of the system site: the domains, their subdomains and their rules, for every site. */
+const TREE = '/sites/systemsite/contents/content-governance';
 
 /** A page with one image that has no text alternative. */
 const PAGE_HTML = '<html lang="en"><head><title>Home page</title><meta name="description" content="Home"></head>'
@@ -31,26 +36,27 @@ const PAGE_HTML = '<html lang="en"><head><title>Home page</title><meta name="des
 
 /**
  * The check registry: a module registers a check under an id, and a rule node names it as evaluator. The
- * test module (tests/jahia-module) registers `acme.erpPrice` and ships its rule, and no code of Content
- * Governance names it.
+ * test module (tests/jahia-module) registers `acme.erpPrice` and ships its rule, which the seeder writes in the
+ * tree of the system site, and no code of Content Governance names it.
  */
 describe('Content Governance - check registry', () => {
     const siteKey = 'cg-checks';
     const sitePath = `/sites/${siteKey}`;
-    const insights = `${sitePath}/contents/content-insights`;
-    const imageAlt = `${insights}/content-governance/rules/html.imageAltMissing`;
+    const imageAlt = `${TREE}/quality/accessibility/html.imageAltMissing`;
+    const erpPrice = `${TREE}/compliance/writing/acme.erpPrice`;
+    const lazyLoading = `${TREE}/quality/ecodesign/ecodesign.lazyLoading`;
 
     const rules = (): Cypress.Chainable<RuleStatus[]> => gqlOk(asRoot(), RULES, {siteKey})
         .then(data => data.contentGovernance.contentRules as RuleStatus[]);
     const check = (text: string, scope = 'VALUE'): Cypress.Chainable<CheckFinding[]> =>
         gqlOk(asRoot(), CHECK, {path: `${sitePath}/home`, text, scope})
             .then(data => data.contentGovernance.checkText as CheckFinding[]);
-    const setEnabled = (path: string, enabled: boolean): void => {
+    const setBlocking = (path: string, blocking: boolean): void => {
         gqlOk(asRoot(), `mutation { jcr { mutateNode(pathOrId: "${path}") {
-            mutateProperty(name: "enabled") { setValue(value: "${enabled}") } } } }`);
+            mutateProperty(name: "blocking") { setValue(value: "${blocking}") } } } }`);
     };
 
-    /** The seeder runs on the event that enabling a module sends, so it may finish after the site does. */
+    /** The seeder writes the tree when a module starts, so it may finish after the first spec starts. */
     const waitFor = (path: string, attempts = 20): void => {
         nodeExists(path).then(exists => {
             if (!exists && attempts > 0) {
@@ -66,25 +72,25 @@ describe('Content Governance - check registry', () => {
         createTestSite(siteKey);
         enableModule('content-governance-test-module', siteKey);
         waitFor(imageAlt);
-        waitFor(`${insights}/content-governance-test-module/rules/acme.erpPrice`);
+        waitFor(erpPrice);
     });
 
     after(() => {
+        // The tree serves every site: put back what a failed test may have left in it
+        setBlocking(lazyLoading, false);
         deleteTestSite(siteKey);
     });
 
     it('shows a rule whose check no module registers as inactive, with the missing check', () => {
-        addNodeTree(insights, {
-            name: 'site', type: 'jnt:contentFolder', children: [{
-                name: 'rules', primaryNodeType: 'jnt:contentFolder', children: [{
-                    name: 'acme-tone', primaryNodeType: 'ccs:contentRule', mixins: ['ccsmix:aiCheck'], properties: [
-                        {name: 'ruleId', value: 'acme.tone'},
-                        {name: 'checkType', value: 'AI'},
-                        {name: 'evaluator', value: 'model'},
-                        {name: 'subdomains', values: ['writing']},
-                        {name: 'advice', value: 'Write in a friendly tone.', language: 'en'}
-                    ]
-                }]
+        addNodeTree(`${sitePath}/contents`, {
+            name: 'brand-rules', type: 'jnt:contentFolder', children: [{
+                name: 'acme-tone', primaryNodeType: 'ccs:contentRule', mixins: ['ccsmix:aiCheck'], properties: [
+                    {name: 'ruleId', value: 'acme.tone'},
+                    {name: 'checkType', value: 'AI'},
+                    {name: 'evaluator', value: 'model'},
+                    {name: 'subdomain', value: 'writing'},
+                    {name: 'advice', value: 'Write in a friendly tone.', language: 'en'}
+                ]
             }]
         });
         rules().then(list => {
@@ -121,7 +127,7 @@ describe('Content Governance - check registry', () => {
             const issues = data.complianceScan.scanPage.issues as ScanIssue[];
             // The rule acme.erpPrice belongs to the subdomain writing of Compliance; its term is its label
             expect(issues).to.deep.include({ruleId: 'acme.erpPrice', term: 'Prices from the ERP', matchedText: '12.50 EUR',
-                folder: `${insights}/content-governance-test-module/rules`, severity: 'serious'});
+                folder: `${TREE}/compliance/writing`, severity: 'serious'});
             frameCheck({siteKey, locale: 'en', text}).then((violations: FrameViolation[]) => {
                 expect(issues.map(issue => `${issue.ruleId} ${issue.matchedText}`).sort())
                     .to.deep.eq(violations.map(violation => `${violation.ruleId} ${violation.match}`).sort());
@@ -129,15 +135,18 @@ describe('Content Governance - check registry', () => {
         });
     });
 
-    it('runs an HTML rule as a rule node, which the site can switch off', () => {
+    it('runs an HTML rule as a rule node, which the layout of the site can switch off', () => {
         check(PAGE_HTML, 'PAGE').then(findings => {
             expect(findings).to.deep.include({ruleId: 'html.imageAltMissing', severity: 'critical', text: '<img src="a.png">'});
         });
-        setEnabled(imageAlt, false);
+        gqlOk(asRoot(), SAVE_LAYOUT, {siteKey, layout: JSON.stringify({off: ['html.imageAltMissing']})});
         check(PAGE_HTML, 'PAGE').then(findings => {
             expect(findings.map(finding => finding.ruleId)).not.to.include('html.imageAltMissing');
         });
-        setEnabled(imageAlt, true);
+        gqlOk(asRoot(), RESET_LAYOUT, {siteKey});
+        check(PAGE_HTML, 'PAGE').then(findings => {
+            expect(findings.map(finding => finding.ruleId)).to.include('html.imageAltMissing');
+        });
     });
 
     it('gives alt text one rule id, and each practice of the drawer one rule', () => {
@@ -208,12 +217,11 @@ describe('Content Governance - check registry', () => {
     });
 
     it('never blocks on a rule of the browser, even when its node sets blocking', () => {
-        const lazyLoading = `${insights}/content-governance/rules/ecodesign.lazyLoading`;
-        gqlOk(asRoot(), `mutation { jcr { mutateNode(pathOrId: "${lazyLoading}") {
-            mutateProperty(name: "blocking") { setValue(value: "true") } } } }`);
+        setBlocking(lazyLoading, true);
         gqlOk(asRoot(), RUNTIME, {siteKey}).then(data => {
             const rule = (data.contentGovernance.contentRules as RuleRuntime[]).find(item => item.id === 'ecodesign.lazyLoading');
             expect(rule).to.include({runtime: 'browser', evaluator: 'ecodesign.lazyLoading', active: true, blocking: false});
         });
+        setBlocking(lazyLoading, false);
     });
 });

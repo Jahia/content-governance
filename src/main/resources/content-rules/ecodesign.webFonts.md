@@ -3,7 +3,7 @@ id: ecodesign.webFonts
 evaluator: ecodesign.webFonts
 checkType: CODE
 runtime: browser
-subdomains: [ecodesign]
+subdomain: ecodesign
 severity: minor
 fixer: developer
 unit: files

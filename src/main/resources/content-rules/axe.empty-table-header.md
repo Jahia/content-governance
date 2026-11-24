@@ -3,7 +3,7 @@ id: axe.empty-table-header
 evaluator: axe
 checkType: CODE
 runtime: browser
-subdomains: [accessibility]
+subdomain: accessibility
 severity: minor
 fixer: editor
 ---

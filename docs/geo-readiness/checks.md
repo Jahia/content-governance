@@ -82,8 +82,8 @@ The checks `title`, `singleH1`, `metaDescription`, `canonical`, `langDeclared`, 
 `imageAlt` are rules of the page check service, `HtmlCheck`, which the drawer and `frame.check` call
 too. GEO readiness runs these rules on the HTML of the control, the page as the first agent got it,
 and a check fails when the service finds the page breaks its rule. So a page gets the same verdict
-here as in the SEO tab of Page quality, under the same rule id, and a limit that the site changes
-applies to both. The value beside the verdict is what the fetch read, such as the length of the title.
+here as in the SEO tab of Page quality, under the same rule id, and a limit that an administrator changes
+in the system site applies to both. The value beside the verdict is what the fetch read, such as the length of the title.
 A page that no agent got fails these checks, except `imageAlt`: it has no image to describe.
 
 ### `contentInInitialHtml` · Real text in the initial HTML
@@ -106,7 +106,7 @@ A page that no agent got fails these checks, except `imageAlt`: it has no image 
 
 **Important.** The title is what gets quoted. Too short says nothing, too long is truncated wherever it appears.
 
-*Fails when:* Missing, or out of the range of the rule `seo.title`, 30 to 60 characters unless the site changed it.
+*Fails when:* Missing, or out of the range of the rule `seo.title`, 30 to 60 characters unless an administrator changed it in the system site.
 
 *Shown in the interface as:* “A title under 30 or over 60 characters is either uninformative or truncated wherever it is quoted.”
 
@@ -130,7 +130,7 @@ A page that no agent got fails these checks, except `imageAlt`: it has no image 
 
 **Important.** Without one, the summary shown beside an answer is generated from whatever text happens to come first.
 
-*Fails when:* Missing, or out of the range of the rule `seo.metaDescription`, 50 to 160 characters unless the site changed it.
+*Fails when:* Missing, or out of the range of the rule `seo.metaDescription`, 50 to 160 characters unless an administrator changed it in the system site.
 
 *Shown in the interface as:* “Without one, the summary shown alongside an answer is generated from whatever text comes first. Keep it between 50 and 160 characters.”
 

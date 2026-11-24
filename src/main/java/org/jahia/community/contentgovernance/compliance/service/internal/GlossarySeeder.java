@@ -148,7 +148,7 @@ public class GlossarySeeder extends DefaultEventListener {
         String root = (sitePath + CONTENTS).replace("'", "''");
         return found(session, "SELECT * FROM [ccs:glossary] AS g WHERE ISDESCENDANTNODE(g, '" + root + "')")
                 || found(session, "SELECT * FROM [" + ContentRules.TYPE + "] AS r WHERE ISDESCENDANTNODE(r, '" + root
-                + "') AND r.[" + RuleValues.SUBDOMAINS + "] = '" + ContentRules.TERMS + "'");
+                + "') AND r.[" + RuleValues.SUBDOMAIN + "] = '" + ContentRules.TERMS + "'");
     }
 
     private static boolean found(JCRSessionWrapper session, String sql) throws RepositoryException {
@@ -182,7 +182,7 @@ public class GlossarySeeder extends DefaultEventListener {
         rule.setProperty(RuleValues.RULE_ID, "compliance.example-term");
         rule.setProperty(RuleValues.EVALUATOR, ContentRule.PATTERN);
         rule.setProperty(RuleValues.CHECK_TYPE, CheckType.PATTERN.name());
-        rule.setProperty(RuleValues.SUBDOMAINS, new String[]{ContentRules.TERMS});
+        rule.setProperty(RuleValues.SUBDOMAIN, ContentRules.TERMS);
         rule.setProperty(RuleValues.SEVERITY, "serious");
         rule.setProperty(RuleValues.KIND, "replace");
         rule.setProperty(RuleValues.PATTERN, text.getString("seed.term"));

@@ -2,7 +2,7 @@
 id: geo.fetched
 evaluator: geo.fetched
 checkType: CODE
-subdomains: [geo.crawlers]
+subdomain: geo.crawlers
 severity: critical
 fixer: administrator
 label:

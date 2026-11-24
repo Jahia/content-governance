@@ -42,7 +42,21 @@ public record Domain(Level level, String id, String parent, String panel, int or
                 RuleValues.strings(all, DomainValues.SITES), all);
     }
 
-    /** True when the domain or the subdomain applies to the site, or to every site for a null key. */
+    /**
+     * @param parentId the domain of a subdomain on the site, or null for a domain
+     * @param place    the order among its siblings on the site
+     * @return this domain or subdomain at that place
+     */
+    Domain at(String parentId, int place) {
+        return new Domain(level, id, parentId, panel, place, sites, values);
+    }
+
+    /** The ids of the rules of other subdomains that a subdomain counts, such as the rules of the GEO score. */
+    public List<String> counts() {
+        return RuleValues.strings(values, DomainValues.COUNTS);
+    }
+
+    /** True when the domain or the subdomain is on by default for the site, or for every site with a null key. */
     public boolean includes(String siteKey) {
         return siteKey == null || RuleValues.includes(sites, siteKey);
     }

@@ -1,5 +1,6 @@
 package org.jahia.community.contentgovernance.rules;
 
+import org.jahia.community.contentgovernance.geo.check.GeoScore;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -15,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ShippedRulesTest {
 
     @Test
-    @DisplayName("the module ships 62 rules, four of them measures, and one rule per check of axe-core, and each names its evaluator, the check type CODE and declared subdomains")
+    @DisplayName("the module ships 62 rules, four of them measures, and one rule per check of axe-core, and each names its evaluator, the check type CODE and one declared subdomain")
     void ownRules_load() {
         ShippedRules.Shipment own = ShippedRules.own();
 
@@ -24,11 +25,10 @@ class ShippedRulesTest {
         assertThat(own.rules().keySet().stream().filter(id -> id.startsWith("axe."))).hasSize(96);
         assertThat(own.rules().values()).allSatisfy(rule -> {
             assertThat(rule.values()).containsKey(RuleValues.EVALUATOR).containsEntry(RuleValues.CHECK_TYPE, "CODE");
-            assertThat(RuleValues.strings(rule.values(), RuleValues.SUBDOMAINS)).isNotEmpty()
-                    .allSatisfy(subdomain -> assertThat(own.subdomains()).containsKey(subdomain));
+            assertThat(rule.values().get(RuleValues.SUBDOMAIN)).as(rule.id()).isInstanceOf(String.class);
+            assertThat(own.subdomains()).containsKey((String) rule.values().get(RuleValues.SUBDOMAIN));
         });
-        assertThat(own.rules().get("html.imageAltMissing").values())
-                .containsEntry(RuleValues.SUBDOMAINS, List.of("accessibility", "geo.score"));
+        assertThat(own.rules().get("html.imageAltMissing").values()).containsEntry(RuleValues.SUBDOMAIN, "accessibility");
         assertThat(own.rules().get("axe.color-contrast").values()).containsEntry(RuleValues.EVALUATOR, "axe")
                 .containsEntry(RuleValues.SEVERITY, "serious");
         assertThat(own.rules().values().stream().filter(rule -> !rule.id().startsWith("axe.")))
@@ -40,11 +40,25 @@ class ShippedRulesTest {
         assertThat(own.rules().values().stream().filter(rule -> RuleValues.toRule(rule.values()).inBrowser())).hasSize(108);
         ContentRule title = RuleValues.toRule(own.rules().get("seo.title").values());
         assertThat(title.evaluator()).isEqualTo(ContentRule.THRESHOLD);
-        assertThat(title.subdomains()).containsExactly("seo", "geo.score");
+        assertThat(title.subdomain()).isEqualTo("seo");
         assertThat(title.sites()).containsExactly("*");
         assertThat(title.min()).isEqualTo(30);
         assertThat(title.max()).isEqualTo(60);
         assertThat(title.enabled()).isTrue();
+    }
+
+    @Test
+    @DisplayName("the subdomain geo.score lists the page rules and the geo rules that GeoScore counts, and each is a shipped rule")
+    void geoScoreCounts_areShippedRules() {
+        ShippedRules.Shipment own = ShippedRules.own();
+
+        List<String> counts = RuleValues.strings(own.subdomains().get("geo.score").values(), DomainValues.COUNTS);
+        assertThat(counts).as("the page rules and the geo rules that GeoScore counts")
+                .containsAll(GeoScore.PAGE_RULES)
+                .contains("geo.fetched", "geo.reachable", "geo.robotsPresent", "geo.namedInRobots", "geo.policyMatchesReality",
+                        "geo.guestReadable", "geo.sameContentForCrawlers", "geo.noClientRedirect", "geo.contentInInitialHtml",
+                        "geo.headingOutline", "geo.dateModified", "geo.llmsPresent");
+        assertThat(own.rules()).containsKeys(counts.toArray(String[]::new));
     }
 
     @Test
@@ -85,7 +99,7 @@ class ShippedRulesTest {
         Files.writeString(folder.resolve("subdomains/acme.prices.md"),
                 "---\ndomain: compliance\norder: 50\nlabel: Prices\n---\nThe prices that the ERP gives.\n");
         Files.writeString(folder.resolve("acme.price.md"),
-                "---\nevaluator: erp.price\ncheckType: CODE\nsubdomains: [acme.prices, writing]\nseverity: serious\n---\nCheck the price.\n");
+                "---\nevaluator: erp.price\ncheckType: CODE\nsubdomain: acme.prices\nseverity: serious\n---\nCheck the price.\n");
 
         ShippedRules.Shipment shipment = ShippedRules.load("acme-rules", folder);
 
@@ -97,16 +111,34 @@ class ShippedRulesTest {
     }
 
     @Test
+    @DisplayName("a subdomain that takes the id of a domain is skipped, because a layout names both in one list")
+    void subdomainWithTheIdOfADomain_isSkipped(@TempDir Path folder) throws IOException {
+        Files.createDirectories(folder.resolve("domains"));
+        Files.createDirectories(folder.resolve("subdomains"));
+        Files.writeString(folder.resolve("domains/acme.md"), "---\nlabel: Acme\n---\n");
+        Files.writeString(folder.resolve("subdomains/acme.md"), "---\ndomain: acme\nlabel: Acme\n---\n");
+        Files.writeString(folder.resolve("subdomains/quality.md"), "---\ndomain: acme\nlabel: Quality\n---\n");
+        Files.writeString(folder.resolve("subdomains/acme.prices.md"), "---\ndomain: acme\nlabel: Prices\n---\n");
+
+        ShippedRules.Shipment shipment = ShippedRules.load("acme-rules", folder);
+
+        assertThat(shipment.domains()).containsOnlyKeys("acme");
+        assertThat(shipment.subdomains()).as("acme is the id of a domain of this module, quality of Content Governance")
+                .containsOnlyKeys("acme.prices");
+        assertThat(shipment.complete()).isFalse();
+    }
+
+    @Test
     @DisplayName("a rule of an undeclared subdomain, and a subdomain of an undeclared domain, are skipped")
     void undeclared_isSkipped(@TempDir Path folder) throws IOException {
         Files.createDirectories(folder.resolve("subdomains"));
         Files.writeString(folder.resolve("subdomains/acme.lost.md"), "---\ndomain: acme\nlabel: Lost\n---\n");
         Files.writeString(folder.resolve("acme.price.md"),
-                "---\nevaluator: erp.price\ncheckType: CODE\nsubdomains: [acme.prices]\nseverity: serious\n---\n");
+                "---\nevaluator: erp.price\ncheckType: CODE\nsubdomain: acme.prices\nseverity: serious\n---\n");
         Files.writeString(folder.resolve("acme.tone.md"),
-                "---\nevaluator: erp.tone\ncheckType: CODE\nsubdomains: [acme.lost]\nseverity: serious\n---\n");
+                "---\nevaluator: erp.tone\ncheckType: CODE\nsubdomain: acme.lost\nseverity: serious\n---\n");
         Files.writeString(folder.resolve("acme.ok.md"),
-                "---\nevaluator: erp.ok\ncheckType: CODE\nsubdomains: [writing]\nseverity: serious\n---\n");
+                "---\nevaluator: erp.ok\ncheckType: CODE\nsubdomain: writing\nseverity: serious\n---\n");
 
         ShippedRules.Shipment shipment = ShippedRules.load("acme-rules", folder);
 
@@ -124,12 +156,14 @@ class ShippedRulesTest {
     }
 
     @Test
-    @DisplayName("a folder with a file that fails, or two files with one id, is not complete")
+    @DisplayName("a folder with a file that fails, a file with the subdomains of a snapshot before 2.0.0, or two files with one id, is not complete")
     void badFile_makesTheShipmentIncomplete(@TempDir Path folder) throws IOException {
-        String rule = "---\nid: acme.price\nevaluator: erp.price\ncheckType: CODE\nsubdomains: [writing]\nseverity: serious\n---\nCheck the price.\n";
+        String rule = "---\nid: acme.price\nevaluator: erp.price\ncheckType: CODE\nsubdomain: writing\nseverity: serious\n---\nCheck the price.\n";
         Files.writeString(folder.resolve("price.md"), rule);
         Files.writeString(folder.resolve("price-again.md"), rule);
         Files.writeString(folder.resolve("broken.md"), "---\nseverity: serious\n---\n");
+        Files.writeString(folder.resolve("acme.old.md"),
+                "---\nevaluator: erp.price\ncheckType: CODE\nsubdomains: [writing]\nseverity: serious\n---\n");
 
         ShippedRules.Shipment shipment = ShippedRules.load("acme-rules", folder);
 

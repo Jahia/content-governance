@@ -2,7 +2,7 @@
 id: geo.policyMatchesReality
 evaluator: geo.policyMatchesReality
 checkType: CODE
-subdomains: [geo.crawlers]
+subdomain: geo.crawlers
 severity: serious
 fixer: administrator
 label:

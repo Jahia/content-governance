@@ -2,7 +2,7 @@
 id: links.hardcodedUrls
 evaluator: links.hardcodedUrls
 checkType: CODE
-subdomains: [links]
+subdomain: links
 severity: moderate
 fixer: editor
 label:

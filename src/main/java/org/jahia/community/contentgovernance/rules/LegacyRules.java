@@ -40,7 +40,7 @@ final class LegacyRules {
 
     static final String WRITING_RULE = "efnt:writingRule";
     static final String WRITING = "writing";
-    private static final String LEGACY_FOLDER = ContentRules.ROOT + "/jahia";
+    private static final String LEGACY_FOLDER = LegacyLayout.ROOT + "/jahia";
     private static final String CONTRIBUTE_TYPES = "j:contributeTypes";
     private static final String JUSTIFICATION = "justification";
     private static final String SEVERITY = "severity";
@@ -79,7 +79,7 @@ final class LegacyRules {
             if (!(node instanceof JCRSiteNode site)) {
                 continue;
             }
-            String target = ContentRules.ROOT + "/" + SiteFeatures.MODULE;
+            String target = LegacyLayout.ROOT + "/" + SiteFeatures.MODULE;
             if (site.hasNode(LEGACY_FOLDER) && !site.hasNode(target)) {
                 session.move(site.getPath() + "/" + LEGACY_FOLDER, site.getPath() + "/" + target);
                 logger.info("Moved the content rules of {} to {}", site.getPath(), target);
@@ -166,7 +166,7 @@ final class LegacyRules {
         values.put(RuleValues.RULE_ID, id);
         values.put(RuleValues.EVALUATOR, ContentRule.PATTERN);
         values.put(RuleValues.CHECK_TYPE, CheckType.PATTERN.name());
-        values.put(RuleValues.SUBDOMAINS, List.of(WRITING));
+        values.put(RuleValues.SUBDOMAIN, WRITING);
         values.put(RuleValues.SEVERITY, "style".equals(kind) ? "minor" : rank);
         values.put(RuleValues.BLOCKING, blocking);
         values.put(RuleValues.ENABLED, true);

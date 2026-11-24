@@ -69,18 +69,19 @@ describe('tabOf', () => {
         expect(tabOf(BASE_RULES.get('html.linkTextVague'))).toBe('accessibility');
     });
 
-    it('puts a rule of another module in the tab of its subdomain, and a rule of unknown subdomains in none', () => {
-        expect(tabOf({id: 'acme.erpPrice', subdomains: ['writing']})).toBe('readability');
-        expect(tabOf({id: 'voice.tone', subdomains: ['seo']})).toBe('seo');
-        expect(tabOf({id: 'brand.tone', subdomains: ['brand']})).toBeNull();
+    it('puts a rule of another module in the tab of its subdomain, and a rule of an unknown subdomain in none', () => {
+        expect(tabOf({id: 'acme.erpPrice', subdomain: 'writing'})).toBe('readability');
+        expect(tabOf({id: 'voice.tone', subdomain: 'seo'})).toBe('seo');
+        expect(tabOf({id: 'brand.tone', subdomain: 'brand'})).toBeNull();
         expect(tabOf({id: 'brand.none'})).toBeNull();
         expect(tabOf(BASE_RULES.get('geo.reachable'))).toBeNull();
     });
 
-    it('puts a rule of two subdomains in the tab of the first that has one', () => {
-        expect(BASE_RULES.get('seo.title').subdomains).toEqual(['seo', 'geo.score']);
+    it('puts a rule in the tab of its one subdomain, and a rule of a subdomain with no tab in none', () => {
+        expect(BASE_RULES.get('seo.title').subdomain).toBe('seo');
         expect(tabOf(BASE_RULES.get('seo.title'))).toBe('seo');
-        expect(tabOf({id: 'acme.score', subdomains: ['geo.score', 'accessibility']})).toBe('accessibility');
+        expect(tabOf({id: 'acme.score', subdomain: 'geo.score'})).toBeNull();
+        expect(tabOf({id: 'acme.score', subdomain: 'accessibility'})).toBe('accessibility');
     });
 });
 
@@ -120,9 +121,9 @@ describe('recommendationsByTab', () => {
     });
 
     it('words a rule of another module the same way, and its id when it has no text', () => {
-        const rules = ruleBook([...BASE_RULES.all(), {id: 'acme.erpPrice', subdomains: ['writing'], severity: 'serious',
+        const rules = ruleBook([...BASE_RULES.all(), {id: 'acme.erpPrice', subdomain: 'writing', severity: 'serious',
             title: [{form: 'one', text: '{{count}} price typed, such as {{value}}'}], advice: 'Insert the product.'},
-        {id: 'acme.bare', subdomains: ['health'], severity: 'minor', title: [], advice: ''}]);
+        {id: 'acme.bare', subdomain: 'health', severity: 'minor', title: [], advice: ''}]);
         const recs = recommendationsByTab([finding('acme.erpPrice', '12.50 EUR'), finding('acme.bare', 'x')], rules);
 
         expect(recs.readability[0]).toMatchObject({title: '1 price typed, such as 12.50 EUR', detail: 'Insert the product.'});

@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  * id: seo.title
  * evaluator: threshold
  * checkType: CODE
- * subdomains: [seo, geo.score]
+ * subdomain: seo
  * severity: serious
  * unit: characters
  * minimum: 30
@@ -238,16 +238,15 @@ public record RuleFile(String id, Map<String, Object> values) {
         }
     }
 
-    /** The subdomains of a rule: one at least, each an id; and its sites: each a site key or {@value RuleValues#ALL_SITES}. */
+    /** The subdomain of a rule: one id; and its sites: each a site key or {@value RuleValues#ALL_SITES}. */
     private static void checkPlace(String id, Map<String, Object> values) {
-        if (!(values.get(RuleValues.SUBDOMAINS) instanceof List<?> subdomains) || subdomains.isEmpty()) {
+        Object subdomain = values.get(RuleValues.SUBDOMAIN);
+        if (subdomain == null) {
             throw new IllegalArgumentException("The rule " + id + " names no subdomain");
         }
-        for (Object subdomain : subdomains) {
-            if (!ID_PATTERN.matcher(subdomain.toString()).matches()) {
-                throw new IllegalArgumentException("The rule " + id + " names the subdomain " + subdomain
-                        + ", which is not an id");
-            }
+        if (!ID_PATTERN.matcher(subdomain.toString()).matches()) {
+            throw new IllegalArgumentException("The rule " + id + " names the subdomain " + subdomain
+                    + ", which is not one id");
         }
         for (Object site : (List<?>) values.get(RuleValues.SITES)) {
             if (!SITE.matcher(site.toString()).matches()) {

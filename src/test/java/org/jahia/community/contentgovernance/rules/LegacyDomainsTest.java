@@ -4,24 +4,22 @@ import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRPropertyWrapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.InOrder;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
+import javax.jcr.Value;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.HexFormat;
-import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -61,38 +59,46 @@ class LegacyDomainsTest {
     }
 
     @Test
-    @DisplayName("the node declares any property for the removal of domain only, as the repository refuses an undeclared one")
-    void removeDomain_holdsTheResidualMixinForTheRemovalOnly() throws RepositoryException {
+    @DisplayName("the removal takes the property off a node that holds it, and leaves a node without it as it is")
+    void remove_takesThePropertyOff() throws RepositoryException {
         Node node = mock(Node.class);
         Property domain = mock(Property.class);
+        when(node.hasProperty(LegacyDomains.DOMAIN)).thenReturn(true);
         when(node.getProperty(LegacyDomains.DOMAIN)).thenReturn(domain);
 
-        LegacyDomains.removeDomain(node);
+        LegacyDomains.remove(node, LegacyDomains.DOMAIN);
 
-        InOrder order = inOrder(node, domain);
-        order.verify(node).addMixin(LegacyDomains.UNSTRUCTURED);
-        order.verify(domain).remove();
-        order.verify(node).removeMixin(LegacyDomains.UNSTRUCTURED);
+        verify(domain).remove();
 
-        Node unstructured = mock(Node.class);
-        when(unstructured.isNodeType(LegacyDomains.UNSTRUCTURED)).thenReturn(true);
-        when(unstructured.getProperty(LegacyDomains.DOMAIN)).thenReturn(domain);
-        LegacyDomains.removeDomain(unstructured);
-        verify(unstructured, never()).removeMixin(LegacyDomains.UNSTRUCTURED);
+        // A node without the property is left as it is
+        Node without = mock(Node.class);
+        LegacyDomains.remove(without, LegacyDomains.SUBDOMAINS);
+        verify(without, never()).getProperty(anyString());
     }
 
     @Test
-    @DisplayName("a shipped rule takes its shipped subdomains, a rule of the site takes its domain, and compliance becomes terms")
-    void subdomainsOf_followTheShippedRule() {
-        assertThat(LegacyDomains.subdomainsOf("geo.fetched", "geo")).containsExactly("geo.crawlers");
-        assertThat(LegacyDomains.subdomainsOf("seo.title", "seo")).containsExactly("seo", "geo.score");
-        assertThat(LegacyDomains.subdomainsOf("compliance.example-term", "compliance")).containsExactly(ContentRules.TERMS);
-        assertThat(LegacyDomains.subdomainsOf("writing.tone", "writing")).containsExactly("writing");
-        assertThat(LegacyDomains.subdomainsOf("glossary.access-token", "glossary")).isEqualTo(List.of("glossary"));
+    @DisplayName("a shipped rule takes its shipped subdomain, and a rule of the site keeps the stored one")
+    void subdomainOf_followsTheShippedRule() {
+        assertThat(LegacyDomains.subdomainOf("geo.fetched", "geo")).isEqualTo("geo.crawlers");
+        assertThat(LegacyDomains.subdomainOf("seo.title", "seo")).isEqualTo("seo");
+        assertThat(LegacyDomains.subdomainOf("seo.title", "geo.score")).as("the file wins over a stored subdomain")
+                .isEqualTo("seo");
+        assertThat(LegacyDomains.subdomainOf("writing.tone", "writing")).isEqualTo("writing");
+        assertThat(LegacyDomains.subdomainOf("glossary.access-token", "glossary")).isEqualTo("glossary");
+        assertThat(LegacyDomains.subdomainOf("brand.tone", null)).isNull();
     }
 
     @Test
-    @DisplayName("a node of 1.x that nobody changed takes the subdomains of its file, loses domain, and keeps a fingerprint of nobody changed it")
+    @DisplayName("the keys of the fingerprint of a 2.0.0 snapshot are the keys of now, with subdomains in the place of subdomain")
+    void keys2_holdSubdomainsWhereSubdomainIsNow() {
+        int place = RuleValues.KEYS.indexOf(RuleValues.SUBDOMAIN);
+
+        assertThat(LegacyDomains.KEYS_2).hasSameSizeAs(RuleValues.KEYS).doesNotContain(RuleValues.SUBDOMAIN);
+        assertThat(LegacyDomains.KEYS_2.get(place)).isEqualTo(LegacyDomains.SUBDOMAINS);
+    }
+
+    @Test
+    @DisplayName("a node of 1.x that nobody changed takes the subdomain of its file, loses domain, and keeps a fingerprint of nobody changed it")
     void convert_movesTheDomainOfAnUnchangedNode() throws RepositoryException {
         Map<String, Object> values = Map.of(RuleValues.RULE_ID, "geo.fetched", RuleValues.EVALUATOR, "geo.fetched",
                 RuleValues.SEVERITY, "serious");
@@ -103,10 +109,10 @@ class LegacyDomainsTest {
 
         LegacyDomains.convert(node, node.getRealNode());
 
-        verify(node).setProperty(RuleValues.SUBDOMAINS, new String[]{"geo.crawlers"});
+        verify(node).setProperty(RuleValues.SUBDOMAIN, "geo.crawlers");
         verify(domain).remove();
         Map<String, Object> after = new HashMap<>(values);
-        after.put(RuleValues.SUBDOMAINS, List.of("geo.crawlers"));
+        after.put(RuleValues.SUBDOMAIN, "geo.crawlers");
         verify(node).setProperty(RuleNodes.SEED_DIGEST, RuleValues.digest(after));
     }
 
@@ -132,7 +138,7 @@ class LegacyDomainsTest {
         LegacyDomains.convert(node, node.getRealNode());
 
         Map<String, Object> after = new HashMap<>(values);
-        after.put(RuleValues.SUBDOMAINS, List.of("accessibility"));
+        after.put(RuleValues.SUBDOMAIN, "accessibility");
         verify(node).setProperty(RuleNodes.SEED_DIGEST, RuleValues.digest(after));
     }
 
@@ -145,22 +151,104 @@ class LegacyDomainsTest {
 
         LegacyDomains.convert(node, node.getRealNode());
 
-        verify(node).setProperty(RuleValues.SUBDOMAINS, new String[]{"writing"});
+        verify(node).setProperty(RuleValues.SUBDOMAIN, "writing");
         verify(domain).remove();
         verify(node, never()).setProperty(eq(RuleNodes.SEED_DIGEST), anyString());
     }
 
-    /** A rule node with text values and the fingerprint that a seeder kept on it. */
+    @Test
+    @DisplayName("a node of 1.x in the domain compliance, which is no subdomain, goes to terms")
+    void convert_renamesCompliance() throws RepositoryException {
+        JCRNodeWrapper node = ruleNode(Map.of(RuleValues.RULE_ID, "compliance.click-here", RuleValues.EVALUATOR, "pattern"),
+                "changed by the site");
+        domainOf(node, "compliance");
+
+        LegacyDomains.convert(node, node.getRealNode());
+
+        verify(node).setProperty(RuleValues.SUBDOMAIN, ContentRules.TERMS);
+    }
+
+    @Test
+    @DisplayName("a node of a 2.0.0 snapshot that nobody changed takes the subdomain of its file, loses subdomains, and keeps a fingerprint of nobody changed it")
+    void convert_givesOneSubdomainToAnUnchangedNodeOfASnapshot() throws RepositoryException, NoSuchAlgorithmException {
+        // RuleValues.digest of 2.0.0-SNAPSHOT: subdomains as a list, each item followed by the unit separator U+001F.
+        String seeded = sha256("""
+                ruleId=seo.title
+                evaluator=threshold
+                enabled=true
+                severity=serious
+                blocking=false
+                fixer=editor
+                unit=characters
+                minimum=30
+                maximum=60
+                subdomains=seo\037geo.score\037
+                sites=*\037
+                """);
+        JCRNodeWrapper node = ruleNode(TITLE, seeded);
+        Property subdomains = subdomainsOf(node, "seo", "geo.score");
+
+        LegacyDomains.convert(node, node.getRealNode());
+
+        verify(node).setProperty(RuleValues.SUBDOMAIN, "seo");
+        verify(subdomains).remove();
+        Map<String, Object> after = new HashMap<>(TITLE);
+        after.put(RuleValues.SUBDOMAIN, "seo");
+        verify(node).setProperty(RuleNodes.SEED_DIGEST, RuleValues.digest(after));
+    }
+
+    @Test
+    @DisplayName("a node of a 2.0.0 snapshot that the site changed takes its first subdomain, loses subdomains, and keeps its fingerprint")
+    void convert_givesTheFirstSubdomainToAChangedNodeOfASnapshot() throws RepositoryException {
+        JCRNodeWrapper node = ruleNode(Map.of(RuleValues.RULE_ID, "brand.tone", RuleValues.EVALUATOR, "model",
+                RuleValues.SEVERITY, "minor"), "changed by the site");
+        Property subdomains = subdomainsOf(node, "tone", "writing");
+
+        LegacyDomains.convert(node, node.getRealNode());
+
+        verify(node).setProperty(RuleValues.SUBDOMAIN, "tone");
+        verify(subdomains).remove();
+        verify(node, never()).setProperty(eq(RuleNodes.SEED_DIGEST), anyString());
+    }
+
+    @Test
+    @DisplayName("a node of a 2.0.0 snapshot with no subdomain loses subdomains and gets none, and a node that names a subdomain keeps it")
+    void convert_keepsTheSubdomainThatANodeNames() throws RepositoryException {
+        JCRNodeWrapper empty = ruleNode(Map.of(RuleValues.RULE_ID, "brand.tone", RuleValues.EVALUATOR, "model"), null);
+        Property none = subdomainsOf(empty);
+
+        LegacyDomains.convert(empty, empty.getRealNode());
+
+        verify(none).remove();
+        verify(empty, never()).setProperty(eq(RuleValues.SUBDOMAIN), anyString());
+
+        JCRNodeWrapper named = ruleNode(Map.of(RuleValues.RULE_ID, "brand.voice", RuleValues.EVALUATOR, "model",
+                RuleValues.SUBDOMAIN, "writing"), null);
+        Property both = subdomainsOf(named, "tone");
+
+        LegacyDomains.convert(named, named.getRealNode());
+
+        verify(both).remove();
+        verify(named, never()).setProperty(eq(RuleValues.SUBDOMAIN), anyString());
+    }
+
+    /** A rule node outside the tree with text values, and the fingerprint that a seeder kept on it, or none. */
     private static JCRNodeWrapper ruleNode(Map<String, Object> values, String seedDigest) throws RepositoryException {
         JCRNodeWrapper node = mock(JCRNodeWrapper.class);
         Map<String, Object> properties = new HashMap<>(values);
-        properties.put(RuleNodes.SEED_DIGEST, seedDigest);
+        if (seedDigest != null) {
+            properties.put(RuleNodes.SEED_DIGEST, seedDigest);
+        }
         for (Map.Entry<String, Object> entry : properties.entrySet()) {
             JCRPropertyWrapper property = mock(JCRPropertyWrapper.class);
             when(property.getString()).thenReturn(entry.getValue().toString());
+            if (entry.getValue() instanceof Double number) {
+                when(property.getDouble()).thenReturn(number);
+            }
             when(node.hasProperty(entry.getKey())).thenReturn(true);
             when(node.getProperty(entry.getKey())).thenReturn(property);
         }
+        when(node.getParent()).thenReturn(mock(JCRNodeWrapper.class));
         Node real = mock(Node.class);
         NodeIterator noTranslation = mock(NodeIterator.class);
         when(real.getNodes("j:translation_*")).thenReturn(noTranslation);
@@ -176,5 +264,20 @@ class LegacyDomainsTest {
         when(real.hasProperty(LegacyDomains.DOMAIN)).thenReturn(true);
         when(real.getProperty(LegacyDomains.DOMAIN)).thenReturn(domain);
         return domain;
+    }
+
+    /** The property subdomains of a 2.0.0 snapshot, which only the node of the repository shows. */
+    private static Property subdomainsOf(JCRNodeWrapper node, String... ids) throws RepositoryException {
+        Value[] items = new Value[ids.length];
+        for (int i = 0; i < ids.length; i++) {
+            items[i] = mock(Value.class);
+            when(items[i].getString()).thenReturn(ids[i]);
+        }
+        Property subdomains = mock(Property.class);
+        when(subdomains.getValues()).thenReturn(items);
+        Node real = node.getRealNode();
+        when(real.hasProperty(LegacyDomains.SUBDOMAINS)).thenReturn(true);
+        when(real.getProperty(LegacyDomains.SUBDOMAINS)).thenReturn(subdomains);
+        return subdomains;
     }
 }

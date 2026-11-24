@@ -3,7 +3,7 @@ id: ecodesign.heavyAssets
 evaluator: ecodesign.heavyAssets
 checkType: CODE
 runtime: browser
-subdomains: [ecodesign]
+subdomain: ecodesign
 severity: moderate
 fixer: developer
 unit: kilobytes

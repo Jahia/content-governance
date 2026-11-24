@@ -8,9 +8,12 @@ import graphql.schema.DataFetchingEnvironment;
 import org.jahia.community.contentgovernance.audit.graphql.AuditFields;
 import org.jahia.community.contentgovernance.audit.graphql.GqlAuditRun;
 import org.jahia.community.contentgovernance.audit.service.spi.AuditHistoryService;
+import org.jahia.community.contentgovernance.rules.SiteLayout;
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
 import org.jahia.modules.graphql.provider.dxm.DataFetchingException;
 import org.jahia.modules.graphql.provider.dxm.osgi.annotations.GraphQLOsgiService;
+import org.jahia.services.content.JCRSessionFactory;
+import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.content.decorator.JCRSiteNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +31,7 @@ import java.util.List;
 public class GqlContentGovernanceMutation {
 
     private static final Logger logger = LoggerFactory.getLogger(GqlContentGovernanceMutation.class);
+    private static final String SYSTEM_SITE = "systemsite";
 
     // graphql-java-annotations injects OSGi services into fields only (@GraphQLOsgiService)
     @SuppressWarnings("java:S6813")
@@ -60,6 +64,64 @@ public class GqlContentGovernanceMutation {
         } catch (RepositoryException e) {
             logger.warn("could not save the content governance settings of {}: {}", siteKey, e.toString());
             throw new DataFetchingException("The settings could not be saved");
+        }
+    }
+
+    /**
+     * Saves how a site arranges the domains, the subdomains and the rules of the system site. The write goes
+     * through the session of the caller, under {@code contents} of the site.
+     *
+     * @param siteKey key of the site, other than {@code systemsite}
+     * @param layout  the JSON of the layout
+     * @return the layout as stored
+     */
+    @GraphQLField
+    @GraphQLName("saveSiteLayout")
+    @GraphQLNonNull
+    @GraphQLDescription("Saves the layout of a site: the order and the place of its domains, subdomains and rules, and what it switches off")
+    public GqlSiteLayout saveSiteLayout(
+            @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey,
+            @GraphQLName("layout") @GraphQLNonNull @GraphQLDescription("The JSON of the layout, {domains: [{id, subdomains: [{id, rules: [id]}]}], off: [id]}") String layout) {
+        SiteLayout parsed;
+        try {
+            parsed = SiteLayout.parse(layout);
+        } catch (IllegalArgumentException e) {
+            throw new DataFetchingException(e.getMessage());
+        }
+        return writeLayout(siteKey, parsed);
+    }
+
+    /**
+     * Removes the layout of a site, which then keeps the layout of the system site.
+     *
+     * @param siteKey key of the site, other than {@code systemsite}
+     * @return the layout of the site, not saved
+     */
+    @GraphQLField
+    @GraphQLName("resetSiteLayout")
+    @GraphQLNonNull
+    @GraphQLDescription("Removes the layout of a site, which then keeps the layout of the system site")
+    public GqlSiteLayout resetSiteLayout(
+            @GraphQLName("siteKey") @GraphQLNonNull @GraphQLDescription("Key of the site") String siteKey) {
+        return writeLayout(siteKey, SiteLayout.NONE);
+    }
+
+    private static GqlSiteLayout writeLayout(String siteKey, SiteLayout layout) {
+        JCRSiteNode site = SiteAccess.site(siteKey);
+        if (SYSTEM_SITE.equals(siteKey)) {
+            throw new DataFetchingException("The system site holds the tree itself, and has no layout");
+        }
+        if (!site.hasPermission(SiteFeatures.SETTINGS_PERMISSION) || !SiteFeatures.moduleEnabled(site)) {
+            throw new DataFetchingException(SiteAccess.DENIED);
+        }
+        try {
+            JCRSessionWrapper session = JCRSessionFactory.getInstance().getCurrentUserSession("default");
+            SiteLayout.write(session, site.getPath(), layout);
+            session.save();
+            return new GqlSiteLayout(layout);
+        } catch (RepositoryException e) {
+            logger.warn("could not save the layout of {}: {}", siteKey, e.toString());
+            throw new DataFetchingException("The layout could not be saved");
         }
     }
 

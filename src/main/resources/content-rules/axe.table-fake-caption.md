@@ -4,7 +4,7 @@ evaluator: axe
 checkType: CODE
 runtime: browser
 enabled: false
-subdomains: [accessibility]
+subdomain: accessibility
 severity: serious
 fixer: developer
 ---

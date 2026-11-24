@@ -3,7 +3,7 @@ id: ecodesign.lazyLoading
 evaluator: ecodesign.lazyLoading
 checkType: CODE
 runtime: browser
-subdomains: [ecodesign]
+subdomain: ecodesign
 severity: moderate
 fixer: developer
 label:

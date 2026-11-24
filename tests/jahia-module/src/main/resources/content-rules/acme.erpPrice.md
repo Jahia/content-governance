@@ -2,7 +2,7 @@
 id: acme.erpPrice
 evaluator: acme.erpPrice
 checkType: CODE
-subdomains: [writing]
+subdomain: writing
 severity: serious
 fixer: editor
 label:

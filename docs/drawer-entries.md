@@ -401,7 +401,7 @@ the rule as active. The file of the rule of the example is `acme.brandContrast.m
 id: acme.brandContrast
 evaluator: acme.contrast
 runtime: browser
-subdomains: [accessibility]
+subdomain: accessibility
 severity: serious
 label:
   en: "Contrast of the brand colors"

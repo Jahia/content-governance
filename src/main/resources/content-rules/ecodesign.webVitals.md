@@ -3,7 +3,7 @@ id: ecodesign.webVitals
 evaluator: webVitals
 checkType: CODE
 runtime: browser
-subdomains: [ecodesign]
+subdomain: ecodesign
 severity: minor
 fixer: developer
 label:

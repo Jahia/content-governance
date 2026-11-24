@@ -3,7 +3,7 @@ id: axe.meta-viewport-large
 evaluator: axe
 checkType: CODE
 runtime: browser
-subdomains: [accessibility]
+subdomain: accessibility
 severity: minor
 fixer: developer
 ---

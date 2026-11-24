@@ -1,8 +1,12 @@
 # The catalog of content rules
 
 The checks of Page quality, of GEO readiness and of the editorial frame apply content rules. Each
-rule is a content node of the site, with one id and one value. Example: the rule `seo.title` accepts
-a title of 30 to 60 characters. The SEO tab and the GEO tab both report a title under this rule.
+rule is a content node with one id and one value. Example: the rule `seo.title` accepts a title of 30
+to 60 characters. The SEO tab reports a title under this rule, and the GEO score counts it.
+
+The rules that the modules ship live once, in a tree of the system site that every site reads. Each
+site arranges this tree with its own layout: the order of the tabs, the place of each rule, and what
+the site switches off.
 
 ## What a rule holds
 
@@ -14,11 +18,11 @@ properties. jContent shows a label for each property, such as **Check** for `eva
 | `ruleId` | The name of the rule, such as `seo.title`. Each finding of the rule shows it. One rule of a site has it. |
 | `checkType` | The check type of the rule: `PATTERN`, `AI` or `CODE`. jContent labels it **Check type**. It picks the fields of the rule, as the section [The fields of each check type](#the-fields-of-each-check-type) shows. |
 | `evaluator` | The check of the rule. jContent labels it **Check**. The table under this one lists the values. |
-| `subdomains` | The ids of the subdomains of the rule, such as `seo` and `geo.score`. The findings of the rule show in each. [Domains and subdomains](#domains-and-subdomains) lists them. A rule with no subdomain takes the subdomain of the part of its id before the first dot, when a module declares it. Else a rule of the evaluator `pattern` takes `terms`. A rule whose subdomains nobody declares never runs. |
-| `sites` | The keys of the sites that the rule applies to, or `*` for all sites, the default. jContent shows `*` as "All sites". |
+| `subdomain` | The id of the subdomain of a rule outside the tree, such as `writing`. The findings of the rule show in it. [Domains and subdomains](#domains-and-subdomains) lists the subdomains. A rule of the tree takes the subdomain of its parent node, and has no value here. A rule with no subdomain takes the subdomain of the part of its id before the first dot, when a module declares it. Else a rule of the evaluator `pattern` takes `terms`. A rule whose subdomain nobody declares never runs. |
+| `sites` | The keys of the sites where the rule is on by default, or `*` for all sites, the default. jContent shows `*` as "All sites". The layout of a site wins over it. |
 | `severity` | `critical`, `serious`, `moderate` or `minor`. |
 | `blocking` | A finding of a blocking rule stops the publication of the content. |
-| `enabled` | On or off. A rule that is off reports nothing. |
+| `enabled` | On or off by default. A rule that is off reports nothing, on each site whose layout does not place it: the layout of a site wins over this switch. |
 | `fixer` | The role of the person who fixes a finding: `editor`, `developer` or `administrator`. Example: `geo.reachable`, a crawler that gets a 403, names an administrator. |
 | `title` | The title of a finding, one text per language, with one line per plural form, such as `one: {{count}} image has no text alternative` and `other: {{count}} images have no text alternative`. It takes the values `{{count}}` (the findings of the rule), `{{value}}` (what the first finding measured or matched), `{{min}}` and `{{max}}`. |
 | `label` | A neutral name of what the rule checks, one text per language, such as "Title length". GEO readiness shows it on each check. |
@@ -29,7 +33,7 @@ properties. jContent shows a label for each property, such as **Check** for `eva
 | `patternLanguage` | For a glossary term to translate, the language of the term, such as `en` for "access token" in a rule of `fr`. `frame.check` on a translation then reports a missing replacement. |
 | `wrongExamples`, `rightExamples`, `owner`, `decidedOn`, `validFrom`, `validUntil` | The examples, the decision and the dates of a writing rule. |
 | `runtime` | Where the check of the rule runs: `browser` for a check that the drawer runs on the preview of the page, else `server`. Empty: `server`. The server never runs a rule of the browser, never blocks a publication on it, and shows it as active. |
-| `retired` | Set by the module on a rule that the site changed and that its module no longer ships. |
+| `retired` | Set by the module on a rule that an administrator changed and that its module no longer ships. |
 
 | Check (`evaluator`) | Check type | What checks the rule |
 |---|---|---|
@@ -70,17 +74,21 @@ compare the two: a rule of the check type `PATTERN` that names the check `model`
 ## Where the rules live
 
 ```text
-contents/content-insights/
-    content-governance/rules/     the rules of this module
-        seo.title                 ruleId, evaluator, subdomains, sites, severity, minimum, maximum, advice...
+/sites/systemsite/contents/content-governance/    the tree, which every site reads
+    quality/                                      a domain
+        health/                                   a subdomain of the domain
+            health.placeholderText                a rule of the subdomain
         ...
-    <module>/rules/               the rules of another module
-    site/rules/                   the rules that the site adds
+    geo/
+        seo/
+            seo.title                             ruleId, evaluator, sites, severity, minimum, maximum, advice...
+/sites/<site>/contents/content-governance/        the layout of the site, in the property layout
+    ai-assistant/rules/, ai-assistant/glossary/   the rules that the site adds, with ai-assistant
 ```
 
-The checks read every `ccs:contentRule` node under the site, wherever it is. The folders above are
-where the module writes, and where a site keeps its own rules. Another module can write rules
-elsewhere, such as the writing rules that the frame import of ai-assistant writes.
+The checks read the rule nodes of the system site and of the site, wherever they are. A rule node of
+the tree takes the subdomain of its parent node. A rule node elsewhere names its subdomain in the
+property `subdomain`, such as the writing rules that the frame import of ai-assistant writes.
 
 ## How a module ships rules
 
@@ -96,7 +104,7 @@ of that folder is one rule. This module ships its rules in `src/main/resources/c
 id: seo.title
 evaluator: threshold
 checkType: CODE
-subdomains: [seo, geo.score]
+subdomain: seo
 severity: serious
 fixer: editor
 unit: characters
@@ -106,15 +114,16 @@ maximum: 60
 Give the page a title, with the main subject first, inside the length range.
 ```
 
-The frontmatter holds the properties of the node, with `id` for `ruleId`, and a list for
-`subdomains` and `sites`, such as `subdomains: [seo, geo.score]`. The body is the advice in
-English. The module skips a file with a warning in the log when the file has one of these defects:
+The frontmatter holds the properties of the node, with `id` for `ruleId`, one id for `subdomain`,
+and a list for `sites`. The body is the advice in English. The module skips a file with a warning
+in the log when the file has one of these defects:
 
-- An unknown key. The key `domain` of a version before 2.0.0 is an unknown key.
+- An unknown key. The key `domain` and the key `subdomains` of a snapshot before 2.0.0 are unknown
+  keys.
 - No evaluator, or an unknown severity.
 - No check type, or a key of another check type. Example: a file of the check type `CODE` with a
   `pattern`.
-- No subdomain, or a subdomain that no started module declares.
+- No subdomain, a list of subdomains, or a subdomain that no started module declares.
 
 The texts of a rule take a map of languages. The drawer shows them in the language of the
 interface of the editor, and in English when the rule has none in that language:
@@ -134,64 +143,79 @@ advice:
   fr: "Donnez à chaque image un attribut alt : une description, ou une valeur vide pour une image décorative."
 ```
 
-The module writes only the English texts on the node. A site translates a text on the node, and its
-translation replaces the one of the file in that language.
+The module writes only the English texts on the node. An administrator translates a text on the
+node, and this translation replaces the one of the file in that language.
 
-The module copies the rules of a module into each site that enables content-governance and installs
-that module, under `contents/content-insights/<module>/rules`. The copy runs when a site installs a
-module, when a module that ships rules starts, and for every site when content-governance starts.
+The module writes the rules of each module once, in the tree of the system site, under the node of
+their subdomain. The seeder runs on the processing server when a module that ships rules starts. A
+rule of a subdomain that the tree does not hold yet waits. The seeder writes it when the module that
+declares the subdomain starts.
 
-## How a site changes a rule
+## How an administrator changes a rule
 
-Open the node of the rule in jContent, under **Content folders > content-insights > content-governance
-> rules**, and change a property. Example: a site sets the minimum of `seo.title` to 40. At the next
-run, the SEO tab and the GEO tab report a title of 35 characters under `seo.title`, with the range 40
-to 60.
+Open the node of the rule in jContent, on the system site, under **Content folders >
+content-governance**, and change a property. The change applies to every site. Example: an
+administrator sets the minimum of `seo.title` to 40. At the next run, the SEO tab of every site
+reports a title of 35 characters under `seo.title`, with the range 40 to 60.
 
 The change applies at the next check, with no publication, because the checks read the edit
 workspace. A property that the node lacks keeps the value that the module ships.
 
-A node that a site deletes comes back with its shipped values when the module starts again. Delete a
-node to reset its rule, and turn a rule off to stop it.
+To move a rule to another subdomain for every site, move its node under the node of that subdomain.
+A node that an administrator deletes comes back with its shipped values when the module starts
+again. Delete a node to reset its rule. Turn a rule off to stop it on every site that has no layout,
+or whose layout does not name it. A site whose layout places the rule keeps it on, because the layout
+of a site wins over the default switch.
+
+A site cannot change the values of a rule. It arranges the rules and switches them on or off, as
+[The layout of a site](#the-layout-of-a-site) states. A rule node of the site with the id of a rule of
+the tree, or of a rule that a module ships, changes nothing.
 
 ## How a site adds a rule
 
-Create a **Content rule** in jContent, under **Content folders > content-insights > site > rules**.
-Give it a rule id, a check type, a check, a severity and an advice. For example, the rule `acme.tone`
-has the check type **AI**, the check `model`, the severity `minor` and the advice "Write in a
-friendly tone."
+Create a **Content rule** in jContent, under **Content folders > content-governance >
+ai-assistant > rules** of the site. Give it a rule id, a check type, a check, a severity, an advice
+and a subdomain. For example, the rule `acme.tone` has the check type **AI**, the check `model` and
+the severity `minor`. Its subdomain is `writing`, and its advice is "Write in a friendly tone."
 
-The id is free, but give the rule a subdomain, such as `writing` for `acme.tone`, so that its
-findings have a tab. A term with no subdomain, such as `brand.seamless`, takes `terms`. jContent refuses a
-rule whose id another rule of the site already has: "The rule seo.title already exists at
-/sites/...".
+The id is free. Name an existing subdomain, such as `writing` for `acme.tone`, so that the findings
+of the rule have a tab. A term with no subdomain, such as `brand.seamless`, takes `terms`. A site
+cannot add a domain or a subdomain. jContent refuses a rule whose id another rule of the site already
+has: "The rule acme.tone already exists at /sites/...". It also refuses the id of a rule of the system
+site, such as `seo.title`. A site does not change the values of a rule.
 
 ## How a new version of a module updates the rules
 
 Each node that the module writes keeps a fingerprint of the values it wrote, in the hidden property
-`seedDigest`. A node whose values still match the fingerprint is a node that nobody changed.
+`seedDigest`. The fingerprint holds the subdomain of a rule and the domain of a subdomain. A node
+whose values and place still match the fingerprint is a node that nobody changed.
 [content-governance#79](https://github.com/Jahia/content-governance/issues/79) decided this rule.
 
-| The rule in the new version | Nobody changed the node | The site changed the node |
+| The rule in the new version | Nobody changed the node | An administrator changed or moved the node |
 |---|---|---|
 | New | The module adds it. | The module adds it. |
 | Changed | The node takes the new values. | The node keeps its values, and gets the properties it lacks. |
+| Moved to another subdomain | The node takes the new values, and moves under the new subdomain. | The node keeps its values and its place. |
 | Moved to the browser | The node takes the new values. | The node keeps its values, gets the properties it lacks, and takes the check of the new version. |
 | Gone | The module removes the node. | The node stays, with `retired` set. |
 
 Example: version 2.0 moves `ecodesign.pageWeight` to the browser, with the evaluator
-`ecodesign.pageWeight`. A site that raised its maximum keeps its maximum, and its evaluator
-`threshold`, which no check of the browser has, becomes `ecodesign.pageWeight`.
+`ecodesign.pageWeight`. An administrator who raised its maximum keeps this maximum, and the
+evaluator `threshold`, which no check of the browser has, becomes `ecodesign.pageWeight`.
 
-A module that stops keeps its rule nodes on the sites. A check that the module registered goes with
-it, so its rules show as inactive until the module starts again.
+The domains and the subdomains follow the same rule. A domain or a subdomain that its module no
+longer ships stays, with `retired` set, while it holds another node.
+
+A module that stops keeps its nodes in the tree. A check that the module registered goes with it,
+so its rules show as inactive until the module starts again.
 
 ## The upgrade from an earlier version
 
 Content-governance converts the rules of an earlier version once, when it starts:
 
 - The folder `contents/content-insights/jahia` becomes `contents/content-insights/content-governance`.
-  A rule that the site changed keeps its values and gets its evaluator and its advice.
+  Its seeded rules then go with the other copies of the site, as the steps of version 2.0.0 below
+  state.
 - Each `efnt:writingRule` of the editorial frame becomes a `ccs:contentRule` in place, in the edit
   and the live workspace, with the same identifier. Its id is `writing.<node name>`, its subdomain is
   `writing`, and its evaluator is `pattern`. The severity `warning` becomes `moderate`, and
@@ -199,21 +223,35 @@ Content-governance converts the rules of an earlier version once, when it starts
   stays a soft rule. The justification of each language becomes the advice of that language. Every
   other value stays.
 
-Version 2.0.0 replaces the property `domain` of a rule with `subdomains`. When content-governance
-starts on the processing server, before it writes the rules:
+Version 2.0.0 gives each rule one subdomain, in the property `subdomain`. A snapshot before 2.0.0
+held a domain in the property `domain`, or several subdomains in the property `subdomains`. When
+content-governance starts on the processing server, before it writes the rules:
 
-- A rule that the module ships takes the subdomains of its file. Example: `geo.fetched` held
-  `domain: geo`, and takes `subdomains: [geo.crawlers]`.
-- Another rule takes its domain as its subdomain, and `compliance` becomes `terms`. When no module
-  declares that subdomain, such as `geo` for a rule that a site wrote, the rule shows with its
-  unknown subdomain: an administrator picks one of the declared subdomains on the rule node.
-- The property `domain` goes.
-- A rule that nobody changed keeps a fingerprint that says so, and then takes the new values of its
-  file.
+- A rule that the module ships takes the subdomain of its file. Example: `geo.fetched` held
+  `domain: geo`, and takes `subdomain: geo.crawlers`. `seo.title` held `subdomains: [seo, geo.score]`,
+  and takes `subdomain: seo`.
+- Another rule takes its first subdomain, or its domain, and `compliance` becomes `terms`. When no
+  module declares that subdomain, such as `geo` for a rule that a site wrote, the rule shows with its
+  unknown subdomain. An administrator then picks one of the declared subdomains on the rule node.
+- The properties `domain` and `subdomains` go.
+- A rule that nobody changed keeps a fingerprint that says so.
+
+Version 2.0.0 also writes the rules once, in the tree of the system site, and no longer in each
+site. When content-governance starts on the processing server, after it converts the subdomains:
+
+- It removes the copies of the shipped rules in each site, under
+  `contents/content-insights/<module>/rules`. The log names the values of a copy that the site
+  changed, because a site no longer changes the values of a rule. A rule that the site wrote there
+  stays, and so do the rules of `contents/content-insights/site/rules`.
+- It removes the folders `contents/content-insights/<module>/domains` and `subdomains` of the system
+  site, and every domain or subdomain node that a site wrote. The log names the values of each node.
+  A domain or a subdomain node that holds other nodes, such as rules, stays, and the log names
+  it. The seeder then writes the tree.
+- It removes each folder that holds nothing more.
 
 Version 2.0.0 also moves the fields of each check type from `ccs:contentRule` to the mixin of that
 type, and adds `checkType`. When content-governance starts on the processing server, before it
-converts the domains:
+converts the subdomains:
 
 - A rule with no `checkType` takes the check type of its check. The check `pattern` or no check gives
   `PATTERN`, `model` gives `AI`, and any other check gives `CODE`. Example: `seo.title`, of the
@@ -223,19 +261,20 @@ converts the domains:
 - A rule that nobody changed keeps a fingerprint that says so.
 
 No release before 2.0.0 holds the type `ccs:contentRule`, so a 1.x instance needs nothing. An
-instance that runs a 1.12.0-SNAPSHOT build refuses the new definition, because it removes `domain`
-and moves the fields of each check type. On such an instance, install 2.0.0 once with
-`ignoreChecks: true` on the `installOrUpgradeBundle` entry of the provisioning.
+instance that runs a 2.0.0 snapshot refuses the new definition, which removes the property
+`subdomains` of a rule. It also removes the properties `domain` and `order` of a subdomain. On such an instance, install 2.0.0
+once with `ignoreChecks: true` on the `installOrUpgradeBundle` entry of the provisioning.
 
 ## Domains and subdomains
 
 The drawer shows the findings in a hierarchy: drawer › panel › domain › subdomain › rule. A panel is
 a screen of the drawer, such as the governance panel. A domain is a main tab of a panel, such as Page
-quality, and a subdomain is a tab of a domain, such as SEO. A rule names its subdomains, and a
-subdomain names its domain.
+quality, and a subdomain is a tab of a domain, such as SEO. Each rule belongs to one subdomain.
 
-Example: an administrator changes the domain of the subdomain `seo` from `geo` to `quality`. The SEO
-tab then moves with all its rules, and no rule changes.
+In the tree of the system site, a domain node holds its subdomain nodes, and a subdomain node holds
+its rule nodes. The order of the child nodes is the order of the tabs. Example: an administrator
+moves the node of the subdomain `seo` under the domain `quality`. The SEO tab then moves with all its
+rules on every site, and no rule changes.
 
 Content-governance ships this layout:
 
@@ -245,8 +284,9 @@ Content-governance ships this layout:
 | `geo` SEO & GEO | `geo.citations` AI citations, `seo` SEO, `geo.score` Score, `geo.content` Content, `geo.files` Site files, `geo.schema` Structured data, `geo.crawlers` Crawler access |
 | `compliance` Compliance | `readability` Readability, `terms` Terms, `glossary` Glossary, `writing` Writing |
 
-A rule can name several subdomains. Example: `seo.title` names `seo` and `geo.score`, because the
-GEO score counts it.
+The GEO score counts rules of other subdomains. The subdomain `geo.score` names them in `counts`, for
+a screen that lists them. Example: `seo.title` belongs to `seo`, and the GEO score counts it. The GEO
+score keeps its own list in its code, so a change of `counts` does not change the score.
 
 ### What a domain and a subdomain hold
 
@@ -255,12 +295,11 @@ A domain is a node of type `ccs:contentDomain`, and a subdomain a node of type
 
 | Property | What it means |
 |---|---|
-| `domainId`, `subdomainId` | The id, such as `quality` or `seo`. The ids are flat and unique. A module prefixes its own, such as `acme.prices`. |
-| `domain` | The id of the domain of a subdomain. |
+| `domainId`, `subdomainId` | The id, such as `quality` or `seo`. The ids are flat and unique. A module prefixes its own, such as `acme.prices`. The name of the node is the id. |
 | `panel` | The panel of a domain: `governance`, the default, or a panel of another module. |
-| `order` | The place among its siblings. A lower order comes first. |
-| `sites` | The keys of the sites that it applies to, or `*` for all sites, the default. |
+| `sites` | The keys of the sites where it is on by default, or `*` for all sites, the default. The layout of a site wins over it. |
 | `label`, `help` | The name of the tab and what it checks, one text per language. |
+| `counts` | The ids of the rules of other subdomains that a subdomain counts, such as the rules of the GEO score. |
 | `retired` | Set by the module on a node that an administrator changed and that its module no longer ships. |
 
 ### How a module ships domains and subdomains
@@ -282,44 +321,73 @@ help:
 The prices that the ERP gives.
 ```
 
-A subdomain names a domain, and a rule names subdomains, that the same module, content-governance or
+The key `domain` names the domain of a subdomain. The key `order` places a new node among the nodes
+that the modules ship: a lower order comes first. The seeder reads `order` only when it adds the
+node, and an administrator can move the node afterwards.
+
+A subdomain names a domain, and a rule names a subdomain, that the same module, content-governance or
 another started module declares. Another file is skipped with a warning in the log.
 When another module starts and declares domains or subdomains, content-governance reads the skipped
 files again. Example: a rule of `acme-rules` names the subdomain `acme.prices` of `acme-subdomains`.
 The rule applies once `acme-subdomains` starts, even when `acme-rules` started first.
 
-The module writes them in the system site, which every site reads:
+The seeder keeps what an administrator changed or moved, as for the rules.
 
-```text
-/sites/systemsite/contents/content-insights/
-    content-governance/domains/       quality, geo, compliance
-    content-governance/subdomains/    health, links, accessibility, seo...
-    <module>/domains/, <module>/subdomains/
+### The layout of a site
+
+A site arranges the tree with its layout, the JSON of the property `layout` of its folder
+`contents/content-governance`:
+
+```json
+{
+  "domains": [
+    {"id": "geo", "subdomains": [{"id": "seo", "rules": ["seo.title", "seo.metaDescription"]}]},
+    {"id": "quality", "subdomains": [{"id": "links", "rules": ["links.broken", "seo.canonical"]}]}
+  ],
+  "off": ["vitals", "seo.indexable"]
+}
 ```
 
-The copy keeps what an administrator changed, as for the rules. A node that nobody changed takes the
-new values, and a node that an administrator changed keeps its values.
+The position in an array is the order, and the parent array is the place. In this example, `digitall`
+shows SEO & GEO before Page quality, and reports `seo.canonical` in the Links tab. It switches off
+the Web Vitals tab and the rule `seo.indexable`.
+
+- The layout places an item that it names in an array. Such an item is on, unless `off` names it.
+- An item that the layout does not name keeps its place in the tree, after the items that the layout
+  places. It is on when its `sites` include the site. Example: a new version of a module ships a new
+  rule. This rule shows in its subdomain on every site, also on a site that saved its layout before.
+- `off` switches off an item, placed or not. A subdomain that is off switches off its rules, and a
+  domain that is off switches off its subdomains.
+- A site with no layout shows the tree as it is.
+
+The GraphQL mutation `saveSiteLayout(siteKey, layout)` saves the layout of a site, and
+`resetSiteLayout(siteKey)` removes it. Both need the permission `site-admin` on the site, and the
+system site has no layout. The query `siteLayout(siteKey)` gives the layout that a site saved.
 
 ### Which rules apply to a site
 
-A rule applies to a site when all of these are true:
+A rule runs on a site when all of these are true:
 
-- The `sites` of the rule include the site.
-- One of its subdomains, and the domain of that subdomain, include the site.
+- The layout of the site does not switch it off.
+- The layout places it, or its `sites` include the site and it is enabled.
+- Its subdomain on the site, and the domain of that subdomain, are on.
 - The site installs the module that ships the rule. A rule that the site or `systemsite` adds needs no
   module.
 
 Example: an administrator sets the `sites` of the domain `geo` to `digitall`. The site `luxe` then
-loses the SEO & GEO tabs and their rules, such as `seo.title` and `geo.fetched`. The rule
-`html.imageAltMissing` names `accessibility` and `geo.score`, so it stays on `luxe`, in Accessibility.
+has the SEO & GEO tabs off, and their rules, such as `seo.title` and `geo.fetched`, do not run there.
+A site whose layout places the domain `geo` keeps it on.
 
-A site adds a domain or a subdomain with a node of its own anywhere under its `contents`. A node of
-the site with the id of a node of the system site replaces it for that site.
+The GraphQL field `contentDomains(siteKey, language, includeOff)` gives the domains of a site in the
+order of its layout. Each domain comes with its subdomains, and with its label and its help in the
+language. With `includeOff`, the field also gives the domains and the subdomains that are off. The
+field `on` tells whether an item is on. The field `isNew` marks an item that the saved layout of the
+site names nowhere, such as an item that a module shipped after the save. A layout that names fewer
+items marks the others as new too.
 
-The GraphQL field `contentDomains(siteKey, language)` gives the domains of a site by order, each with
-its subdomains, and their labels and help in the language. The field `contentRules` gives the
-`subdomains` and the `sites` of each rule. The drawer shows one section per subdomain of Page quality: it places a
-finding in the section of the first subdomain of its rule that has one.
+The field `contentRules` gives the `subdomain`, the `order`, `enabled` and `isNew` of each rule on the
+site. The drawer shows one section per subdomain of Page quality: it places a finding in the section
+of the subdomain of its rule, when the drawer has one.
 
 ## How a module adds a check
 
@@ -360,8 +428,8 @@ A check states the scopes in which it runs:
 | `SITE` | A whole site. | No caller yet. |
 
 A run applies each rule that the site keeps on and whose check is registered for the scope. It gives
-one result per rule, passed or failed. Each finding carries the id of the rule, the severity
-that the site gives the rule, and the text that breaks the rule. A check that throws an exception
+one result per rule, passed or failed. Each finding carries the id of the rule, its severity, and
+the text that breaks the rule. A check that throws an exception
 gives no result, and the other checks still run. One rule gives 50 findings or fewer on one input.
 
 A finding on a value can also carry values, which the Compliance section and `frame.check` read:
@@ -399,8 +467,8 @@ they find nothing. The values of their result are the ones that the caller gives
 `value`, the measured number.
 
 A measure rule has no limit: its check finds nothing and gives values only, so the rule always
-passes. The drawer shows these values, and a site turns the rule off to hide them. Example:
-`readability.statistics` gives the word count and the reading time of the Readability tab.
+passes. The drawer shows these values, and a site switches the rule off in its layout to hide them.
+Example: `readability.statistics` gives the word count and the reading time of the Readability tab.
 
 The checks of SEO, readability, links and Jahia health run on the server, as checks of the scope
 `PAGE`, and the drawer shows their findings.
@@ -429,11 +497,12 @@ report one practice under the same id.
 | `html.pageDescriptionMissing` | `seo.metaDescription`: a missing description has the length 0 |
 | `health.graphqlUnavailable` (2.0) | None: the drawer reads the state of the content from the check of the server, and a check that fails shows as unfinished in its tabs |
 
-A site keeps the nodes of the removed ids until content-governance starts again, and then the table
-of [How a new version of a module updates the rules](#how-a-new-version-of-a-module-updates-the-rules)
-applies. The module removes a node that nobody changed. A node that the site changed stays, with
-`retired` set. No module registers its check any more, so its rule shows as inactive and names its
-own id as the missing check. `geo.imageAlt` is the exception: its evaluator `threshold` stays
+The tree of the system site keeps the nodes of the removed ids until content-governance starts
+again. Then the table of
+[How a new version of a module updates the rules](#how-a-new-version-of-a-module-updates-the-rules)
+applies. The module removes a node that nobody changed. A node that an administrator changed stays,
+with `retired` set. No module registers its check any more, so its rule shows as inactive and names
+its own id as the missing check. `geo.imageAlt` is the exception: its evaluator `threshold` stays
 registered, but no caller measures its value, so it gives no finding. To keep a change, such as a
 severity, set it again on the node of the kept id.
 
@@ -442,15 +511,15 @@ severity, set it again on the node of the kept id.
 `ContentRules` gives the rules of a site in three layers, the most specific last:
 
 1. The rules that the modules of the site ship.
-2. The rule nodes of `systemsite`, which apply to every site.
-3. The rule nodes of the site.
+2. The rule nodes of `systemsite`, which apply to every site: the tree, and any other rule node there.
+3. The rule nodes of the site whose id no module ships and `systemsite` does not hold.
 
-A node replaces the rule of its id from the layer before it, and keeps the shipped values that it
-lacks. A node of a rule that a module ships, in either layer, applies only to a site that enables that
-module. The rules then apply as [Which rules apply to a site](#which-rules-apply-to-a-site) states. Example: a node `brand.noClickHere` in `/sites/systemsite/contents` applies to every site, and
-a node `seo.title` of `digitall` replaces the node `seo.title` of `systemsite` on `digitall`.
-[content-governance#138](https://github.com/Jahia/content-governance/issues/138) moves the rules to
-`systemsite`.
+A node of `systemsite` replaces the shipped rule of its id, and keeps the shipped values that it lacks.
+A node of `systemsite` of a rule that a module ships applies only to a site that enables that module. A
+node of the site adds a rule of its own, and a node of the site with the id of another rule changes
+nothing. The rules then apply as [Which rules apply to a site](#which-rules-apply-to-a-site) states.
+Example: a node `brand.noClickHere` in `/sites/systemsite/contents` applies to every site, and a node
+`seo.title` of `digitall` changes nothing.
 
 - The Java checks of GEO readiness read the rules of the site through `ContentRules.forSite`. A site
   scan reads them once, at its start.
@@ -544,15 +613,16 @@ Every rule whose id starts with `axe.` or `ecodesign.` runs in the browser. Each
 names the check of one measure. A site that adds a rule of the same evaluator with another limit
 gets a second result.
 `ecodesign.webVitals` is a measure: it always passes, and its values are the figures of the Web Vitals
-tab. A site turns it off to hide them.
+tab. A site switches it off in its layout to hide them.
 
 Each check of axe-core that the drawer runs is a rule `axe.<id of the axe-core rule>`, such as
 `axe.color-contrast`. Its evaluator is `axe`, and its severity is the impact of axe-core. A site
-turns a check off on its rule, and axe-core then does not run it. The check gives no violation and
-no item to review, and the level scores leave it out. The drawer shows the severity of the site
-beside the impact of axe-core. It shows the help text of axe-core in the language of the editor,
-unless the site writes a title on the rule.
+switches a check off in its layout, and axe-core then does not run it there. The check gives no
+violation and no item to review, and the level scores leave it out. The drawer shows the severity of
+the rule beside the impact of axe-core. It shows the help text of axe-core in the language of the
+editor. An administrator replaces this text with a title on the rule in the system site.
 
 Six rules that axe-core marks experimental ship switched off: `axe.css-orientation-lock`,
 `axe.focus-order-semantics`, `axe.hidden-content`, `axe.p-as-heading`, `axe.table-fake-caption` and
-`axe.td-has-header`. A site switches one on in its rule.
+`axe.td-has-header`. A site switches one on in its layout, and an administrator switches one on for
+every site on its node in the system site.

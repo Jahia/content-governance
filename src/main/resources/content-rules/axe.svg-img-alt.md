@@ -3,7 +3,7 @@ id: axe.svg-img-alt
 evaluator: axe
 checkType: CODE
 runtime: browser
-subdomains: [accessibility]
+subdomain: accessibility
 severity: serious
 fixer: editor
 ---

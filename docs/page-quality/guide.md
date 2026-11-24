@@ -285,7 +285,7 @@ Page-level checks inspired by the French eco-design referential RGESN 2024.
 
 This is not an RGESN conformity score. RGESN assesses a whole service, most of it outside a single
 page. The figures come from the editing version of the page and are indicative. The limits are the
-defaults of the rules `ecodesign.*`. A site changes a limit on its rule.
+defaults of the rules `ecodesign.*`. An administrator changes a limit on the rule in the system site.
 
 Yours: image formats and sizes, autoplaying videos, embeds you added. A developer's: fonts, lazy
 loading in templates, third-party scripts.

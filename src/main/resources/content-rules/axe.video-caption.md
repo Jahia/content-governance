@@ -3,7 +3,7 @@ id: axe.video-caption
 evaluator: axe
 checkType: CODE
 runtime: browser
-subdomains: [accessibility]
+subdomain: accessibility
 severity: critical
 fixer: developer
 ---

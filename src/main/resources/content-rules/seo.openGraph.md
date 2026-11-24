@@ -2,7 +2,7 @@
 id: seo.openGraph
 evaluator: seo.openGraph
 checkType: CODE
-subdomains: [seo]
+subdomain: seo
 severity: moderate
 fixer: editor
 label:

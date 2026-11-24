@@ -21,20 +21,23 @@ public class GqlContentRule {
     private final CheckRegistry.Status status;
     private final boolean blocking;
     private final String language;
+    private final boolean isNew;
 
     GqlContentRule(ContentRule rule, CheckRegistry.Status status, boolean blocking) {
-        this(rule, status, blocking, null);
+        this(rule, status, blocking, null, false);
     }
 
     /**
      * @param language the language of the texts, such as fr: the interface language of the editor, or null
      *                 for English
+     * @param isNew    true when the site saved a layout that names the rule neither in an array nor in off
      */
-    GqlContentRule(ContentRule rule, CheckRegistry.Status status, boolean blocking, String language) {
+    GqlContentRule(ContentRule rule, CheckRegistry.Status status, boolean blocking, String language, boolean isNew) {
         this.rule = rule;
         this.status = status;
         this.blocking = blocking;
         this.language = language;
+        this.isNew = isNew;
     }
 
     /** One plural form of the title of a finding. */
@@ -72,23 +75,37 @@ public class GqlContentRule {
     }
 
     @GraphQLField
-    @GraphQLNonNull
-    @GraphQLDescription("The ids of the subdomains of the rule, such as seo and geo.score: its findings show in each. contentDomains gives the hierarchy. Empty when the rule names none and no default applies")
-    public List<String> getSubdomains() {
-        return rule.subdomains();
+    @GraphQLDescription("The id of the subdomain of the rule on the site, such as seo: its findings show in it. contentDomains gives the hierarchy. Null when the rule names none and no default applies")
+    public String getSubdomain() {
+        return rule.subdomain();
     }
 
     @GraphQLField
     @GraphQLNonNull
-    @GraphQLDescription("The keys of the sites that the rule applies to, or * for all sites")
+    @GraphQLDescription("The place of the rule in its subdomain on the site: a lower order comes first")
+    public int getOrder() {
+        return rule.order();
+    }
+
+    @GraphQLField
+    @GraphQLName("isNew")
+    @GraphQLNonNull
+    @GraphQLDescription("True when the site saved a layout that names the rule neither in an array nor in off, such as an item that a module shipped after the save")
+    public boolean isNew() {
+        return isNew;
+    }
+
+    @GraphQLField
+    @GraphQLNonNull
+    @GraphQLDescription("The keys of the sites where the rule is on by default, or * for all sites")
     public List<String> getSites() {
         return rule.sites();
     }
 
     @GraphQLField
-    @GraphQLDescription("The subdomains of the rule when no module and no node declares any of them (empty when the rule names none): the rule then never runs. Null for a rule placed in a subdomain of the site")
-    public List<String> getUnknownSubdomains() {
-        return status.unknownSubdomains();
+    @GraphQLDescription("The subdomain of the rule when no module and no node declares it (empty when the rule names none): the rule then never runs. Null for a rule placed in a subdomain of the site")
+    public String getUnknownSubdomain() {
+        return status.unknownSubdomain();
     }
 
     @GraphQLField
@@ -154,7 +171,7 @@ public class GqlContentRule {
 
     @GraphQLField
     @GraphQLNonNull
-    @GraphQLDescription("False when the site turned the rule off")
+    @GraphQLDescription("False when the rule does not run on the site: the site, or its default, switched off the rule, its subdomain or its domain")
     public boolean isEnabled() {
         return rule.enabled();
     }

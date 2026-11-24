@@ -179,7 +179,7 @@ describe('Content Governance - example rule of a site that keeps terms', () => {
                 name: 'free', primaryNodeType: 'ccs:contentRule', mixins: ['ccsmix:patternCheck'], properties: [
                     {name: 'ruleId', value: 'compliance.free'},
                     {name: 'checkType', value: 'PATTERN'},
-                    {name: 'subdomains', values: ['terms']},
+                    {name: 'subdomain', value: 'terms'},
                     {name: 'pattern', value: 'free'}
                 ]
             }]
