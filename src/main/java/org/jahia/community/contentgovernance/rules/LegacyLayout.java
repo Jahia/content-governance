@@ -30,8 +30,8 @@ import java.util.Map;
  *   <li>A domain or a subdomain node outside the tree, which a site wrote to override one: a site arranges the
  *       tree with its layout now. The log names it. A node that holds other nodes, such as rules, stays.</li>
  * </ul>
- * <p>A folder that holds nothing more goes too. The nodes are in the edit workspace only: the seeder never
- * published them.</p>
+ * <p>A folder that holds nothing more goes too. The upgrade works in the edit workspace, where the rules are
+ * read. A copy that a site published stays in the live workspace, where no code reads a rule.</p>
  */
 final class LegacyLayout {
 
