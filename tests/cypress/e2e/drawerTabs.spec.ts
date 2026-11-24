@@ -143,6 +143,7 @@ describe('Content Governance - a tab of another module', () => {
         // The screen reads the layout again once saved, and starts its next change from it
         cy.wait('@save');
         cy.wait('@screen');
+        cy.contains('Editors see the change').should('be.visible');
         readSettings(asRoot(), siteKey).its('data.contentGovernance.siteSettings.disabled').should('include', `${TEST_TAB}.summary`);
         cy.get('[aria-label="Summary"]').should('not.be.checked');
 

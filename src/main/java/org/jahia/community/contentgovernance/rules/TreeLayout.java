@@ -52,34 +52,49 @@ public final class TreeLayout {
         }
         JCRNodeWrapper tree = session.getNode(ContentDomains.TREE);
         int changed = moveSubdomains(tree, layout) + moveRules(tree, layout);
-        Index index = Index.of(tree);
+        changed += orderAll(tree, Index.of(tree), layout);
+        return changed + switches(Index.of(tree), layout);
+    }
+
+    /** Orders the domains of the tree, the subdomains of each domain and the rules of each subdomain. */
+    private static int orderAll(JCRNodeWrapper tree, Index index, SiteLayout layout) throws RepositoryException {
+        int changed = 0;
         List<String> domainNames = new ArrayList<>();
         for (SiteLayout.DomainPlace domain : layout.domains()) {
             JCRNodeWrapper domainNode = index.domains.get(domain.id());
-            if (domainNode == null) {
-                continue;
+            if (domainNode != null) {
+                domainNames.add(domainNode.getName());
+                changed += orderSubdomains(domainNode, index, domain);
             }
-            domainNames.add(domainNode.getName());
-            List<String> subdomainNames = new ArrayList<>();
-            for (SiteLayout.SubdomainPlace subdomain : domain.subdomains()) {
-                JCRNodeWrapper subdomainNode = index.subdomains.get(subdomain.id());
-                if (subdomainNode == null) {
-                    continue;
-                }
-                subdomainNames.add(subdomainNode.getName());
-                List<String> ruleNames = new ArrayList<>();
-                for (String rule : subdomain.rules()) {
-                    JCRNodeWrapper ruleNode = index.rules.get(rule);
-                    if (ruleNode != null) {
-                        ruleNames.add(ruleNode.getName());
-                    }
-                }
-                changed += order(subdomainNode, ContentRules.TYPE, ruleNames);
-            }
-            changed += order(domainNode, Level.SUBDOMAIN.type(), subdomainNames);
         }
-        changed += order(tree, Level.DOMAIN.type(), domainNames);
-        return changed + switches(Index.of(tree), layout);
+        return changed + order(tree, Level.DOMAIN.type(), domainNames);
+    }
+
+    /** Orders the subdomains of one domain, and the rules of each of them. */
+    private static int orderSubdomains(JCRNodeWrapper domainNode, Index index, SiteLayout.DomainPlace domain)
+            throws RepositoryException {
+        int changed = 0;
+        List<String> subdomainNames = new ArrayList<>();
+        for (SiteLayout.SubdomainPlace subdomain : domain.subdomains()) {
+            JCRNodeWrapper subdomainNode = index.subdomains.get(subdomain.id());
+            if (subdomainNode != null) {
+                subdomainNames.add(subdomainNode.getName());
+                changed += order(subdomainNode, ContentRules.TYPE, names(index.rules, subdomain.rules()));
+            }
+        }
+        return changed + order(domainNode, Level.SUBDOMAIN.type(), subdomainNames);
+    }
+
+    /** The names of the nodes of these ids, in their order, leaving out an id that no node holds. */
+    private static List<String> names(Map<String, JCRNodeWrapper> nodes, List<String> ids) {
+        List<String> out = new ArrayList<>();
+        for (String id : ids) {
+            JCRNodeWrapper node = nodes.get(id);
+            if (node != null) {
+                out.add(node.getName());
+            }
+        }
+        return out;
     }
 
     /** Moves each subdomain that the layout places in another domain. */
@@ -193,22 +208,26 @@ public final class TreeLayout {
         static Index of(JCRNodeWrapper tree) throws RepositoryException {
             Index index = new Index(new LinkedHashMap<>(), new LinkedHashMap<>(), new LinkedHashMap<>());
             for (JCRNodeWrapper domain : tree.getNodes()) {
-                if (!domain.isNodeType(Level.DOMAIN.type())) {
-                    continue;
-                }
-                index.domains.putIfAbsent(DomainNodes.text(domain, Level.DOMAIN.idProperty()), domain);
-                for (JCRNodeWrapper subdomain : domain.getNodes()) {
-                    if (subdomain.isNodeType(Level.SUBDOMAIN.type())) {
-                        index.subdomains.putIfAbsent(DomainNodes.text(subdomain, Level.SUBDOMAIN.idProperty()), subdomain);
-                        for (JCRNodeWrapper rule : subdomain.getNodes()) {
-                            if (rule.isNodeType(ContentRules.TYPE)) {
-                                index.rules.putIfAbsent(RuleNodes.text(rule, RuleValues.RULE_ID), rule);
-                            }
-                        }
+                if (domain.isNodeType(Level.DOMAIN.type())) {
+                    index.domains.putIfAbsent(DomainNodes.text(domain, Level.DOMAIN.idProperty()), domain);
+                    for (JCRNodeWrapper subdomain : domain.getNodes()) {
+                        index.subdomain(subdomain);
                     }
                 }
             }
             return index;
+        }
+
+        private void subdomain(JCRNodeWrapper subdomain) throws RepositoryException {
+            if (!subdomain.isNodeType(Level.SUBDOMAIN.type())) {
+                return;
+            }
+            subdomains.putIfAbsent(DomainNodes.text(subdomain, Level.SUBDOMAIN.idProperty()), subdomain);
+            for (JCRNodeWrapper rule : subdomain.getNodes()) {
+                if (rule.isNodeType(ContentRules.TYPE)) {
+                    rules.putIfAbsent(RuleNodes.text(rule, RuleValues.RULE_ID), rule);
+                }
+            }
         }
     }
 }

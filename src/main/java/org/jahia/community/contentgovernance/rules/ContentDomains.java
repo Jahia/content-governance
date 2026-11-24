@@ -48,7 +48,7 @@ public final class ContentDomains {
     /** The key of the site whose tree holds the domains, the subdomains and the rules of every site. */
     public static final String SYSTEM_SITE_KEY = "systemsite";
     /** The path of that site. */
-    public static final String SYSTEM_SITE = "/sites/" + SYSTEM_SITE_KEY;
+    public static final String SYSTEM_SITE = "/sites/systemsite";
     /** The folder of the tree, in the system site. */
     public static final String TREE = SYSTEM_SITE + "/" + SiteLayout.FOLDER;
 

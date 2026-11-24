@@ -382,7 +382,7 @@ OtherTabs.propTypes = {
 };
 
 /** The screen once its data is read: the draft, its moves, and the save. */
-const LayoutEditor = ({siteKey, data, isDefaults, canEdit, title, status, onSaved}) => {
+const LayoutEditor = ({siteKey, data, isDefaults, canEdit, isReloading, title, status, onSaved}) => {
     const {t} = useGovernanceTranslation('rulesScreen');
     const governance = data.contentGovernance;
     const panels = useMemo(() => (isDefaults ? [] : drawerPanels()), [isDefaults]);
@@ -399,7 +399,9 @@ const LayoutEditor = ({siteKey, data, isDefaults, canEdit, title, status, onSave
     const [save, {loading: saving, error: saveError}] = useMutation(SAVE_LAYOUT);
     const [reset, {loading: resetting, error: resetError}] = useMutation(RESET_LAYOUT);
     const dirty = !sameLayout(draft, initial);
-    const dnd = useDragAndDrop(canEdit, setDraft);
+    // A change while a save runs, or while the screen reads what it saved, would be lost when the draft starts again
+    const editable = canEdit && !saving && !resetting && !isReloading;
+    const dnd = useDragAndDrop(editable, setDraft);
 
     const lookups = useMemo(() => {
         const domains = Object.fromEntries(governance.contentDomains.map(domain => [domain.id, domain]));
@@ -438,7 +440,7 @@ const LayoutEditor = ({siteKey, data, isDefaults, canEdit, title, status, onSave
         }
     };
 
-    const ctx = {draft, canEdit, isDefaults, dnd, onToggle, onMove, ...lookups};
+    const ctx = {draft, canEdit: editable, isDefaults, dnd, onToggle, onMove, ...lookups};
     const error = saveError || resetError;
     const actions = [];
     if (!isDefaults) {
@@ -446,14 +448,14 @@ const LayoutEditor = ({siteKey, data, isDefaults, canEdit, title, status, onSave
                              size="big"
                              variant="outlined"
                              label={t('reset')}
-                             isDisabled={!canEdit || !governance.siteLayout.saved || saving || resetting}
+                             isDisabled={!editable || !governance.siteLayout.saved}
                              onClick={() => setConfirmReset(true)}/>);
     }
     actions.push(<Button key="save"
                          size="big"
                          color="accent"
                          label={t('save')}
-                         isDisabled={!canEdit || !dirty || saving || resetting}
+                         isDisabled={!editable || !dirty}
                          onClick={() => submit().catch(() => null)}/>);
 
     return (
@@ -480,14 +482,14 @@ const LayoutEditor = ({siteKey, data, isDefaults, canEdit, title, status, onSave
                             {t(governance.siteLayout.saved ? 'stateSaved' : 'stateDefaults')}
                         </Typography>
                     )}
-                    {panels.length > 0 && <PanelSwitches panels={panels} draft={draft} canEdit={canEdit} onToggle={onToggle}/>}
+                    {panels.length > 0 && <PanelSwitches panels={panels} draft={draft} canEdit={editable} onToggle={onToggle}/>}
                     {draft.domains.map(domain => (
                         <DomainCard key={domain.id} place={domain} domain={lookups.domains[domain.id]} ctx={ctx}/>
                     ))}
                     {otherTabs.length > 0 && (
                         <OtherTabs tabs={otherTabs}
                                    draft={draft}
-                                   canEdit={canEdit}
+                                   canEdit={editable}
                                    isPanelOn={!draft.off.has(GOVERNANCE_PANEL)}
                                    onToggle={onToggle}/>
                     )}
@@ -504,6 +506,8 @@ LayoutEditor.propTypes = {
     // True for the defaults of the system site
     isDefaults: PropTypes.bool.isRequired,
     canEdit: PropTypes.bool.isRequired,
+    // True while the screen reads the layout again after a save or a reset
+    isReloading: PropTypes.bool.isRequired,
     title: PropTypes.string.isRequired,
     // What the last save did, saved or reset, or null
     status: PropTypes.string,
@@ -522,11 +526,13 @@ const RulesLoader = ({siteKey, isDefaults, title}) => {
     // The draft starts again from what the server stored after each save
     const [version, setVersion] = useState(0);
     const [status, setStatus] = useState(null);
+    const [isReloading, setReloading] = useState(false);
     const onSaved = useCallback(done => {
+        setReloading(true);
         refetch().then(() => {
             setStatus(done);
             setVersion(v => v + 1);
-        }).catch(() => null);
+        }).catch(() => null).finally(() => setReloading(false));
     }, [refetch]);
 
     if (loading && !data) {
@@ -547,6 +553,7 @@ const RulesLoader = ({siteKey, isDefaults, title}) => {
                       data={data}
                       isDefaults={isDefaults}
                       canEdit={canEdit}
+                      isReloading={isReloading}
                       title={title}
                       status={status}
                       onSaved={onSaved}/>

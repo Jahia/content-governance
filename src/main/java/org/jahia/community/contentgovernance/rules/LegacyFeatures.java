@@ -76,7 +76,8 @@ public final class LegacyFeatures {
     static int moveSwitches(JCRSessionWrapper session) throws RepositoryException {
         int moved = 0;
         for (JCRNodeWrapper site : session.getNode("/sites").getNodes()) {
-            if (site.hasNode(STORE_NODE) && site.getNode(STORE_NODE).hasProperty(DISABLED) && moveSwitches(session, site)) {
+            if (site.hasNode(STORE_NODE) && site.getNode(STORE_NODE).hasProperty(DISABLED)) {
+                moveSwitches(session, site);
                 moved++;
             }
         }
@@ -87,7 +88,7 @@ public final class LegacyFeatures {
     }
 
     /** Adds the switches of one site to the off list of its layout, and removes the property. */
-    private static boolean moveSwitches(JCRSessionWrapper session, JCRNodeWrapper site) throws RepositoryException {
+    private static void moveSwitches(JCRSessionWrapper session, JCRNodeWrapper site) throws RepositoryException {
         JCRNodeWrapper store = site.getNode(STORE_NODE);
         Set<String> ids = new LinkedHashSet<>();
         for (Value value : store.getProperty(DISABLED).getValues()) {
@@ -104,6 +105,5 @@ public final class LegacyFeatures {
             }
         }
         store.getProperty(DISABLED).remove();
-        return true;
     }
 }
