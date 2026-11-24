@@ -40,10 +40,11 @@ describe('ResultCard', () => {
         expect(markup.replace(word, '')).not.toContain('results.levels');
     });
 
-    it('ends the title line with the actions, and leaves the advice below it', () => {
-        const line = elementOf(card({rule: 'seo.openGraph'}), styles.titleLine);
+    it('starts the title line with the chips and ends it with the actions, and leaves the advice below it', () => {
+        const line = elementOf(card({rule: 'seo.openGraph', chips: h('span', null, 'WCAG-AA')}), styles.titleLine);
 
-        expect(line.indexOf(TITLE)).toBeGreaterThan(-1);
+        expect(line.indexOf('WCAG-AA')).toBeGreaterThan(-1);
+        expect(line.indexOf(TITLE)).toBeGreaterThan(line.indexOf('WCAG-AA'));
         expect(line.indexOf('More actions')).toBeGreaterThan(line.indexOf(TITLE));
         expect(line).not.toContain(DETAIL);
     });

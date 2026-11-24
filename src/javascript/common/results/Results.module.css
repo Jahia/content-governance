@@ -52,11 +52,12 @@
     padding: 10px 10px 10px 12px;
 }
 
+/* Inline, so that the title wraps under them */
 .chips {
-    display: flex;
-    flex-wrap: wrap;
+    display: inline-flex;
     gap: 4px;
-    margin-bottom: 4px;
+    margin-right: 6px;
+    vertical-align: 1px;
 }
 
 /* The title, and the actions at its right end, on the line of its first row of text */

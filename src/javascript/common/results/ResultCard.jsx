@@ -27,9 +27,11 @@ export const ResultCard = ({level, title, detail, rule, chips, occurrences = [],
         <article className={`${styles.card} ${styles['level_' + level]} ${isCompact ? styles.compact : ''}`}>
             <div className={styles.cardHead}>
                 <span className={styles.srOnly}>{t(`results.levels.${level}`)}</span>
-                {chips && <div className={styles.chips}>{chips}</div>}
                 <div className={styles.titleLine}>
-                    <div className={styles.cardTitle}>{title}</div>
+                    <div className={styles.cardTitle}>
+                        {chips && <span className={styles.chips}>{chips}</span>}
+                        {title}
+                    </div>
                     {(cardAction || menu) && (
                         <div className={styles.cardActions}>
                             {cardAction}
@@ -79,7 +81,7 @@ ResultCard.propTypes = {
     detail: PropTypes.node,
     // The id of the rule, as the catalog names it, at the bottom right
     rule: PropTypes.string,
-    // Extra marks above the title, such as a WCAG level
+    // Extra marks at the start of the title, such as a WCAG level
     chips: PropTypes.node,
     occurrences: PropTypes.arrayOf(occurrenceShape),
     // The label of the folded occurrences, "N items" when omitted
