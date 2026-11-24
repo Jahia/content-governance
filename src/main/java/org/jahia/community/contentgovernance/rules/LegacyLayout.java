@@ -49,7 +49,7 @@ final class LegacyLayout {
     static void migrate() {
         try {
             int removed = JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, "default", Locale.ENGLISH,
-                    (JCRCallback<Integer>) session -> TreeSeeder.discardOnFailure(session, () -> migrate(session)));
+                    (JCRCallback<Integer>) session -> TreeSeeder.discardOnFailure(session, () -> removeLeftovers(session)));
             if (removed > 0) {
                 logger.info("Removed {} copies of content rules, domains and subdomains that the tree of {} replaces",
                         removed, ContentDomains.SYSTEM_SITE);
@@ -59,7 +59,7 @@ final class LegacyLayout {
         }
     }
 
-    static int migrate(JCRSessionWrapper session) throws RepositoryException {
+    static int removeLeftovers(JCRSessionWrapper session) throws RepositoryException {
         int removed = removeOutsideTree(session, Level.SUBDOMAIN) + removeOutsideTree(session, Level.DOMAIN);
         for (JCRNodeWrapper site : session.getNode("/sites").getNodes()) {
             if (site.hasNode(ROOT)) {
@@ -113,17 +113,17 @@ final class LegacyLayout {
             }
         }
         int removed = 0;
+        String what = level.name().toLowerCase(Locale.ROOT);
         for (JCRNodeWrapper node : found) {
             if (holdsNodes(node)) {
                 // Not a copy of a 2.0.0 snapshot, whose domains and subdomains held no node: it stays, and reads ignore it.
                 logger.warn("The {} {} at {} stays, because it holds other nodes, but no site reads it: the tree of {} "
-                        + "holds the domains and the subdomains", level.name().toLowerCase(Locale.ROOT), node.getName(),
-                        node.getPath(), ContentDomains.SYSTEM_SITE);
+                        + "holds the domains and the subdomains", what, node.getName(), node.getPath(),
+                        ContentDomains.SYSTEM_SITE);
                 continue;
             }
             // The fingerprint of a version before 2.0.0 holds the domain and the order, which the node type no longer
             // declares, so the conversion cannot tell a node that an administrator changed: the log names each one.
-            String what = level.name().toLowerCase(Locale.ROOT);
             Map<String, Object> values = DomainNodes.read(node, level);
             if (node.hasProperty(RuleNodes.SEED_DIGEST)) {
                 logger.info("The seeded {} {} at {} goes, and the tree of {} replaces it. Its values were {}", what,

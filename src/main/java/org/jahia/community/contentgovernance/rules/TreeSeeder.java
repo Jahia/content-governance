@@ -91,14 +91,16 @@ final class TreeSeeder {
         int changed = 0;
         boolean waiting = false;
         for (DomainFile file : shipment.domains().values()) {
-            changed += place(index.domains, tree, file.id(), Level.DOMAIN.type(), module,
-                    node -> update(node, file), node -> add(node, file, module), orderOf(Level.DOMAIN, file));
+            changed += place(index.domains, tree,
+                    new Item(file.id(), Level.DOMAIN.type(), module, orderOf(Level.DOMAIN, file)),
+                    node -> update(node, file), node -> add(node, file, module));
         }
         for (DomainFile file : shipment.subdomains().values()) {
             JCRNodeWrapper domain = index.domains.get(String.valueOf(file.values().get(DomainValues.DOMAIN)));
             if (domain != null) {
-                changed += place(index.subdomains, domain, file.id(), Level.SUBDOMAIN.type(), module,
-                        node -> update(node, file), node -> add(node, file, module), orderOf(Level.SUBDOMAIN, file));
+                changed += place(index.subdomains, domain,
+                        new Item(file.id(), Level.SUBDOMAIN.type(), module, orderOf(Level.SUBDOMAIN, file)),
+                        node -> update(node, file), node -> add(node, file, module));
             } else {
                 waiting = true;
             }
@@ -110,8 +112,8 @@ final class TreeSeeder {
             if (subdomain == null) {
                 waiting = true;
             } else if (!index.outside.contains(rule.id())) {
-                changed += place(index.rules, subdomain, rule.id(), ContentRules.TYPE, module,
-                        node -> update(node, rule), node -> add(node, rule, module), null);
+                changed += place(index.rules, subdomain, new Item(rule.id(), ContentRules.TYPE, module, null),
+                        node -> update(node, rule), node -> add(node, rule, module));
             }
         }
         if (shipment.complete()) {
@@ -148,33 +150,41 @@ final class TreeSeeder {
     }
 
     /**
+     * A file of a module, as the tree places it.
+     *
+     * @param order the shipped order of a domain or a subdomain, which places a new node; null to append it
+     */
+    private record Item(String id, String type, String module, Integer order) {
+    }
+
+    /**
      * Adds the node of a file under its parent, or updates the node of its id; a node that nobody changed moves
      * under the parent that the file states.
      *
-     * @param order the shipped order of a domain or a subdomain, which places a new node; null to append it
      * @return 1 when it wrote
      */
-    private static int place(Map<String, JCRNodeWrapper> byId, JCRNodeWrapper parent, String id, String type,
-                             String module, Write update, Fill fill, Integer order) throws RepositoryException {
-        JCRNodeWrapper node = byId.get(id);
+    private static int place(Map<String, JCRNodeWrapper> byId, JCRNodeWrapper parent, Item item, Write update,
+                             Fill fill) throws RepositoryException {
+        JCRNodeWrapper node = byId.get(item.id());
         if (node == null) {
-            if (parent.hasNode(id)) {
-                logger.info("{} already has a node {}, so the file of {} is not added", parent.getPath(), id, module);
+            if (parent.hasNode(item.id())) {
+                logger.info("{} already has a node {}, so the file of {} is not added", parent.getPath(), item.id(),
+                        item.module());
                 return 0;
             }
-            JCRNodeWrapper added = parent.addNode(id, type);
+            JCRNodeWrapper added = parent.addNode(item.id(), item.type());
             fill.apply(added);
-            if (order != null) {
-                placeByOrder(parent, added, order);
+            if (item.order() != null) {
+                placeByOrder(parent, added, item.order());
             }
-            byId.put(id, added);
+            byId.put(item.id(), added);
             return 1;
         }
         Outcome outcome = update.apply(node);
         if (outcome == Outcome.OVERWRITTEN && !node.getParent().getPath().equals(parent.getPath())) {
             String target = parent.getPath() + "/" + node.getName();
             node.getSession().move(node.getPath(), target);
-            byId.put(id, node.getSession().getNode(target));
+            byId.put(item.id(), node.getSession().getNode(target));
         }
         return outcome == Outcome.UNCHANGED ? 0 : 1;
     }

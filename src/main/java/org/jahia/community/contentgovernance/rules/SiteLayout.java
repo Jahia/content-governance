@@ -39,7 +39,9 @@ public final class SiteLayout {
 
     /** The folder of a site that holds the layout, under the site node. */
     public static final String FOLDER = "contents/content-governance";
-    /** The type of that folder, which holds the tree in the system site. */
+    /** The path of that folder after the path of the site. */
+    private static final String IN_SITE = "/" + FOLDER;
+    /** The type of that folder in a site. The tree of the system site takes {@link TreeSeeder#TREE_TYPE}. */
     public static final String FOLDER_TYPE = "jnt:contentFolder";
     /** The mixin that the folder of a site takes to hold its layout. */
     public static final String MIXIN = "ccsmix:siteLayout";
@@ -50,11 +52,11 @@ public final class SiteLayout {
     /** The most ids that a layout names, every array and {@code off} together. */
     static final int MAX_IDS = 5000;
 
-    private static final String DOMAINS = "domains";
-    private static final String SUBDOMAINS = "subdomains";
-    private static final String RULES = "rules";
-    private static final String OFF = "off";
-    private static final String ID = "id";
+    private static final String KEY_DOMAINS = "domains";
+    private static final String KEY_SUBDOMAINS = "subdomains";
+    private static final String KEY_RULES = "rules";
+    private static final String KEY_OFF = "off";
+    private static final String KEY_ID = "id";
     private static final Logger logger = LoggerFactory.getLogger(SiteLayout.class);
 
     /**
@@ -130,19 +132,19 @@ public final class SiteLayout {
             JSONObject root = new JSONObject(json);
             Set<String> seen = new HashSet<>();
             List<DomainPlace> domains = new ArrayList<>();
-            JSONArray domainArray = root.optJSONArray(DOMAINS);
+            JSONArray domainArray = root.optJSONArray(KEY_DOMAINS);
             for (int i = 0; domainArray != null && i < domainArray.length(); i++) {
                 JSONObject domain = domainArray.getJSONObject(i);
                 List<SubdomainPlace> subdomains = new ArrayList<>();
-                JSONArray subdomainArray = domain.optJSONArray(SUBDOMAINS);
+                JSONArray subdomainArray = domain.optJSONArray(KEY_SUBDOMAINS);
                 for (int j = 0; subdomainArray != null && j < subdomainArray.length(); j++) {
                     JSONObject subdomain = subdomainArray.getJSONObject(j);
-                    subdomains.add(new SubdomainPlace(id(subdomain.getString(ID), seen),
-                            ids(subdomain.optJSONArray(RULES), seen)));
+                    subdomains.add(new SubdomainPlace(id(subdomain.getString(KEY_ID), seen),
+                            ids(subdomain.optJSONArray(KEY_RULES), seen)));
                 }
-                domains.add(new DomainPlace(id(domain.getString(ID), seen), subdomains));
+                domains.add(new DomainPlace(id(domain.getString(KEY_ID), seen), subdomains));
             }
-            Set<String> off = new LinkedHashSet<>(ids(root.optJSONArray(OFF), new HashSet<>()));
+            Set<String> off = new LinkedHashSet<>(ids(root.optJSONArray(KEY_OFF), new HashSet<>()));
             if (seen.size() + off.size() > MAX_IDS) {
                 throw new IllegalArgumentException("A layout names " + MAX_IDS + " ids at most");
             }
@@ -176,11 +178,11 @@ public final class SiteLayout {
         for (DomainPlace domain : domains) {
             JSONArray subdomainArray = new JSONArray();
             for (SubdomainPlace subdomain : domain.subdomains()) {
-                subdomainArray.put(new JSONObject().put(ID, subdomain.id()).put(RULES, new JSONArray(subdomain.rules())));
+                subdomainArray.put(new JSONObject().put(KEY_ID, subdomain.id()).put(KEY_RULES, new JSONArray(subdomain.rules())));
             }
-            domainArray.put(new JSONObject().put(ID, domain.id()).put(SUBDOMAINS, subdomainArray));
+            domainArray.put(new JSONObject().put(KEY_ID, domain.id()).put(KEY_SUBDOMAINS, subdomainArray));
         }
-        return new JSONObject().put(DOMAINS, domainArray).put(OFF, new JSONArray(off)).toString();
+        return new JSONObject().put(KEY_DOMAINS, domainArray).put(KEY_OFF, new JSONArray(off)).toString();
     }
 
     /**
@@ -192,7 +194,7 @@ public final class SiteLayout {
      * @throws RepositoryException on a repository failure
      */
     static SiteLayout read(JCRSessionWrapper session, String sitePath) throws RepositoryException {
-        String folder = sitePath + "/" + FOLDER;
+        String folder = sitePath + IN_SITE;
         if (!session.nodeExists(folder)) {
             return NONE;
         }
@@ -218,7 +220,7 @@ public final class SiteLayout {
      * @throws RepositoryException on a repository failure, or when the caller may not write
      */
     public static void write(JCRSessionWrapper session, String sitePath, SiteLayout layout) throws RepositoryException {
-        String path = sitePath + "/" + FOLDER;
+        String path = sitePath + IN_SITE;
         if (!layout.saved()) {
             if (session.nodeExists(path) && session.getNode(path).hasProperty(PROPERTY)) {
                 session.getNode(path).getProperty(PROPERTY).remove();

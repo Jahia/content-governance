@@ -29,14 +29,6 @@ class ShippedRulesTest {
             assertThat(own.subdomains()).containsKey((String) rule.values().get(RuleValues.SUBDOMAIN));
         });
         assertThat(own.rules().get("html.imageAltMissing").values()).containsEntry(RuleValues.SUBDOMAIN, "accessibility");
-        // The GEO score counts rules of other subdomains, and each is a shipped rule
-        List<String> counts = RuleValues.strings(own.subdomains().get("geo.score").values(), DomainValues.COUNTS);
-        assertThat(counts).as("the page rules and the geo rules that GeoScore counts")
-                .containsAll(GeoScore.PAGE_RULES)
-                .contains("geo.fetched", "geo.reachable", "geo.robotsPresent", "geo.namedInRobots", "geo.policyMatchesReality",
-                        "geo.guestReadable", "geo.sameContentForCrawlers", "geo.noClientRedirect", "geo.contentInInitialHtml",
-                        "geo.headingOutline", "geo.dateModified", "geo.llmsPresent");
-        assertThat(own.rules()).containsKeys(counts.toArray(String[]::new));
         assertThat(own.rules().get("axe.color-contrast").values()).containsEntry(RuleValues.EVALUATOR, "axe")
                 .containsEntry(RuleValues.SEVERITY, "serious");
         assertThat(own.rules().values().stream().filter(rule -> !rule.id().startsWith("axe.")))
@@ -53,6 +45,20 @@ class ShippedRulesTest {
         assertThat(title.min()).isEqualTo(30);
         assertThat(title.max()).isEqualTo(60);
         assertThat(title.enabled()).isTrue();
+    }
+
+    @Test
+    @DisplayName("the subdomain geo.score lists the page rules and the geo rules that GeoScore counts, and each is a shipped rule")
+    void geoScoreCounts_areShippedRules() {
+        ShippedRules.Shipment own = ShippedRules.own();
+
+        List<String> counts = RuleValues.strings(own.subdomains().get("geo.score").values(), DomainValues.COUNTS);
+        assertThat(counts).as("the page rules and the geo rules that GeoScore counts")
+                .containsAll(GeoScore.PAGE_RULES)
+                .contains("geo.fetched", "geo.reachable", "geo.robotsPresent", "geo.namedInRobots", "geo.policyMatchesReality",
+                        "geo.guestReadable", "geo.sameContentForCrawlers", "geo.noClientRedirect", "geo.contentInInitialHtml",
+                        "geo.headingOutline", "geo.dateModified", "geo.llmsPresent");
+        assertThat(own.rules()).containsKeys(counts.toArray(String[]::new));
     }
 
     @Test

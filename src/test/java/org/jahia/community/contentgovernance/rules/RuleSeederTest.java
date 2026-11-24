@@ -131,7 +131,7 @@ class RuleSeederTest {
                     InOrder order = inOrder(LegacyCheckTypes.class, LegacyDomains.class, LegacyLayout.class);
                     order.verify(checkTypes, LegacyCheckTypes::migrate);
                     order.verify(domains, LegacyDomains::migrate);
-                    order.verify(layout, () -> LegacyLayout.migrate());
+                    order.verify(layout, LegacyLayout::migrate);
                 }
                 seeder.deactivate();
             }

@@ -50,6 +50,7 @@ public final class ShippedRules {
     /** The folder of the rules of this module, which its manifest names. */
     static final String OWN_FOLDER = "content-rules";
     private static final String SUFFIX = ".md";
+    private static final String THE_ID = "the id ";
     private static final Logger logger = LoggerFactory.getLogger(ShippedRules.class);
     private static final Map<String, Shipment> BY_MODULE = new ConcurrentHashMap<>();
 
@@ -252,13 +253,13 @@ public final class ShippedRules {
                 if (level == null) {
                     RuleFile rule = RuleFile.parse(text, fileName);
                     if (rules.putIfAbsent(rule.id(), rule) != null) {
-                        fail(fileName, "the id " + rule.id() + " is already taken");
+                        fail(fileName, THE_ID + rule.id() + " is already taken");
                     }
                     fileOf.put(rule.id(), fileName);
                 } else {
                     DomainFile domain = DomainFile.parse(text, fileName, level);
                     if (domains.get(level).putIfAbsent(domain.id(), domain) != null) {
-                        fail(fileName, "the id " + domain.id() + " is already taken");
+                        fail(fileName, THE_ID + domain.id() + " is already taken");
                     }
                 }
             } catch (IllegalArgumentException e) {
@@ -284,7 +285,7 @@ public final class ShippedRules {
             subdomains.values().removeIf(subdomain -> {
                 Object parent = subdomain.values().get(DomainValues.DOMAIN);
                 if (knownDomains.contains(subdomain.id())) {
-                    fail(subdomain.id() + SUFFIX, "the id " + subdomain.id() + " is the id of a domain");
+                    fail(subdomain.id() + SUFFIX, THE_ID + subdomain.id() + " is the id of a domain");
                     return true;
                 }
                 boolean unknown = !knownDomains.contains(String.valueOf(parent));

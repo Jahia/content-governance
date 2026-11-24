@@ -296,8 +296,19 @@ class TreeSeederTest {
                 .isEqualTo(TreeSeeder.Outcome.UNCHANGED);
         assertThat(moved.properties).containsEntry(RuleValues.MAXIMUM, 60.0);
 
-        RuleFile browser = RuleFile.parse("---\nid: seo.x\nevaluator: seo.x\ncheckType: CODE\nsubdomain: seo\nseverity: serious\n"
-                + "unit: characters\nmaximum: 60\nruntime: browser\n---\nCheck the price.\n", "seo.x.md");
+        RuleFile browser = RuleFile.parse("""
+                ---
+                id: seo.x
+                evaluator: seo.x
+                checkType: CODE
+                subdomain: seo
+                severity: serious
+                unit: characters
+                maximum: 60
+                runtime: browser
+                ---
+                Check the price.
+                """, "seo.x.md");
         assertThat(TreeSeeder.update(moved.node, browser)).isEqualTo(TreeSeeder.Outcome.FILLED);
         assertThat(moved.properties).containsEntry(RuleValues.EVALUATOR, "seo.x").containsEntry(RuleValues.RUNTIME, "browser");
     }

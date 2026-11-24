@@ -54,7 +54,7 @@ class LegacyLayoutTest {
         rule(rules, "brand.tone");
         rule(module, "brand.direct");
 
-        int removed = LegacyLayout.migrate(repository.session);
+        int removed = LegacyLayout.removeLeftovers(repository.session);
 
         assertThat(removed).isEqualTo(2);
         assertThat(rules.childNames()).containsExactly("brand.tone");
@@ -72,7 +72,7 @@ class LegacyLayoutTest {
         seeded(insights.add("acme", CONTENT_FOLDER).add("rules", RULE_FOLDER, CONTENT_FOLDER), "acme.price");
         insights.add("notes", "jnt:contentList");
 
-        int removed = LegacyLayout.migrate(repository.session);
+        int removed = LegacyLayout.removeLeftovers(repository.session);
 
         assertThat(removed).isEqualTo(2);
         assertThat(repository.contents("cgempty").childNames()).isEmpty();
@@ -89,7 +89,7 @@ class LegacyLayoutTest {
         seeded(site, "brand.copied");
         rule(site, "brand.own");
 
-        int removed = LegacyLayout.migrate(repository.session);
+        int removed = LegacyLayout.removeLeftovers(repository.session);
 
         assertThat(removed).isZero();
         assertThat(site.childNames()).containsExactly("brand.copied", "brand.own");
@@ -111,7 +111,7 @@ class LegacyLayoutTest {
         node(node(brand, Level.DOMAIN, "brand", false), Level.SUBDOMAIN, "tone", true);
         node(brand, Level.SUBDOMAIN, "voice", false);
 
-        int removed = LegacyLayout.migrate(repository.session);
+        int removed = LegacyLayout.removeLeftovers(repository.session);
 
         assertThat(removed).isEqualTo(5);
         assertThat(repository.contents("systemsite").childNames()).as("content-insights went, empty").containsExactly(MODULE);
@@ -130,7 +130,7 @@ class LegacyLayoutTest {
         Fake tone = node(brand, Level.SUBDOMAIN, "tone", false);
         rule(tone, "brand.tone");
 
-        int removed = LegacyLayout.migrate(repository.session);
+        int removed = LegacyLayout.removeLeftovers(repository.session);
 
         assertThat(removed).isZero();
         assertThat(brand.childNames()).containsExactly("tone");

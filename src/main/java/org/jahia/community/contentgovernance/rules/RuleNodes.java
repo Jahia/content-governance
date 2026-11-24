@@ -39,14 +39,12 @@ final class RuleNodes {
         Map<String, Object> values = new LinkedHashMap<>();
         String parentSubdomain = parentSubdomain(node);
         for (String key : RuleValues.KEYS) {
+            Object value;
             if (RuleValues.SUBDOMAIN.equals(key) && parentSubdomain != null) {
-                values.put(key, parentSubdomain);
-                continue;
+                value = parentSubdomain;
+            } else {
+                value = node.hasProperty(key) ? value(node, key) : null;
             }
-            if (!node.hasProperty(key)) {
-                continue;
-            }
-            Object value = value(node, key);
             if (value != null && !"".equals(value)) {
                 values.put(key, value);
             }
