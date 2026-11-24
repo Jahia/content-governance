@@ -1,9 +1,9 @@
 /* The four ways the drawer shows a result: card, fact block, score block and banner. */
 
-/* Card. --level is the colour of the left border, --level-text the colour of the level's word. */
+/* Card. --level is the colour of the left border, the only mark of the level on screen. */
 .card {
     --level: #8a99a6;
-    --level-text: #4f5d68;
+    position: relative;
     border: 1px solid #e4e4e4;
     border-left: 4px solid var(--level);
     border-radius: 6px;
@@ -13,54 +13,57 @@
 
 .level_serious {
     --level: #e0182d;
-    --level-text: #b3122a;
 }
 
 .level_moderate {
     --level: #f08c00;
-    --level-text: #9a5300;
 }
 
 .level_minor {
     --level: #8a99a6;
-    --level-text: #4f5d68;
 }
 
 .level_passed {
     --level: #2e9e5b;
-    --level-text: #1b7d3e;
 }
 
 .level_review {
     --level: #3a7bd5;
-    --level-text: #1a5b96;
+}
+
+/*
+ * The word of the level, for a screen reader only. Clipped, never display:none, which would hide it from
+ * the screen reader too.
+ */
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
 }
 
 .cardHead {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
     padding: 10px 10px 10px 12px;
 }
 
-.cardBody {
-    flex: 1 1 0%;
-    min-width: 0;
-}
-
-.levelWord {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--level-text);
-}
-
 .chips {
-    display: inline-flex;
+    display: flex;
+    flex-wrap: wrap;
     gap: 4px;
-    margin-left: 8px;
-    vertical-align: 1px;
+    margin-bottom: 4px;
+}
+
+/* The title, and the actions at its right end, on the line of its first row of text */
+.titleLine {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
 }
 
 .chip {
@@ -73,8 +76,9 @@
 }
 
 .cardTitle {
+    flex: 1 1 0%;
+    min-width: 0;
     font-weight: 600;
-    margin-top: 2px;
     overflow-wrap: anywhere;
 }
 
@@ -92,33 +96,54 @@
     font-size: 11px;
 }
 
+/* A button is taller than a line of the title: the negative margins keep the line as tall as its text. */
 .cardActions {
     display: flex;
     align-items: center;
     gap: 2px;
     flex-shrink: 0;
+    margin: -4px -4px -4px 0;
 }
 
-.single {
-    padding: 0 12px 10px;
+/*
+ * The last line of a card: its occurrences, and the id of its rule floated at the right end. A float
+ * rather than a flex row: the list of folded occurrences, once open, takes the whole width under it.
+ */
+.cardFoot {
+    display: flow-root;
+    padding: 0 10px 10px 12px;
     font-size: 12px;
 }
 
-.occurrences {
+.folded {
     border-top: 1px solid #eef1f3;
-    font-size: 12px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+.footRule {
+    float: right;
+    margin: 4px 0 0 8px;
+}
+
+.folded .footRule {
+    margin-top: 1px;
+}
+
+/* Beside the floated rule, never under it */
+.single {
+    display: flow-root;
 }
 
 .occurrences > summary {
     cursor: pointer;
     color: #6b7a86;
-    padding: 6px 12px;
 }
 
 .occurrences > ul {
     list-style: none;
-    margin: 0;
-    padding: 0 12px 6px;
+    margin: 6px 0 0;
+    padding: 0;
 }
 
 .row {
@@ -164,6 +189,10 @@
 
 .compact .cardHead {
     padding: 6px 8px 6px 10px;
+}
+
+.compact .cardFoot {
+    padding: 0 8px 6px 10px;
 }
 
 .passed {

@@ -5,54 +5,60 @@ import {LEVELS} from './levels';
 import styles from './Results.module.css';
 
 /**
- * One finding of one rule: its level as a left border and a word, what is wrong and how to fix it,
- * the id of its rule, its occurrences, and its action on the right.
+ * One finding of one rule. Its level is the colour of the left border, and a word that only a screen
+ * reader reads. The title line ends with the actions. What to do follows. The last line holds the
+ * occurrences, and the id of the rule at its right end.
  *
  * The action follows the occurrences. A rule with one occurrence, or with none (a rule of the whole
- * page), shows that occurrence's action on the card. A rule with several occurrences shows each
- * action on its own row. The `menu` (the ⋯ of the actions of other modules) always stays on the card.
+ * page), shows that occurrence's action on the title line. A rule with several occurrences shows each
+ * action on its own row. The `menu` (the ⋮ of the actions of other modules) always ends the title line.
  *
- * Example: "Images must have alternative text", Serious, 3 occurrences: each image is a row with its
- * own Highlight, and the card keeps only ⋯ with the assistant's Fix.
+ * Example: "Open Graph tags are missing: og:image", Moderate: an orange border, the title and its ⋮,
+ * the advice, then `og:image` with `seo.openGraph` at the right of the same line.
  */
 export const ResultCard = ({level, title, detail, rule, chips, occurrences = [], occurrencesLabel, action, menu, children, isCompact}) => {
     const {t} = useGovernanceTranslation('common');
     const single = occurrences.length === 1 ? occurrences[0] : null;
     const cardAction = single ? single.action : action;
+    const singleContent = single?.content;
+    const isFolded = occurrences.length > 1;
 
     return (
         <article className={`${styles.card} ${styles['level_' + level]} ${isCompact ? styles.compact : ''}`}>
             <div className={styles.cardHead}>
-                <div className={styles.cardBody}>
-                    <span className={styles.levelWord}>{t(`results.levels.${level}`)}</span>
-                    {chips && <span className={styles.chips}>{chips}</span>}
+                <span className={styles.srOnly}>{t(`results.levels.${level}`)}</span>
+                {chips && <div className={styles.chips}>{chips}</div>}
+                <div className={styles.titleLine}>
                     <div className={styles.cardTitle}>{title}</div>
-                    {detail && <div className={styles.cardDetail}>{detail}</div>}
-                    {rule && <code className={styles.rule}>{rule}</code>}
+                    {(cardAction || menu) && (
+                        <div className={styles.cardActions}>
+                            {cardAction}
+                            {menu}
+                        </div>
+                    )}
                 </div>
-                {(cardAction || menu) && (
-                    <div className={styles.cardActions}>
-                        {cardAction}
-                        {menu}
-                    </div>
-                )}
+                {detail && <div className={styles.cardDetail}>{detail}</div>}
             </div>
             {children}
-            {single && single.content && (
-                <div className={styles.single}>{single.content}</div>
-            )}
-            {occurrences.length > 1 && (
-                <details className={styles.occurrences}>
-                    <summary>{occurrencesLabel || t('results.occurrences', {count: occurrences.length})}</summary>
-                    <ul>
-                        {occurrences.map(occurrence => (
-                            <li key={occurrence.key} className={styles.row}>
-                                <div className={styles.rowContent}>{occurrence.content}</div>
-                                {occurrence.action && <div className={styles.rowAction}>{occurrence.action}</div>}
-                            </li>
-                        ))}
-                    </ul>
-                </details>
+            {(rule || singleContent || isFolded) && (
+                <div className={`${styles.cardFoot} ${isFolded ? styles.folded : ''}`}>
+                    {/* Before the occurrences, so that it floats at the right of their first line */}
+                    {rule && <code className={`${styles.rule} ${styles.footRule}`}>{rule}</code>}
+                    {singleContent && <div className={styles.single}>{singleContent}</div>}
+                    {isFolded && (
+                        <details className={styles.occurrences}>
+                            <summary>{occurrencesLabel || t('results.occurrences', {count: occurrences.length})}</summary>
+                            <ul>
+                                {occurrences.map(occurrence => (
+                                    <li key={occurrence.key} className={styles.row}>
+                                        <div className={styles.rowContent}>{occurrence.content}</div>
+                                        {occurrence.action && <div className={styles.rowAction}>{occurrence.action}</div>}
+                                    </li>
+                                ))}
+                            </ul>
+                        </details>
+                    )}
+                </div>
             )}
         </article>
     );
@@ -71,16 +77,16 @@ ResultCard.propTypes = {
     title: PropTypes.node.isRequired,
     // What to do, in one or two sentences
     detail: PropTypes.node,
-    // The id of the rule, as the catalog names it
+    // The id of the rule, as the catalog names it, at the bottom right
     rule: PropTypes.string,
-    // Extra marks beside the level, such as a WCAG level
+    // Extra marks above the title, such as a WCAG level
     chips: PropTypes.node,
     occurrences: PropTypes.arrayOf(occurrenceShape),
     // The label of the folded occurrences, "N items" when omitted
     occurrencesLabel: PropTypes.string,
     // The action of a rule with no occurrence
     action: PropTypes.node,
-    // The ⋯ of the actions of other modules
+    // The ⋮ of the actions of other modules, at the end of the title line
     menu: PropTypes.node,
     // More about the finding, between the head and the occurrences
     children: PropTypes.node,
