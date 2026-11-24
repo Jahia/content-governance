@@ -17,7 +17,7 @@ function RobotsVerdict({robots, t}) {
     const disallowed = robots.disallowedAiBotCount || 0;
     const disallowedText = disallowed > 0 ? t('files.robots.someDisallowed', {count: disallowed}) : null;
     if (!robots.present && robots.error) {
-        return <ResultBanner variant="warning" title={`${t('files.robots.unreachable')} ${fetchErrorHint(t, robots.error)}`.trim()}/>;
+        return <ResultBanner variant="warning">{`${t('files.robots.unreachable')} ${fetchErrorHint(t, robots.error)}`.trim()}</ResultBanner>;
     }
     if (!robots.present) {
         return <ResultCard level="moderate" title={t('files.robots.absent')}/>;
@@ -42,7 +42,7 @@ function LlmsVerdict({llms, t}) {
         return <PassedFold items={[{key: 'llms', title: t('files.llms.present')}]}/>;
     }
     if (llms.error && llms.status === null) {
-        return <ResultBanner variant="warning" title={`${t('files.llms.unreachable')} ${fetchErrorHint(t, llms.error)}`.trim()}/>;
+        return <ResultBanner variant="warning">{`${t('files.llms.unreachable')} ${fetchErrorHint(t, llms.error)}`.trim()}</ResultBanner>;
     }
     return <ResultCard level="moderate" title={t('files.llms.absent', {status: llms.status ?? '—'})}/>;
 }
@@ -89,7 +89,7 @@ export const SiteFilesTab = ({report}) => {
                            {key: 'full', label: t('files.llmsFull.label'), value: `${llmsFull.present ? t('crawler.present') : t('crawler.missing')} (${llmsFull.status ?? '—'})`}
                        ]}/>
 
-            <ResultBanner variant="info" title={t('files.editedInSettings')}/>
+            <ResultBanner variant="info">{t('files.editedInSettings')}</ResultBanner>
         </div>
     );
 };

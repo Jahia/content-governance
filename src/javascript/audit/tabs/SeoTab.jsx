@@ -53,7 +53,7 @@ export function SeoTab({result}) {
                     </div>
                 </div>
             ) : (
-                <ResultBanner title={t('seo.noPreview')}/>
+                <ResultBanner>{t('seo.noPreview')}</ResultBanner>
             )}
         </div>
     );

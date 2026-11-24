@@ -53,7 +53,7 @@ export function ReadabilityTab({result, onHighlight}) {
     if (result.empty) {
         return (
             <div>
-                <ResultBanner title={t('readability.noText', {count: result.words || 0})}/>
+                <ResultBanner>{t('readability.noText', {count: result.words || 0})}</ResultBanner>
                 {structure}
             </div>
         );
@@ -89,7 +89,7 @@ export function ReadabilityTab({result, onHighlight}) {
     return (
         <div>
             {!result.scored && (
-                <ResultBanner title={t(result.spaced ? 'readability.noFormula' : 'readability.noWords', {language: languageName(result.lang, i18n.language)})}/>
+                <ResultBanner>{t(result.spaced ? 'readability.noFormula' : 'readability.noWords', {language: languageName(result.lang, i18n.language)})}</ResultBanner>
             )}
             <ScoreBlock items={scores}/>
             <Recommendations items={result.recommendations} ns="readability" tab="readability"/>

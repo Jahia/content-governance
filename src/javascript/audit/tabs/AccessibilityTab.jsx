@@ -103,12 +103,15 @@ export function AccessibilityTab({result, onHighlight}) {
         <div>
             <ScoreBlock items={LEVELS.map(level => levelTile(level, result, t))}/>
 
-            <ResultBanner variant="info" title={t('a11y.machineNote')}>
-                {t('a11y.engineInfo', {engine: result.engine, rules: result.rulesRun, passes: result.passCount})}
+            <ResultBanner variant="info">
+                {t('a11y.machineNote')}
+                <div className={results.bannerLine}>
+                    {t('a11y.engineInfo', {engine: result.engine, rules: result.rulesRun, passes: result.passCount})}
+                </div>
             </ResultBanner>
 
             {result.violations.length === 0 && (
-                <ResultBanner variant="success" title={t('a11y.noViolations')}/>
+                <ResultBanner variant="success">{t('a11y.noViolations')}</ResultBanner>
             )}
 
             {result.violations.map(v => (
@@ -126,7 +129,7 @@ export function AccessibilityTab({result, onHighlight}) {
             {result.incomplete.length > 0 && (
                 <>
                     <h4 className={styles.sectionTitle}>{t('a11y.incompleteTitle')}</h4>
-                    <ResultBanner variant="info" title={t('a11y.incompleteNote')}/>
+                    <ResultBanner variant="info">{t('a11y.incompleteNote')}</ResultBanner>
                     {result.incomplete.map(rule => (
                         <RuleCard key={rule.id} rule={rule} level="review" onHighlight={onHighlight}/>
                     ))}

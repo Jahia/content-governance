@@ -349,7 +349,23 @@
     margin-bottom: 8px;
 }
 
+/* A banner with no title: its icon on the left, its text on the right, as one row */
+.banner.bannerText {
+    flex-flow: row nowrap;
+    align-items: flex-start;
+}
+
+.bannerText > :last-child {
+    flex: 1 1 0%;
+    min-width: 0;
+}
+
 .bannerAction {
+    margin-top: 6px;
+}
+
+/* A second paragraph of the text of a banner */
+.bannerLine {
     margin-top: 6px;
 }
 

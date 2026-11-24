@@ -182,9 +182,9 @@ export function ComplianceSubdomainView({scan, id, subdomainOf, dedicated, onEdi
     const language = languageDisplayName(report.language, uiLanguage);
     return (
         <>
-            {dedicated && report.status === 'NO_GLOSSARY' && <ResultBanner variant="info" title={t('summary.noGlossary', {language})}/>}
+            {dedicated && report.status === 'NO_GLOSSARY' && <ResultBanner variant="info">{t('summary.noGlossary', {language})}</ResultBanner>}
             {dedicated && report.status !== 'NO_GLOSSARY' && issues.length === 0 && (
-                <ResultBanner variant="success" title={t('summary.safe', {count: report.scannedContents, language})}/>
+                <ResultBanner variant="success">{t('summary.safe', {count: report.scannedContents, language})}</ResultBanner>
             )}
             {dedicated && issues.length > 0 && (
                 <p className={styles.summaryLine}>{t('summary.issues', {count: issues.length, contents: contentCount(issues), language})}</p>

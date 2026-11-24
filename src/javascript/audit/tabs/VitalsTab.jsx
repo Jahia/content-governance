@@ -67,13 +67,13 @@ export function VitalsTab({result}) {
 
     return (
         <div>
-            <ResultBanner variant="info" title={t('vitals.labNote')}/>
+            <ResultBanner variant="info">{t('vitals.labNote')}</ResultBanner>
             <ScoreBlock items={METRICS.map(key => metricTile(key, metrics, t))}/>
 
             {/* The findings of the vitals are rules of the subdomain ecodesign: the Ecodesign tab shows them.
                 An audit stored by an older version still has them here. */}
             {result.recommendations?.length > 0 && <Recommendations items={result.recommendations} ns="vitals" tab="vitals"/>}
-            {!result.recommendations?.length && <ResultBanner title={t('vitals.findingsInEcodesign')}/>}
+            {!result.recommendations?.length && <ResultBanner>{t('vitals.findingsInEcodesign')}</ResultBanner>}
 
             <FactBlock title={t('vitals.diagnostics')}
                        rows={[

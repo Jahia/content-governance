@@ -152,12 +152,12 @@ export function GeoSubdomainView({geo, id, path}) {
     const {t} = useGovernanceTranslation('geo');
     if (id === 'geo.citations') {
         return geo.citationsState === 'notConfigured' ?
-            <ResultBanner title={t('citations.notConfiguredTab')}/> :
+            <ResultBanner>{t('citations.notConfiguredTab')}</ResultBanner> :
             <CitationsTab data={geo.citations} failed={geo.citationsState === 'failed'}/>;
     }
     const report = publishedReport(geo);
     if (!report) {
-        return <ResultBanner title={t('drawer.runFirst')}/>;
+        return <ResultBanner>{t('drawer.runFirst')}</ResultBanner>;
     }
     switch (id) {
         case 'geo.score':

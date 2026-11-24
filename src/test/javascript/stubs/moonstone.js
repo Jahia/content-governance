@@ -12,7 +12,8 @@ export const Tooltip = ({children}) => children;
 export const Loader = () => h('span', null, 'loading');
 export const Close = () => null;
 export const Chip = ({label}) => h('span', null, label);
-export const Banner = ({title, children}) => h('div', {role: 'status'}, title, children);
+// Moonstone draws the title of a banner in bold, above its text
+export const Banner = ({title, children, className}) => h('div', {role: 'status', className}, title && h('strong', null, title), children);
 // Icons draw nothing here
 const icon = () => null;
 export const Reload = icon;

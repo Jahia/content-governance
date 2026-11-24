@@ -36,7 +36,7 @@ export const SchemaTab = ({report}) => {
     }, [snippet]);
 
     if (!schema) {
-        return <ResultBanner title={t('schema.none')}/>;
+        return <ResultBanner>{t('schema.none')}</ResultBanner>;
     }
 
     if (!schema.mapped) {
@@ -83,7 +83,7 @@ export const SchemaTab = ({report}) => {
 
             <FactBlock title={t('schema.sources')}
                        rows={(schema.sourced || []).map(source => ({key: source.property, label: source.property, value: source.from}))}/>
-            <ResultBanner variant="info" title={t('schema.limits')}/>
+            <ResultBanner variant="info">{t('schema.limits')}</ResultBanner>
         </div>
     );
 };

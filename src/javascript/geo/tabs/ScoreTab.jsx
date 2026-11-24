@@ -180,7 +180,7 @@ export const ScoreTab = ({report, path}) => {
             ))}
             <PassedFold items={checks.filter(c => c.passed).map(c => ({key: c.id, title: c.label, rule: c.rule}))}/>
             <FactBlock rows={context}/>
-            <ResultBanner variant="info" title={t('score.rubric')}/>
+            <ResultBanner variant="info">{t('score.rubric')}</ResultBanner>
         </div>
     );
 };

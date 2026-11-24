@@ -35,7 +35,7 @@ export function EcodesignTab({result}) {
     return (
         <div>
             <ScoreBlock items={scores}/>
-            <ResultBanner variant="info" title={t('eco.disclaimer')}/>
+            <ResultBanner variant="info">{t('eco.disclaimer')}</ResultBanner>
             <Recommendations items={result.recommendations} ns="eco" tab="ecodesign"/>
             <PassedFold items={passed}/>
 

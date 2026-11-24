@@ -73,7 +73,7 @@ export const CrawlerTab = ({report}) => {
     const metaRefresh = controlAgent && controlAgent.html.metaRefresh;
 
     if (!report.published) {
-        return <ResultBanner variant="warning" title={verdict.text}/>;
+        return <ResultBanner variant="warning">{verdict.text}</ResultBanner>;
     }
 
     const isThin = a => a.status === 200 && control > 0 && (a.html ? a.html.words : 0) < control * THIN_RATIO;

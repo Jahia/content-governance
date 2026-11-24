@@ -15,10 +15,10 @@ export function HeadingOutline({outline, total, onHighlight}) {
     const {t} = useGovernanceTranslation('audit');
 
     if (!outline) {
-        return <ResultBanner title={t('readability.outline.rerun')}/>;
+        return <ResultBanner>{t('readability.outline.rerun')}</ResultBanner>;
     }
     if (outline.length === 0) {
-        return <ResultBanner title={t('readability.outline.none')}/>;
+        return <ResultBanner>{t('readability.outline.none')}</ResultBanner>;
     }
 
     // A selector names one element, unless the page repeats an id: the rank keeps the keys apart

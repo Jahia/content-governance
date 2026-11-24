@@ -65,7 +65,7 @@ export function Recommendations({items, ns, tab, title, isQuietWhenEmpty, itemAc
     const {t} = useGovernanceTranslation('audit');
 
     if (items.length === 0) {
-        return isQuietWhenEmpty ? null : <ResultBanner variant="success" title={t('recs.none')}/>;
+        return isQuietWhenEmpty ? null : <ResultBanner variant="success">{t('recs.none')}</ResultBanner>;
     }
     return (
         <div className={styles.recList}>
