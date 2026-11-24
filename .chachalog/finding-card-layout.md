@@ -3,6 +3,6 @@
 content-governance: minor
 ---
 
-Simplified the drawer's finding cards and banners: an icon and the border colour show the severity, and only short titles are bold.
+Changed the drawer to show each finding as one card per rule, with its severity, its places to fix and their actions.
 
-A finding card no longer prints its severity as a word. An icon opens its title line, with a shape per severity, such as a triangle for Moderate, and the colour of its left border matches. Hover the icon to read the severity, and a screen reader reads it too. The **⋮** of its actions ends the title line. The id of its rule sits at the right of the line of its findings, such as `og:image` with `seo.openGraph`. A banner that explains something, such as the note on automated accessibility checks, shows its text in regular weight.
+Severity is now Serious, Moderate or Minor in every section, shown by an icon and the card's border colour, and passed checks fold into one line. Compliance lists each content that uses a term under that term, and GEO readiness shows page issues, such as a page missing from the sitemap, in their own section.
