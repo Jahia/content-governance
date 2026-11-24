@@ -65,7 +65,8 @@ function loadCachedAudit(path, language) {
         }
 
         return entry;
-    } catch (e) {
+    } catch (error) {
+        console.debug('[content-governance] no cached audit: the browser storage could not be read', error);
         return null;
     }
 }
@@ -78,16 +79,17 @@ function pruneCache(keep) {
                 let timestamp = 0;
                 try {
                     timestamp = JSON.parse(globalThis.localStorage.getItem(k)).timestamp || 0;
-                } catch (e) {
+                } catch (error) {
                     // Unparseable entry: treat as oldest
+                    console.debug(`[content-governance] the cached audit ${k} is unreadable, and goes first`, error);
                 }
 
                 return {k, timestamp};
             })
             .sort((a, b) => b.timestamp - a.timestamp);
         entries.slice(keep).forEach(e => globalThis.localStorage.removeItem(e.k));
-    } catch (e) {
-        // localStorage unavailable
+    } catch (error) {
+        console.debug('[content-governance] the cached audits could not be pruned: no browser storage', error);
     }
 }
 
@@ -96,13 +98,15 @@ function saveCachedAudit(path, language, entry) {
     try {
         write();
         pruneCache(CACHE_MAX_ENTRIES);
-    } catch (e) {
+    } catch (error) {
         // Quota exceeded: evict everything but the most recent and retry once
+        console.debug('[content-governance] the audit could not be cached, retrying with less', error);
         pruneCache(2);
         try {
             write();
-        } catch (e2) {
-            // Give up silently - caching is best-effort
+        } catch (retryError) {
+            // Caching is best-effort
+            console.debug('[content-governance] the audit is not cached', retryError);
         }
     }
 }
@@ -476,7 +480,7 @@ export function usePageAudit({path, language, active, isOn}) {
         const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json'});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `content-governance-audit-${path.split('/').filter(Boolean).pop() || 'page'}.json`;
+        a.download = `content-governance-audit-${path.split('/').findLast(Boolean) || 'page'}.json`;
         a.click();
         URL.revokeObjectURL(a.href);
     }, [results, path, language, previewUrl, auditedAt]);

@@ -18,7 +18,8 @@ function loadCached(path, language) {
         }
         const entry = JSON.parse(raw);
         return entry && entry.schema === CACHE_SCHEMA ? entry : null;
-    } catch (e) {
+    } catch (error) {
+        console.debug('[content-governance] no cached GEO report: the browser storage could not be read', error);
         return null;
     }
 }
@@ -29,8 +30,9 @@ function saveCached(path, language, report) {
             cacheKey(path, language),
             JSON.stringify({schema: CACHE_SCHEMA, timestamp: Date.now(), report})
         );
-    } catch (e) {
+    } catch (error) {
         // localStorage unavailable or full. Caching is a convenience, not a requirement.
+        console.debug('[content-governance] the GEO report is not cached', error);
     }
 }
 
