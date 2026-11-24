@@ -52,14 +52,23 @@ describe('ResultCard', () => {
         expect(line).not.toContain(DETAIL);
     });
 
-    it('puts the rule at the right of the line of its one occurrence, below the advice', () => {
-        const markup = card({rule: 'seo.openGraph', occurrences: [occurrence('0', 'og:image')]});
+    it('folds one occurrence under its label like several, with its action on its row and not on the title line', () => {
+        const highlight = h('button', {type: 'button'}, 'Highlight');
+        const markup = card({rule: 'seo.openGraph', occurrences: [{...occurrence('0', 'og:image'), action: highlight}]});
         const foot = elementOf(markup, styles.cardFoot);
 
         expect(elementOf(markup, styles.cardHead)).not.toContain('seo.openGraph');
+        expect(elementOf(markup, styles.titleLine)).not.toContain('Highlight');
+        expect(foot).toContain(styles.folded);
         expect(elementOf(foot, styles.footRule)).toContain('seo.openGraph');
-        expect(elementOf(foot, styles.single)).toContain('og:image');
+        expect(elementOf(foot, styles.occurrences)).toContain('results.occurrences');
+        expect(elementOf(foot, styles.rowAction)).toContain('Highlight');
         expect(markup.indexOf(DETAIL)).toBeLessThan(markup.indexOf('seo.openGraph'));
+    });
+
+    it('shows the action of a rule with no occurrence on its title line', () => {
+        const fix = h('button', {type: 'button'}, 'Settings');
+        expect(elementOf(card({rule: 'geo.llmsTxt', action: fix}), styles.titleLine)).toContain('Settings');
     });
 
     it('puts the rule at the right of the line of folded occurrences, outside the list they open', () => {

@@ -13,19 +13,17 @@ const LEVEL_ICON = {serious: Report, moderate: Warning, minor: Information, pass
  * title line, whose name and tooltip are the word of the level. The title line ends with the actions.
  * What to do follows. The last line holds the occurrences, and the id of the rule at its right end.
  *
- * The action follows the occurrences. A rule with one occurrence, or with none (a rule of the whole
- * page), shows that occurrence's action on the title line. A rule with several occurrences shows each
- * action on its own row. The `menu` (the ⋮ of the actions of other modules) always ends the title line.
+ * The occurrences always fold under "Findings (N)", one or many, and each row holds its own action,
+ * such as Highlight or Edit. Only a rule with no occurrence, a rule of the whole page, shows its action
+ * on the title line. The `menu` (the ⋮ of the actions of other modules) always ends the title line.
  *
  * Example: "Open Graph tags are missing: og:image", Moderate: an orange border, a triangle, the title
- * and its ⋮, the advice, then `og:image` with `seo.openGraph` at the right of the same line.
+ * and its ⋮, the advice, then "Findings (1)" with `seo.openGraph` at the right of the same line.
  */
 export const ResultCard = ({level, title, detail, rule, chips, occurrences = [], occurrencesLabel, action, menu, children, isCompact}) => {
     const {t} = useGovernanceTranslation('common');
-    const single = occurrences.length === 1 ? occurrences[0] : null;
-    const cardAction = single ? single.action : action;
-    const singleContent = single?.content;
-    const isFolded = occurrences.length > 1;
+    const cardAction = occurrences.length === 0 ? action : null;
+    const isFolded = occurrences.length > 0;
     const LevelIcon = LEVEL_ICON[level];
     const word = t(`results.levels.${level}`);
 
@@ -52,11 +50,10 @@ export const ResultCard = ({level, title, detail, rule, chips, occurrences = [],
                 {detail && <div className={styles.cardDetail}>{detail}</div>}
             </div>
             {children}
-            {(rule || singleContent || isFolded) && (
+            {(rule || isFolded) && (
                 <div className={`${styles.cardFoot} ${isFolded ? styles.folded : ''}`}>
                     {/* Before the occurrences, so that it floats at the right of their first line */}
                     {rule && <code className={`${styles.rule} ${styles.footRule}`}>{rule}</code>}
-                    {singleContent && <div className={styles.single}>{singleContent}</div>}
                     {isFolded && (
                         <details className={styles.occurrences}>
                             <summary>{occurrencesLabel || t('results.occurrences', {count: occurrences.length})}</summary>
@@ -94,7 +91,7 @@ ResultCard.propTypes = {
     // Extra marks at the start of the title, such as a WCAG level
     chips: PropTypes.node,
     occurrences: PropTypes.arrayOf(occurrenceShape),
-    // The label of the folded occurrences, "N items" when omitted
+    // The label of the folded occurrences, "Findings (N)" when omitted
     occurrencesLabel: PropTypes.string,
     // The action of a rule with no occurrence
     action: PropTypes.node,

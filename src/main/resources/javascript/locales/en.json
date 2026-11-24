@@ -1760,8 +1760,8 @@
           "passed": "Passed",
           "review": "To verify"
         },
-        "occurrences": "{{count}} item",
-        "occurrences_plural": "{{count}} items",
+        "occurrences": "Findings ({{count}})",
+        "occurrences_plural": "Findings ({{count}})",
         "passed": "✓ {{count}} passed",
         "passed_plural": "✓ {{count}} passed",
         "moreActions": "More actions"

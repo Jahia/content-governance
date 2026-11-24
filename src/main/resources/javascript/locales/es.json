@@ -1760,8 +1760,8 @@
           "passed": "Superado",
           "review": "Por verificar"
         },
-        "occurrences": "{{count}} elemento",
-        "occurrences_plural": "{{count}} elementos",
+        "occurrences": "Hallazgos ({{count}})",
+        "occurrences_plural": "Hallazgos ({{count}})",
         "passed": "✓ {{count}} superado",
         "passed_plural": "✓ {{count}} superados",
         "moreActions": "Más acciones"

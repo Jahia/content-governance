@@ -1760,8 +1760,8 @@
           "passed": "Bestanden",
           "review": "Zu prüfen"
         },
-        "occurrences": "{{count}} Element",
-        "occurrences_plural": "{{count}} Elemente",
+        "occurrences": "Befunde ({{count}})",
+        "occurrences_plural": "Befunde ({{count}})",
         "passed": "✓ {{count}} bestanden",
         "passed_plural": "✓ {{count}} bestanden",
         "moreActions": "Weitere Aktionen"
