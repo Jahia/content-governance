@@ -11,6 +11,7 @@ import {
     deleteTestSite,
     gql,
     readSettings,
+    setDrawerDisplay,
     switchOff
 } from '../support/cg';
 
@@ -50,6 +51,8 @@ describe('Content Governance - the panels of the drawer', () => {
             ]
         });
         createTestUser(admin, sitePath, ['site-administrator']);
+        // The cfg of the server hides "Fix first" until it shows it
+        setDrawerDisplay({fixFirst: true, previewButton: false});
     });
 
     beforeEach(() => {
@@ -67,6 +70,7 @@ describe('Content Governance - the panels of the drawer', () => {
     });
 
     after(() => {
+        setDrawerDisplay({fixFirst: false, previewButton: false});
         deleteUser(admin.username);
         deleteTestSite(siteKey);
     });

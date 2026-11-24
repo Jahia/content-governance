@@ -29,8 +29,8 @@ final class SiteAccess {
      * @throws DataFetchingException when the caller is a guest or cannot read the site
      */
     static JCRSiteNode site(String siteKey) {
-        JahiaUser user = JCRSessionFactory.getInstance().getCurrentUser();
-        if (user == null || JahiaUserManagerService.isGuest(user) || siteKey == null || !SITE_KEY.matcher(siteKey).matches()) {
+        signedIn();
+        if (siteKey == null || !SITE_KEY.matcher(siteKey).matches()) {
             throw new DataFetchingException(DENIED);
         }
         try {
@@ -44,5 +44,15 @@ final class SiteAccess {
             throw new DataFetchingException("The site could not be read");
         }
         throw new DataFetchingException(DENIED);
+    }
+
+    /**
+     * @throws DataFetchingException when the caller is a guest
+     */
+    static void signedIn() {
+        JahiaUser user = JCRSessionFactory.getInstance().getCurrentUser();
+        if (user == null || JahiaUserManagerService.isGuest(user)) {
+            throw new DataFetchingException(DENIED);
+        }
     }
 }

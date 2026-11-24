@@ -43,7 +43,8 @@ all** closes them. After a new audit, the sections open and close by these rules
 The number on the **Page quality** tab is the total of the counts of its sections. It is red when one
 of its findings is critical or serious, grey otherwise.
 
-Under the tabs, **Fix first** appears when a tab measured so far holds a critical or serious finding:
+Under the tabs, **Fix first** appears when a server administrator shows it (`SHOW_FIX_FIRST` in
+`org.jahia.community.contentgovernance.drawer.cfg`) and a tab measured so far holds a critical or serious finding:
 it gives the most serious one on one line, with how many more there are. **Show** lists up to five of
 them (critical, then serious), whatever their tab: accessibility violations and the recommendations of
 every Page quality section, the GEO readiness score and crawler access, and the forbidden terms.
@@ -63,7 +64,7 @@ Page Builder and open the drawer again. Each language has its own results.
 |---|---|
 | **Re-run** | Loads the page again and runs every check from scratch. Use it after you have fixed something. |
 | **Export JSON** | Downloads the results of the automated checks as a JSON file (`content-governance-audit-<page name>.json`), with the page path, language and date. Useful to attach to a ticket for a developer. |
-| **Hide preview** / **Show preview** | Hides the page preview to give the results the full height of the drawer. In Page Builder it starts hidden, since the page is beside the drawer. The preview stays loaded behind the results, so the audit measures it the same way and highlighting can still show it. |
+| **Hide preview** / **Show preview** | Hides the page preview to give the results the full height of the drawer. In Page Builder it starts hidden, since the page is beside the drawer. The preview stays loaded behind the results, so the audit measures it the same way and highlighting can still show it. Shown only where a server administrator shows it (`SHOW_PREVIEW_BUTTON` in `org.jahia.community.contentgovernance.drawer.cfg`). |
 | "Last audit: date by user" | When the results shown were produced, and who ran the audit. |
 | "Issues over the last N audits: 12 → 9 → 7" | The total of the badges at each of the page's last audits (up to 10), oldest first. Hover a number for its date and who ran it. Shown from the second audit. |
 | **Expand all** / **Collapse all** | Opens every section of the results, or closes them all. |
