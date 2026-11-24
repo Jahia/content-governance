@@ -13,6 +13,7 @@
         "rerun": "Volver a ejecutar",
         "running": "Comprobando, una solicitud por rastreador…",
         "lastRun": "Última comprobación: {{date}}",
+        "runFirst": "Ejecute la comprobación para ver esta parte en la página publicada.",
         "url": "URL probada"
       },
       "crawler": {
@@ -1062,6 +1063,7 @@
         "vitals": "Web Vitals",
         "readability": "Legibilidad",
         "ecodesign": "Ecodiseño",
+        "other": "Otras reglas",
         "badgeTooltip": "{{count}} problemas por revisar"
       },
       "eco": {

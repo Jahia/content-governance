@@ -1,8 +1,6 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
-import PropTypes from 'prop-types';
-import {useGovernanceTranslation} from '../common/i18n';
-import {useDrawerDisplay} from '../common/useDrawerDisplay';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useApolloClient} from '@apollo/client';
+import {useGovernanceTranslation} from '../common/i18n';
 import {fetchRules} from './rules';
 import {checkPage} from './pageCheck';
 import {rulesOfTabsOn, runChecks} from './runChecks';
@@ -10,24 +8,7 @@ import {browserTabs, RESULT_KEYS, SERVER_KEYS, withBrowserResults} from './brows
 import {removeToolingElements} from './tooling';
 import {runStep} from './timeLimit';
 import {fetchPageAudits, fetchPageLastModified, saveAudit, storedResults} from './auditHistory';
-import {auditFindings} from '../drawer/findings';
-import {AccessibilityTab} from './tabs/AccessibilityTab';
-import {VitalsTab} from './tabs/VitalsTab';
-import {ReadabilityTab} from './tabs/ReadabilityTab';
-import {EcodesignTab} from './tabs/EcodesignTab';
-import {SeoTab} from './tabs/SeoTab';
-import {LinksTab} from './tabs/LinksTab';
-import {JahiaTab} from './tabs/JahiaTab';
-import {IncompleteStep} from './tabs/IncompleteStep';
-import {NotChecked} from './tabs/NotChecked';
-import {Banner, Button, Download, Loader, Reload, Typography, Visibility} from '@jahia/moonstone';
-import {CollapsibleSection, ExpandAll} from '../common/CollapsibleSection';
-import {defaultOpen, useOpenSections} from '../common/openSections';
 import {findByText, findEditFrameDocument, locateInFrame} from './editFrame';
-import styles from './AuditSection.module.css';
-import {toLocaleTag} from '../common/locale';
-import {tabCounts} from './tabCounts';
-import {HighlightContext} from './HighlightContext';
 
 // Let client islands hydrate and layout settle before measuring
 const SETTLE_MS = 2500;
@@ -40,14 +21,18 @@ const FRAME_LOAD_LIMIT_MS = 20_000;
 // Audits a page keeps for every editor of the site (AuditHistoryService.MAX_RUNS)
 const AUDITS_KEPT = 10;
 
-// The time the check of the server may take before its tabs are left out of the audit (runStep): it gives
-// the tabs SEO, Readability, Links and Jahia health. Each check of the browser has its own (runChecks.js).
+// The time the check of the server may take before its results are left out of the audit (runStep): it gives
+// SEO, Readability, Links, Jahia health and the rules of the other subdomains. Each check of the browser has its
+// own (runChecks.js).
 const PAGE_LIMIT_MS = 60_000;
 
-// The tabs that read the check of the server: its results, or its HTML rules
-const SERVER_TABS = ['seo', 'readability', 'links', 'jahia', 'accessibility'];
+// The results that read the check of the server: its results, or its HTML rules
+const SERVER_TABS = ['seo', 'readability', 'links', 'jahia', 'accessibility', 'other'];
 
-// Why a tab misses the facts of the repository: the server rendered the page, and could not read its state
+// Results that an audit may lack and still show: an audit stored before 2.0.0 holds no `other`
+const OPTIONAL_TABS = new Set(['other']);
+
+// Why a view misses the facts of the repository: the server rendered the page, and could not read its state
 const UNREAD = {incomplete: 'failed', message: 'the server could not read the repository'};
 
 // Results are cached per page+language in localStorage so reopening the
@@ -58,7 +43,7 @@ const CACHE_MAX_ENTRIES = 10;
 // Bump whenever the cached `results` shape changes (e.g. a new key of a tab),
 // so entries written by an older module version are ignored instead of
 // restored into UI that expects the new shape.
-const CACHE_SCHEMA = 7;
+export const CACHE_SCHEMA = 7;
 // The shape of the results before every finding was worded from its rule (Jahia/content-governance#140):
 // such an audit shows its old text, with "Run again"
 const LEGACY_SCHEMA = 6;
@@ -80,7 +65,8 @@ function loadCachedAudit(path, language) {
         }
 
         return entry;
-    } catch (e) {
+    } catch (error) {
+        console.debug('[content-governance] no cached audit: the browser storage could not be read', error);
         return null;
     }
 }
@@ -93,16 +79,17 @@ function pruneCache(keep) {
                 let timestamp = 0;
                 try {
                     timestamp = JSON.parse(globalThis.localStorage.getItem(k)).timestamp || 0;
-                } catch (e) {
+                } catch (error) {
                     // Unparseable entry: treat as oldest
+                    console.debug(`[content-governance] the cached audit ${k} is unreadable, and goes first`, error);
                 }
 
                 return {k, timestamp};
             })
             .sort((a, b) => b.timestamp - a.timestamp);
         entries.slice(keep).forEach(e => globalThis.localStorage.removeItem(e.k));
-    } catch (e) {
-        // localStorage unavailable
+    } catch (error) {
+        console.debug('[content-governance] the cached audits could not be pruned: no browser storage', error);
     }
 }
 
@@ -111,88 +98,21 @@ function saveCachedAudit(path, language, entry) {
     try {
         write();
         pruneCache(CACHE_MAX_ENTRIES);
-    } catch (e) {
+    } catch (error) {
         // Quota exceeded: evict everything but the most recent and retry once
+        console.debug('[content-governance] the audit could not be cached, retrying with less', error);
         pruneCache(2);
         try {
             write();
-        } catch (e2) {
-            // Give up silently - caching is best-effort
+        } catch (retryError) {
+            // Caching is best-effort
+            console.debug('[content-governance] the audit is not cached', retryError);
         }
     }
 }
 
-/** The subdomains of the section, in order; each id is also its feature id (`audit.<id>`). */
-const TAB_IDS = ['accessibility', 'seo', 'vitals', 'readability', 'ecodesign', 'links', 'jahia'];
-
-// What the tooltip of a subdomain adds to its help: how many issues it holds
-const sectionNote = (section, t) => (section.count ? t('tabs.badgeTooltip', {count: section.count}) : undefined);
-
-/** The results of one subdomain, or nothing when the audit holds none for it. */
-function TabContent({id, results, onHighlight, onHighlightText}) {
-    switch (id) {
-        case 'accessibility':
-            return results.a11y ? <AccessibilityTab result={results.a11y} onHighlight={onHighlight}/> : null;
-        case 'seo':
-            return results.seo ? <SeoTab result={results.seo}/> : null;
-        case 'links':
-            return results.links ? <LinksTab result={results.links} onHighlight={onHighlight}/> : null;
-        case 'jahia':
-            return results.jahia ? <JahiaTab result={results.jahia} onHighlightText={onHighlightText}/> : null;
-        case 'vitals':
-            return results.vitals?.metrics ? <VitalsTab result={results.vitals}/> : null;
-        case 'readability':
-            return results.readability ? <ReadabilityTab result={results.readability} onHighlight={onHighlight}/> : null;
-        case 'ecodesign':
-            return results.ecodesign ? <EcodesignTab result={results.ecodesign}/> : null;
-        default:
-            return null;
-    }
-}
-
-TabContent.propTypes = {
-    id: PropTypes.string.isRequired,
-    results: PropTypes.object.isRequired,
-    onHighlight: PropTypes.func.isRequired,
-    onHighlightText: PropTypes.func.isRequired
-};
-
-const formatDate = (timestamp, language) => new Date(timestamp).toLocaleString(toLocaleTag(language));
-
 /**
- * The issues of the stored audits of the page, oldest to newest ("12 → 9 → 7"), each with its date and
- * who ran it on hover. Nothing while the page has fewer than two.
- */
-function AuditTrend({runs, language}) {
-    const {t} = useGovernanceTranslation('audit');
-    if (runs.length < 2) {
-        return null;
-    }
-    const oldestFirst = [...runs].reverse();
-    return (
-        <Typography variant="caption" className={styles.trend}>
-            {t('drawer.trend', {count: runs.length})}{' '}
-            {oldestFirst.map((run, index) => (
-                <React.Fragment key={run.auditedAt}>
-                    {index > 0 && ' → '}
-                    <span title={`${formatDate(Date.parse(run.auditedAt), language)} · ${run.auditedBy || ''}`}>{run.summary.total}</span>
-                </React.Fragment>
-            ))}
-        </Typography>
-    );
-}
-
-AuditTrend.propTypes = {
-    runs: PropTypes.arrayOf(PropTypes.shape({
-        auditedAt: PropTypes.string.isRequired,
-        auditedBy: PropTypes.string,
-        summary: PropTypes.shape({total: PropTypes.number.isRequired}).isRequired
-    })).isRequired,
-    language: PropTypes.string.isRequired
-};
-
-/**
- * The results a fresh audit measured for the tabs the site keeps on, plus the page facts and the
+ * The results a fresh audit measured for the views the site shows, plus the page facts and the
  * steps that did not finish (`incomplete`, by result key).
  */
 function measuredResults(measured, page, incomplete, isOn) {
@@ -204,7 +124,7 @@ function measuredResults(measured, page, incomplete, isOn) {
         }
     }
     const missing = Object.keys(incomplete).filter(key => Object.entries(RESULT_KEYS).some(([tab, k]) => k === key && isOn(tab)));
-    // A check of the server that did not finish leaves no tab of its own when they are all off, and its
+    // A check of the server that did not finish leaves no view of its own when they are all off, and its
     // page facts and HTML rules are still missing: such a run is never cached or stored either
     const partial = [...missing, ...(incomplete.page ? ['page'] : [])];
     if (partial.length > 0) {
@@ -214,7 +134,7 @@ function measuredResults(measured, page, incomplete, isOn) {
 }
 
 /**
- * Marks the tabs of the check of the server that miss their results: each of them when the check did not
+ * Marks the results of the check of the server that miss their values: each of them when the check did not
  * finish, else the ones whose state of the content the server could not read.
  */
 function markServerTabs(incomplete, checked) {
@@ -236,12 +156,12 @@ const pageFactsOf = seo => ({
 });
 
 /**
- * Measures the page for the tabs the site keeps on. The check of the server gives the tabs SEO,
- * Readability, Links and Jahia health, with the findings that `frame.check` gives for the page. The
- * checks that modules register in the browser run on the preview frame: axe-core, the web vitals and
- * eco-design, and those of other modules. Their results join the tab of the subdomain of each rule, and a
- * rule that no check gave a result for is listed as not checked in its tab. The frame is refused when it
- * shows an error page, and its editing tooling is stripped first.
+ * Measures the page for the views the site shows. The check of the server gives SEO, Readability, Links,
+ * Jahia health and the rules of the other subdomains, with the findings that `frame.check` gives for the
+ * page. The checks that modules register in the browser run on the preview frame: axe-core, the web vitals
+ * and eco-design, and those of other modules. Their results join the results of the subdomain of each rule,
+ * and a rule that no check gave a result for is listed as not checked. The frame is refused when it shows an
+ * error page, and its editing tooling is stripped first.
  *
  * @returns {Promise<object>} the results (`measuredResults`), with `incomplete` when a step did not finish
  */
@@ -261,11 +181,11 @@ async function auditFrame(frame, {isOn, language, uiLanguage, path, apolloClient
     // rules in the editor's interface language.
     const rules = await fetchRules(apolloClient, path, uiLanguage);
 
-    // Only the tabs the site keeps on are kept. The check of the server runs when a tab that reads it is
-    // on, Accessibility included, and gives the page facts kept with each audit (title, description,
+    // Only the views the site shows are kept. The check of the server runs when a view that reads it is
+    // shown, Accessibility included, and gives the page facts kept with each audit (title, description,
     // images without alt): it starts at once, since its request leaves no trace in the frame's own
     // resource statistics. The checks of the browser run meanwhile, one after the other.
-    // A step that fails or runs out of time leaves its own tabs out; the other tabs are still shown,
+    // A step that fails or runs out of time leaves its own results out; the others are still shown,
     // and such a partial audit is never cached. So is an audit whose server could not read the state of
     // the content: Jahia health and Links say so.
     const incomplete = {};
@@ -286,12 +206,12 @@ async function auditFrame(frame, {isOn, language, uiLanguage, path, apolloClient
 }
 
 /**
- * The results of the tabs the site keeps on, or null when one of them is missing (a tab switched
- * back on since the audit was cached) or when an older version of the module stored them in a shape
- * that this version cannot show: a tab switched off is never shown nor exported. An audit of the
- * shape before #140 is kept, marked `legacy`: it shows its old text, with "Run again".
+ * The results of the views the site shows, or null when one of them is missing (a view shown since the audit
+ * was cached) or when an older version of the module stored them in a shape that this version cannot show: a
+ * view the site does not show is never shown nor exported. An audit of the shape before #140 is kept, marked
+ * `legacy`: it shows its old text, with "Run again".
  */
-function keepEnabled(results, isOn) {
+export function keepEnabled(results, isOn) {
     const schema = results.page?.schema;
     if (schema !== CACHE_SCHEMA && schema !== LEGACY_SCHEMA) {
         return null;
@@ -299,28 +219,34 @@ function keepEnabled(results, isOn) {
     const kept = {page: results.page, ...(schema === LEGACY_SCHEMA ? {legacy: true} : {})};
     for (const [tab, key] of Object.entries(RESULT_KEYS)) {
         if (isOn(tab)) {
-            if (!results[key]) {
+            if (!results[key] && !OPTIONAL_TABS.has(tab)) {
                 return null;
             }
-            kept[key] = results[key];
+            if (results[key]) {
+                kept[key] = results[key];
+            }
         }
     }
     return kept;
 }
 
 /**
- * The Page quality section of the drawer: the page checked by the server (SEO, readability, links,
- * Jahia health) and rendered in a preview frame, measured there by the checks of the browser
- * (accessibility, vitals, eco-design, and those of other modules). Results are cached per page and
- * language; the section measures the page when it first shows and on every re-run.
+ * The page check of the drawer: the page checked by the server and rendered in a preview frame, measured
+ * there by the checks of the browser (accessibility, vitals, eco-design, and those of other modules). Every
+ * domain of the drawer reads its results, so it runs once per opening of the drawer, the first time a
+ * domain that shows one of its subdomains shows (`active`). Results are cached per page and language, and
+ * the audits stored for every editor of the site come first; "Re-run" measures the page again.
+ *
+ * @param {{path: string, language: string, active: boolean, isOn: function(string): boolean}} props the
+ *     page, its language, whether a domain that reads the check showed, and whether the site shows the
+ *     results of a key of `RESULT_KEYS`. `isOn` must keep its identity while the layout stays the same.
+ * @returns {object} the state of the audit and its actions
  */
-export function AuditSection({path, language, isOn, onCount, onFindings, requestedTab}) {
+export function usePageAudit({path, language, active, isOn}) {
     const {t, i18n} = useGovernanceTranslation('audit');
     // The texts of the rules follow the editor's interface language, not the language of the content
     const uiLanguage = i18n?.language || 'en';
     const apolloClient = useApolloClient();
-    // The "Show preview" button shows where the cfg of the server shows it
-    const {previewButton} = useDrawerDisplay();
     const [status, setStatus] = useState('idle');
     const [results, setResults] = useState(null);
     const [error, setError] = useState(null);
@@ -342,9 +268,9 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
     // browser and highlight still need its document, and a frame with no height never paints.
     // Beside Page Builder the page is already on screen: the preview starts hidden behind the
     // results, where it keeps its size and paints, so the checks of the browser measure it as before.
-    const [previewCollapsed, setPreviewCollapsed] = useState(() => Boolean(findEditFrameDocument(path, language)));
+    // Null until the check is active, which decides.
+    const [previewCollapsed, setPreviewCollapsed] = useState(null);
     const frameRef = useRef(null);
-    const previewRef = useRef(null);
     const highlightedRef = useRef(null);
     // The run whose analysis has started: the frame's load event and the load time limit both start
     // it, and a later load of the frame (a link followed in the preview) never starts it again.
@@ -353,6 +279,15 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
     const previewUrl = `${globalThis.contextJsParameters?.contextPath || ''}/cms/render/default/${language}${path}.html?pageAuditRun=${runId}`;
 
     useEffect(() => {
+        if (active) {
+            setPreviewCollapsed(collapsed => (collapsed === null ? Boolean(findEditFrameDocument(path, language)) : collapsed));
+        }
+    }, [active, path, language]);
+
+    useEffect(() => {
+        if (!active) {
+            return undefined;
+        }
         setError(null);
         highlightedRef.current = null;
 
@@ -385,7 +320,7 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
             setAuditedBy(null);
         }
 
-        // The frame mounts a moment after the section shows: a frame loaded while its box is still
+        // The frame mounts a moment after the drawer shows: a frame loaded while its box is still
         // being laid out makes Chrome throttle rendering, and FCP/LCP paint entries never fire.
         // On opening, the audits stored for the site come first: the newest, whoever ran it, is shown
         // instead of measuring the page again, and without any the frame measures it.
@@ -419,7 +354,7 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
             cancelled = true;
             clearTimeout(timer);
         };
-    }, [runId, path, language, apolloClient, isOn]);
+    }, [active, runId, path, language, apolloClient, isOn]);
 
     // A run stored for the site becomes the newest of the page's history
     const addRun = useCallback(run => {
@@ -533,11 +468,6 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
             || findByText(frameRef.current && frameRef.current.contentDocument, sample));
     }, [mark, path, language]);
 
-    // Hidden behind the results, nothing of the preview takes focus or the pointer
-    useEffect(() => {
-        previewRef.current?.toggleAttribute('inert', previewCollapsed);
-    }, [previewCollapsed]);
-
     // A mark left in the page under edit goes with the drawer
     useEffect(() => () => mark(null), [mark]);
 
@@ -550,163 +480,34 @@ export function AuditSection({path, language, isOn, onCount, onFindings, request
         const blob = new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json'});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `content-governance-audit-${path.split('/').filter(Boolean).pop() || 'page'}.json`;
+        a.download = `content-governance-audit-${path.split('/').findLast(Boolean) || 'page'}.json`;
         a.click();
         URL.revokeObjectURL(a.href);
     }, [results, path, language, previewUrl, auditedAt]);
 
-    // The count of a subdomain is its issues to review; null-safe so a partial result never breaks
-    // the list, and null for a subdomain the audit did not measure. Subdomains the site switched off
-    // are left out.
-    const counts = tabCounts(results);
-    const sections = TAB_IDS.filter(id => isOn(id)).map(id => ({
-        id,
-        label: t(`tabs.${id}`),
-        count: counts[id] ? counts[id].count : null,
-        serious: Boolean(counts[id] && counts[id].serious),
-        incomplete: Boolean(results?.incomplete?.[RESULT_KEYS[id]])
-    }));
-    const total = sections.reduce((sum, section) => sum + (section.count || 0), 0);
-    // A new audit opens the sections with a major defect again
-    const {isOpen, setOpen} = useOpenSections(defaultOpen(sections), auditedAt);
+    const rerun = useCallback(() => setRunId(id => id + 1), []);
 
-    useEffect(() => {
-        onCount(total);
-    }, [onCount, total]);
-
-    useEffect(() => {
-        onFindings(status === 'ready' ? auditFindings(results, t) : []);
-    }, [onFindings, status, results, t]);
-
-    // A "Fix first" link opens its subdomain and brings it into view, once per request
-    const handledRequest = useRef(null);
-    useEffect(() => {
-        if (requestedTab && requestedTab !== handledRequest.current) {
-            handledRequest.current = requestedTab;
-            setOpen([requestedTab.tab], true);
-            document.getElementById(`audit-subdomain-${requestedTab.tab}`)?.scrollIntoView({block: 'start'});
-        }
-    }, [requestedTab, setOpen]);
-
-    const busy = status === 'loading' || status === 'analyzing';
-    const rerun = () => setRunId(id => id + 1);
-
-    return (
-        <>
-            <div className={styles.toolbar}>
-                <Button variant="outlined"
-                        icon={<Reload/>}
-                        label={t('drawer.rerun')}
-                        isDisabled={busy}
-                        onClick={rerun}/>
-                <Button variant="outlined"
-                        icon={<Download/>}
-                        label={t('drawer.export')}
-                        isDisabled={!results}
-                        onClick={exportJson}/>
-                {previewButton && (
-                    <Button variant="ghost"
-                            icon={<Visibility/>}
-                            label={previewCollapsed ? t('drawer.showPreview') : t('drawer.hidePreview')}
-                            aria-expanded={!previewCollapsed}
-                            onClick={() => setPreviewCollapsed(c => !c)}/>
-                )}
-                {auditedAt && (
-                    <Typography variant="caption" className={styles.lastAudit}>
-                        {auditedBy ?
-                            t('drawer.lastAuditBy', {date: formatDate(auditedAt, language), user: auditedBy}) :
-                            t('drawer.lastAudit', {date: formatDate(auditedAt, language)})}
-                    </Typography>
-                )}
-                <AuditTrend runs={history} language={language}/>
-                {status === 'ready' && results && <ExpandAll ids={sections.map(section => section.id)} isOpen={isOpen} setOpen={setOpen}/>}
-            </div>
-
-            <div ref={previewRef}
-                 className={`${styles.preview} ${previewCollapsed ? styles.previewCollapsed : ''}`}
-                 aria-hidden={previewCollapsed || undefined}
-            >
-                {frameVisible && (
-                    <iframe
-                        key={runId}
-                        ref={frameRef}
-                        title={t('drawer.preview')}
-                        src={previewUrl}
-                        className={styles.frame}
-                        tabIndex={previewCollapsed ? -1 : undefined}
-                        onLoad={handleFrameLoad}
-                    />
-                )}
-            </div>
-
-            {status === 'ready' && results?.legacy && (
-                <div className={styles.stale}>
-                    <Banner variant="info" title={t('drawer.legacyTitle')}>
-                        <div className={styles.staleRow}>
-                            <Typography>{t('drawer.legacy')}</Typography>
-                            <Button size="small" variant="outlined" label={t('drawer.runAgain')} onClick={rerun}/>
-                        </div>
-                    </Banner>
-                </div>
-            )}
-
-            {stale && (
-                <div className={styles.stale}>
-                    <Banner variant="warning" title={t('drawer.staleTitle')}>
-                        <div className={styles.staleRow}>
-                            <Typography>{t('drawer.stale')}</Typography>
-                            <Button size="small" variant="outlined" label={t('drawer.rerun')} onClick={rerun}/>
-                        </div>
-                    </Banner>
-                </div>
-            )}
-
-            <HighlightContext.Provider value={highlight}>
-            <div className={styles.content}>
-                {busy && (
-                    <div className={styles.status}>
-                        <Loader size="small"/>
-                        <Typography>{t(status === 'loading' ? 'drawer.loading' : 'drawer.analyzing')}</Typography>
-                    </div>
-                )}
-                {status === 'error' && (
-                    <Banner variant="danger" title={t('drawer.error')}>
-                        <Typography>{error}</Typography>
-                    </Banner>
-                )}
-                {status === 'ready' && results && sections.map(section => {
-                    const key = RESULT_KEYS[section.id];
-                    return (
-                        <CollapsibleSection key={section.id}
-                                            id={`audit-subdomain-${section.id}`}
-                                            label={section.label}
-                                            help={t(`tabHelp.${section.id}`)}
-                                            note={sectionNote(section, t)}
-                                            count={section.count}
-                                            isSerious={section.serious}
-                                            isOpen={isOpen(section.id)}
-                                            onToggle={() => setOpen([section.id], !isOpen(section.id))}
-                        >
-                            {results.incomplete?.[key] && <IncompleteStep outcome={results.incomplete[key]} onRerun={rerun}/>}
-                            <TabContent id={section.id} results={results} onHighlight={highlight} onHighlightText={highlightText}/>
-                            {results[key]?.notChecked?.length > 0 && <NotChecked rules={results[key].notChecked}/>}
-                        </CollapsibleSection>
-                    );
-                })}
-            </div>
-            </HighlightContext.Provider>
-        </>
-    );
+    return {
+        active,
+        status,
+        busy: status === 'loading' || status === 'analyzing',
+        ready: status === 'ready' && Boolean(results),
+        results,
+        error,
+        auditedAt,
+        auditedBy,
+        stale,
+        history,
+        runId,
+        previewUrl,
+        frameVisible,
+        frameRef,
+        previewCollapsed: previewCollapsed !== false,
+        setPreviewCollapsed,
+        handleFrameLoad,
+        highlight,
+        highlightText,
+        rerun,
+        exportJson
+    };
 }
-
-AuditSection.propTypes = {
-    path: PropTypes.string.isRequired,
-    language: PropTypes.string.isRequired,
-    // isOn(tabId): whether the site switched that tab on
-    isOn: PropTypes.func.isRequired,
-    onCount: PropTypes.func.isRequired,
-    // Reports the section's findings to the drawer's "Fix first" list (drawer/findings.js)
-    onFindings: PropTypes.func.isRequired,
-    // {tab, at}: a subdomain the drawer asks the section to open (a "Fix first" link)
-    requestedTab: PropTypes.shape({tab: PropTypes.string, at: PropTypes.number})
-};

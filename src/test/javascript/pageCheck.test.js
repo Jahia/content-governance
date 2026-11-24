@@ -69,18 +69,22 @@ describe('tabOf', () => {
         expect(tabOf(BASE_RULES.get('html.linkTextVague'))).toBe('accessibility');
     });
 
-    it('puts a rule of another module in the tab of its subdomain, and a rule of an unknown subdomain in none', () => {
-        expect(tabOf({id: 'acme.erpPrice', subdomain: 'writing'})).toBe('readability');
+    it('puts a rule of another module in the results of its subdomain, and a rule of any other subdomain in other', () => {
         expect(tabOf({id: 'voice.tone', subdomain: 'seo'})).toBe('seo');
-        expect(tabOf({id: 'brand.tone', subdomain: 'brand'})).toBeNull();
-        expect(tabOf({id: 'brand.none'})).toBeNull();
-        expect(tabOf(BASE_RULES.get('geo.reachable'))).toBeNull();
+        expect(tabOf({id: 'acme.erpPrice', subdomain: 'writing'})).toBe('other');
+        expect(tabOf({id: 'brand.tone', subdomain: 'brand'})).toBe('other');
+        expect(tabOf(BASE_RULES.get('geo.reachable'))).toBe('other');
     });
 
-    it('puts a rule in the tab of its one subdomain, and a rule of a subdomain with no tab in none', () => {
+    it('puts a rule with no subdomain nowhere', () => {
+        expect(tabOf({id: 'brand.none'})).toBeNull();
+        expect(tabOf(undefined)).toBeNull();
+    });
+
+    it('puts a rule in the results of its one subdomain', () => {
         expect(BASE_RULES.get('seo.title').subdomain).toBe('seo');
         expect(tabOf(BASE_RULES.get('seo.title'))).toBe('seo');
-        expect(tabOf({id: 'acme.score', subdomain: 'geo.score'})).toBeNull();
+        expect(tabOf({id: 'acme.score', subdomain: 'geo.score'})).toBe('other');
         expect(tabOf({id: 'acme.score', subdomain: 'accessibility'})).toBe('accessibility');
     });
 });
@@ -126,16 +130,18 @@ describe('recommendationsByTab', () => {
         {id: 'acme.bare', subdomain: 'health', severity: 'minor', title: [], advice: ''}]);
         const recs = recommendationsByTab([finding('acme.erpPrice', '12.50 EUR'), finding('acme.bare', 'x')], rules);
 
-        expect(recs.readability[0]).toMatchObject({title: '1 price typed, such as 12.50 EUR', detail: 'Insert the product.'});
+        expect(recs.other[0]).toMatchObject({title: '1 price typed, such as 12.50 EUR', detail: 'Insert the product.'});
         expect(recs.jahia[0]).toMatchObject({title: 'acme.bare', label: 'acme.bare'});
     });
 
-    it('keeps the locator of a finding, and drops a rule that no tab shows', () => {
+    it('keeps the locator of a finding, keeps a rule of another subdomain in other, and drops a rule with no subdomain', () => {
+        const rules = ruleBook([...BASE_RULES.all(), {id: 'brand.none', severity: 'minor', title: [], advice: ''}]);
         const recs = recommendationsByTab([{...finding('html.imageAltMissing', '<img>'), locator: 'main > img'},
-            finding('geo.reachable', 'GPTBot')], BASE_RULES);
+            finding('geo.reachable', 'GPTBot'), finding('brand.none', 'x')], rules);
 
         expect(recs.accessibility[0].items).toEqual([{text: '<img>', locator: 'main > img'}]);
-        expect(Object.values(recs).flat().map(rec => rec.rule)).toEqual(['html.imageAltMissing']);
+        expect(recs.other.map(rec => rec.rule)).toEqual(['geo.reachable']);
+        expect(Object.values(recs).flat().map(rec => rec.rule)).toEqual(['html.imageAltMissing', 'geo.reachable']);
     });
 
     it('shows the old text of an audit stored before the rules worded it', () => {

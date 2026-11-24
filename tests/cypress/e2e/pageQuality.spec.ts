@@ -9,8 +9,19 @@ import {
     deleteTestSite,
     gql,
     gqlOk,
+    subdomainSection,
     switchOff
 } from '../support/cg';
+
+/**
+ * Opens the section of Accessibility, which opens on its own only with a critical or serious finding. A choice made
+ * while the audit runs holds for its results.
+ */
+const openAccessibility = () => cy.get(subdomainSection('accessibility'), {timeout: 30000}).then($header => {
+    if ($header.attr('aria-expanded') !== 'true') {
+        cy.wrap($header).click();
+    }
+});
 
 const SAVE = `mutation S($path: String!, $language: String!, $results: String!) {
     contentGovernance { saveAudit(path: $path, language: $language, results: $results) {
@@ -184,6 +195,7 @@ describe('Content Governance - shared Page quality audits', () => {
         cy.login(author.username, author.password);
         cy.visit(pageUrl);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
+        openAccessibility();
         cy.get(DRAWER).contains('automated rules passed', {timeout: 90000}).should('exist');
         cy.get(DRAWER).contains(`by ${author.username}`, {timeout: 30000}).should('exist');
         cy.logout();
@@ -192,6 +204,7 @@ describe('Content Governance - shared Page quality audits', () => {
         cy.visit(pageUrl);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
         cy.get(DRAWER).contains(`by ${author.username}`, {timeout: 30000}).should('exist');
+        openAccessibility();
         cy.get(DRAWER).contains('automated rules passed').should('exist');
         cy.get(DRAWER).contains('Analyzing page').should('not.exist');
         cy.focused().type('{esc}');

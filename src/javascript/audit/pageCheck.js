@@ -52,31 +52,35 @@ const FEEDS = {
 const NO_TAGS = {title: {text: null, length: 0}, description: {text: null, length: 0}};
 
 /**
- * The Page quality tab of each subdomain of rules (Jahia/content-governance#151). No list names the tab of a
- * rule: a finding goes to the tab of the subdomain of its rule on the site. A rule of a subdomain of SEO & GEO
- * (but `seo`) or of Compliance (but `readability` and `writing`) shows in its own section, and a rule of an
- * unknown subdomain never runs. Jahia/content-governance#167 builds the tabs from the hierarchy that
- * `contentDomains` gives.
+ * The results that hold the findings of each subdomain with a view of the page check: a finding goes to the
+ * results of the subdomain of its rule on the site. The rule of any other subdomain, such as `writing` or a
+ * subdomain of another module, goes to `other`, and the drawer lists it in the section of its subdomain
+ * (audit/subdomainResults.js). A rule with no subdomain never runs.
  */
 export const DOMAIN_TABS = {
     accessibility: 'accessibility',
     seo: 'seo',
     readability: 'readability',
-    writing: 'readability',
     links: 'links',
     health: 'jahia',
     ecodesign: 'ecodesign'
 };
 
+/** The results of the rules of the subdomains with no view of the page check. */
+export const OTHER_TAB = 'other';
+
 /**
- * The tab that shows the findings of a rule.
+ * The results that hold the findings of a rule.
  *
- * @param {object} [rule] the rule of the site, whose `subdomain` names its tab
- * @returns {?string} `accessibility`, `seo`, `readability`, `links`, `jahia` or `ecodesign`, or null for a
- *     rule that no Page quality tab shows
+ * @param {object} [rule] the rule of the site, whose `subdomain` names its place
+ * @returns {?string} `accessibility`, `seo`, `readability`, `links`, `jahia`, `ecodesign` or `other`, or null
+ *     for a rule with no subdomain
  */
 export function tabOf(rule) {
-    return DOMAIN_TABS[rule?.subdomain] || null;
+    if (!rule?.subdomain) {
+        return null;
+    }
+    return DOMAIN_TABS[rule.subdomain] || OTHER_TAB;
 }
 
 /**
@@ -103,12 +107,12 @@ export function recommendationsByTab(findings, rules) {
         byRule.set(finding.ruleId, items);
     });
     const severities = new Map(findings.map(finding => [finding.ruleId, finding.severity]));
-    const out = {seo: [], readability: [], links: [], jahia: [], accessibility: [], ecodesign: []};
+    const out = {seo: [], readability: [], links: [], jahia: [], accessibility: [], ecodesign: [], [OTHER_TAB]: []};
     byRule.forEach((items, ruleId) => {
         const rule = rules.find(ruleId);
         const tab = tabOf(rule);
         if (!tab) {
-            console.warn(`[content-governance] the rule ${ruleId} has the subdomain ${rule?.subdomain}, which no Page quality tab shows`);
+            console.warn(`[content-governance] the rule ${ruleId} has no subdomain on the site`);
             return;
         }
         const params = {...(rule ? limits(rule) : {}), count: items.length, value: items[0].text};
@@ -175,7 +179,8 @@ const contentState = (values, pagePath) => {
  * @param {string} pagePath the path of the page
  * @param {string} pageUrl the address of the render of the page, which a relative address of the page is under
  * @returns {{seo: object, readability: object, links: object, jahia: object, accessibility: Array<object>,
- *     unread: Array<string>}} `unread` names the result key of each tab whose repository values are missing
+ *     ecodesign: Array<object>, other: object, unread: Array<string>}} `other` holds the recommendations of the
+ *     rules of the other subdomains; `unread` names the result key of each tab whose repository values are missing
  */
 export function tabResults(results, rules, pagePath, pageUrl) {
     const recs = recommendationsByTab(results.flatMap(result => result.findings), rules);
@@ -198,6 +203,7 @@ export function tabResults(results, rules, pagePath, pageUrl) {
         },
         accessibility: recs.accessibility,
         ecodesign: recs.ecodesign,
+        [OTHER_TAB]: {recommendations: recs[OTHER_TAB]},
         unread: unreadTabs(values)
     };
 }

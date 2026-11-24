@@ -37,7 +37,7 @@ describe('Content Governance - interface languages', () => {
             cy.login(user.username, user.password);
             cy.visit(`/jahia/jcontent/${siteKey}/en/pages/home`);
             cy.contains('button', button, {timeout: 30000}).click();
-            cy.get(DRAWER).find('#content-governance-section-audit').should('contain.text', section);
+            cy.get(DRAWER).find('#content-governance-section-quality').should('contain.text', section);
         });
     });
 });
@@ -73,7 +73,16 @@ describe('Content Governance - content language with a region', () => {
         cy.visit(`/jahia/jcontent/${siteKey}/zh_CN/pages/home`);
         cy.contains('button', 'Content governance', {timeout: 30000}).click();
         cy.get(DRAWER).contains('button', 'Re-run', {timeout: 120000}).should('not.be.disabled').click();
-        cy.get(DRAWER).contains('automated rules passed', {timeout: 120000}).should('exist');
+        // The audit is done once Re-run is enabled again; the section of Accessibility opens on its own only
+        // with a critical or serious finding
+        cy.get(DRAWER).contains('button', 'Re-run').should('be.disabled');
+        cy.get(DRAWER).contains('button', 'Re-run', {timeout: 120000}).should('not.be.disabled');
+        cy.get(DRAWER).find('#content-governance-subdomain-accessibility').then($header => {
+            if ($header.attr('aria-expanded') !== 'true') {
+                cy.wrap($header).click();
+            }
+        });
+        cy.get(DRAWER).contains('automated rules passed', {timeout: 30000}).should('exist');
         cy.get(DRAWER).contains(/Last audit: .*2\d{3}/).should('exist');
         cy.get(DRAWER).find('#content-governance-section-compliance').click();
         cy.get(DRAWER).contains('Chinese (China)', {timeout: 60000}).should('exist');

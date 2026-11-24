@@ -47,6 +47,14 @@ class AuditResultsTest {
     }
 
     @Test
+    void keepsAndCountsTheRecommendationsOfTheOtherSubdomains() {
+        JSONObject kept = AuditResults.parse("{\"seo\": {\"recommendations\": []},"
+                + "\"other\": {\"recommendations\": [{\"key\": \"acme.tone\", \"rule\": \"acme.tone\", \"severity\": \"minor\"}]}}");
+        assertThat(kept.keySet()).containsExactlyInAnyOrder("seo", "other");
+        assertThat(AuditSummary.of(kept).counts()).containsExactly(Map.entry("seo", 0), Map.entry("other", 1));
+    }
+
+    @Test
     void countsTheHtmlRulesOfTheServerWithAccessibility() {
         AuditSummary summary = AuditSummary.of(AuditResults.parse("{\"a11y\": {"
                 + "\"violations\": [{\"id\": \"region\", \"impact\": \"moderate\"}],"

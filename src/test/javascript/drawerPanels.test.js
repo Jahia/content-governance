@@ -3,7 +3,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {registry} from '@jahia/ui-extender';
 import {drawerPanels, drawerTabs, PANEL_TYPE, TAB_TARGET, TAB_TYPE} from '../../javascript/drawer/entries.js';
-import {registerOwnPanel, registerOwnTabs} from '../../javascript/drawer/ownTabs.js';
+import {registerOwnPanel} from '../../javascript/drawer/ownTabs.js';
 import {API_TYPE, DRAWER_API_KEY, onPanelRequest, openPanel, registerDrawerApi} from '../../javascript/drawer/drawerApi.js';
 import {openWith, pressButton, showPanel} from '../../javascript/drawer/drawerState.js';
 import {siteSwitches} from '../../javascript/common/useSiteSettings.js';
@@ -51,14 +51,18 @@ describe('drawerPanels', () => {
         expect(governance.buttonIcon).toBe(icon);
     });
 
-    it('makes the governance panel available while the site keeps one of its tabs on', () => {
+    it('makes the governance panel available while the site keeps a tab of another module on, and else waits for the layout', () => {
         registerOwnPanel(null);
-        registerOwnTabs();
+        registry.add(TAB_TYPE, 'review', {targets: [`${TAB_TARGET}:10`], label: 'c', component});
         const [governance] = drawerPanels();
+        const available = isOn => {
+            const Probe = () => String(governance.useAvailable({siteKey: 'digitall', isOn}));
+            return renderToStaticMarkup(h(Probe));
+        };
 
-        expect(governance.useAvailable({isOn: () => true})).toBe(true);
-        expect(governance.useAvailable({isOn: tab => tab === 'compliance'})).toBe(true);
-        expect(governance.useAvailable({isOn: () => false})).toBe(false);
+        expect(available(() => true)).toBe('true');
+        // The layout of the site is still loading
+        expect(available(() => false)).toBe('undefined');
     });
 
     it('leaves out a tab whose key is the key of a panel: the site settings store both in one list', () => {

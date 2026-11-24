@@ -136,6 +136,9 @@ export function switchOff(siteKey: string, off: string[]): void {
     call.its('errors').should('be.undefined');
 }
 
+/** The element id of the section of a subdomain in the drawer: a dot of the id, as in `geo.score`, becomes `-`. */
+export const subdomainSection = (id: string): string => `#content-governance-subdomain-${id.split('.').join('-')}`;
+
 /**
  * Shows or hides "Fix first" and the "Show preview" button of Page quality for every editor of the
  * server, through the cfg of the module (org.jahia.community.contentgovernance.drawer.cfg). Both are

@@ -13,6 +13,7 @@
         "rerun": "Relancer",
         "running": "Test en cours, une requête par robot…",
         "lastRun": "Dernier test : {{date}}",
+        "runFirst": "Lancez le test pour voir cette partie sur la page publiée.",
         "url": "URL testée"
       },
       "crawler": {
@@ -1062,6 +1063,7 @@
         "vitals": "Web Vitals",
         "readability": "Lisibilité",
         "ecodesign": "Écoconception",
+        "other": "Autres règles",
         "badgeTooltip": "{{count}} points à corriger"
       },
       "eco": {

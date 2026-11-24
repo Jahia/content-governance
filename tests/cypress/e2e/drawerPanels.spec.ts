@@ -60,8 +60,9 @@ describe('Content Governance - the panels of the drawer', () => {
         // (jcontent 3.7): only that error is ignored, any error of the module still fails the test.
         cy.on('uncaught:exception', error => !(error.message.includes('offsetWidth')
             && String(error.stack).includes('/modules/jcontent/')));
-        // Page quality and GEO readiness measure the page: off, so "Fix first" holds the findings of the test tab only
-        switchOff(siteKey, ['quality', 'geo']);
+        // The subdomains of the page check and of the GEO check measure the page: off, so "Fix first" holds the
+        // findings of the test tab only
+        switchOff(siteKey, ['quality', 'geo', 'readability', 'writing']);
     });
 
     afterEach(() => {

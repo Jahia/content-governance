@@ -6,7 +6,6 @@ import {Banner, Button, Chip, Dropdown, HandleDrag, Header, LayoutContent, Loade
 import {useGovernanceTranslation} from '../common/i18n';
 import {GOVERNANCE_PANEL, MODULE} from '../common/module';
 import {drawerPanels, drawerTabs, tabParts} from '../drawer/entries';
-import {layoutId} from '../common/useSiteSettings';
 import {DOMAIN, RULE, SUBDOMAIN, draftOf, drop, move, moveOptions, sameLayout, shift, toLayout, toggle} from './layoutModel';
 import {RESET_LAYOUT, RULES_SCREEN, SAVE_LAYOUT} from './layout.gql';
 import styles from './RulesScreen.module.css';
@@ -389,7 +388,7 @@ const LayoutEditor = ({siteKey, data, isDefaults, canEdit, isReloading, title, s
     // The tabs of other modules: the tabs of this module are domains of the tree
     const otherTabs = useMemo(() => {
         const domains = new Set(governance.contentDomains.map(domain => domain.id));
-        return isDefaults ? [] : drawerTabs().filter(entry => !domains.has(layoutId(entry.key)));
+        return isDefaults ? [] : drawerTabs().filter(entry => !domains.has(entry.key));
     }, [governance, isDefaults]);
     // The ids that the layout switches off, those of the panels and of the tabs of other modules included
     const initial = useMemo(() => draftOf(governance.contentDomains, governance.contentRules, governance.siteLayout.off),

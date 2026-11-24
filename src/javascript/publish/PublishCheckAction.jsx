@@ -64,8 +64,9 @@ export const PublishCheckAction = ({path, language, render: Render, ...rest}) =>
     const {settings, isOn} = useSiteSettings(checksResult && inView ? siteKey : null);
     const [found, setFound] = useState(null);
 
-    const auditOn = Boolean(settings) && isOn('audit');
-    const termsOn = Boolean(settings) && isOn('compliance') && Boolean(canWrite);
+    // The domain of Page quality, whose audits the server keeps, and the subdomain of the terms
+    const auditOn = Boolean(settings) && isOn('quality');
+    const termsOn = Boolean(settings) && isOn('terms') && Boolean(canWrite);
     useEffect(() => {
         let cancelled = false;
         if (auditOn || termsOn) {
@@ -97,7 +98,9 @@ export const PublishCheckAction = ({path, language, render: Render, ...rest}) =>
         return null;
     }
 
-    const section = !notAudited && issues === 0 && terms > 0 ? 'compliance' : 'audit';
+    // The drawer opens on the domain of the subdomain: the terms, or the accessibility of the page, whose
+    // serious issues the label counts
+    const section = !notAudited && issues === 0 && terms > 0 ? 'terms' : 'accessibility';
     return (
         <Render {...rest}
                 buttonLabel={`${NS}:publishCheck.${labelKey(notAudited, auditOn, termsOn && terms > 0)}`}

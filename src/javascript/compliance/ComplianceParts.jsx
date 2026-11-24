@@ -1,8 +1,5 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useMemo} from 'react';
 import PropTypes from 'prop-types';
-import {useSelector} from 'react-redux';
-import {useApolloClient} from '@apollo/client';
-import {useGovernanceTranslation} from '../common/i18n';
 import {
     Banner,
     Button,
@@ -15,13 +12,16 @@ import {
     Typography,
     Warning
 } from '@jahia/moonstone';
-import {SCAN_PAGE} from './scan.gql';
-import {collectRenderedPaths} from './renderedPaths';
-import {complianceFindings} from '../drawer/findings';
-import styles from './ComplianceSection.module.css';
+import {useGovernanceTranslation} from '../common/i18n';
+import {issuesIn} from './complianceState';
+import styles from './ComplianceParts.module.css';
 import {languageDisplayName} from '../common/locale';
 
-const languageName = (code, uiLanguage) => languageDisplayName(code, uiLanguage);
+/**
+ * What the compliance scan shows in the drawer: its toolbar and what holds for the whole page, once per domain
+ * that reads it, and the terms of each subdomain, grouped by content (compliance/complianceState.js). The state
+ * comes from `useComplianceScan`.
+ */
 
 /** Issues grouped by content, in the order the scan found them. */
 const groupByContent = issues => {
@@ -103,48 +103,84 @@ IssueGroup.propTypes = {
     onEdit: PropTypes.func.isRequired
 };
 
-const Report = ({report, framed, uiLanguage, onEdit}) => {
+/** The uses of terms, grouped by the content that holds them. */
+const IssueGroups = ({report, issues, onEdit}) => {
     const {t} = useGovernanceTranslation('compliance');
-    const language = languageName(report.language, uiLanguage);
-    const groups = useMemo(() => groupByContent(report.issues), [report.issues]);
+    const groups = useMemo(() => groupByContent(issues), [issues]);
     const glossaryTitles = useMemo(() => new Map(report.glossaries.map(g => [g.path, g.title])), [report.glossaries]);
+    return groups.length > 0 ? (
+        <ul className={styles.groups} aria-label={t('issue.listLabel')}>
+            {groups.map(group => <IssueGroup key={group.nodeUuid} group={group} glossaryTitles={glossaryTitles} onEdit={onEdit}/>)}
+        </ul>
+    ) : null;
+};
 
-    let summary;
-    if (report.status === 'SAFE') {
-        summary = t('summary.safe', {count: report.scannedContents, language});
-    } else if (report.status === 'ISSUES') {
-        summary = t('summary.issues', {count: report.issues.length, contents: groups.length, language});
-    } else {
-        summary = t('summary.noGlossary', {language});
-    }
+IssueGroups.propTypes = {
+    report: PropTypes.object.isRequired,
+    issues: PropTypes.array.isRequired,
+    onEdit: PropTypes.func.isRequired
+};
 
+/** "Scan again". */
+export function ComplianceToolbar({scan}) {
+    const {t} = useGovernanceTranslation('compliance');
     return (
-        <>
-            <div className={styles.summary}>
-                <StatusChip status={report.status}/>
-                <Typography>{summary}</Typography>
-            </div>
-            {report.status === 'ISSUES' && (
+        <Button variant="outlined"
+                icon={<Reload/>}
+                label={t('dialog.rescan')}
+                isDisabled={Boolean(scan.result.loading)}
+                onClick={scan.run}/>
+    );
+}
+
+ComplianceToolbar.propTypes = {
+    scan: PropTypes.object.isRequired
+};
+
+/**
+ * The scan under way, why it failed, and what holds for the whole page: terms to fix before publishing, no
+ * glossary for the language, a page that the scan could not frame, a report cut short, and the glossaries that
+ * apply.
+ */
+export function ComplianceFacts({scan, onEdit}) {
+    const {t} = useGovernanceTranslation('compliance');
+    const {result, uiLanguage} = scan;
+    const report = result.report;
+    const language = report ? languageDisplayName(report.language, uiLanguage) : '';
+    return (
+        <div aria-live="polite" aria-busy={Boolean(result.loading)}>
+            {result.loading && (
+                <div className={styles.loading}>
+                    <Loader size="big"/>
+                    <Typography>{t('dialog.running')}</Typography>
+                </div>
+            )}
+            {result.error && (
+                <Banner variant="danger" title={t('dialog.error.title')}>
+                    <Typography>{t('dialog.error.message')}</Typography>
+                </Banner>
+            )}
+            {report?.status === 'ISSUES' && (
                 <Banner variant="warning" title={t('banner.beforePublishing.title')}>
                     <Typography>{t('banner.beforePublishing.message')}</Typography>
                 </Banner>
             )}
-            {report.status === 'NO_GLOSSARY' && (
+            {report?.status === 'NO_GLOSSARY' && (
                 <Banner variant="info" title={t('banner.noGlossary.title', {language})}>
                     <Typography>{t('banner.noGlossary.message', {language})}</Typography>
                 </Banner>
             )}
-            {!framed && report.status !== 'NO_GLOSSARY' && (
+            {report && !result.framed && report.status !== 'NO_GLOSSARY' && (
                 <Banner variant="info" title={t('banner.notFramed.title')}>
                     <Typography>{t('banner.notFramed.message')}</Typography>
                 </Banner>
             )}
-            {report.truncated && (
+            {report?.truncated && (
                 <Banner variant="warning" title={t('banner.truncated.title')}>
                     <Typography>{t('banner.truncated.message')}</Typography>
                 </Banner>
             )}
-            {report.glossaries.length > 0 && (
+            {report?.glossaries.length > 0 && (
                 <div className={styles.glossaries}>
                     <Typography variant="caption" weight="bold">{t('glossaries.applied')}</Typography>
                     {report.glossaries.map(glossary => (
@@ -157,114 +193,62 @@ const Report = ({report, framed, uiLanguage, onEdit}) => {
                     ))}
                 </div>
             )}
-            {groups.length > 0 && (
-                <ul className={styles.groups} aria-label={t('issue.listLabel')}>
-                    {groups.map(group => <IssueGroup key={group.nodeUuid} group={group} glossaryTitles={glossaryTitles} onEdit={onEdit}/>)}
-                </ul>
-            )}
-        </>
+        </div>
     );
-};
+}
 
-Report.propTypes = {
-    report: PropTypes.object.isRequired,
-    framed: PropTypes.bool.isRequired,
-    uiLanguage: PropTypes.string,
+ComplianceFacts.propTypes = {
+    scan: PropTypes.object.isRequired,
+    // Opens a content in Content Editor, by its id
     onEdit: PropTypes.func.isRequired
 };
 
 /**
- * The Compliance section of the drawer: the page and everything it shows, checked against the
- * site's term rules (the rules of the evaluator pattern) for the language being edited, such as the
- * terms of the legal team and the glossary of the brand. Runs when the section
- * first shows; editing a content closes the drawer, and it reopens on this section, scanned again,
- * when Content Editor closes.
+ * The terms that a subdomain shows: its status and a sentence for a subdomain of terms (`dedicated`), and the
+ * uses of the terms of its rules, grouped by content. Another subdomain shows the uses only, when it has some.
  */
-export const ComplianceSection = ({path, language, onClose, onReopen, onCount, onFindings}) => {
+export function ComplianceSubdomainView({scan, id, subdomainOf, dedicated, onEdit}) {
     const {t} = useGovernanceTranslation('compliance');
-    const client = useApolloClient();
-    const uiLanguage = useSelector(state => state.uilang);
-    const site = useSelector(state => state.site);
-    const [result, setResult] = useState({loading: true});
-    const runId = useRef(0);
-
-    const run = useCallback(() => {
-        const id = ++runId.current;
-        const renderedPaths = collectRenderedPaths(path);
-        setResult({loading: true});
-        client.query({
-            query: SCAN_PAGE,
-            variables: {path, language, uiLanguage, renderedPaths: renderedPaths || []},
-            fetchPolicy: 'network-only'
-        }).then(({data}) => {
-            if (id === runId.current) {
-                setResult({report: data.complianceScan.scanPage, framed: renderedPaths !== null});
-            }
-        }).catch(error => {
-            if (id === runId.current) {
-                console.error('[content-governance] compliance scan failed', error);
-                setResult({error});
-            }
-        });
-    }, [client, path, language, uiLanguage]);
-
-    useEffect(() => {
-        run();
-        return () => {
-            runId.current++;
-        };
-    }, [run]);
-
-    useEffect(() => {
-        onCount(result.report ? result.report.issues.length : 0);
-    }, [onCount, result.report]);
-
-    useEffect(() => {
-        onFindings(complianceFindings(result.report, t));
-    }, [onFindings, result.report, t]);
-
-    // Content Editor opens over jContent: close the drawer, and scan again once the editor closes.
-    const edit = useCallback(uuid => {
-        if (!globalThis.CE_API?.edit) {
-            return;
-        }
-        onClose();
-        globalThis.CE_API.edit({uuid, site, lang: language, isFullscreen: false, onClosedCallback: onReopen});
-    }, [onClose, onReopen, site, language]);
-
+    const {result, uiLanguage} = scan;
+    const report = result.report;
+    const issues = useMemo(() => issuesIn(report, id, subdomainOf), [report, id, subdomainOf]);
+    if (!report || (!dedicated && issues.length === 0)) {
+        return null;
+    }
+    const language = languageDisplayName(report.language, uiLanguage);
+    let status = report.status;
+    if (status !== 'NO_GLOSSARY') {
+        status = issues.length > 0 ? 'ISSUES' : 'SAFE';
+    }
+    let summary;
+    if (status === 'SAFE') {
+        summary = t('summary.safe', {count: report.scannedContents, language});
+    } else if (status === 'ISSUES') {
+        summary = t('summary.issues', {count: issues.length, contents: groupByContent(issues).length, language});
+    } else {
+        summary = t('summary.noGlossary', {language});
+    }
     return (
         <>
-            <div className={styles.toolbar}>
-                <Button variant="outlined"
-                        icon={<Reload/>}
-                        label={t('dialog.rescan')}
-                        isDisabled={Boolean(result.loading)}
-                        onClick={run}/>
-            </div>
-            <div className={styles.body} aria-live="polite" aria-busy={Boolean(result.loading)}>
-                {result.loading && (
-                    <div className={styles.loading}>
-                        <Loader size="big"/>
-                        <Typography>{t('dialog.running')}</Typography>
-                    </div>
-                )}
-                {result.error && (
-                    <Banner variant="danger" title={t('dialog.error.title')}>
-                        <Typography>{t('dialog.error.message')}</Typography>
-                    </Banner>
-                )}
-                {result.report && <Report report={result.report} framed={result.framed} uiLanguage={uiLanguage} onEdit={edit}/>}
-            </div>
+            {dedicated && (
+                <div className={styles.summary}>
+                    <StatusChip status={status}/>
+                    <Typography>{summary}</Typography>
+                </div>
+            )}
+            <IssueGroups report={report} issues={issues} onEdit={onEdit}/>
         </>
     );
-};
+}
 
-ComplianceSection.propTypes = {
-    path: PropTypes.string.isRequired,
-    language: PropTypes.string.isRequired,
-    onClose: PropTypes.func.isRequired,
-    onReopen: PropTypes.func.isRequired,
-    onCount: PropTypes.func.isRequired,
-    // Reports the section's findings to the drawer's "Fix first" list (drawer/findings.js)
-    onFindings: PropTypes.func.isRequired
+ComplianceSubdomainView.propTypes = {
+    scan: PropTypes.object.isRequired,
+    // The subdomain
+    id: PropTypes.string.isRequired,
+    // The subdomain of a rule on the site
+    subdomainOf: PropTypes.func.isRequired,
+    // True for a subdomain of terms, whose view is the scan
+    dedicated: PropTypes.bool.isRequired,
+    // Opens a content in Content Editor, by its id
+    onEdit: PropTypes.func.isRequired
 };

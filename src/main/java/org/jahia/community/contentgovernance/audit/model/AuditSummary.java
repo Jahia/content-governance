@@ -41,6 +41,8 @@ public record AuditSummary(Map<String, Integer> counts, int total, int seriousAc
         tabs.put("ecodesign", "ecodesign");
         tabs.put("links", "links");
         tabs.put("jahia", "jahia");
+        // The recommendations of the rules of the subdomains with no view of the page check, such as writing
+        tabs.put("other", "other");
         return Collections.unmodifiableMap(tabs);
     }
 

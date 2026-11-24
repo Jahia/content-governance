@@ -19,6 +19,8 @@ const BUTTON = 'Content governance';
 const DRAWER = 'dialog[aria-labelledby="content-governance-drawer-title"]';
 const FIX_FIRST = 'section[aria-label="Fix first"]';
 const section = (id: string) => `#content-governance-section-${id}`;
+// Every domain and subdomain that the page check or the GEO check feeds, in the layout that the module ships
+const OFF = ['quality', 'geo', 'readability', 'writing'];
 
 const HISTORY = `query H($path: String!, $language: String!, $tab: String) {
     contentGovernance { pageAudits(path: $path, language: $language, tab: $tab) {
@@ -61,8 +63,9 @@ describe('Content Governance - a tab of another module', () => {
         // (jcontent 3.7): only that error is ignored, any error of the module still fails the test.
         cy.on('uncaught:exception', error => !(error.message.includes('offsetWidth')
             && String(error.stack).includes('/modules/jcontent/')));
-        // Page quality and GEO readiness measure the page: off, so "Fix first" holds the findings of the test tab only
-        switchOff(siteKey, ['quality', 'geo']);
+        // The subdomains of the page check and of the GEO check measure the page: off, so "Fix first" holds the
+        // findings of the test tab only, and the drawer stores no Page quality audit. Compliance keeps its terms.
+        switchOff(siteKey, OFF);
     });
 
     afterEach(() => {
@@ -160,7 +163,8 @@ describe('Content Governance - a tab of another module', () => {
     });
 
     it('hides the part of the tab that the site switched off', () => {
-        switchOff(siteKey, ['quality', 'geo', `${TEST_TAB}.summary`]);
+        // switchOff writes the whole list of what is off
+        switchOff(siteKey, [...OFF, `${TEST_TAB}.summary`]);
         openDrawer().within(() => {
             cy.get(section(TEST_TAB)).click();
             cy.contains('button', 'Store the findings').should('exist');

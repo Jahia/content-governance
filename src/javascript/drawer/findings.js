@@ -23,7 +23,10 @@ export const isSerious = severity => severity === 'critical' || severity === 'se
  * Each Page quality tab with recommendations (also its key in the results) and the namespace of their
  * texts. The recommendations of `a11y` are the HTML rules of the server that no other tab words.
  */
-const AUDIT_TABS = [['a11y', 'a11y'], ['seo', 'seo'], ['vitals', 'vitals'], ['readability', 'readability'], ['ecodesign', 'eco'], ['links', 'links'], ['jahia', 'jahia']];
+const AUDIT_TABS = [['a11y', 'a11y'], ['seo', 'seo'], ['vitals', 'vitals'], ['readability', 'readability'], ['ecodesign', 'eco'], ['links', 'links'], ['jahia', 'jahia'], ['other', 'recs']];
+
+/** The namespace of the older texts of the recommendations under each key of the results of Page quality. */
+export const NS_OF = Object.fromEntries(AUDIT_TABS);
 
 /**
  * @param {Array<object>} findings findings of every section
@@ -91,15 +94,21 @@ export function entryFindings(bySection, sectionIds) {
     return sectionIds.flatMap(id => bySection[id] || []).map(finding => ({...finding, rule: finding.key}));
 }
 
+/** The tab of a finding of Page quality in the results of an audit: the key of its results, `accessibility` for `a11y`. */
+const tabOfKey = key => (key === 'a11y' ? 'accessibility' : key);
+
 /**
  * The findings of a Page quality audit: every accessibility violation, then the recommendations of
  * the other tabs.
  *
  * @param {object} results the audit results (`{a11y, seo, vitals, ...}`); missing tabs are skipped
  * @param {Function} t the section's translation function (`audit.` prefix)
+ * @param {function(?string, string): string} [placeOf] the subdomain where a finding shows, from the id of its
+ *     rule and the key of its results (audit/subdomainResults.js); without it, `tab` is the tab of the results
+ *     of the audit, as the Page quality dashboard names it
  * @returns {Array<object>} findings
  */
-export function auditFindings(results, t) {
+export function auditFindings(results, t, placeOf = (rule, key) => tabOfKey(key)) {
     if (!results) {
         return [];
     }
@@ -108,7 +117,7 @@ export function auditFindings(results, t) {
         out.push({
             key: auditFindingKey('a11y', rule.id),
             section: 'audit',
-            tab: 'accessibility',
+            tab: placeOf(rule.rule || null, 'a11y'),
             // The severity that the site gives the rule axe.<id>; axe-core's impact in an older audit
             severity: rule.severity || rule.impact || 'minor',
             rule: rule.rule || null,
@@ -123,7 +132,7 @@ export function auditFindings(results, t) {
             out.push({
                 key: auditFindingKey(tab, recommendationId(rec)),
                 section: 'audit',
-                tab: tab === 'a11y' ? 'accessibility' : tab,
+                tab: placeOf(rec.rule || null, tab),
                 severity: rec.severity || 'minor',
                 rule: rec.rule || null,
                 ...recommendationText(rec, ns, t),
@@ -140,9 +149,10 @@ export function auditFindings(results, t) {
  *
  * @param {object} report the page scan (`{issues: [{ruleId, severity, term}]}`)
  * @param {Function} t the section's translation function (`compliance.` prefix)
+ * @param {function(string): ?string} [placeOf] the subdomain where the finding of a rule shows
  * @returns {Array<object>} findings, with the severity of their rule
  */
-export function complianceFindings(report, t) {
+export function complianceFindings(report, t, placeOf = () => null) {
     const byRule = new Map();
     (report?.issues || []).forEach(issue => {
         const found = byRule.get(issue.ruleId);
@@ -151,7 +161,7 @@ export function complianceFindings(report, t) {
     return [...byRule].map(([ruleId, {issue, count}]) => ({
         key: ruleId,
         section: 'compliance',
-        tab: null,
+        tab: placeOf(ruleId),
         severity: issue.severity || 'serious',
         title: t('fixFirst.term', {term: issue.term, count})
     }));

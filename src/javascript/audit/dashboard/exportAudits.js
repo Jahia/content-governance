@@ -1,7 +1,7 @@
 import {downloadCsv, downloadJson} from '../../common/exportFile';
 import {countsOf} from '../auditHistory';
 
-export const TAB_COLUMNS = ['accessibility', 'seo', 'vitals', 'readability', 'ecodesign', 'links', 'jahia'];
+export const TAB_COLUMNS = ['accessibility', 'seo', 'vitals', 'readability', 'ecodesign', 'links', 'jahia', 'other'];
 
 const CSV_COLUMNS = ['path', 'title', 'auditedAt', 'auditedBy', ...TAB_COLUMNS, 'total', 'previousTotal'];
 

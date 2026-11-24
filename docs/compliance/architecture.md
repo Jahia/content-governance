@@ -34,8 +34,8 @@ Shared with the other sections:
 | `org.jahia.community.contentgovernance.text` | `PlainText` (rich text to text), which the check `pattern` reads too, `FoldedText` and `TermPattern` |
 | `org.jahia.community.contentgovernance.check` | `CheckRegistry`, which runs the checks of every module, and `PatternCheck`, the check of the evaluator `pattern` |
 | `org.jahia.community.contentgovernance.settings` | `Features` (section and tab ids: the Compliance section is `compliance`, with no tabs) and `SiteFeatures` (the server-side gate) |
-| `src/javascript/drawer/` | `GovernanceAction` (a header button per panel, their node checks), `GovernanceDrawer` (the panels and their switch) and `GovernancePanel` (tabs, badges, sections mounted on first visit) |
-| `src/javascript/compliance/` | `ComplianceSection.jsx`, `scan.gql.js`, `renderedPaths.js` (frame paths), `dashboard/` (dashboard, `scanSite.gql.js`, CSV and JSON exports) |
+| `src/javascript/drawer/` | `GovernanceAction` draws a header button per panel. `GovernanceDrawer` holds the panels. `GovernancePanel` shows the domains of the layout and the tabs of other modules, and `DomainTab` the sections of a domain. |
+| `src/javascript/compliance/` | `useComplianceScan.js`, `ComplianceParts.jsx` and `complianceState.js` (the scan in the drawer), `scan.gql.js`, `renderedPaths.js` (frame paths), `dashboard/` (dashboard, `scanSite.gql.js`, CSV and JSON exports) |
 | `src/javascript/common/SectionGate.jsx` | Shows the dashboard only while the site keeps the section on |
 
 ## Content types
@@ -71,14 +71,18 @@ glossary becomes a content folder.
 ## Where the scans are started
 
 **Drawer.** `GovernanceAction` (header action `headerPrimaryActions`) shows the **Content governance**
-button on a `jnt:page` or a `jmix:mainResource` of a site that enables the module, once the site's
-settings (`contentGovernance.siteSettings`) keep the governance panel and at least one section switched on. The Compliance tab
-is listed only when `compliance` is on, and greyed out (`drawer.unavailable.notPage`,
-`drawer.unavailable.noWrite`) when the node is not a `jnt:page` or the user lacks `jcr:write` on it
-(`useNodeChecks`). `ComplianceSection` mounts the first time its tab is shown and runs `scanPage`
-then; it reports the number of issues to the drawer, which shows it as the tab's badge. **Edit**
-closes the drawer and opens Content Editor with an `onClosedCallback` that reopens the drawer on the
-Compliance section, which mounts again and rescans.
+button on a `jnt:page` or a `jmix:mainResource` of a site that enables the module. The settings of
+the site (`contentGovernance.siteSettings`) must keep the governance panel on. The layout of the site
+gives the domains and their subdomains.
+
+The scan runs once for the drawer. It starts the first time the drawer shows the subdomain `terms`
+or `glossary`. It also starts for a domain where the site places a term rule in another subdomain. A
+term shows in the subdomain of its rule, or in `terms` for a rule with none.
+
+On a node that is not a `jnt:page`, or for a user who lacks `jcr:write` on it (`useNodeChecks`), the
+scan does not run. Its sections then say why (`drawer.unavailable.notPage`,
+`drawer.unavailable.noWrite`). **Edit** closes the drawer and opens Content Editor with an
+`onClosedCallback` that reopens the drawer on the subdomain, which scans again.
 
 **Dashboard.** An `adminRoute` on `jcontent:90` (jContent's **Additional** accordion), with
 `requiredPermission: 'jContentAccess'` and `requireModuleInstalledOnSite`. `SectionGate` reads the

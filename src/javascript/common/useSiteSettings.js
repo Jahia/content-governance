@@ -4,26 +4,6 @@ import {SITE_SETTINGS} from './settings.gql';
 import {GOVERNANCE_PANEL} from './module';
 
 /**
- * The id in the layout of each key of a drawer tab, or of a part of a tab, whose id differs: the drawer still
- * registers its tabs by these keys, and the layout of the site names the domains and the subdomains. The server
- * maps them the same way (LegacyFeatures.java).
- */
-const LAYOUT_IDS = {
-    audit: 'quality',
-    'audit.jahia': 'health',
-    'audit.links': 'links',
-    'audit.accessibility': 'accessibility',
-    'audit.vitals': 'vitals',
-    'audit.ecodesign': 'ecodesign',
-    'audit.seo': 'seo',
-    'audit.readability': 'readability',
-    'geo.crawler': 'geo.crawlers'
-};
-
-/** The id in the layout of a key of the drawer registry, such as `quality` for `audit`. */
-export const layoutId = key => LAYOUT_IDS[key] || key;
-
-/**
  * The switches of a site, read from its settings. The settings list the ids that are off on the site: a panel
  * (`governance`, `chat`), a domain (`quality`) or a subdomain (`geo.citations`). Everything else is on, and nothing
  * is on where the site does not enable the module.
@@ -36,8 +16,7 @@ export const layoutId = key => LAYOUT_IDS[key] || key;
 export function siteSwitches(settings) {
     const off = new Set(settings?.disabled || []);
     const isPanelOn = panel => Boolean(settings?.moduleEnabled) && !off.has(panel);
-    const isOn = (tab, part) => isPanelOn(GOVERNANCE_PANEL) && !off.has(layoutId(tab)) &&
-        (!part || !off.has(layoutId(`${tab}.${part}`)));
+    const isOn = (tab, part) => isPanelOn(GOVERNANCE_PANEL) && !off.has(tab) && (!part || !off.has(`${tab}.${part}`));
     return {isOn, isPanelOn};
 }
 

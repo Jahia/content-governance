@@ -10,11 +10,16 @@ Another module can add four kinds of entry to the drawer of content governance:
 A module adds an entry to the registry of jContent (`@jahia/ui-extender`) when jContent starts.
 
 The drawer holds the panels, and one drawer is open at a time. The governance panel holds the tabs.
-Content governance registers the governance panel and its own tabs through the same registry. The
-key of the governance panel is `governance`. The keys of its own tabs are `audit` for Page quality,
-`geo` for GEO readiness and `compliance`, at the priorities 1, 2 and 3.
+Content governance registers the governance panel through the same registry. The key of the
+governance panel is `governance`.
 
-A tab that another module adds gets what these tabs get:
+The first tabs of the governance panel are the domains of the layout of the site, such as Page
+quality. They come in the order of the site. Each domain shows its subdomains as sections, such as Accessibility.
+Content governance does not register these tabs: the drawer reads the layout of the site from the
+GraphQL field `contentDomains`. [The catalog of the rules](content-rules/catalog.md#domains-and-subdomains)
+states the layout. The tabs of other modules come after the domains.
+
+A tab that another module adds gets these features:
 
 - a switch on the screen Rules & domains, which a site administrator turns off,
 - its serious findings in "Fix first",
@@ -91,8 +96,8 @@ hook returns `true` to show the button. Any other value hides the button, so the
 assistant on the site.
 
 The drawer calls the hook in the same component on every render, so the rules of React hooks apply.
-The governance panel uses the hook too: its button shows while the site keeps at least one of its
-tabs on.
+The governance panel uses the hook too. Its button shows while the layout of the site keeps a domain
+on, or while the site keeps a tab of another module on.
 
 ### The button of a panel
 
@@ -159,8 +164,10 @@ in its prop `context`.
 Example: the action "Fix with the assistant" is an action on a finding. Its `onClick` calls
 `openPanel('chat', {finding, path, language})`, and the chat opens with that finding.
 
-The governance panel reads `{section}` from its context, such as `{section: 'compliance'}`, and shows
-that tab.
+The governance panel reads `{section}` from its context and shows that tab. The value is the key of a
+tab of another module, the id of a domain, or the id of a subdomain. For a subdomain, the panel shows
+its domain and opens its section. Example: `{section: 'terms'}` shows Compliance with the section
+Terms open.
 
 ## What a tab and an action receive
 
@@ -180,8 +187,8 @@ A finding is an object with these fields:
 |---|---|
 | `rule` | The id of the rule that the finding reports, such as `audit.seo.shortTitle`. |
 | `key` | The key of the finding. It is unique in the list. |
-| `section` | The key of the tab that found it, such as `audit`, `geo`, `compliance` or the key of a tab of another module. |
-| `tab` | The part of that tab that shows the finding, or `null` for a tab with no parts. |
+| `section` | The tab that shows the finding: the id of a domain, such as `quality`, or the key of a tab of another module. |
+| `tab` | The subdomain that shows the finding, such as `accessibility`, or the part of the tab of another module. It is `null` for a tab with no parts. |
 | `severity` | `critical`, `serious`, `moderate` or `minor`, as axe-core names its impacts. |
 | `title` | What is wrong, translated into the language of the editor's interface. |
 | `detail` | What to do, translated. Only a finding of Page quality has this field. |
@@ -190,10 +197,11 @@ A finding is an object with these fields:
 Today the id of a rule has one of these forms:
 
 - `audit.a11y.<axe-core rule>`: an accessibility violation, such as `audit.a11y.image-alt`.
-- `audit.<tab>.<recommendation>`: a recommendation of another tab of Page quality, such as
-  `audit.seo.shortTitle`.
-- `geo.<tab>`: a tab of GEO readiness that has something to review, such as `geo.crawler`.
-- `compliance.<term>`: a term of a site glossary that the page uses.
+- `audit.<results>.<rule>`: a recommendation of the page check, such as `audit.seo.seo.title`. The
+  part `<results>` names where the audit keeps the recommendation, such as `seo` or `a11y`. The
+  recommendations of the rules of the other subdomains go to `other`.
+- `<subdomain>`: a subdomain that the GEO check found something in, such as `geo.crawlers`.
+- `<rule>`: the rule of a term that the page uses, such as `brand.seamless`.
 - The key that a tab of another module gives its finding.
 
 These ids can change. The issue
@@ -202,9 +210,9 @@ id, and the field `rule` will then carry that id.
 
 ### When the list of findings changes
 
-A section runs its checks the first time the drawer shows it, and the drawer opens on its first
-section. The list therefore grows while the editor opens the other sections. Each time the list
-changes, the drawer renders each entry again with the new list.
+A check of content governance runs the first time the drawer shows a domain that reads it, and the
+drawer opens on its first domain. The list therefore grows while the editor opens the other domains.
+Each time the list changes, the drawer renders each entry again with the new list.
 
 The list holds the findings of the tabs that the page can use. A tab that is greyed out in the
 section bar adds no finding.
@@ -213,7 +221,8 @@ section bar adds no finding.
 
 A tab is an entry of the type `contentGovernanceDrawerTab`, with the target `contentGovernanceDrawer`.
 The tab shows in the section bar of the governance panel. The section bar is the main tab bar of the
-drawer, under its header. Each tab of the section bar is a domain, such as Page quality.
+drawer, under its header. The domains of the layout of the site come first, such as Page quality,
+and the tabs of other modules come after them.
 
 ```js
 import {registry} from '@jahia/ui-extender';
@@ -231,7 +240,7 @@ registry.add('contentGovernanceDrawerTab', 'myModuleReview', {
 | Field | Value |
 |---|---|
 | key | The id of the tab, as the second argument. Give a key that names your module. |
-| `targets` | `contentGovernanceDrawer:<priority>`. A lower priority puts the tab further to the left. Use 10 or more to come after the sections of content governance. |
+| `targets` | `contentGovernanceDrawer:<priority>`. A lower priority puts the tab further to the left, after the domains. |
 | `label` | The name of the tab, as a translation key with its namespace. |
 | `help` | The tooltip of the tab, as a translation key. Without it, the tooltip shows the label. |
 | `settingsHelp` | What the site settings say about the tab, as a translation key. Without it, the settings show the help. |
@@ -267,11 +276,11 @@ of the drawer continue to work.
 
 The screen Rules & domains lists, in its card **Tabs of other modules**, every tab of the registry that
 no domain of the tree holds. Each tab has a switch, and each of its parts has a switch too. The layout
-of the site stores the ids that a site administrator switched off, so a new tab is on until then. A tab that the site switched off is not in the drawer. The server
-refuses to store or read its history.
+of the site stores the ids that a site administrator switched off, so a new tab is on until then. A
+tab that the site switched off is not in the drawer. The server refuses to store or read its history.
 
-The button of the governance panel shows when the site keeps the governance panel and at least one
-tab on, whatever module adds the tab.
+The same screen switches the domains and the subdomains of content governance. The button of the
+governance panel shows when the site keeps the governance panel on, and keeps a domain or a tab on.
 
 ### "Fix first"
 
@@ -281,8 +290,9 @@ through `onFindings` all the same: they also colour its count and reach the othe
 
 "Fix first" lists the 5 most serious findings that are critical or serious, from the tabs that the
 page can use. Findings of the same severity keep the order of the tabs. The drawer sets the field
-`section` of each finding to the key of the tab, so "Open" in "Fix first" opens that tab. The tab
-then receives the `tab` of the finding in `requestedTab`.
+`section` of each finding of a tab to the key of the tab. "Open" in "Fix first" then opens that tab.
+The tab then receives the `tab` of the finding in `requestedTab`. "Open" on a finding of a domain
+opens the domain and the section of the subdomain of the finding.
 
 ### The history
 
@@ -345,20 +355,22 @@ An action can open a panel with the finding, as the example in [Open a panel](#o
 The actions of a finding show in three places:
 
 - after each finding of "Fix first",
-- after each recommendation of the tabs of Page quality,
-- in each accessibility violation of the Accessibility tab.
+- after each recommendation of the page check, in the section of its subdomain,
+- in each accessibility violation of the Accessibility section.
 
-A finding of GEO readiness, of Compliance or of a tab of another module shows its actions in "Fix
-first" only. "Fix first" lists the 5 most serious findings that are critical or serious.
+Other findings show their actions in "Fix first" only. They are the findings of the GEO check, the
+terms of the compliance scan, and the findings of the tabs of other modules. "Fix first" lists the 5 most serious findings that are
+critical or serious.
 
 If an action throws an error, that action disappears from the finding and the console shows the
 error. The other actions of the finding stay.
 
 ## Add a check that runs in the browser
 
-A check that needs a browser runs on the preview of the page in Page quality. Examples are axe-core,
-the web vitals and eco-design. A check is an entry of the type `contentGovernanceCheck`, and it
-applies the rules whose evaluator is its own. Content Governance registers axe-core, the web vitals
+A check that needs a browser runs on the preview of the page, in the page check of the drawer. The
+page check runs once for the drawer. It starts the first time the drawer shows a domain with a
+subdomain of the page check, such as Page quality. Examples are axe-core, the web vitals and
+eco-design. A check is an entry of the type `contentGovernanceCheck`, and it applies the rules whose evaluator is its own. Content Governance registers axe-core, the web vitals
 and eco-design this way, as another module does.
 
 Example: a module measures the contrast of the brand colors. It ships the rule `acme.brandContrast`,
@@ -428,8 +440,8 @@ Java code ships its rules and its check this way.
 | `signal` | An `AbortSignal`. The drawer aborts it when the time limit of the check is over. |
 
 The drawer runs the checks one after the other, in the order that the modules added them. A check
-runs only when the site keeps at least one rule of its evaluator on, and keeps on the tab of the subdomain of
-that rule. A rule of a subdomain that no tab shows never runs.
+runs only when the site keeps at least one rule of its evaluator on. The layout of the site switches a
+rule off with its subdomain or its domain. A rule with no subdomain never runs.
 
 Before the first check, the drawer sets the performance mark `contentGovernanceChecks` in the preview.
 A check that measures what the page loaded leaves out the resources after that mark, because other
@@ -453,7 +465,7 @@ checks added them. The script of axe-core is one of them.
 | `context` | An optional text beside it, such as what fails. |
 | `locator` | An optional CSS selector of the element in the preview. With it, the finding offers "Highlight on the page". |
 
-The drawer merges these results with those of the server. A failed result shows in the tab of the
+The drawer merges these results with those of the server. A failed result shows in the section of the
 subdomain of its rule, worded by its rule, like a finding of the server. Its count is the number of its
 findings, unless `values` gives `count`.
 
@@ -465,14 +477,14 @@ audit.
 
 ### Not checked
 
-A rule of the browser that no check gave a result for shows under **Not checked** in the tab of its
+A rule of the browser that no check gave a result for shows under **Not checked** in the section of its
 subdomain. No started module registers a check of its evaluator, or the check left the rule out. Such a
 rule is neither passed nor failed.
 
 ## Limits
 
 - The header of jContent reads the panels when it first draws their buttons. The drawer reads the
-  tabs and the actions on a finding when it opens. An entry that a module adds after that time
+  layout of the site, the tabs and the actions on a finding when it opens. An entry that a module adds after that time
   shows the next time jContent draws its header, or the next time the drawer opens.
 - The drawer opens on a page or a main resource, unless a panel names other node types. The
   governance panel always needs a page or a main resource.

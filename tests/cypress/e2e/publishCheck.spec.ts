@@ -70,7 +70,9 @@ describe('Content Governance - check before publishing', () => {
         });
         cy.get(ITEM).click();
         cy.get(DRAWER).should('be.visible');
-        cy.get(DRAWER).find('#content-governance-section-audit').should('have.attr', 'aria-selected', 'true');
+        // The drawer opens on the domain of the accessibility section, which the serious issues count, with it open
+        cy.get(DRAWER).find('#content-governance-section-quality').should('have.attr', 'aria-selected', 'true');
+        cy.get(DRAWER).find('#content-governance-subdomain-accessibility').should('have.attr', 'aria-expanded', 'true');
     });
 
     it('adds nothing once the site switched Page quality and Compliance off', () => {

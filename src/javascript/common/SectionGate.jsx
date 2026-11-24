@@ -10,7 +10,7 @@ import {useSiteSettings} from './useSiteSettings';
  * registered once for every site, so a site that switched the section off still lists it: the
  * entry then says so instead of showing the dashboard. The server refuses the dashboard's calls too.
  *
- * @param {string} section the section id (`geo`, `compliance`)
+ * @param {string} section the id of the domain in the layout (`quality`, `geo`, `compliance`)
  * @param {Function} children render function, given `isOn(tabId)` for that section
  */
 export const SectionGate = ({section, title, children}) => {

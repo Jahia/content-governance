@@ -11,8 +11,9 @@ keeps its history when it moves.
 
 A **Content governance** button in the header of jContent and Page Builder opens a drawer on the
 right, under the header: the page under edit (or the content list) narrows beside it and stays
-usable, and the drawer's left edge drags to make it wider. It has one tab per section, each with a count of the issues to review, red only when one of them is critical or serious. Inside
-Page quality and GEO readiness, each check is a collapsible section with its count left of its title:
+usable, and the drawer's left edge drags to make it wider. Its tabs are the domains of the layout of the site, such as Page quality, in the order of the
+site. Each tab has a count of the issues to review, red only when one of them is critical or serious.
+Inside a domain, each subdomain is a collapsible section with its count left of its title:
 a section with a critical or serious finding opens on its own, the others stay closed. Every tab and
 every section has a tooltip saying what it is for, and why it is greyed out when it cannot be used.
 Under the tabs, **Fix first** lists up to five critical or serious findings, whatever their tab, each
@@ -245,9 +246,9 @@ call to BotRank: a daily sync, on the processing server, stores the citations of
 
 | Surface | Permission | Shown when |
 |---|---|---|
-| Header button and drawer | read the page | the site enables the module and at least one section is on |
-| Page quality, GEO readiness sections | read the page | the section is on |
-| Compliance section | `jcr:write` on a page | the section is on; greyed out on content that is not a page, or without write access |
+| Header button and drawer | read the page | the site enables the module, and the layout keeps a domain on or the site keeps a tab on |
+| A domain and its subdomains | read the page | the layout of the site keeps them on |
+| The compliance scan | `jcr:write` on a page | a domain shows its subdomains; on content that is not a page, or without write access, its sections say why |
 | GEO readiness dashboard and its endpoints | `publish` on the site | always listed; says it is switched off when the GEO section is off |
 | Publish menu line | read the page; `jcr:write` for the forbidden terms | the page is in view, Page quality or Compliance is on, and something was found |
 | Page quality dashboard and the shared audits | `jContentAccess` on the site, read on the page | always listed; says it is switched off when the Page quality section is off |

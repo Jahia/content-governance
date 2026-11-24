@@ -40,10 +40,11 @@ JavaScript-only page is still caught, by the word-count check.
 
 - **The drawer.** `src/javascript/drawer/GovernanceAction.jsx` registers one header action,
   **Content governance** (`headerPrimaryActions`), on `jnt:page` and `jmix:mainResource` nodes of a
-  site that enables the module. `GovernancePanel.jsx` renders one tab per switched-on section and
-  mounts `geo/GeoSection.jsx` the first time **GEO readiness** is opened; it stays mounted while the
-  drawer is open, so switching sections keeps the result. `GeoSection` reports its issue count (the
-  sum of its tab badges) to the drawer, which shows it on the section tab.
+  site that enables the module. `GovernancePanel.jsx` renders one tab per domain of the layout of
+  the site. It holds the GEO check (`geo/useGeoCheck.js`) once for the drawer, so a GEO subdomain that
+  a site moves to another domain keeps the result. Each domain with a GEO subdomain shows the
+  **Run check** button and the facts of the page (`geo/GeoParts.jsx`). The count of a domain sums the
+  counts of its sections.
 - **The dashboard.** `init.js` registers the `siteSettingsSeo/geoReadiness` admin route on
   `jcontent-siteSettingsSeo` with `requiredPermission: 'publish'` and
   `requireModuleInstalledOnSite`. It renders through `common/SectionGate.jsx`, which shows
@@ -99,7 +100,7 @@ check, crawler list, public base URL. It has no AI key, because the module calls
 
 | Path | Role |
 |---|---|
-| `GeoSection.jsx` | The drawer section: the **Run check** button, the banners above the tabs, and the tabs **Score**, **Crawler access**, **Site files**, **Structured data** and **AI citations**, each filtered by its switch. The last result is cached in the browser's local storage per page and language. **AI citations** loads on its own and is greyed out while the site has no BotRank binding. |
+| `useGeoCheck.js`, `GeoParts.jsx`, `geoState.js` | The GEO check of the drawer. `GeoParts.jsx` draws the **Run check** button, the banners above the sections, and the views of the subdomains `geo.score`, `geo.crawlers`, `geo.files`, `geo.schema` and `geo.citations`. A subdomain with no GEO view, such as `geo.content`, lists the checks of the score that failed on its rules. The last result is cached in the browser's local storage per page and language. **AI citations** loads on its own and says so while the site has no BotRank binding. |
 | `tabs/` | One component per drawer tab (`ScoreTab`, `CrawlerTab`, `SiteFilesTab`, `SchemaTab`, `CitationsTab`) and per dashboard panel (`SiteScorePanel`, `ReportPanel`, `VisibilityPanel`, `LinksPanel`, `VanityPanel`, `SchemaPanel`, `LanguagesPanel`, `FreshnessPanel`, `SitemapPanel`, `RobotsControlPanel`, `LlmsPanel`, `SiteCitationsPanel`), plus `CronBuilder` and `DiffView`. |
 | `dashboard/GeoDashboard.jsx` | The Additional > SEO screen: five groups of tabs (overview, reach, usable, files, AI citations), one panel per tab. The **Report** tab shows while the report status is `enabled`, and when the status call failed for another reason than a 403, so that the tab can offer a retry ([The GEO report writer](#the-geo-report-writer)). The AI citations group shows only while `geo.citations` is on. |
 | `dashboard/exportScan.js` | **Export CSV** / **Export JSON** of the header: reads the stored scan (`scanStatus`) at click time and builds both files in the browser, one CSV row per finding. The cell quoting and download helpers are shared with the Compliance dashboard (`common/exportFile.js`). |
