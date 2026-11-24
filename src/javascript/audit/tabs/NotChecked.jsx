@@ -1,7 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../../common/i18n';
-import styles from './Tabs.module.css';
+import {ResultBanner} from '../../common/results/ResultBanner';
+import results from '../../common/results/Results.module.css';
 
 /**
  * The rules of a tab that run in the browser and that no check gave a result for: no module of this Jahia
@@ -13,17 +14,16 @@ export function NotChecked({rules}) {
     const {t} = useGovernanceTranslation('audit');
 
     return (
-        <>
-            <h4 className={styles.sectionTitle}>{t('notChecked.title', {count: rules.length})}</h4>
-            <p className={styles.note}>{t('notChecked.note')}</p>
-            <ul className={styles.statList}>
+        <ResultBanner title={t('notChecked.title', {count: rules.length})}>
+            {t('notChecked.note')}
+            <ul className={results.bannerList}>
                 {rules.map(rule => (
                     <li key={rule.rule}>
-                        {rule.label} <code className={styles.recRule}>{rule.rule}</code>
+                        {rule.label} <code className={results.rule}>{rule.rule}</code>
                     </li>
                 ))}
             </ul>
-        </>
+        </ResultBanner>
     );
 }
 

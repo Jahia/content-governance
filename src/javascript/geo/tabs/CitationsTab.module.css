@@ -185,3 +185,12 @@
 .toneBad {
     color: var(--cit-bad-ink);
 }
+
+/* The second line of a question or a co-cited page in their fact block */
+.rowMeta {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    color: #6b7a86;
+    margin-top: 2px;
+}

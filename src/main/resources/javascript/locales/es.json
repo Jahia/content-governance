@@ -879,7 +879,9 @@
         "positionsLabel": "Posición media entre las fuentes:",
         "positionsYours": "la suya",
         "notConfiguredTab": "Este sitio no está conectado a BotRank. Un administrador del sitio lo conecta en Configuración del sitio, Gobernanza de contenidos, BotRank.",
-        "notConfiguredLabel": "No configurado"
+        "notConfiguredLabel": "No configurado",
+        "rankLabel": "Posición en el sitio",
+        "variationLabel": "En 30 días"
       },
       "citationsSettings": {
         "navLabel": "Citas de IA (BotRank)",
@@ -1749,6 +1751,20 @@
       "sectionOff": {
         "title": "Desactivado para este sitio",
         "message": "Un administrador del sitio desactivó esta sección en Configuración del sitio, Gobernanza de contenidos."
+      },
+      "results": {
+        "levels": {
+          "serious": "Grave",
+          "moderate": "Moderado",
+          "minor": "Menor",
+          "passed": "Superado",
+          "review": "Por verificar"
+        },
+        "occurrences": "{{count}} elemento",
+        "occurrences_plural": "{{count}} elementos",
+        "passed": "✓ {{count}} superado",
+        "passed_plural": "✓ {{count}} superados",
+        "moreActions": "Más acciones"
       }
     },
     "publishCheck": {

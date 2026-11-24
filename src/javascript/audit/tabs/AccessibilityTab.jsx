@@ -5,9 +5,13 @@ import {useGovernanceTranslation} from '../../common/i18n';
 import {MANUAL_CHECKLIST} from './a11yChecklist';
 import {Recommendations} from './Recommendations';
 import {auditFindingKey} from '../../drawer/findings';
-import {FindingActions} from '../../drawer/FindingActions';
+import {FindingMenu} from '../../drawer/FindingActions';
+import {ResultCard} from '../../common/results/ResultCard';
+import {ResultBanner} from '../../common/results/ResultBanner';
+import {ScoreBlock} from '../../common/results/ScoreBlock';
+import {levelOf} from '../../common/results/levels';
+import results from '../../common/results/Results.module.css';
 import styles from './Tabs.module.css';
-import {impactClass} from './impactClass';
 
 const LEVELS = ['A', 'AA', 'AAA', 'BP'];
 
@@ -32,117 +36,87 @@ function levelScore(level, summary, violations) {
     };
 }
 
-function RuleDetails({rule, chip, onHighlight, findingKey, siteSeverity}) {
-    const {t} = useGovernanceTranslation('audit');
+/** The occurrences of an axe-core rule: each element it names, its HTML, why it fails, and Highlight. */
+const nodesOf = (rule, onHighlight, label) => rule.nodes.map((node, i) => ({
+    key: `${i}`,
+    content: (
+        <>
+            <code className={results.code}>{node.html}</code>
+            {node.failureSummary && <p className={styles.failure}>{node.failureSummary}</p>}
+        </>
+    ),
+    action: <Button size="small" variant="outlined" label={label} onClick={() => onHighlight(node.target)}/>
+}));
 
+/**
+ * An axe-core rule as a result card: the severity that the site gives the rule (axe-core's impact for a
+ * rule the catalog does not hold), its WCAG level, and one occurrence per element.
+ */
+function RuleCard({rule, level, onHighlight, findingKey}) {
+    const {t} = useGovernanceTranslation('audit');
+    const more = rule.totalNodes - rule.nodes.length;
     return (
-        <details className={styles.violation}>
-            <summary className={styles.violationSummary}>
-                {chip}
-                {siteSeverity && (
-                    <span className={`${impactClass(siteSeverity)} ${styles.siteSeverity}`} title={t('a11y.siteSeverityHelp')}>
-                        {t('a11y.siteSeverity', {severity: t(`a11y.impacts.${siteSeverity}`)})}
-                    </span>
-                )}
-                <span className={styles.levelChip}>{rule.level}</span>
-                <span className={styles.violationHelp}>{rule.title || rule.help}</span>
-                <span className={styles.nodeCount}>{rule.totalNodes}</span>
-            </summary>
-            <div className={styles.violationBody}>
-                <p>{rule.description} (<a href={rule.helpUrl} target="_blank" rel="noreferrer">{rule.id}</a>)</p>
-                {rule.rule && <code className={styles.recRule}>{rule.rule}</code>}
-                {findingKey && <FindingActions findingKey={findingKey}/>}
-                {rule.nodes.map((node, i) => (
-                    /* eslint-disable-next-line react/no-array-index-key */
-                    <div key={i} className={styles.node}>
-                        <code className={styles.nodeHtml}>{node.html}</code>
-                        {node.failureSummary && (
-                            <p className={styles.failure}>{node.failureSummary}</p>
-                        )}
-                        <Button size="small" variant="outlined" label={t('a11y.highlight')} onClick={() => onHighlight(node.target)}/>
-                    </div>
-                ))}
-                {rule.totalNodes > rule.nodes.length && (
-                    <p className={styles.note}>
-                        {t('a11y.moreElements', {count: rule.totalNodes - rule.nodes.length})}
-                    </p>
-                )}
-            </div>
-        </details>
+        <ResultCard level={level}
+                    chips={<span className={results.chip}>{rule.level}</span>}
+                    title={rule.title || rule.help}
+                    detail={<>{rule.description} (<a href={rule.helpUrl} target="_blank" rel="noreferrer">{rule.id}</a>)</>}
+                    rule={rule.rule}
+                    occurrences={nodesOf(rule, onHighlight, t('a11y.highlight'))}
+                    occurrencesLabel={t('recs.items', {count: rule.totalNodes})}
+                    menu={findingKey ? <FindingMenu findingKey={findingKey}/> : null}
+        >
+            {more > 0 && <p className={styles.moreNodes}>{t('a11y.moreElements', {count: more})}</p>}
+        </ResultCard>
     );
 }
 
-RuleDetails.propTypes = {
+RuleCard.propTypes = {
     rule: PropTypes.object.isRequired,
-    chip: PropTypes.node.isRequired,
+    level: PropTypes.string.isRequired,
     onHighlight: PropTypes.func.isRequired,
     // The key of the finding of a violation, for the actions other modules add to it
-    findingKey: PropTypes.string,
-    // The severity that the site gives the rule axe.<id>, shown beside the impact of axe-core
-    siteSeverity: PropTypes.string
+    findingKey: PropTypes.string
 };
+
+/** The tile of a WCAG level: the share of its automated rules that passed, never a fake 100%. */
+function levelTile(level, result, t) {
+    const s = levelScore(level, result.summary, result.violations);
+    const toVerify = s.incomplete > 0 ? ` · ${t('a11y.incomplete', {count: s.incomplete})}` : '';
+    if (s.percent === null) {
+        return {key: level, label: t(`a11y.levels.${level}`), value: '-', hint: `${t('a11y.score.notApplicable')}${toVerify}`};
+    }
+    const ok = s.violations === 0;
+    return {
+        key: level,
+        label: t(`a11y.levels.${level}`),
+        value: `${s.percent}%`,
+        caption: t('a11y.score.label'),
+        hint: `${ok ? t('a11y.score.rules', {passed: s.passes, total: s.applicable}) : t('a11y.score.violations', {count: s.violations, nodes: s.nodes})}${toVerify}`,
+        band: ok ? 'good' : 'poor'
+    };
+}
 
 export function AccessibilityTab({result, onHighlight}) {
     const {t} = useGovernanceTranslation('audit');
 
     return (
         <div>
-            <div className={styles.cards}>
-                {LEVELS.map(level => {
-                    const s = levelScore(level, result.summary, result.violations);
-                    const toVerify = s.incomplete > 0 ? ` · ${t('a11y.incomplete', {count: s.incomplete})}` : '';
+            <ScoreBlock items={LEVELS.map(level => levelTile(level, result, t))}/>
 
-                    // Nothing to test at this level: a neutral card, never a fake 100%
-                    if (s.percent === null) {
-                        return (
-                            <div key={level} className={styles.card}>
-                                <span className={styles.cardTitle}>{t(`a11y.levels.${level}`)}</span>
-                                <span className={styles.cardValue}>-</span>
-                                <span className={styles.cardHint}>{t('a11y.score.notApplicable')}{toVerify}</span>
-                            </div>
-                        );
-                    }
-
-                    const ok = s.violations === 0;
-                    return (
-                        <div key={level} className={`${styles.card} ${ok ? styles.cardGood : styles.cardBad}`}>
-                            <span className={styles.cardTitle}>{t(`a11y.levels.${level}`)}</span>
-                            <span className={styles.cardValue}>{s.percent}%</span>
-                            <span className={styles.cardLabel}>{t('a11y.score.label')}</span>
-                            <span className={styles.cardHint}>
-                                {ok ?
-                                    t('a11y.score.rules', {passed: s.passes, total: s.applicable}) :
-                                    t('a11y.score.violations', {count: s.violations, nodes: s.nodes})}
-                                {toVerify}
-                            </span>
-                        </div>
-                    );
-                })}
-            </div>
-
-            <p className={styles.note}>
-                {t('a11y.machineNote')}
-                <br/>
+            <ResultBanner variant="info" title={t('a11y.machineNote')}>
                 {t('a11y.engineInfo', {engine: result.engine, rules: result.rulesRun, passes: result.passCount})}
-            </p>
+            </ResultBanner>
 
             {result.violations.length === 0 && (
-                <div className={styles.allGood}>{t('a11y.noViolations')}</div>
+                <ResultBanner variant="success" title={t('a11y.noViolations')}/>
             )}
 
             {result.violations.map(v => (
-                <RuleDetails
-                    key={v.id}
-                    rule={v}
-                    chip={
-                        <span className={impactClass(v.impact)} title={t('a11y.axeImpactHelp')}>
-                            {t(`a11y.impacts.${v.impact}`)}
-                        </span>
-                    }
-                    siteSeverity={v.rule ? v.severity : null}
-                    onHighlight={onHighlight}
-                    findingKey={auditFindingKey('a11y', v.id)}
-                />
+                <RuleCard key={v.id}
+                          rule={v}
+                          level={levelOf(v.severity || v.impact)}
+                          onHighlight={onHighlight}
+                          findingKey={auditFindingKey('a11y', v.id)}/>
             ))}
 
             {result.recommendations?.length > 0 && (
@@ -152,18 +126,9 @@ export function AccessibilityTab({result, onHighlight}) {
             {result.incomplete.length > 0 && (
                 <>
                     <h4 className={styles.sectionTitle}>{t('a11y.incompleteTitle')}</h4>
-                    <p className={styles.note}>{t('a11y.incompleteNote')}</p>
+                    <ResultBanner variant="info" title={t('a11y.incompleteNote')}/>
                     {result.incomplete.map(rule => (
-                        <RuleDetails
-                            key={rule.id}
-                            rule={rule}
-                            chip={
-                                <span className={`${styles.impact} ${styles.impact_review}`}>
-                                    {t('a11y.needsReview')}
-                                </span>
-                            }
-                            onHighlight={onHighlight}
-                        />
+                        <RuleCard key={rule.id} rule={rule} level="review" onHighlight={onHighlight}/>
                     ))}
                 </>
             )}

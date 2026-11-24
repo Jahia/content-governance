@@ -1,0 +1,330 @@
+/* The four ways the drawer shows a result: card, fact block, score block and banner. */
+
+/* Card. --level is the colour of the left border, --level-text the colour of the level's word. */
+.card {
+    --level: #8a99a6;
+    --level-text: #4f5d68;
+    border: 1px solid #e4e4e4;
+    border-left: 4px solid var(--level);
+    border-radius: 6px;
+    background: #fff;
+    margin-bottom: 8px;
+}
+
+.level_serious {
+    --level: #e0182d;
+    --level-text: #b3122a;
+}
+
+.level_moderate {
+    --level: #f08c00;
+    --level-text: #9a5300;
+}
+
+.level_minor {
+    --level: #8a99a6;
+    --level-text: #4f5d68;
+}
+
+.level_passed {
+    --level: #2e9e5b;
+    --level-text: #1b7d3e;
+}
+
+.level_review {
+    --level: #3a7bd5;
+    --level-text: #1a5b96;
+}
+
+.cardHead {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 10px 10px 12px;
+}
+
+.cardBody {
+    flex: 1 1 0%;
+    min-width: 0;
+}
+
+.levelWord {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--level-text);
+}
+
+.chips {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 8px;
+    vertical-align: 1px;
+}
+
+.chip {
+    font-size: 10px;
+    font-weight: 700;
+    border: 1px solid #d5dbe0;
+    border-radius: 3px;
+    padding: 0 4px;
+    color: #6b7a86;
+}
+
+.cardTitle {
+    font-weight: 600;
+    margin-top: 2px;
+    overflow-wrap: anywhere;
+}
+
+.cardDetail {
+    color: #6b7a86;
+    font-size: 12px;
+    margin-top: 4px;
+    overflow-wrap: anywhere;
+}
+
+.rule {
+    display: inline-block;
+    margin-top: 4px;
+    color: #6b7a86;
+    font-size: 11px;
+}
+
+.cardActions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.single {
+    padding: 0 12px 10px;
+    font-size: 12px;
+}
+
+.occurrences {
+    border-top: 1px solid #eef1f3;
+    font-size: 12px;
+}
+
+.occurrences > summary {
+    cursor: pointer;
+    color: #6b7a86;
+    padding: 6px 12px;
+}
+
+.occurrences > ul {
+    list-style: none;
+    margin: 0;
+    padding: 0 12px 6px;
+}
+
+.row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 0;
+    border-top: 1px solid #f4f6f8;
+}
+
+.rowContent {
+    flex: 1 1 0%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.rowAction {
+    flex-shrink: 0;
+}
+
+/* Code or HTML of an occurrence */
+.code {
+    display: block;
+    background: #f4f6f8;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 11px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 80px;
+    overflow-y: auto;
+}
+
+.muted {
+    color: #6b7a86;
+}
+
+.compact {
+    border-left-width: 3px;
+    margin-bottom: 4px;
+}
+
+.compact .cardHead {
+    padding: 6px 8px 6px 10px;
+}
+
+.passed {
+    margin: 4px 0 8px;
+    font-size: 12px;
+}
+
+.passed > summary {
+    cursor: pointer;
+    color: #1b7d3e;
+    font-weight: 600;
+    padding: 4px 0 6px;
+}
+
+/* ⋯ and its list */
+.more {
+    position: relative;
+    display: inline-flex;
+}
+
+.moreList {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 160px;
+    padding: 4px;
+    background: #fff;
+    border: 1px solid #d5dbe0;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(19, 28, 33, 0.15);
+}
+
+.moreList > * {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+/* Fact block and score block */
+.blockTitle {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6b7a86;
+    margin: 14px 0 6px;
+}
+
+.facts {
+    margin-bottom: 12px;
+}
+
+.factList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.fact {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid #f4f6f8;
+    font-size: 13px;
+}
+
+.factLabel {
+    flex: 1 1 0%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.factValue {
+    flex-shrink: 0;
+    max-width: 60%;
+    text-align: right;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.factAction {
+    flex-shrink: 0;
+    align-self: center;
+}
+
+.factNote {
+    font-size: 12px;
+    color: #6b7a86;
+    margin: 6px 0 0;
+}
+
+.scores {
+    margin-bottom: 12px;
+}
+
+.scoreGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 8px;
+}
+
+.score {
+    border: 1px solid #e4e4e4;
+    border-top: 3px solid #d5dbe0;
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: #fff;
+}
+
+.band_good {
+    border-top-color: #2e9e5b;
+}
+
+.band_average {
+    border-top-color: #f08c00;
+}
+
+.band_poor {
+    border-top-color: #e0182d;
+}
+
+.scoreLabel {
+    font-size: 11px;
+    color: #6b7a86;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.scoreValue {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.scoreCaption {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.scoreHint {
+    font-size: 11px;
+    color: #6b7a86;
+}
+
+/* Banner */
+.banner {
+    margin-bottom: 8px;
+}
+
+.bannerAction {
+    margin-top: 6px;
+}
+
+.bannerList {
+    margin: 6px 0 0;
+    padding-left: 16px;
+}

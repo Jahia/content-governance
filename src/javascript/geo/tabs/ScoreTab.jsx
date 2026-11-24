@@ -2,9 +2,14 @@ import React, {useEffect, useState} from 'react';
 import PropTypes from 'prop-types';
 import {useApolloClient} from '@apollo/client';
 import {useGovernanceTranslation} from '../../common/i18n';
-import {Chip, Typography} from '@jahia/moonstone';
 import {fetchRules} from '../../audit/rules';
 import {passedOf} from '../../audit/ruleText';
+import {FactBlock} from '../../common/results/FactBlock';
+import {PassedFold, ResultCard} from '../../common/results/ResultCard';
+import {ResultBanner} from '../../common/results/ResultBanner';
+import {ScoreBlock} from '../../common/results/ScoreBlock';
+import {LEVEL_RANK, levelOf} from '../../common/results/levels';
+import results from '../../common/results/Results.module.css';
 import styles from './Tabs.module.css';
 
 const GROUPS = ['access', 'content', 'files'];
@@ -52,59 +57,37 @@ function useRuleBook(path) {
     return rules;
 }
 
-/** One check of the GEO score: passed or failed, its text, its rule, its value and its severity. */
-function CheckRow({check, fromTemplate}) {
+/**
+ * A failed check of the GEO score as a result card: its level from its severity, its text, its rule, its
+ * group and the value it read, and why the failure comes from the template of the page.
+ */
+function CheckCard({check, fromTemplate}) {
     const {t} = useGovernanceTranslation('geo');
+    const hasValue = check.value !== null && check.value !== undefined && check.value !== '';
     return (
-        <li className={styles.checkItem}>
-            <span className={styles.checkMark}>
-                {/* A bare glyph is not a word: a screen reader either skips it as
-                  * punctuation or reads "check mark", neither of which says
-                  * pass or fail. */}
-                <Chip
-                    label={check.passed ? t('score.passed') : t('score.failed')}
-                    color={check.passed ? 'success' : 'danger'}
-                />
-            </span>
-            <span className={styles.checkText}>
-                <Typography variant="body" className={styles.checkLabel}>
-                    {check.label}
-                </Typography>
-                {check.fix && (
-                    <Typography variant="caption" className={styles.checkFix}>
-                        {check.fix}
-                    </Typography>
-                )}
-                {check.rule && (
-                    <code className={styles.checkRule}>{check.rule}</code>
-                )}
-                {fromTemplate && (
-                    <Typography variant="caption" className={styles.fromTemplate}>
-                        {fromTemplate}
-                    </Typography>
-                )}
-            </span>
-            <span className={styles.checkMeta}>
-                {check.value !== null && check.value !== undefined && check.value !== '' && (
-                    <Typography variant="caption" className={styles.checkValue}>
-                        {String(check.value)}
-                    </Typography>
-                )}
-                <Chip
-                    label={t(`score.severity.${check.severity}`)}
-                    color={check.severity === 'critical' ? 'warning' : 'default'}
-                />
-            </span>
-        </li>
+        <ResultCard level={levelOf(check.severity)}
+                    chips={(
+                        <>
+                            {check.group && <span className={results.chip}>{t(`score.group.${check.group}`)}</span>}
+                            {hasValue && <span className={results.chip}>{String(check.value)}</span>}
+                        </>
+                    )}
+                    title={check.label}
+                    detail={check.fix}
+                    rule={check.rule}
+        >
+            {fromTemplate && <p className={styles.cardNote}>{fromTemplate}</p>}
+        </ResultCard>
     );
 }
 
-CheckRow.propTypes = {
+CheckCard.propTypes = {
     check: PropTypes.shape({
         passed: PropTypes.bool,
         label: PropTypes.string,
         fix: PropTypes.string,
         rule: PropTypes.string,
+        group: PropTypes.string,
         value: PropTypes.any,
         severity: PropTypes.string
     }).isRequired,
@@ -127,11 +110,7 @@ export const FailedChecks = ({report, path, ruleIds}) => {
     if (checks.length === 0) {
         return null;
     }
-    return (
-        <ul className={styles.checkList}>
-            {checks.map(check => <CheckRow key={check.id} check={check}/>)}
-        </ul>
-    );
+    return checks.map(check => <CheckCard key={check.id} check={check}/>);
 };
 
 FailedChecks.propTypes = {
@@ -163,87 +142,45 @@ export const ScoreTab = ({report, path}) => {
     // author is not sent to fix something that is not theirs to fix.
     const rollup = report.templateRollup || {};
     const shared = new Set(rollup.sharedChecks || []);
-    let tone = 'good';
+    let band = 'good';
     if (criticalFailed > 0) {
-        tone = 'bad';
+        band = 'poor';
     } else if (importantFailed > 0) {
-        tone = 'warn';
+        band = 'average';
     }
+    const hint = [
+        criticalFailed > 0 && t('score.criticalFailed', {count: criticalFailed}),
+        importantFailed > 0 && t('score.importantFailed', {count: importantFailed})
+    ].filter(Boolean).join(' · ') || t('score.allGood');
+    const order = check => GROUPS.indexOf(check.group);
+    const failed = checks.filter(check => !check.passed).sort((a, b) => (LEVEL_RANK[levelOf(a.severity)] - LEVEL_RANK[levelOf(b.severity)]) || (order(a) - order(b)));
+
+    /*
+     * A page score with no reference point is not information: nobody knows whether sixteen of eighteen is
+     * good on this site. The site average and this page's own section say whether the page is the problem
+     * or the site is. Facts, not findings.
+     */
+    const context = [
+        report.context && report.context.sitePercent !== undefined && {
+            key: 'site',
+            label: t('context.site', {percent: report.context.sitePercent}),
+            value: report.context.section ? t('context.section', {section: report.context.section, percent: report.context.sectionPercent}) : null
+        },
+        report.links && {key: 'links', label: t('context.links', {nav: report.links.nav, content: report.links.content})},
+        report.context && report.context.llms && {key: 'llms', label: t(llmsKey(report.context.llms))}
+    ].filter(Boolean);
 
     return (
         <div>
-            <div className={`${styles.verdict} ${styles[tone]}`}>
-                <span className={styles.scoreHeadline}>{t('score.headline', {passed, total})}</span>
-                {criticalFailed > 0 && (
-                    <span className={styles.scoreCount}>{t('score.criticalFailed', {count: criticalFailed})}</span>
-                )}
-                {importantFailed > 0 && (
-                    <span className={styles.scoreCount}>{t('score.importantFailed', {count: importantFailed})}</span>
-                )}
-                {criticalFailed === 0 && importantFailed === 0 && (
-                    <span className={styles.scoreCount}>{t('score.allGood')}</span>
-                )}
-            </div>
-
-            {/*
-              * A page score with no reference point is not information: nobody
-              * knows whether sixteen of eighteen is good on this site. The site
-              * average and this page's own section say whether the page is the
-              * problem or the site is. Facts, not findings, so lines rather than
-              * banners.
-              */}
-            {(report.context || report.links) && (
-                <ul className={styles.contextList}>
-                    {report.context && report.context.sitePercent !== undefined && (
-                        <li>
-                            {t('context.site', {percent: report.context.sitePercent})}
-                            {report.context.section ? ` · ${t('context.section', {
-                                section: report.context.section,
-                                percent: report.context.sectionPercent
-                            })}` : ''}
-                        </li>
-                    )}
-                    {report.links && (
-                        <li>
-                            {t('context.links', {
-                                nav: report.links.nav,
-                                content: report.links.content
-                            })}
-                        </li>
-                    )}
-                    {report.context && report.context.llms && (
-                        <li>
-                            {t(llmsKey(report.context.llms))}
-                        </li>
-                    )}
-                </ul>
-            )}
-
-            {GROUPS.map(group => {
-                const rows = checks.filter(c => c.group === group);
-                if (rows.length === 0) {
-                    return null;
-                }
-
-                return (
-                    <div key={group}>
-                        <Typography variant="subheading" component="h3" className={styles.sectionTitle}>
-                            {t(`score.group.${group}`)}
-                        </Typography>
-                        <ul className={styles.checkList}>
-                            {rows.map(c => (
-                                <CheckRow key={c.id}
-                                          check={c}
-                                          fromTemplate={!c.passed && shared.has(c.id) ?
-                                              t('score.fromTemplate', {template: rollup.template, count: rollup.pages}) :
-                                              undefined}/>
-                            ))}
-                        </ul>
-                    </div>
-                );
-            })}
-
-            <p className={styles.explain}>{t('score.rubric')}</p>
+            <ScoreBlock items={[{key: 'score', label: t('score.tab'), value: `${passed}/${total}`, hint, band}]}/>
+            {failed.map(c => (
+                <CheckCard key={c.id}
+                           check={c}
+                           fromTemplate={shared.has(c.id) ? t('score.fromTemplate', {template: rollup.template, count: rollup.pages}) : undefined}/>
+            ))}
+            <PassedFold items={checks.filter(c => c.passed).map(c => ({key: c.id, title: c.label, rule: c.rule}))}/>
+            <FactBlock rows={context}/>
+            <ResultBanner variant="info" title={t('score.rubric')}/>
         </div>
     );
 };

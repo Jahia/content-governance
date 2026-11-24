@@ -2,95 +2,36 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {Button} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../../common/i18n';
+import {FactBlock} from '../../common/results/FactBlock';
 import {Recommendations} from './Recommendations';
-import styles from './Tabs.module.css';
 
+/**
+ * Jahia health: one result card per rule (unpublished changes, missing translations, raw keys,
+ * placeholders), each content or text an occurrence, then what the check read of the page.
+ */
 export function JahiaTab({result, onHighlightText}) {
     const {t} = useGovernanceTranslation('audit');
+    const highlight = text => <Button size="small" variant="outlined" label={t('a11y.highlight')} onClick={() => onHighlightText(text)}/>;
+    // The server gives no locator for a text of the page: a raw key is found by itself, a placeholder by its text
+    const itemAction = (rec, item) => {
+        if (rec.rule === 'health.rawI18nKeys') {
+            return highlight(item.text);
+        }
+        if (rec.rule === 'health.placeholderText') {
+            return highlight((item.context || item.text).slice(0, 40));
+        }
+        return null;
+    };
 
     return (
         <div>
-            <Recommendations items={result.recommendations} ns="jahia" tab="jahia"/>
-
-            <h4 className={styles.sectionTitle}>{t('jahia.summary')}</h4>
-            <ul className={styles.statList}>
-                {result.pageStatus && (
-                    <li>{t('jahia.pageStatus')}: <strong>{t(`jahia.statuses.${result.pageStatus}`, result.pageStatus)}</strong></li>
-                )}
-                {result.scanned !== null && <li>{t('jahia.scanned', {count: result.scanned})}</li>}
-                {result.activeLanguages.length > 0 && (
-                    <li>{t('jahia.languages')}: <strong>{result.activeLanguages.join(', ')}</strong></li>
-                )}
-            </ul>
-
-            {result.unpublished.length > 0 && (
-                <>
-                    <h4 className={styles.sectionTitle}>{t('jahia.unpublished')}</h4>
-                    {result.unpublished.map(node => (
-                        <div key={node.path} className={styles.rec}>
-                            <span className={`${styles.impact} ${styles.impact_serious}`}>
-                                {t(`jahia.statuses.${node.status}`, node.status)}
-                            </span>
-                            <div className={styles.recBody}>
-                                <div className={styles.recTitle}>{node.path}</div>
-                                <div className={styles.recDetail}>{node.type}</div>
-                            </div>
-                        </div>
-                    ))}
-                </>
-            )}
-
-            {result.untranslated.length > 0 && (
-                <>
-                    <h4 className={styles.sectionTitle}>{t('jahia.untranslated')}</h4>
-                    {result.untranslated.map(node => (
-                        <div key={node.path} className={styles.rec}>
-                            <span className={`${styles.impact} ${styles.impact_serious}`}>
-                                {node.missing.join(', ')}
-                            </span>
-                            <div className={styles.recBody}>
-                                <div className={styles.recTitle}>{node.path}</div>
-                                <div className={styles.recDetail}>{node.type}</div>
-                            </div>
-                        </div>
-                    ))}
-                </>
-            )}
-
-            {result.rawKeys.count > 0 && (
-                <>
-                    <h4 className={styles.sectionTitle}>{t('jahia.rawKeys')}</h4>
-                    {result.rawKeys.samples.map(sample => (
-                        <div key={sample.key + sample.text} className={styles.rec}>
-                            <span className={`${styles.impact} ${styles.impact_critical}`}>
-                                {t('a11y.impacts.critical')}
-                            </span>
-                            <div className={styles.recBody}>
-                                <div className={styles.recTitle}><code>{sample.key}</code></div>
-                                <div className={styles.recDetail}>{sample.text}</div>
-                                <Button size="small" variant="outlined" label={t('a11y.highlight')} onClick={() => onHighlightText(sample.key)}/>
-                            </div>
-                        </div>
-                    ))}
-                </>
-            )}
-
-            {result.placeholders.count > 0 && (
-                <>
-                    <h4 className={styles.sectionTitle}>{t('jahia.placeholders')}</h4>
-                    {result.placeholders.samples.map(sample => (
-                        <div key={sample.text} className={styles.rec}>
-                            <span className={`${styles.impact} ${styles.impact_serious}`}>
-                                {sample.match}
-                            </span>
-                            <div className={styles.recBody}>
-                                <div className={styles.recDetail}>{sample.text}</div>
-                                <Button size="small" variant="outlined" label={t('a11y.highlight')} onClick={() => onHighlightText(sample.text.slice(0, 40))}/>
-                            </div>
-                        </div>
-                    ))}
-                </>
-            )}
+            <Recommendations items={result.recommendations} ns="jahia" tab="jahia" itemAction={itemAction}/>
+            <FactBlock title={t('jahia.summary')}
+                       rows={[
+                           result.pageStatus && {key: 'status', label: t('jahia.pageStatus'), value: t(`jahia.statuses.${result.pageStatus}`, result.pageStatus)},
+                           result.scanned !== null && {key: 'scanned', label: t('jahia.scanned', {count: result.scanned})},
+                           result.activeLanguages.length > 0 && {key: 'languages', label: t('jahia.languages'), value: result.activeLanguages.join(', ')}
+                       ].filter(Boolean)}/>
         </div>
     );
 }

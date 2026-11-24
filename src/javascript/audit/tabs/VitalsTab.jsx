@@ -1,8 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../../common/i18n';
+import {FactBlock} from '../../common/results/FactBlock';
+import {ResultBanner} from '../../common/results/ResultBanner';
+import {ScoreBlock} from '../../common/results/ScoreBlock';
 import {Recommendations} from './Recommendations';
-import styles from './Tabs.module.css';
 
 function formatMs(value) {
     if (value === null || value === undefined) {
@@ -22,64 +24,66 @@ function formatBytes(bytes) {
 
 const METRICS = ['lcp', 'cls', 'inp', 'ttfb', 'dcl', 'load'];
 
+// The thresholds of the Core Web Vitals (web.dev): good up to the first, poor above the second
+const BANDS = {lcp: [2500, 4000], cls: [0.1, 0.25], ttfb: [800, 1800]};
+
+const bandOf = (key, value) => {
+    const limits = BANDS[key];
+    if (!limits || value === null || value === undefined) {
+        return undefined;
+    }
+    if (value <= limits[0]) {
+        return 'good';
+    }
+    return value <= limits[1] ? 'average' : 'poor';
+};
+
+function metricTile(key, metrics, t) {
+    const value = metrics[key];
+    const isApprox = key === 'lcp' && metrics.lcpApprox;
+    let display = formatMs(value);
+    if (key === 'cls') {
+        display = value === null ? '-' : value.toFixed(3);
+    }
+    const shown = isApprox ? `≈ ${display}` : display;
+    return {
+        key,
+        label: t(`vitals.metrics.${key}`),
+        value: key === 'inp' ? t('vitals.inpNa') : shown,
+        hint: isApprox ? t('vitals.approx') : undefined,
+        band: bandOf(key, value)
+    };
+}
+
+/** The web vitals of the page, measured in the editor's browser: its numbers, then what the page loads. */
 export function VitalsTab({result}) {
     const {t} = useGovernanceTranslation('audit');
     const {metrics, diagnostics} = result;
+    const images = [
+        diagnostics.images,
+        diagnostics.missingDims > 0 && t('vitals.missingDims', {count: diagnostics.missingDims}),
+        diagnostics.oversized > 0 && t('vitals.oversized', {count: diagnostics.oversized})
+    ].filter(part => part !== false);
 
     return (
         <div>
-            <p className={styles.note}>{t('vitals.labNote')}</p>
-
-            <div className={styles.cards}>
-                {METRICS.map(key => {
-                    const value = metrics[key];
-                    const isApprox = key === 'lcp' && metrics.lcpApprox;
-                    let display = formatMs(value);
-                    if (key === 'cls') {
-                        display = value === null ? '-' : value.toFixed(3);
-                    }
-                    const shown = isApprox ? `≈ ${display}` : display;
-                    return (
-                        <div key={key} className={styles.card}>
-                            <span className={styles.cardTitle}>{t(`vitals.metrics.${key}`)}</span>
-                            <span className={styles.cardValue}>{key === 'inp' ? t('vitals.inpNa') : shown}</span>
-                            {isApprox && <span className={styles.cardHint}>{t('vitals.approx')}</span>}
-                        </div>
-                    );
-                })}
-            </div>
+            <ResultBanner variant="info" title={t('vitals.labNote')}/>
+            <ScoreBlock items={METRICS.map(key => metricTile(key, metrics, t))}/>
 
             {/* The findings of the vitals are rules of the subdomain ecodesign: the Ecodesign tab shows them.
                 An audit stored by an older version still has them here. */}
             {result.recommendations?.length > 0 && <Recommendations items={result.recommendations} ns="vitals" tab="vitals"/>}
-            {!result.recommendations?.length && <p className={styles.note}>{t('vitals.findingsInEcodesign')}</p>}
+            {!result.recommendations?.length && <ResultBanner title={t('vitals.findingsInEcodesign')}/>}
 
-            <h4 className={styles.sectionTitle}>{t('vitals.diagnostics')}</h4>
-            <ul className={styles.statList}>
-                <li>{t('vitals.requests')}: <strong>{diagnostics.requests}</strong></li>
-                <li>{t('vitals.weight')}: <strong>{formatBytes(diagnostics.totalBytes)}</strong></li>
-                <li>{t('vitals.domNodes')}: <strong>{diagnostics.domNodes}</strong></li>
-                <li>
-                    {t('vitals.images')}: <strong>{diagnostics.images}</strong>
-                    {diagnostics.missingDims > 0 &&
-                        <span className={styles.warn}> · {t('vitals.missingDims', {count: diagnostics.missingDims})}</span>}
-                    {diagnostics.oversized > 0 &&
-                        <span className={styles.warn}> · {t('vitals.oversized', {count: diagnostics.oversized})}</span>}
-                </li>
-            </ul>
-
-            {diagnostics.largest.length > 0 && (
-                <>
-                    <h4 className={styles.sectionTitle}>{t('vitals.largest')}</h4>
-                    <ul className={styles.statList}>
-                        {diagnostics.largest.map(r => (
-                            <li key={r.url} title={r.url}>
-                                <code>{r.name}</code> ({r.type}) - <strong>{formatBytes(r.bytes)}</strong>
-                            </li>
-                        ))}
-                    </ul>
-                </>
-            )}
+            <FactBlock title={t('vitals.diagnostics')}
+                       rows={[
+                           {key: 'requests', label: t('vitals.requests'), value: diagnostics.requests},
+                           {key: 'weight', label: t('vitals.weight'), value: formatBytes(diagnostics.totalBytes)},
+                           {key: 'dom', label: t('vitals.domNodes'), value: diagnostics.domNodes},
+                           {key: 'images', label: t('vitals.images'), value: images.join(' · ')}
+                       ]}/>
+            <FactBlock title={t('vitals.largest')}
+                       rows={diagnostics.largest.map(r => ({key: r.url, label: <code title={r.url}>{r.name}</code>, value: `${r.type} · ${formatBytes(r.bytes)}`}))}/>
         </div>
     );
 }

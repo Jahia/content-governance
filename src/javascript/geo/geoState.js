@@ -34,6 +34,36 @@ const VIEW_COUNTS = {
     'geo.schema': report => ({count: report.schema && report.schema.mapped && !report.schema.valid ? 1 : 0, serious: false})
 };
 
+/**
+ * The facts of the page that the GEO check reads from the repository and from the last site scan, and that
+ * are findings, each with the subdomain whose section shows it and its level.
+ *
+ * Example: a page that nothing links to, not even the menu, is the finding `orphan`, Moderate, in `geo.content`.
+ *
+ * @param {?object} report the report of a published page
+ * @returns {Array<{id: string, place: string, level: string}>} the findings
+ */
+export function pageFindingsOf(report) {
+    if (!report) {
+        return [];
+    }
+    const sitemap = report.sitemap || {};
+    const links = report.links;
+    const languages = report.languages || {};
+    return [
+        report.visibility?.guestReadable === false && {id: 'gated', place: 'geo.crawlers', level: 'serious'},
+        report.visibility?.noindex && {id: 'noindex', place: 'geo.crawlers', level: 'minor'},
+        sitemap.missing && {id: 'notListed', place: 'geo.files', level: 'moderate'},
+        sitemap.noindexListed && {id: 'noindexListed', place: 'geo.files', level: 'moderate'},
+        sitemap.staleDetail && {id: 'stale', place: 'geo.files', level: 'minor'},
+        report.vanity && {id: 'vanity', place: 'geo.files', level: report.vanity.kind === 'unresolvable' ? 'moderate' : 'minor'},
+        links && links.content === 0 && links.nav === 0 && {id: 'orphan', place: 'geo.content', level: 'moderate'},
+        links && links.content === 0 && links.nav > 0 && {id: 'navOnly', place: 'geo.content', level: 'minor'},
+        (languages.missing || []).length > 0 && {id: 'languagesMissing', place: 'geo.content', level: 'minor'},
+        (languages.notPublished || []).length > 0 && {id: 'languagesUnpublished', place: 'geo.content', level: 'moderate'}
+    ].filter(Boolean);
+}
+
 /** The checks of the GEO score that failed on some rules. */
 const failedOn = (report, ruleIds) => (report?.score?.checks || []).filter(check => !check.passed && ruleIds.has(check.rule));
 
@@ -51,9 +81,19 @@ export function geoStateOf(geo, id, ruleIds) {
     if (id === 'geo.citations') {
         return {count: null, serious: false, unavailable: geo.citationsState === 'notConfigured'};
     }
+    const placed = pageFindingsOf(report).filter(finding => finding.place === id);
+    const placedSerious = placed.some(finding => finding.level === 'serious');
     if (VIEW_COUNTS[id]) {
-        return report ? {...VIEW_COUNTS[id](report), unavailable: false} : {count: null, serious: false, unavailable: false};
+        if (!report) {
+            return {count: null, serious: false, unavailable: false};
+        }
+        const view = VIEW_COUNTS[id](report);
+        return {count: view.count + placed.length, serious: (view.serious && view.count > 0) || placedSerious, unavailable: false};
     }
     const failed = failedOn(report, ruleIds);
-    return {count: report ? failed.length : null, serious: failed.some(check => check.severity === 'critical'), unavailable: false};
+    return {
+        count: report ? failed.length + placed.length : null,
+        serious: failed.some(check => check.severity === 'critical') || placedSerious,
+        unavailable: false
+    };
 }

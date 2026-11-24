@@ -1,60 +1,43 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {useGovernanceTranslation} from '../../common/i18n';
+import {PassedFold} from '../../common/results/ResultCard';
+import {ResultBanner} from '../../common/results/ResultBanner';
+import {ScoreBlock} from '../../common/results/ScoreBlock';
 import {Recommendations} from './Recommendations';
 import {ECO_CHECKLIST} from './ecoChecklist';
 import styles from './Tabs.module.css';
 
+/**
+ * Eco-design: its score and the figures of the page, one result card per rule, the criteria that pass
+ * folded below, and the checklist of what a page cannot show.
+ */
 export function EcodesignTab({result}) {
     const {t} = useGovernanceTranslation('audit');
 
-    let scoreClass = styles.cardBad;
+    let band = 'poor';
     if (result.passed === result.total) {
-        scoreClass = styles.cardGood;
+        band = 'good';
     } else if (result.passed >= result.total * 0.6) {
-        scoreClass = styles.band_ni;
+        band = 'average';
     }
+    const scores = [
+        {key: 'score', label: t('eco.score'), value: `${result.passed}/${result.total}`, hint: t('eco.scoreHint'), band},
+        // The figures of the measure of the web vitals: none when the site turned it off
+        ...(result.stats ? [
+            {key: 'weight', label: t('eco.weight'), value: (result.stats.totalBytes / 1024 / 1024).toFixed(2), hint: 'MB'},
+            {key: 'requests', label: t('eco.requests'), value: result.stats.requests, hint: t('eco.thirdPartyHint', {count: result.stats.thirdParty})}
+        ] : [])
+    ];
+    // The label of the rule; an audit stored before the checks of the browser has a key of eco.checks
+    const passed = result.criteria.filter(c => c.ok).map(c => ({key: c.key, title: c.label || t(`eco.checks.${c.key}`), detail: c.value}));
 
     return (
         <div>
-            <div className={styles.cards}>
-                <div className={`${styles.card} ${scoreClass}`}>
-                    <span className={styles.cardTitle}>{t('eco.score')}</span>
-                    <span className={styles.cardValue}>{result.passed}/{result.total}</span>
-                    <span className={styles.cardHint}>{t('eco.scoreHint')}</span>
-                </div>
-                {/* The figures of the measure of the web vitals: none when the site turned it off */}
-                {result.stats && (
-                    <>
-                        <div className={styles.card}>
-                            <span className={styles.cardTitle}>{t('eco.weight')}</span>
-                            <span className={styles.cardValue}>{(result.stats.totalBytes / 1024 / 1024).toFixed(2)}</span>
-                            <span className={styles.cardHint}>MB</span>
-                        </div>
-                        <div className={styles.card}>
-                            <span className={styles.cardTitle}>{t('eco.requests')}</span>
-                            <span className={styles.cardValue}>{result.stats.requests}</span>
-                            <span className={styles.cardHint}>{t('eco.thirdPartyHint', {count: result.stats.thirdParty})}</span>
-                        </div>
-                    </>
-                )}
-            </div>
-
-            <p className={styles.note}>{t('eco.disclaimer')}</p>
-
+            <ScoreBlock items={scores}/>
+            <ResultBanner variant="info" title={t('eco.disclaimer')}/>
             <Recommendations items={result.recommendations} ns="eco" tab="ecodesign"/>
-
-            <h4 className={styles.sectionTitle}>{t('eco.criteria')}</h4>
-            <ul className={styles.statList}>
-                {result.criteria.map(c => (
-                    <li key={c.key}>
-                        <span className={c.ok ? styles.okMark : styles.koMark}>{c.ok ? '✓' : '✗'}</span>
-                        {' '}<span className={styles.levelChip}>{t(`eco.families.${c.family}`)}</span>
-                        {/* The label of the rule; an audit stored before the checks of the browser has a key of eco.checks */}
-                        {' '}{c.label || t(`eco.checks.${c.key}`)}: <strong>{c.value}</strong>
-                    </li>
-                ))}
-            </ul>
+            <PassedFold items={passed}/>
 
             <h4 className={styles.sectionTitle}>{t('eco.checklist.title')}</h4>
             <p className={styles.note}>{t('eco.checklist.intro')}</p>

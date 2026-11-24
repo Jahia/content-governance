@@ -1,121 +1,98 @@
 import React, {useMemo} from 'react';
 import PropTypes from 'prop-types';
-import {
-    Banner,
-    Button,
-    Check,
-    Chip,
-    Edit,
-    Information,
-    Loader,
-    Reload,
-    Typography,
-    Warning
-} from '@jahia/moonstone';
+import {Button, Edit, Loader, Reload, Typography} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../common/i18n';
+import {FindingMenu} from '../drawer/FindingActions';
+import {ResultCard} from '../common/results/ResultCard';
+import {ResultBanner} from '../common/results/ResultBanner';
+import {levelOf} from '../common/results/levels';
+import results from '../common/results/Results.module.css';
 import {issuesIn} from './complianceState';
 import styles from './ComplianceParts.module.css';
 import {languageDisplayName} from '../common/locale';
 
 /**
  * What the compliance scan shows in the drawer: its toolbar and what holds for the whole page, once per domain
- * that reads it, and the terms of each subdomain, grouped by content (compliance/complianceState.js). The state
+ * that reads it, and the terms of each subdomain, one result card per rule (compliance/complianceState.js). The state
  * comes from `useComplianceScan`.
  */
 
-/** Issues grouped by content, in the order the scan found them. */
-const groupByContent = issues => {
+/** Issues grouped by rule, in the order the scan found them: one result card each. */
+const groupByRule = issues => {
     const groups = new Map();
     issues.forEach(issue => {
-        if (!groups.has(issue.nodeUuid)) {
-            groups.set(issue.nodeUuid, {...issue, items: []});
+        if (!groups.has(issue.ruleId)) {
+            groups.set(issue.ruleId, {...issue, items: []});
         }
-        groups.get(issue.nodeUuid).items.push(issue);
+        groups.get(issue.ruleId).items.push(issue);
     });
     return [...groups.values()];
 };
 
-const StatusChip = ({status}) => {
-    const {t} = useGovernanceTranslation('compliance');
-    if (status === 'SAFE') {
-        return <Chip color="success" icon={<Check/>} label={t('status.safe')}/>;
-    }
-    if (status === 'ISSUES') {
-        return <Chip color="danger" icon={<Warning/>} label={t('status.issues')}/>;
-    }
-    return <Chip color="warning" icon={<Information/>} label={t('status.noGlossary')}/>;
-};
+/** The number of contents that hold the issues. */
+const contentCount = issues => new Set(issues.map(issue => issue.nodeUuid)).size;
 
-StatusChip.propTypes = {status: PropTypes.string.isRequired};
-
-const IssueGroup = ({group, glossaryTitles, onEdit}) => {
+/** Where a use of a term sits: its content, its property and its words, with where a shared content comes from. */
+const IssueOccurrence = ({issue}) => {
     const {t} = useGovernanceTranslation('compliance');
     return (
-        <li className={styles.group}>
-            <div className={styles.groupHeader}>
-                <div className={styles.groupTitle}>
-                    <Typography component="h3" variant="subheading" weight="bold">{group.nodeName || group.nodePath}</Typography>
-                    <Typography variant="caption" className={styles.muted}>{group.nodeType} · {group.nodePath}</Typography>
-                </div>
-                {group.origin === 'REFERENCE' && <Chip color="accent" label={t('origin.reference')}/>}
-                {group.origin === 'SHARED' && <Chip color="accent" label={t('origin.shared')}/>}
-                <Button variant="outlined"
-                        size="small"
-                        icon={<Edit/>}
-                        label={t('issue.edit')}
-                        aria-label={t('issue.editLabel', {name: group.nodeName || group.nodePath})}
-                        isDisabled={!globalThis.CE_API?.edit}
-                        onClick={() => onEdit(group.nodeUuid)}/>
-            </div>
-            {group.origin !== 'PAGE' && (
-                <Typography variant="caption" className={styles.muted}>
-                    {group.origin === 'REFERENCE' && t('origin.referenceHint', {path: group.originPath})}
-                    {group.origin === 'SHARED' && (group.originPath ? t('origin.sharedAreaHint', {path: group.originPath}) : t('origin.sharedHint'))}
-                </Typography>
+        <>
+            <strong>{issue.nodeName || issue.nodePath}</strong>
+            <span className={styles.muted}> · {issue.propertyLabel || issue.propertyName}</span>
+            {issue.origin === 'REFERENCE' && <span className={styles.muted}> · {t('origin.referenceHint', {path: issue.originPath})}</span>}
+            {issue.origin === 'SHARED' && (
+                <span className={styles.muted}> · {issue.originPath ? t('origin.sharedAreaHint', {path: issue.originPath}) : t('origin.sharedHint')}</span>
             )}
-            <ul className={styles.issues}>
-                {group.items.map((issue, index) => (
-                    // eslint-disable-next-line react/no-array-index-key
-                    <li key={`${issue.propertyName}-${index}`} className={styles.issue}>
-                        <Typography variant="caption" weight="bold">{issue.propertyLabel || issue.propertyName}</Typography>
-                        <Typography className={styles.excerpt}>
-                            {issue.before}<mark className={styles.mark}>{issue.matchedText}</mark>{issue.after}
-                        </Typography>
-                        <dl className={styles.details}>
-                            <dt>{t('issue.term')}</dt>
-                            <dd>{issue.term}</dd>
-                            {issue.reason && <><dt>{t('issue.reason')}</dt><dd>{issue.reason}</dd></>}
-                            {issue.alternative && <><dt>{t('issue.alternative')}</dt><dd>{issue.alternative}</dd></>}
-                            <dt>{t('issue.rule')}</dt>
-                            <dd>{issue.ruleId}</dd>
-                            {issue.folder && <><dt>{t('issue.glossary')}</dt><dd>{glossaryTitles.get(issue.folder) || issue.folder}</dd></>}
-                        </dl>
-                    </li>
-                ))}
-            </ul>
-        </li>
+            <span className={styles.excerpt}>
+                {issue.before}<mark className={styles.mark}>{issue.matchedText}</mark>{issue.after}
+            </span>
+        </>
     );
 };
 
-IssueGroup.propTypes = {
+IssueOccurrence.propTypes = {issue: PropTypes.object.isRequired};
+
+/** The uses of a term rule as a result card: the term, why and what to use instead, each use with its Edit. */
+const RuleGroup = ({group, glossaryTitles, onEdit}) => {
+    const {t} = useGovernanceTranslation('compliance');
+    const detail = [group.reason, group.alternative && `${t('issue.alternative')}: ${group.alternative}`].filter(Boolean).join(' · ');
+    return (
+        <ResultCard level={levelOf(group.severity || 'serious')}
+                    chips={group.folder ? <span className={results.chip}>{glossaryTitles.get(group.folder) || group.folder}</span> : null}
+                    title={group.term}
+                    detail={detail}
+                    rule={group.ruleId}
+                    occurrences={group.items.map((issue, index) => ({
+                        key: `${issue.nodeUuid}-${issue.propertyName}-${index}`,
+                        content: <IssueOccurrence issue={issue}/>,
+                        action: (
+                            <Button variant="outlined"
+                                    size="small"
+                                    icon={<Edit/>}
+                                    label={t('issue.edit')}
+                                    aria-label={t('issue.editLabel', {name: issue.nodeName || issue.nodePath})}
+                                    isDisabled={!globalThis.CE_API?.edit}
+                                    onClick={() => onEdit(issue.nodeUuid)}/>
+                        )
+                    }))}
+                    menu={<FindingMenu findingKey={group.ruleId}/>}/>
+    );
+};
+
+RuleGroup.propTypes = {
     group: PropTypes.object.isRequired,
     glossaryTitles: PropTypes.instanceOf(Map).isRequired,
     onEdit: PropTypes.func.isRequired
 };
 
-/** The uses of terms, grouped by the content that holds them. */
-const IssueGroups = ({report, issues, onEdit}) => {
-    const {t} = useGovernanceTranslation('compliance');
-    const groups = useMemo(() => groupByContent(issues), [issues]);
+/** The uses of terms, one result card per rule. */
+const RuleGroups = ({report, issues, onEdit}) => {
+    const groups = useMemo(() => groupByRule(issues), [issues]);
     const glossaryTitles = useMemo(() => new Map(report.glossaries.map(g => [g.path, g.title])), [report.glossaries]);
-    return groups.length > 0 ? (
-        <ul className={styles.groups} aria-label={t('issue.listLabel')}>
-            {groups.map(group => <IssueGroup key={group.nodeUuid} group={group} glossaryTitles={glossaryTitles} onEdit={onEdit}/>)}
-        </ul>
-    ) : null;
+    return groups.map(group => <RuleGroup key={group.ruleId} group={group} glossaryTitles={glossaryTitles} onEdit={onEdit}/>);
 };
 
-IssueGroups.propTypes = {
+RuleGroups.propTypes = {
     report: PropTypes.object.isRequired,
     issues: PropTypes.array.isRequired,
     onEdit: PropTypes.func.isRequired
@@ -138,9 +115,9 @@ ComplianceToolbar.propTypes = {
 };
 
 /**
- * The scan under way, why it failed, and what holds for the whole page: terms to fix before publishing, no
- * glossary for the language, a page that the scan could not frame, a report cut short, and the glossaries that
- * apply.
+ * The scan under way, why it failed, and what holds for the whole page: no glossary for the language, a page
+ * that the scan could not frame, a report cut short, and the glossaries that apply. The terms to fix are the
+ * result cards of their subdomains.
  */
 export function ComplianceFacts({scan, onEdit}) {
     const {t} = useGovernanceTranslation('compliance');
@@ -156,29 +133,16 @@ export function ComplianceFacts({scan, onEdit}) {
                 </div>
             )}
             {result.error && (
-                <Banner variant="danger" title={t('dialog.error.title')}>
-                    <Typography>{t('dialog.error.message')}</Typography>
-                </Banner>
-            )}
-            {report?.status === 'ISSUES' && (
-                <Banner variant="warning" title={t('banner.beforePublishing.title')}>
-                    <Typography>{t('banner.beforePublishing.message')}</Typography>
-                </Banner>
+                <ResultBanner variant="danger" title={t('dialog.error.title')}>{t('dialog.error.message')}</ResultBanner>
             )}
             {report?.status === 'NO_GLOSSARY' && (
-                <Banner variant="info" title={t('banner.noGlossary.title', {language})}>
-                    <Typography>{t('banner.noGlossary.message', {language})}</Typography>
-                </Banner>
+                <ResultBanner variant="info" title={t('banner.noGlossary.title', {language})}>{t('banner.noGlossary.message', {language})}</ResultBanner>
             )}
             {report && !result.framed && report.status !== 'NO_GLOSSARY' && (
-                <Banner variant="info" title={t('banner.notFramed.title')}>
-                    <Typography>{t('banner.notFramed.message')}</Typography>
-                </Banner>
+                <ResultBanner variant="info" title={t('banner.notFramed.title')}>{t('banner.notFramed.message')}</ResultBanner>
             )}
             {report?.truncated && (
-                <Banner variant="warning" title={t('banner.truncated.title')}>
-                    <Typography>{t('banner.truncated.message')}</Typography>
-                </Banner>
+                <ResultBanner variant="warning" title={t('banner.truncated.title')}>{t('banner.truncated.message')}</ResultBanner>
             )}
             {report?.glossaries.length > 0 && (
                 <div className={styles.glossaries}>
@@ -204,8 +168,8 @@ ComplianceFacts.propTypes = {
 };
 
 /**
- * The terms that a subdomain shows: its status and a sentence for a subdomain of terms (`dedicated`), and the
- * uses of the terms of its rules, grouped by content. Another subdomain shows the uses only, when it has some.
+ * The terms that a subdomain shows: a sentence for a subdomain of terms (`dedicated`), and one result card per
+ * rule with each use of its term. Another subdomain shows the cards only, when it has some.
  */
 export function ComplianceSubdomainView({scan, id, subdomainOf, dedicated, onEdit}) {
     const {t} = useGovernanceTranslation('compliance');
@@ -216,27 +180,16 @@ export function ComplianceSubdomainView({scan, id, subdomainOf, dedicated, onEdi
         return null;
     }
     const language = languageDisplayName(report.language, uiLanguage);
-    let status = report.status;
-    if (status !== 'NO_GLOSSARY') {
-        status = issues.length > 0 ? 'ISSUES' : 'SAFE';
-    }
-    let summary;
-    if (status === 'SAFE') {
-        summary = t('summary.safe', {count: report.scannedContents, language});
-    } else if (status === 'ISSUES') {
-        summary = t('summary.issues', {count: issues.length, contents: groupByContent(issues).length, language});
-    } else {
-        summary = t('summary.noGlossary', {language});
-    }
     return (
         <>
-            {dedicated && (
-                <div className={styles.summary}>
-                    <StatusChip status={status}/>
-                    <Typography>{summary}</Typography>
-                </div>
+            {dedicated && report.status === 'NO_GLOSSARY' && <ResultBanner variant="info" title={t('summary.noGlossary', {language})}/>}
+            {dedicated && report.status !== 'NO_GLOSSARY' && issues.length === 0 && (
+                <ResultBanner variant="success" title={t('summary.safe', {count: report.scannedContents, language})}/>
             )}
-            <IssueGroups report={report} issues={issues} onEdit={onEdit}/>
+            {dedicated && issues.length > 0 && (
+                <p className={styles.summaryLine}>{t('summary.issues', {count: issues.length, contents: contentCount(issues), language})}</p>
+            )}
+            <RuleGroups report={report} issues={issues} onEdit={onEdit}/>
         </>
     );
 }

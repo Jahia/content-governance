@@ -31,7 +31,7 @@ function SubdomainContent({id, engines, places, path, complianceUnavailable, onE
             {view === PAGE || view === null ?
                 <PageSubdomainView audit={engines.page} id={id} subdomainOf={places.subdomainOf}/> :
                 <PageFindingsOf audit={engines.page} id={id} subdomainOf={places.subdomainOf}/>}
-            {view === null && <GeoFindingsOf geo={engines.geo} path={path} ruleIds={ruleIds}/>}
+            {view === null && <GeoFindingsOf geo={engines.geo} id={id} path={path} ruleIds={ruleIds}/>}
             {view !== COMPLIANCE && hasTerms && !complianceUnavailable &&
                 <ComplianceSubdomainView scan={engines.compliance} id={id} subdomainOf={places.subdomainOf} dedicated={false} onEdit={edit}/>}
         </>
