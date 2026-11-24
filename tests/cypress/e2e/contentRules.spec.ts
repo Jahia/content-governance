@@ -215,7 +215,7 @@ describe('Content Governance - content rules', () => {
 
     it('shows a subdomain that an administrator adds to the tree, and ignores one that a site writes outside it', () => {
         addNodeTree(`${TREE}/compliance`, {
-            name: 'acme.tone', type: 'ccs:contentSubdomain', properties: [
+            name: 'acme.tone', type: 'ccs:contentSubdomain', props: [
                 {name: 'subdomainId', value: 'acme.tone'},
                 {name: 'label', value: 'Tone', language: 'en'}
             ]
