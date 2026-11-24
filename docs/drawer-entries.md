@@ -21,7 +21,7 @@ states the layout. The tabs of other modules come after the domains.
 
 A tab that another module adds gets these features:
 
-- a switch in the site settings, which a site administrator turns off,
+- a switch on the screen Rules & domains, which a site administrator turns off,
 - its serious findings in "Fix first",
 - a history of its findings per page and language.
 
@@ -61,8 +61,8 @@ registry.add('contentGovernancePanel', 'chat', {
 | `component` | The React component that renders the panel. |
 
 A key starts with a letter, then holds letters, digits, `_` or `-`, at most 64 characters in all.
-The site settings store the keys of the panels and of the tabs in one list. For this reason, the
-drawer leaves out a tab whose key is the key of a panel. The drawer also leaves out a panel with
+The `off` list of the layout of a site stores the keys of the panels and of the tabs in one list. For
+this reason, the drawer leaves out a tab whose key is the key of a panel. The drawer also leaves out a panel with
 another key, and a panel with no label, no button label or no component.
 
 The component receives these props:
@@ -73,7 +73,7 @@ The component receives these props:
 | `language` | The language of the content in the Jahia form, such as `en` or `zh_CN`. |
 | `context` | The object that the last call of `openPanel` gave the panel, or `null`. See [Open a panel](#open-a-panel). |
 | `onClose()` | Closes the drawer. |
-| `settings` | The site settings, such as `settings.disabled`, the ids that the site switched off. |
+| `settings` | The site settings, such as `settings.disabled`, the ids that are off on the site. |
 | `isOn(tab, part)` | `true` when the site keeps the governance panel, a tab and its part on. |
 
 The panel mounts the first time the drawer shows it, and it stays mounted while the drawer is open.
@@ -112,16 +112,17 @@ The button of the panel in view is pressed: it has `aria-pressed="true"` and the
 
 ### The site switch of a panel
 
-The site settings list every panel of the registry, with a switch for each one. The tabs of the
-governance panel follow the switch of the governance panel. A panel that the site switched off has
-no button and is not in the drawer.
+The screen jContent > Additional > Rules & domains lists every panel of the registry, with a switch
+for each one. The domains of the governance panel follow the switch of the governance panel. A panel
+that the site switched off has no button and is not in the drawer. The layout of the site stores its
+key in its `off` list.
 
-When the site switches the governance panel off, every tab of the governance panel is off too. The
-server then refuses the calls of these tabs, and their site dashboards say that they are off. The
-tabs keep their own switches.
+When the site switches the governance panel off, every domain and tab of the governance panel is off
+too. The server then refuses their calls, and their site dashboards say that they are off. They keep
+their own switches.
 
 A server may need to refuse the calls of a panel that is off. The module of the panel then reads the
-switch of its panel from the site settings:
+switch of its panel from the site settings, whose `disabled` lists every id that is off on the site:
 
 ```graphql
 query {
@@ -249,7 +250,7 @@ registry.add('contentGovernanceDrawerTab', 'myModuleReview', {
 | `component` | The React component that renders the content of the tab. |
 
 A key and the id of a part start with a letter, then hold letters, digits, `_` or `-`, at most 64
-characters in all. The site settings store these ids. The drawer leaves out a tab with another key,
+characters in all. The layout of a site stores these ids. The drawer leaves out a tab with another key,
 and a tab whose key is the key of a panel. It also leaves out a tab with no label or no component.
 
 The component receives `path`, `language` and `findings`, and these props:
@@ -261,7 +262,7 @@ The component receives `path`, `language` and `findings`, and these props:
 | `isOn(part)` | `true` when the site keeps that part of the tab on. |
 | `saveFindings(findings)` | Stores the findings as the latest run of the tab on the page. It returns a promise of the stored run, or of `null` when the server refused it. |
 | `fetchHistory()` | Returns a promise of the stored runs of the tab on the page, newest first. |
-| `settings` | The site settings, such as `settings.disabled`, the ids of the panels, tabs and parts that the site switched off. |
+| `settings` | The site settings, such as `settings.disabled`, the ids of the panels, domains, subdomains, tabs and parts that are off on the site. |
 | `requestedTab` | `{tab, at}` when "Fix first" opens a finding of the tab, so the tab shows the part `tab`. Otherwise `null`. |
 | `onClose()` | Closes the drawer. |
 | `onReopen()` | Opens the drawer again on the governance panel and this tab. |
@@ -273,14 +274,13 @@ of the drawer continue to work.
 
 ### The site switch
 
-The site settings list every tab of the registry under the governance panel. Each tab has a switch,
-and each of its parts has a switch too. The site stores the ids that a site administrator switched
-off, so a new tab is on until then. A tab that the site switched off is not in the drawer. The server
-refuses to store or read its history.
+The screen Rules & domains lists, in its card **Tabs of other modules**, every tab of the registry that
+no domain of the tree holds. Each tab has a switch, and each of its parts has a switch too. The layout
+of the site stores the ids that a site administrator switched off, so a new tab is on until then. A
+tab that the site switched off is not in the drawer. The server refuses to store or read its history.
 
-The domains of content governance have no switch in the site settings: the layout of the site
-switches them. The button of the governance panel shows when the site keeps the governance panel on,
-and keeps a domain or a tab on.
+The same screen switches the domains and the subdomains of content governance. The button of the
+governance panel shows when the site keeps the governance panel on, and keeps a domain or a tab on.
 
 ### "Fix first"
 
@@ -406,8 +406,8 @@ The drawer leaves out a check with no evaluator or no `run` function, and the co
 ### The rule of a check
 
 A rule of a check of the browser states `runtime: browser` in its file, or on its node in jContent.
-The server never runs such a rule, and it never stops a publication on it. The site settings show
-the rule as active. The file of the rule of the example is `acme.brandContrast.md`:
+The server never runs such a rule, and it never stops a publication on it. The screen Rules & domains
+lists the rule as any other. The file of the rule of the example is `acme.brandContrast.md`:
 
 ```markdown
 ---

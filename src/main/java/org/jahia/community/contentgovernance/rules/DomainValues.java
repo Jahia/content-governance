@@ -10,7 +10,7 @@ import java.util.Map;
  * tab of a panel of the drawer, such as Page quality; a subdomain is a tab of a domain, such as SEO, and each
  * rule belongs to one subdomain.
  *
- * <p>A value is a {@link String}, a {@link Long} or a {@link List} of strings. The key {@value #ID} is the
+ * <p>A value is a {@link String}, a {@link Long}, a {@link Boolean} or a {@link List} of strings. The key {@value #ID} is the
  * property {@link Level#idProperty} of the node. The keys {@value #DOMAIN} and {@value #ORDER} are not
  * properties: on a node of the tree, the parent node gives the domain and the place among its siblings gives
  * the order.</p>
@@ -31,6 +31,11 @@ public final class DomainValues {
     /** The ids of the rules of other subdomains that a subdomain counts, such as the rules of the GEO score. */
     public static final String COUNTS = "counts";
     public static final String SITES = RuleValues.SITES;
+    /**
+     * The default switch: {@code false} switches the domain or the subdomain off on every site whose layout does not
+     * place it, whatever its {@value #SITES}. The screen of the defaults writes it.
+     */
+    public static final String ENABLED = RuleValues.ENABLED;
     /** Internationalized on the node: the name of the tab. */
     public static final String LABEL = "label";
     /** Internationalized on the node: what the tab checks, for the editor. */
@@ -43,8 +48,8 @@ public final class DomainValues {
 
     /** A domain or a subdomain: its node type, the property of its id, and the folder of its files. */
     public enum Level {
-        DOMAIN(ContentDomains.DOMAIN_TYPE, "domainId", "domains", List.of(ID, PANEL, SITES, LABEL, HELP)),
-        SUBDOMAIN(ContentDomains.SUBDOMAIN_TYPE, "subdomainId", "subdomains", List.of(ID, DomainValues.DOMAIN, SITES, LABEL, HELP, COUNTS));
+        DOMAIN(ContentDomains.DOMAIN_TYPE, "domainId", "domains", List.of(ID, PANEL, ENABLED, SITES, LABEL, HELP)),
+        SUBDOMAIN(ContentDomains.SUBDOMAIN_TYPE, "subdomainId", "subdomains", List.of(ID, DomainValues.DOMAIN, ENABLED, SITES, LABEL, HELP, COUNTS));
 
         private final String type;
         private final String idProperty;
@@ -100,9 +105,10 @@ public final class DomainValues {
     private DomainValues() {
     }
 
-    /** The values with the defaults of the node type: all sites, and the governance panel for a domain. */
+    /** The values with the defaults of the node type: on, all sites, and the governance panel for a domain. */
     static Map<String, Object> withDefaults(Level level, Map<String, Object> values) {
         Map<String, Object> out = new HashMap<>(values);
+        out.putIfAbsent(ENABLED, Boolean.TRUE);
         out.putIfAbsent(SITES, List.of(RuleValues.ALL_SITES));
         if (level == Level.DOMAIN) {
             out.putIfAbsent(PANEL, GOVERNANCE);

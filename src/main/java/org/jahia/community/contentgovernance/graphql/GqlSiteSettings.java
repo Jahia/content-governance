@@ -4,21 +4,20 @@ import graphql.annotations.annotationTypes.GraphQLDescription;
 import graphql.annotations.annotationTypes.GraphQLField;
 import graphql.annotations.annotationTypes.GraphQLName;
 import graphql.annotations.annotationTypes.GraphQLNonNull;
+import org.jahia.community.contentgovernance.rules.ContentDomains;
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
-import org.jahia.modules.graphql.provider.dxm.DataFetchingException;
 import org.jahia.services.content.decorator.JCRSiteNode;
 
-import javax.jcr.RepositoryException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
- * What a site uses of the module: the ids of the tabs it switched off. The drawer's registry lists
- * the tabs, so a tab that no id here names is on. Built once per field, never cached.
+ * What a site uses of the module: the ids that are off on the site. The drawer's registry lists the panels and the
+ * tree of the system site the domains and the subdomains, so an id that is not listed here is on. Built once per
+ * field, never cached.
  */
 @GraphQLName("ContentGovernanceSiteSettings")
-@GraphQLDescription("The tabs of the Content Governance drawer that a site switched off")
+@GraphQLDescription("The panels, domains and subdomains of the Content Governance drawer that are off on a site")
 public class GqlSiteSettings {
 
     private final String siteKey;
@@ -39,14 +38,9 @@ public class GqlSiteSettings {
      */
     static GqlSiteSettings of(JCRSiteNode site) {
         boolean enabled = SiteFeatures.moduleEnabled(site);
-        Set<String> off;
-        try {
-            off = SiteFeatures.disabled(site.getPath());
-        } catch (RepositoryException e) {
-            throw new DataFetchingException("The settings could not be read");
-        }
+        List<String> off = new ArrayList<>(SiteFeatures.off(ContentDomains.forSite(site.getSiteKey())));
         boolean canEdit = enabled && site.hasPermission(SiteFeatures.SETTINGS_PERMISSION);
-        return new GqlSiteSettings(site.getSiteKey(), enabled, canEdit, new ArrayList<>(off));
+        return new GqlSiteSettings(site.getSiteKey(), enabled, canEdit, off);
     }
 
     /** @return the key of the site */
@@ -65,7 +59,7 @@ public class GqlSiteSettings {
 
     /** @return whether the caller may change the settings */
     @GraphQLField
-    @GraphQLDescription("Whether the caller may change these settings (site-admin on the site)")
+    @GraphQLDescription("Whether the caller may change the layout of the site (site-admin on the site)")
     public boolean isCanEdit() {
         return canEdit;
     }
@@ -73,8 +67,8 @@ public class GqlSiteSettings {
     /** @return the ids switched off */
     @GraphQLField
     @GraphQLNonNull
-    @GraphQLDescription("Ids of the tabs of the drawer (geo) and of their parts (geo.citations) that the site switched off; "
-            + "any other tab is on")
+    @GraphQLDescription("Ids that are off on the site: the panels (chat), domains (geo) and subdomains (geo.citations) "
+            + "that its layout switches off, and the domains and subdomains that are off by default or under an item that is off")
     public List<String> getDisabled() {
         return disabled;
     }

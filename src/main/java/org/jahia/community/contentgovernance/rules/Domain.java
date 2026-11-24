@@ -56,9 +56,19 @@ public record Domain(Level level, String id, String parent, String panel, int or
         return RuleValues.strings(values, DomainValues.COUNTS);
     }
 
-    /** True when the domain or the subdomain is on by default for the site, or for every site with a null key. */
+    /** True when the domain or the subdomain applies to the site, or to every site with a null key. */
     public boolean includes(String siteKey) {
         return siteKey == null || RuleValues.includes(sites, siteKey);
+    }
+
+    /** The default switch: false when an administrator switched the domain or the subdomain off for every site. */
+    public boolean enabled() {
+        return !"false".equalsIgnoreCase(String.valueOf(values.get(DomainValues.ENABLED)));
+    }
+
+    /** True when the domain or the subdomain is on by default for the site: switched on, and its sites include the site. */
+    public boolean onByDefault(String siteKey) {
+        return enabled() && includes(siteKey);
     }
 
     /**

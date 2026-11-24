@@ -127,6 +127,8 @@ final class DomainNodes {
     private static void set(JCRNodeWrapper node, String property, Object value) throws RepositoryException {
         if (value instanceof Long number) {
             node.setProperty(property, number);
+        } else if (value instanceof Boolean flag) {
+            node.setProperty(property, flag);
         } else if (value instanceof List<?> list) {
             node.setProperty(property, list.stream().map(String::valueOf).toArray(String[]::new));
         } else {

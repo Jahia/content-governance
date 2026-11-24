@@ -216,11 +216,10 @@ Whether the section is on for a site:
 query { contentGovernance { siteSettings(siteKey: "mySite") { sections { id enabled } } } }
 ```
 
-A site administrator switches it with `mutation { contentGovernance { saveSiteSettings(siteKey:
-"mySite", disabled: ["compliance"]) { disabled } } }` (`site-admin` on the site); the screen is
-**Site Settings > Content governance**, tab **Features**. The site stores the ids it switched off
-(`disabledFeatures` on `/sites/<key>/content-governance`, `jmix:nolive`), so a site never configured
-has the section on.
+A site administrator switches the domain `compliance` off in **jContent > Additional > Rules & domains** (`site-admin` on the
+site), which writes the `off` list of the layout of the site:
+[`../content-rules/catalog.md`](../content-rules/catalog.md#the-layout-of-a-site). A site with no
+layout has the domain on.
 
 ## Permissions and checks
 

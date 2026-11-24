@@ -30,8 +30,8 @@ when the block is wanted. Nothing here is implemented.
    header and footer (they go live with the home page and are checked when it is published). The
    service needs an option to skip ancestor areas and frame paths.
 4. **Follow the site switch.** The step checks `SiteFeatures.isEnabled(<site path>, "compliance")`,
-   as the GraphQL fields do, so a site that switched the Compliance section off in **Site Settings >
-   Content governance** publishes without the check. Whether the workflow should instead refuse to be
+   as the GraphQL fields do, so a site that switched the Compliance domain off in **jContent >
+   Additional > Rules & domains** publishes without the check. Whether the workflow should instead refuse to be
    set on such a site is to be decided.
 5. **Optional, for comfort:** the Compliance section, or a check run before the workflow dialog
    opens, warns the editor first. It protects nothing on its own.

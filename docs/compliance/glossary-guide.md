@@ -18,7 +18,7 @@ Each finding names the id of its rule and the folder of the rule. Example: `comp
 in `contents/term-lists/legal`.
 
 The Compliance section and the dashboard need the Content Governance module on the site and the
-Compliance section on in **Site Settings > Content governance**. The section is on by default. A site
+Compliance domain on in **jContent > Additional > Rules & domains**. The section is on by default. A site
 that switches the section off keeps its rules, and the drawer does not read them until the section is
 on again.
 

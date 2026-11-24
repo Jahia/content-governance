@@ -86,14 +86,17 @@ review, opening the drawer. It never blocks publishing; jContent's own publish a
 
 ## What site administrators get
 
-**Administration > Sites > (site) > Content governance** (`site-admin`), in two tabs:
+- **jContent > Additional > Rules & domains** (`site-admin`): order the domains, the subdomains and
+  the rules of the drawer, move a rule to another subdomain, and switch the panels, the domains, the
+  subdomains and the rules on or off. Everything follows the defaults until a save. A domain off hides
+  it from the drawer and switches its dashboard off (the entry stays and says so). The server refuses
+  the calls of what is switched off. A rule that a module ships after the last save shows the mark
+  **New since your last save**.
+- **Administration > Sites > (site) > Content governance** (`site-admin`): connect the site to a
+  BotRank project, map cited addresses to pages, and set the time of the daily sync.
 
-- **Features**: one switch per panel of the drawer and per tab that another module adds, everything
-  on by default. A tab off disappears from the drawer. The server refuses the calls of what is
-  switched off. Each switch says what the tab is for. The layout of the site places and switches the
-  domains and the subdomains of the drawer (`saveSiteLayout`).
-- **BotRank**: connect the site to a BotRank project, map cited addresses to pages, and set the time
-  of the daily sync.
+Server administrators get the same screen for the defaults of every site in **Administration > Server
+> Configuration > Content governance rules**.
 
 ## The editorial frame
 
@@ -250,7 +253,8 @@ call to BotRank: a daily sync, on the processing server, stores the citations of
 | Publish menu line | read the page; `jcr:write` for the forbidden terms | the page is in view, Page quality or Compliance is on, and something was found |
 | Page quality dashboard and the shared audits | `jContentAccess` on the site, read on the page | always listed; says it is switched off when the Page quality section is off |
 | Compliance dashboard | `jContentAccess` on the site | always listed; says it is switched off when the Compliance section is off |
-| Site Settings > Content governance | `site-admin` on the site | always; the server checks every save |
+| jContent > Additional > Rules & domains, Site Settings > Content governance | `site-admin` on the site | always; the server checks every save |
+| Server settings > Content governance rules | `admin` on the root node | always; the server checks every save |
 
 Switches in the browser only hide. Every servlet and GraphQL field checks the permission, the module
 on the site and the site's switches on the server. The page checks and the compliance scans read with
@@ -286,17 +290,16 @@ query {
 
 mutation {
   contentGovernance {
-    saveSiteSettings(siteKey: "mysite", disabled: ["geo.citations", "audit.vitals"]) { disabled }
+    saveSiteLayout(siteKey: "mysite", layout: "{\"domains\": [], \"off\": [\"geo.citations\", \"vitals\"]}") { saved off }
   }
 }
 ```
 
-Feature ids are the key of a tab of the drawer, or `<tab>.<part>` for a part of a tab. The tabs of
-the module are `audit` (`accessibility`, `seo`, `vitals`, `readability`, `ecodesign`, `links`,
-`jahia`), `geo` (`score`, `crawler`, `files`, `schema`, `citations`) and `compliance`. A tab
-that another module adds has the key it registers. Every tab is on until the site switches it off. The
-drawer does not read `audit`, `geo` and `compliance`, because the layout of the site places and
-switches its domains. These ids still switch the calls of the server and the dashboards. The
+`disabled` lists the ids that are off on the site: the panels (`governance`, `chat`), the domains
+(`quality`, `geo`, `compliance`), the subdomains (`geo.citations`, `vitals`) and the tabs that other
+modules add. `saveSiteLayout` saves the layout of the site, and `resetSiteLayout` removes it:
+[`docs/content-rules/catalog.md`](docs/content-rules/catalog.md#the-layout-of-a-site) states the JSON.
+Everything is on until the site switches it off. The
 compliance scans stay under `complianceScan { scanPage, scanSite }`. Servlets live under
 `/modules/content-governance/` (`geo/crawler-check`, `geo/report`, `geo/site-scan`, `geo/site-files`,
 `geo/citations`). The Java API of the editorial frame is the OSGi service

@@ -213,4 +213,15 @@ class SiteLayoutTest {
         assertThat(layout.isNew("seo.openGraph")).isTrue();
         assertThat(SiteLayout.NONE.isNew("seo.openGraph")).as("a site with no layout has nothing new").isFalse();
     }
+
+    @Test
+    @DisplayName("a layout that places no domain only switches items off, and marks nothing as new")
+    void isNew_nothingForALayoutThatPlacesNoDomain() {
+        SiteLayout offOnly = SiteLayout.parse("{\"domains\": [], \"off\": [\"vitals\"]}");
+
+        assertThat(offOnly.saved()).isTrue();
+        assertThat(offOnly.isOff("vitals")).isTrue();
+        assertThat(offOnly.isNew("seo.title")).isFalse();
+        assertThat(SiteLayout.NONE.withOff(List.of("chat")).toJson()).isEqualTo("{\"domains\":[],\"off\":[\"chat\"]}");
+    }
 }

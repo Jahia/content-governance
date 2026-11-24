@@ -9,11 +9,13 @@ import {
     deleteTestSite,
     gqlOk,
     readSettings,
-    saveSettings,
+    resetLayout,
+    saveLayout,
     setDrawerDisplay
 } from '../support/cg';
 
-const SAVE_PATH = ['contentGovernance', 'saveSiteSettings'];
+const SAVE_PATH = ['contentGovernance', 'saveSiteLayout'];
+const RESET_PATH = ['contentGovernance', 'resetSiteLayout'];
 const DRAWER_DISPLAY = '{ contentGovernance { drawerDisplay { fixFirst previewButton } } }';
 
 /**
@@ -33,9 +35,9 @@ function expectDrawerDisplay(user: TestUser, expected: {fixFirst: boolean; previ
 }
 
 /**
- * Per-site switches: any user who can read the site reads them (every editor's drawer does), only a
- * site administrator of a site that enables the module changes them, and an id of another form than
- * a tab id is dropped. The drawer's registry lists the tabs: the server stores the id of any of them.
+ * The switches of a site live in the off list of its layout: any user who can read the site reads what is off
+ * (every editor's drawer does), only a site administrator of a site that enables the module saves a layout, and
+ * only a server administrator saves the defaults of systemsite.
  */
 describe('Content Governance - site settings', () => {
     const siteKey = 'cg-settings';
@@ -54,7 +56,7 @@ describe('Content Governance - site settings', () => {
     });
 
     afterEach(() => {
-        saveSettings(asRoot(), siteKey, []);
+        resetLayout(asRoot(), siteKey);
     });
 
     after(() => {
@@ -63,7 +65,7 @@ describe('Content Governance - site settings', () => {
         deleteTestSite(plainSiteKey);
     });
 
-    it('starts with every tab switched on', () => {
+    it('starts with everything switched on', () => {
         readSettings(admin, siteKey).its('data.contentGovernance.siteSettings').should(settings => {
             expect(settings.moduleEnabled).to.eq(true);
             expect(settings.canEdit).to.eq(true);
@@ -71,28 +73,39 @@ describe('Content Governance - site settings', () => {
         });
     });
 
-    it('lets a site administrator switch off a tab of the module, a part of it and a tab of another module, and drops ids of another form', () => {
+    it('lets a site administrator switch off a subdomain, a domain with its subdomains, a panel and a tab of another module', () => {
         assertEffectiveUser(admin);
-        saveSettings(admin, siteKey, ['geo.citations', 'compliance', 'aiAssistantReview', 'compliance', 'my tab', 'geo.score.x', '../audits'])
-            .its('data.contentGovernance.saveSiteSettings')
-            .should(settings => {
-                expect(settings.disabled).to.deep.eq(['geo.citations', 'compliance', 'aiAssistantReview']);
+        saveLayout(admin, siteKey, {domains: [], off: ['geo.citations', 'compliance', 'chat', 'aiAssistantReview']})
+            .its('data.contentGovernance.saveSiteLayout')
+            .should(layout => {
+                expect(layout.saved).to.eq(true);
+                expect(layout.off).to.deep.eq(['geo.citations', 'compliance', 'chat', 'aiAssistantReview']);
             });
         readSettings(editor, siteKey).its('data.contentGovernance.siteSettings.disabled')
-            .should('deep.eq', ['geo.citations', 'compliance', 'aiAssistantReview']);
+            .should('include.members', ['geo.citations', 'compliance', 'chat', 'aiAssistantReview', 'readability', 'terms'])
+            .and('not.include', 'seo');
+    });
+
+    it('refuses a layout that names an id of another form, or an id twice', () => {
+        saveLayout(admin, siteKey, {domains: [], off: ['my tab']}).its('errors.0.message')
+            .should('contain', 'my tab');
+        saveLayout(admin, siteKey, {domains: [{id: 'geo', subdomains: [{id: 'seo', rules: ['seo.title', 'seo.title']}]}]})
+            .its('errors.0.message').should('contain', 'twice');
+        readSettings(asRoot(), siteKey).its('data.contentGovernance.siteSettings.disabled').should('be.empty');
     });
 
     it('lets an editor read the settings but not change them', () => {
         assertEffectiveUser(editor);
         readSettings(editor, siteKey).its('data.contentGovernance.siteSettings.canEdit').should('eq', false);
-        saveSettings(editor, siteKey, ['geo']).then(body => assertRefused(body, SAVE_PATH));
+        saveLayout(editor, siteKey, {domains: [], off: ['geo']}).then(body => assertRefused(body, SAVE_PATH));
+        resetLayout(editor, siteKey).then(body => assertRefused(body, RESET_PATH));
         readSettings(asRoot(), siteKey).its('data.contentGovernance.siteSettings.disabled').should('be.empty');
     });
 
     it('refuses a user who cannot read the site', () => {
         assertEffectiveUser(outsider);
         readSettings(outsider, siteKey).then(body => assertRefused(body, ['contentGovernance', 'siteSettings']));
-        saveSettings(outsider, siteKey, ['geo']).then(body => assertRefused(body, SAVE_PATH));
+        saveLayout(outsider, siteKey, {domains: [], off: ['geo']}).then(body => assertRefused(body, SAVE_PATH));
     });
 
     it('keeps a site that does not enable the module switched off, even for root', () => {
@@ -100,7 +113,14 @@ describe('Content Governance - site settings', () => {
             expect(settings.moduleEnabled).to.eq(false);
             expect(settings.canEdit).to.eq(false);
         });
-        saveSettings(asRoot(), plainSiteKey, ['geo']).then(body => assertRefused(body, SAVE_PATH));
+        saveLayout(asRoot(), plainSiteKey, {domains: [], off: ['geo']}).then(body => assertRefused(body, SAVE_PATH));
+    });
+
+    it('leaves the defaults of systemsite to a server administrator, and has no reset for them', () => {
+        saveLayout(admin, 'systemsite', {domains: [], off: []}).then(body => {
+            expect(body.errors, 'the call is refused').to.have.length.greaterThan(0);
+        });
+        resetLayout(asRoot(), 'systemsite').its('errors.0.message').should('contain', 'no reset');
     });
 
     it('gives any signed-in user what the cfg of the server shows in the drawer', () => {

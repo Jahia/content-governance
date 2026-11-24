@@ -173,7 +173,7 @@ describe('Content Governance - shared Page quality audits', () => {
             .then((body: GqlBody) => assertRefused(body, ['contentGovernance', 'siteAudits']));
         gql(author, HISTORY, {path: pagePath, language: 'xx'})
             .then((body: GqlBody) => assertRefused(body, ['contentGovernance', 'pageAudits']));
-        switchOff(siteKey, ['audit']);
+        switchOff(siteKey, ['quality']);
         gql(author, SAVE, {path: pagePath, language: 'en', results: results(0, 1)})
             .then((body: GqlBody) => assertRefused(body, ['contentGovernance', 'saveAudit']));
     });

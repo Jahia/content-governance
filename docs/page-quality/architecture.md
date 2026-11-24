@@ -340,10 +340,10 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
   `readability`, `ecodesign`, `links`, `jahia`. Ids are stored and exposed in GraphQL: never
   rename one.
 - `SiteFeatures.isEnabled(sitePath, "audit.<tab>")` is true when the site enables the module
-  (directly or through a dependency) and neither `audit` nor `audit.<tab>` is in the site's
-  `disabledFeatures`, stored on `/sites/<key>/content-governance` (`nt:unstructured`,
-  `jmix:nolive`, default workspace), read with a system session. A site never configured has
-  everything on, and so does a tab added in a later version.
+  (directly or through a dependency) and its layout keeps the subdomain of the tab on, such as
+  `health` for `audit.jahia`, with the domain `quality` and the governance panel. The layout lives on
+  `/sites/<key>/contents/content-governance`, read with a system session. A site with no layout has
+  everything on, and so does a subdomain added in a later version.
 
 ## Known leftovers
 

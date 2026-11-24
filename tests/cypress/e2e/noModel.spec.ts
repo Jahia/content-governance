@@ -61,7 +61,7 @@ describe('Content Governance - no model call', () => {
         });
     });
 
-    it('shows no AI tab in Page quality, and no AI model tab in the site settings', () => {
+    it('shows no AI tab in Page quality, and no AI model tab on the Rules & domains screen', () => {
         cy.login(admin.username, admin.password);
         cy.visit(pageUrl);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
@@ -72,9 +72,8 @@ describe('Content Governance - no model call', () => {
             });
             cy.contains(/\bAI review\b/).should('not.exist');
         });
-        cy.visit(`/jahia/administration/${siteKey}/contentGovernanceSettings`);
-        cy.contains('Features', {timeout: 30000}).should('be.visible');
-        cy.contains('BotRank').should('be.visible');
+        cy.visit(`/jahia/jcontent/${siteKey}/en/apps/contentGovernanceRules`);
+        cy.get('[data-domain="quality"]', {timeout: 30000}).should('be.visible');
         cy.contains('AI model').should('not.exist');
     });
 

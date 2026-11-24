@@ -78,7 +78,7 @@ public final class AuditAccess {
         }
         try {
             if (JCRSessionFactory.getInstance().getCurrentUserSession(WORKSPACE).getNode("/sites/" + siteKey) instanceof JCRSiteNode site) {
-                requireSite(site, language, Features.AUDIT);
+                requireSite(site, language, Features.QUALITY);
                 return site;
             }
         } catch (PathNotFoundException e) {

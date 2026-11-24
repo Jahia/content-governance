@@ -164,7 +164,7 @@ public class GqlContentGovernance {
         SiteLayout layout = rules.hierarchy().layout();
         return rules.all().stream()
                 .map(rule -> new GqlContentRule(rule, checks.status(rule), checks.blocking(rule), language,
-                        layout.isNew(rule.id())))
+                        layout.isNew(rule.id()), rules.switchedOn(rule)))
                 .toList();
     }
 

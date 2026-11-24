@@ -76,7 +76,7 @@ describe('Content Governance - check before publishing', () => {
     });
 
     it('adds nothing once the site switched Page quality and Compliance off', () => {
-        switchOff(siteKey, ['audit', 'compliance']);
+        switchOff(siteKey, ['quality', 'compliance']);
         openPublishMenu();
         cy.get('[data-sel-role="publish"]', {timeout: 30000}).should('exist');
         cy.get(ITEM).should('not.exist');

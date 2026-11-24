@@ -11,8 +11,6 @@ import {
     gql,
     gqlOk,
     readSettings,
-    resetLayout,
-    saveLayout,
     setDrawerDisplay,
     switchOff
 } from '../support/cg';
@@ -67,13 +65,12 @@ describe('Content Governance - a tab of another module', () => {
             && String(error.stack).includes('/modules/jcontent/')));
         // The subdomains of the page check and of the GEO check measure the page: off, so "Fix first" holds the
         // findings of the test tab only, and the drawer stores no Page quality audit. Compliance keeps its terms.
-        saveLayout(siteKey, {off: OFF});
+        switchOff(siteKey, OFF);
     });
 
     afterEach(() => {
         cy.logout();
         switchOff(siteKey, []);
-        resetLayout(siteKey);
     });
 
     after(() => {
@@ -125,33 +122,35 @@ describe('Content Governance - a tab of another module', () => {
             expect(stored.map((finding: {key: string}) => finding.key)).to.deep.eq(['cgTestTab.critical', 'cgTestTab.minor']);
             expect(stored[0].severity).to.eq('critical');
         });
-        // Page quality keeps its own runs
+        // Page quality keeps its own runs: the site switches it on again to read them
+        switchOff(siteKey, []);
         gqlOk(asRoot(), HISTORY, {path: pagePath, language: 'en'}).its('contentGovernance.pageAudits').should('be.empty');
     });
 
-    it('lists the tab and its part in the site settings, where a site administrator switches them off', () => {
+    it('lists the tab and its part on the Rules & domains screen, where a site administrator switches them off', () => {
         // jContent's client may batch its operations: match the operation in the body, whatever its shape
         cy.intercept('POST', '**/modules/graphql', req => {
             const body = JSON.stringify(req.body);
-            if (body.includes('ContentGovernanceSaveSiteSettings')) {
+            if (body.includes('ContentGovernanceSaveLayout')) {
                 req.alias = 'save';
-            } else if (body.includes('ContentGovernanceSiteSettings')) {
-                req.alias = 'settings';
+            } else if (body.includes('ContentGovernanceRulesScreen')) {
+                req.alias = 'screen';
             }
         });
         cy.login(admin.username, admin.password);
-        cy.visit(`/jahia/administration/${siteKey}/contentGovernanceSettings`);
-        cy.wait('@settings');
+        cy.visit(`/jahia/jcontent/${siteKey}/en/apps/contentGovernanceRules`);
+        cy.wait('@screen');
         cy.get(`[data-tab="${TEST_TAB}"]`, {timeout: 30000}).should('contain.text', 'Test tab').and('contain.text', 'A tab that the test module adds')
             .within(() => cy.get('[aria-label="Summary"]').click({force: true}));
         cy.contains('button', 'Save').click();
-        // The panel reads the settings again once saved, and starts its next change from them
+        // The screen reads the layout again once saved, and starts its next change from it
         cy.wait('@save');
-        cy.wait('@settings');
+        cy.wait('@screen');
+        cy.contains('Editors see the change').should('be.visible');
         readSettings(asRoot(), siteKey).its('data.contentGovernance.siteSettings.disabled').should('include', `${TEST_TAB}.summary`);
         cy.get('[aria-label="Summary"]').should('not.be.checked');
 
-        cy.get(`[data-tab="${TEST_TAB}"]`).within(() => cy.get('[aria-label="Test tab section"]').click({force: true}));
+        cy.get(`[data-tab="${TEST_TAB}"]`).within(() => cy.get('[aria-label="Test tab"]').click({force: true}));
         cy.contains('button', 'Save').click();
         cy.wait('@save');
         readSettings(asRoot(), siteKey).its('data.contentGovernance.siteSettings.disabled').should('include', TEST_TAB);
@@ -164,7 +163,8 @@ describe('Content Governance - a tab of another module', () => {
     });
 
     it('hides the part of the tab that the site switched off', () => {
-        switchOff(siteKey, [`${TEST_TAB}.summary`]);
+        // switchOff writes the whole list of what is off
+        switchOff(siteKey, [...OFF, `${TEST_TAB}.summary`]);
         openDrawer().within(() => {
             cy.get(section(TEST_TAB)).click();
             cy.contains('button', 'Store the findings').should('exist');

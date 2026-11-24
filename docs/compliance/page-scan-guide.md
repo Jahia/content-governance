@@ -22,7 +22,7 @@ drawer drops it: the next time you open the section, the scan runs again.
 | You see | Why |
 |---|---|
 | No **Content governance** button | The module is not enabled on the site, every section is switched off, or the selected content is neither a page nor a content item with its own URL |
-| No **Compliance** tab | A site administrator switched the section off in **Site Settings > Content governance** |
+| No **Compliance** tab | A site administrator switched the domain off in **jContent > Additional > Rules & domains** |
 | **Compliance** greyed out, with "The compliance scan reads a page and what it shows: open a page to use it." on hover | The selected content is not a page (an article or news item shown on its own URL, for one). The site dashboard covers those: [`dashboard-guide.md`](dashboard-guide.md) |
 | **Compliance** greyed out, with "The compliance scan is for people who may edit this page." on hover | You cannot edit this page |
 | "No section of Content governance can be used on this content." | Compliance is the only section the site uses, and one of the two reasons above applies |

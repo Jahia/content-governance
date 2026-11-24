@@ -6,6 +6,7 @@ import graphql.annotations.annotationTypes.GraphQLName;
 import graphql.annotations.annotationTypes.GraphQLNonNull;
 import org.jahia.community.contentgovernance.check.CheckRegistry;
 import org.jahia.community.contentgovernance.rules.ContentRule;
+import org.jahia.community.contentgovernance.rules.ContentRules;
 import org.jahia.community.contentgovernance.rules.RuleValues;
 
 import java.util.List;
@@ -22,22 +23,26 @@ public class GqlContentRule {
     private final boolean blocking;
     private final String language;
     private final boolean isNew;
+    private final boolean switchedOn;
 
     GqlContentRule(ContentRule rule, CheckRegistry.Status status, boolean blocking) {
-        this(rule, status, blocking, null, false);
+        this(rule, status, blocking, null, false, rule.enabled());
     }
 
     /**
-     * @param language the language of the texts, such as fr: the interface language of the editor, or null
-     *                 for English
-     * @param isNew    true when the site saved a layout that names the rule neither in an array nor in off
+     * @param language   the language of the texts, such as fr: the interface language of the editor, or null
+     *                   for English
+     * @param isNew      true when the site saved a layout that names the rule neither in an array nor in off
+     * @param switchedOn the switch of the rule itself on the site ({@link ContentRules#switchedOn})
      */
-    GqlContentRule(ContentRule rule, CheckRegistry.Status status, boolean blocking, String language, boolean isNew) {
+    GqlContentRule(ContentRule rule, CheckRegistry.Status status, boolean blocking, String language, boolean isNew,
+                   boolean switchedOn) {
         this.rule = rule;
         this.status = status;
         this.blocking = blocking;
         this.language = language;
         this.isNew = isNew;
+        this.switchedOn = switchedOn;
     }
 
     /** One plural form of the title of a finding. */
@@ -85,6 +90,13 @@ public class GqlContentRule {
     @GraphQLDescription("The place of the rule in its subdomain on the site: a lower order comes first")
     public int getOrder() {
         return rule.order();
+    }
+
+    @GraphQLField
+    @GraphQLNonNull
+    @GraphQLDescription("The switch of the rule itself, whatever its subdomain: in the layout of the site, else its default. On systemsite, its default switch for every site")
+    public boolean isSwitchedOn() {
+        return switchedOn;
     }
 
     @GraphQLField

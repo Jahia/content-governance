@@ -129,7 +129,7 @@ public final class ContentRules {
             return base();
         }
         Collection<String> modules = session.getNode(sitePath) instanceof JCRSiteNode site
-                ? site.getInstalledModulesWithAllDependencies() : List.of();
+                ? ContentDomains.modulesOf(site) : List.of();
         List<RuleNode> platform = ruleNodes(session, ContentDomains.SYSTEM_SITE);
         List<RuleNode> site = siteLayer(sitePath, () -> ruleNodes(session, sitePath));
         return merge(ShippedRules.forModules(modules), shippedIds(ShippedRules.all()), platform, site,
@@ -358,6 +358,26 @@ public final class ContentRules {
             throw new IllegalArgumentException("No rule has the id " + id);
         }
         return rule;
+    }
+
+    /**
+     * The switch of a rule itself, whatever its subdomain: what the screen of the layout shows. On a site, the layout
+     * switches it, else its default does: the rule is on and its sites include the site. In the system site, it is
+     * the default switch of the rule. Example: {@code digitall} switches off the subdomain {@code seo}; the rule
+     * {@code seo.title} keeps its switch on, and does not run.
+     *
+     * @param rule a rule of these rules
+     * @return true when the switch of the rule is on
+     */
+    public boolean switchedOn(ContentRule rule) {
+        boolean enabled = Boolean.TRUE.equals(rule.value(RuleValues.ENABLED));
+        String siteKey = hierarchy.siteKey();
+        if (ContentDomains.SYSTEM_SITE_KEY.equals(siteKey)) {
+            return enabled;
+        }
+        SiteLayout layout = hierarchy.layout();
+        return !layout.isOff(rule.id()) && (layout.places(rule.id())
+                || enabled && (siteKey == null || RuleValues.includes(rule.value(RuleValues.SITES), siteKey)));
     }
 
     /** The domains and the subdomains of the site, which place these rules. */

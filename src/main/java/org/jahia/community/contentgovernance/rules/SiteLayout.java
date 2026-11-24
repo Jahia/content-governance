@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -258,10 +259,19 @@ public final class SiteLayout {
 
     /**
      * True when the site saved a layout that names the id neither in an array nor in {@code off}: a module shipped
-     * the domain, the subdomain or the rule after the save.
+     * the domain, the subdomain or the rule after the save. A layout that places no domain, such as the one that the
+     * upgrade writes from the switches of a version before 2.0.0, only switches items off and marks none as new.
      */
     public boolean isNew(String id) {
-        return saved && !places(id) && !off.contains(id);
+        return saved && !domains.isEmpty() && !places(id) && !off.contains(id);
+    }
+
+    /**
+     * @param ids the ids that the site switches off
+     * @return this layout with these ids as its {@code off}, saved
+     */
+    SiteLayout withOff(Collection<String> ids) {
+        return new SiteLayout(domains, new LinkedHashSet<>(ids), true);
     }
 
     /** True when the site switches the id off. */

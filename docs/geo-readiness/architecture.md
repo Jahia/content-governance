@@ -50,12 +50,12 @@ JavaScript-only page is still caught, by the word-count check.
   `requireModuleInstalledOnSite`. It renders through `common/SectionGate.jsx`, which shows
   *Switched off for this site* when the site switched the GEO section off.
 - **Site Settings > Content governance.** `settings/SettingsPanel.jsx`, route
-  `contentGovernanceSettings` on `administration-sites`, `site-admin` only. Tabs **Features** (the
-  switches) and **BotRank** (`geo/settings/CitationsSettings.jsx`, the former "AI citations
-  (BotRank)" entry).
-- **The switches.** Feature ids `geo`, `geo.score`, `geo.crawler`, `geo.files`, `geo.schema`,
-  `geo.citations` (`settings/Features.java`). A site stores the ids it switched off on
-  `/sites/<key>/content-governance` (`disabledFeatures`), so everything is on by default.
+  `contentGovernanceSettings` on `administration-sites`, `site-admin` only. It holds the BotRank
+  connection (`geo/settings/CitationsSettings.jsx`, the former "AI citations (BotRank)" entry).
+- **The switches.** The domain `geo` and its subdomains, such as `geo.score`, `geo.crawlers`,
+  `geo.files`, `geo.schema` and `geo.citations`. jContent > Additional > Rules & domains writes the ids
+  that a site switches off in the `off` list of its layout (`layout/RulesScreen.jsx`), so everything is
+  on by default.
   `settings/SiteFeatures.isEnabled` is the server-side gate. In the browser, `isOn(tab)` filters the
   drawer's tabs and the dashboard's AI citations group; the dashboard's other panels follow the
   section switch only.
@@ -108,7 +108,7 @@ check, crawler list, public base URL. It has no AI key, because the module calls
 | `dashboard/Layout.module.css` | The type scale (page title 20/28, intro 14/1.6, hero 18/26, card title 16/22, card intro 13/1.55, body 14/1.55, notes 12.5/1.55, figures 32), card and figure styles, tones good/warn/bad/accent on the module's AAA colours. Moonstone body and caption paragraphs inside a panel follow the same scale. |
 | `charts/Charts.jsx` | `Meter`, `BarList`, `StackedBar`, `Histogram`, `PairedBars`, `FailureMatrix`: the six forms the panels use, in HTML/CSS with a shared hover/focus tooltip. No library. `Histogram` is the only vertical form: counts over a time axis, on a track with a definite height, because a percentage resolves against nothing else. |
 | `charts/Charts.module.css` | Tokens mapped from Moonstone, tone classes scoped under `.chart` so they beat every mark's default, mark specs (thin bar, rounded data-end, 2px surface gaps, surface ring on markers). |
-| `settings/CitationsSettings.jsx` | The **BotRank** tab of Site Settings > Content governance. |
+| `settings/CitationsSettings.jsx` | The BotRank connection, on Site Settings > Content governance. |
 | `api/` | One client per servlet, each URL built by `common/url.js` under the context path and `/modules/content-governance`. |
 | `util/Paged.jsx` | Pages any findings list with Moonstone's `TablePagination`. Full up to the page size (25 by default); the control appears from ten rows so a denser view can be chosen; past the page size the range is stated above the rows. |
 | `util/jcontentUrl.js` | jContent's own address for a node, routing `/contents/...` to the content-folders section so a link to a content item resolves instead of landing on nothing. |
@@ -198,8 +198,8 @@ publishes. A child node per language holds the run record and results, and the l
 against a pattern before it is used as that node's name. The written report is stored there too,
 one per language, as the parsed shape rather than the model's raw answer.
 
-The site's switches live apart, on `/sites/<key>/content-governance` (`nt:unstructured` +
-`jmix:nolive`, property `disabledFeatures`).
+The site's switches live apart, in the `off` list of the layout of the site, on
+`/sites/<key>/contents/content-governance`.
 
 The GEO section declares no node type. That is deliberate: a rejected content type does not merely
 fail, it breaks Content Editor across the instance until the module is removed, and nothing here
@@ -362,7 +362,7 @@ say which, and on a multi-site box it is required rather than optional.
 AI citations come from [BotRank](https://www.botrank.ai/)'s public API v1. Each BotRank organisation
 this Jahia may read is one file,
 `digital-factory-data/karaf/etc/org.jahia.se.modules.georeadiness.botrank-<id>.cfg`, created by a
-server administrator; `<id>` is what site administrators pick on the **BotRank** tab of Site
+server administrator; `<id>` is what site administrators pick on the BotRank screen of Site
 Settings > Content governance. The file name is the one GEO Readiness used, so existing files keep
 working. No file ships with the module, because a file is a credential.
 
@@ -380,7 +380,7 @@ baseUrl =
   keys. It is never logged and never sent to the browser; a connection without one is listed with
   its problem and never used.
 - A site restricted out of a connection does not see it and cannot use it, with no fallback.
-- A site administrator then binds the site on the **BotRank** tab: connection, project, the site's
+- A site administrator then binds the site on the BotRank screen: connection, project, the site's
   hosts (at most 10), the daily sync and its time. What each field does is in
   [`dashboard-guide.md`](dashboard-guide.md#for-site-administrators-switches-and-botrank).
 - The daily sync runs at the time saved for the site (06:30 Paris time by default), on the

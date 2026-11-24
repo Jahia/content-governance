@@ -49,7 +49,7 @@ public class RuleSeeder implements BundleTrackerCustomizer<String> {
     BooleanSupplier processingServerCheck = () -> SettingsBean.getInstance().isProcessingServer();
 
     /**
-     * Converts the rules, the glossary terms, the check types, the subdomains and the layout of an older version,
+     * Converts the rules, the glossary terms, the check types, the subdomains, the layout and the switches of an older version,
      * then tracks the modules that ship rules. The tracker seeds the tree with the rules of each module, this
      * module included, as it finds them. The nodes of a cluster share one repository and start the module at the
      * same time, so only the processing server converts and seeds: a browsing node never reads a node that the
@@ -66,6 +66,8 @@ public class RuleSeeder implements BundleTrackerCustomizer<String> {
             LegacyDomains.migrate();
             // After the subdomains, before the seeder: it removes the copies that the seeder no longer writes.
             LegacyLayout.migrate();
+            // The switches of a version before 2.0.0 become the off list of the layout of each site.
+            LegacyFeatures.migrate();
             // The tree of this module first: the other modules place their subdomains and rules in it.
             TreeSeeder.seed(ShippedRules.own());
         } else {

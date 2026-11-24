@@ -3,25 +3,20 @@ package org.jahia.community.contentgovernance.settings;
 import java.util.regex.Pattern;
 
 /**
- * The ids of the features a site switches on or off. A feature id is a panel of the drawer
- * ({@code governance}, {@code chat}), a tab of the governance panel ({@code geo}) or a part of a tab
- * ({@code geo.citations}). The panels and tabs of the module and those that other modules register
- * in the drawer have ids of the same form. The server keeps no list of them: the drawer's registry is
- * the list, and a site stores the ids it switched off. A panel or a tab that a module adds later
- * therefore starts switched on.
+ * The ids of the features a site switches on or off in the {@code off} list of its layout. A feature id is a panel of
+ * the drawer ({@code governance}, {@code chat}), a domain ({@code quality}), a subdomain ({@code geo.citations}), or
+ * a tab that another module adds to the governance panel. The tree of the system site lists the domains and the
+ * subdomains, and the registry of the drawer lists the panels.
  *
- * <p>The ids are part of the stored settings and of the GraphQL API: never rename one.</p>
+ * <p>The ids are part of the stored layouts and of the GraphQL API: never rename one.</p>
  */
 public final class Features {
 
-    /** The governance panel, which holds the tabs: switched off, every tab is off. */
+    /** The governance panel, which holds the domains: switched off, every domain of the panel is off. */
     public static final String GOVERNANCE = "governance";
-    public static final String AUDIT = "audit";
+    public static final String QUALITY = "quality";
     public static final String GEO = "geo";
     public static final String COMPLIANCE = "compliance";
-
-    /** The most ids a site stores as switched off. */
-    public static final int MAX_IDS = 200;
 
     /** A tab key, then an optional part after a dot: a letter, then letters, digits, {@code _} or {@code -}. */
     private static final Pattern ID = Pattern.compile("^[A-Za-z][A-Za-z0-9_-]{0,63}(\\.[A-Za-z][A-Za-z0-9_-]{0,63})?$");

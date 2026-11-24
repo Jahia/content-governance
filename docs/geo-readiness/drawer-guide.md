@@ -27,8 +27,9 @@ Nothing in this tab changes your page: it only reads and reports. The page under
 usable beside the drawer, and the drawer's left edge drags to make it wider. The drawer closes with
 Escape, its close button, or the **Content governance** button again.
 
-If you do not see **SEO & GEO**, the layout of the site switches it off. A single section can be
-switched off the same way, and is then absent.
+If you do not see **SEO & GEO**, a site administrator switched it off for this site in
+**jContent > Additional > Rules & domains**. A single subdomain can be switched off the same way, and
+is then absent.
 
 A companion guide covers the site-wide screen: [`dashboard-guide.md`](dashboard-guide.md).
 
@@ -204,8 +205,7 @@ content itself.
 ## Section 5 - AI citations
 
 Shown unless a site administrator switched it off. It stays greyed out, with a tooltip saying why,
-until a site administrator connects the site to BotRank in **Site Settings > Content governance**,
-on the **BotRank** tab. It opens without running the check: its figures come from the site's daily
+until a site administrator connects the site to BotRank in **Site Settings > Content governance**. It opens without running the check: its figures come from the site's daily
 sync, not from the button.
 
 **What it answers.** "Do AI answers quote this page, for which questions, and against whom?"

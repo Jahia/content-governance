@@ -1,7 +1,7 @@
 import {deleteUser} from '@jahia/cypress';
 import type {Interception} from 'cypress/types/net-stubbing';
 import {
-    TEST_TAB, TestUser, addNodeTree, createTestSite, createTestUser, deleteTestSite, resetLayout, saveLayout, switchOff
+    TEST_TAB, TestUser, addNodeTree, asRoot, createTestSite, createTestUser, deleteTestSite, saveLayout, switchOff
 } from '../support/cg';
 
 const BUTTON = 'Content governance';
@@ -46,7 +46,6 @@ describe('Content Governance - drawer', () => {
     afterEach(() => {
         cy.logout();
         switchOff(siteKey, []);
-        resetLayout(siteKey);
     });
 
     after(() => {
@@ -96,13 +95,13 @@ describe('Content Governance - drawer', () => {
     });
 
     it('follows the layout that the site saved: the order of its domains and subdomains, and what it switches off', () => {
-        saveLayout(siteKey, {
+        saveLayout(asRoot(), siteKey, {
             domains: [
                 {id: 'compliance', subdomains: [{id: 'writing'}, {id: 'readability'}]},
                 {id: 'quality', subdomains: [{id: 'seo'}, {id: 'links'}]}
             ],
             off: ['geo', 'vitals', 'glossary']
-        });
+        }).its('errors').should('be.undefined');
         cy.login(admin.username, admin.password);
         cy.visit(pageUrl);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
@@ -190,7 +189,7 @@ describe('Content Governance - drawer', () => {
     });
 
     it('leaves out the tab of a domain that the layout of the site switches off', () => {
-        saveLayout(siteKey, {off: ['geo']});
+        switchOff(siteKey, ['geo']);
         cy.login(admin.username, admin.password);
         cy.visit(pageUrl);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
@@ -226,8 +225,7 @@ describe('Content Governance - drawer', () => {
     });
 
     it('shows no button once every domain and every tab is off', () => {
-        saveLayout(siteKey, {off: ['quality', 'geo', 'compliance']});
-        switchOff(siteKey, [TEST_TAB]);
+        switchOff(siteKey, ['quality', 'geo', 'compliance', TEST_TAB]);
         cy.login(admin.username, admin.password);
         cy.visit(pageUrl);
         // The header is drawn once its other actions are: wait for one before asserting an absence.

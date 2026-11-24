@@ -4,10 +4,9 @@ import {SITE_SETTINGS} from './settings.gql';
 import {GOVERNANCE_PANEL} from './module';
 
 /**
- * The switches of a site, read from its settings. The site stores the ids it switched off: the key
- * of a panel (`governance`, `chat`), of a tab of the governance panel (`geo`) or of a part of a tab
- * (`geo.citations`). Everything is on until then, and nothing is on where the site does not enable
- * the module.
+ * The switches of a site, read from its settings. The settings list the ids that are off on the site: a panel
+ * (`governance`, `chat`), a domain (`quality`) or a subdomain (`geo.citations`). Everything else is on, and nothing
+ * is on where the site does not enable the module.
  *
  * @param {object} settings the site settings, or null while they load
  * @returns {{isOn: Function, isPanelOn: Function}} `isOn('geo')` or `isOn('geo', 'citations')` is true
