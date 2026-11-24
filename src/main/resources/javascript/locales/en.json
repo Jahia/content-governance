@@ -13,6 +13,7 @@
         "rerun": "Run again",
         "running": "Checking, one request per crawler…",
         "lastRun": "Last check: {{date}}",
+        "runFirst": "Run the check to see this part on the published page.",
         "url": "Tested URL"
       },
       "crawler": {
@@ -1062,6 +1063,7 @@
         "vitals": "Web Vitals",
         "readability": "Readability",
         "ecodesign": "Ecodesign",
+        "other": "Other rules",
         "badgeTooltip": "{{count}} issues to review"
       },
       "eco": {

@@ -3,16 +3,19 @@ import {tabOf} from './pageCheck';
 import {browserRules, VITALS} from './runChecks';
 
 /**
- * The Page quality tabs from the results of the checks of the browser (runChecks.js): what each tab shows,
- * in the shape that it shows today. A failed result of any rule becomes a recommendation of the tab of its
- * subdomain, worded by its rule. Two evaluators also feed a view of their own: `axe` the WCAG level cards and
- * violations of the Accessibility tab, and `webVitals` the figures of the Web Vitals tab.
+ * The results of the page check from the results of the checks of the browser (runChecks.js): what each view
+ * shows. A failed result of any rule becomes a recommendation of the results of its subdomain, worded by its
+ * rule. Two evaluators also feed a view of their own: `axe` the WCAG level cards and violations of the
+ * Accessibility view, and `webVitals` the figures of the Web Vitals view.
  */
 
 /** The evaluator of axe-core, whose violations the Accessibility tab lists with their elements. */
 export const AXE = 'axe';
 
-/** The key of each tab in the results. */
+/**
+ * The key of each tab in the results. `other` holds the recommendations of the rules of the subdomains with
+ * no view of the page check (audit/subdomainResults.js).
+ */
 export const RESULT_KEYS = {
     accessibility: 'a11y',
     seo: 'seo',
@@ -20,14 +23,15 @@ export const RESULT_KEYS = {
     readability: 'readability',
     ecodesign: 'ecodesign',
     links: 'links',
-    jahia: 'jahia'
+    jahia: 'jahia',
+    other: 'other'
 };
 
 /** The tabs whose results the check of the server gives, by their key in the results. */
-export const SERVER_KEYS = ['seo', 'readability', 'links', 'jahia'];
+export const SERVER_KEYS = ['seo', 'readability', 'links', 'jahia', 'other'];
 
 /** The tabs that list recommendations of rules. */
-const RECOMMENDATION_TABS = ['accessibility', 'seo', 'readability', 'links', 'jahia', 'ecodesign'];
+const RECOMMENDATION_TABS = ['accessibility', 'seo', 'readability', 'links', 'jahia', 'ecodesign', 'other'];
 const LEVELS = ['A', 'AA', 'AAA', 'BP'];
 const IMPACT_ORDER = {critical: 0, serious: 1, moderate: 2, minor: 3};
 

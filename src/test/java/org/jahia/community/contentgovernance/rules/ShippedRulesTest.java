@@ -79,7 +79,9 @@ class ShippedRulesTest {
         Domain geo = hierarchy.domains().get(1);
         assertThat(geo.text(DomainValues.LABEL, null)).isEqualTo("SEO & GEO");
         assertThat(geo.text(DomainValues.LABEL, "fr")).isEqualTo("SEO et GEO");
-        assertThat(geo.text(DomainValues.HELP, "de")).startsWith("How search engines");
+        assertThat(geo.text(DomainValues.LABEL, "es")).isEqualTo("SEO y GEO");
+        assertThat(geo.text(DomainValues.HELP, "de")).startsWith("Wie Suchmaschinen");
+        assertThat(geo.text(DomainValues.HELP, "it")).startsWith("How search engines");
         assertThat(geo.sites()).containsExactly("*");
     }
 

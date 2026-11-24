@@ -13,6 +13,7 @@
         "rerun": "Erneut ausführen",
         "running": "Wird geprüft, eine Anfrage pro Crawler…",
         "lastRun": "Letzte Prüfung: {{date}}",
+        "runFirst": "Starten Sie die Prüfung, um diesen Teil auf der veröffentlichten Seite zu sehen.",
         "url": "Getestete URL"
       },
       "crawler": {
@@ -1062,6 +1063,7 @@
         "vitals": "Web Vitals",
         "readability": "Lesbarkeit",
         "ecodesign": "Ökodesign",
+        "other": "Weitere Regeln",
         "badgeTooltip": "{{count}} Probleme zu prüfen"
       },
       "eco": {

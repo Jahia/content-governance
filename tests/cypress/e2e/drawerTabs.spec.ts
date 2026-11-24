@@ -11,6 +11,8 @@ import {
     gql,
     gqlOk,
     readSettings,
+    resetLayout,
+    saveLayout,
     setDrawerDisplay,
     switchOff
 } from '../support/cg';
@@ -19,6 +21,8 @@ const BUTTON = 'Content governance';
 const DRAWER = 'dialog[aria-labelledby="content-governance-drawer-title"]';
 const FIX_FIRST = 'section[aria-label="Fix first"]';
 const section = (id: string) => `#content-governance-section-${id}`;
+// Every domain and subdomain that the page check or the GEO check feeds, in the layout that the module ships
+const OFF = ['quality', 'geo', 'readability', 'writing'];
 
 const HISTORY = `query H($path: String!, $language: String!, $tab: String) {
     contentGovernance { pageAudits(path: $path, language: $language, tab: $tab) {
@@ -61,13 +65,15 @@ describe('Content Governance - a tab of another module', () => {
         // (jcontent 3.7): only that error is ignored, any error of the module still fails the test.
         cy.on('uncaught:exception', error => !(error.message.includes('offsetWidth')
             && String(error.stack).includes('/modules/jcontent/')));
-        // Page quality and GEO readiness measure the page: off, so "Fix first" holds the findings of the test tab only
-        switchOff(siteKey, ['audit', 'geo']);
+        // The subdomains of the page check and of the GEO check measure the page: off, so "Fix first" holds the
+        // findings of the test tab only, and the drawer stores no Page quality audit. Compliance keeps its terms.
+        saveLayout(siteKey, {off: OFF});
     });
 
     afterEach(() => {
         cy.logout();
         switchOff(siteKey, []);
+        resetLayout(siteKey);
     });
 
     after(() => {
@@ -119,8 +125,7 @@ describe('Content Governance - a tab of another module', () => {
             expect(stored.map((finding: {key: string}) => finding.key)).to.deep.eq(['cgTestTab.critical', 'cgTestTab.minor']);
             expect(stored[0].severity).to.eq('critical');
         });
-        // Page quality keeps its own runs: the site switches it on again to read them
-        switchOff(siteKey, []);
+        // Page quality keeps its own runs
         gqlOk(asRoot(), HISTORY, {path: pagePath, language: 'en'}).its('contentGovernance.pageAudits').should('be.empty');
     });
 
@@ -159,7 +164,7 @@ describe('Content Governance - a tab of another module', () => {
     });
 
     it('hides the part of the tab that the site switched off', () => {
-        switchOff(siteKey, ['audit', 'geo', `${TEST_TAB}.summary`]);
+        switchOff(siteKey, [`${TEST_TAB}.summary`]);
         openDrawer().within(() => {
             cy.get(section(TEST_TAB)).click();
             cy.contains('button', 'Store the findings').should('exist');

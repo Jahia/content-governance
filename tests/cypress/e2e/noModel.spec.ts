@@ -3,7 +3,8 @@ import {TestUser, addNodeTree, createTestSite, createTestUser, deleteTestSite, g
 
 const BUTTON = 'Content governance';
 const DRAWER = 'dialog[aria-labelledby="content-governance-drawer-title"]';
-const PAGE_QUALITY_TABS = ['accessibility', 'seo', 'vitals', 'readability', 'ecodesign', 'links', 'jahia'];
+// The subdomains of the domain Page quality in the layout that the module ships
+const PAGE_QUALITY_TABS = ['health', 'links', 'accessibility', 'vitals', 'ecodesign'];
 
 /**
  * The module calls no model: the AI features live in ai-assistant, which adds its own tab to the
@@ -65,9 +66,9 @@ describe('Content Governance - no model call', () => {
         cy.visit(pageUrl);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
         cy.get(DRAWER).should('be.visible').within(() => {
-            // The sections show once the audit is ready
-            cy.get('button[id^="audit-subdomain-"]', {timeout: 90000}).should($headers => {
-                expect($headers.toArray().map(header => header.id)).to.deep.eq(PAGE_QUALITY_TABS.map(id => `audit-subdomain-${id}`));
+            // The sections show once the layout of the site is read
+            cy.get('#content-governance-panel-quality button[id^="content-governance-subdomain-"]', {timeout: 90000}).should($headers => {
+                expect($headers.toArray().map(header => header.id)).to.deep.eq(PAGE_QUALITY_TABS.map(id => `content-governance-subdomain-${id}`));
             });
             cy.contains(/\bAI review\b/).should('not.exist');
         });

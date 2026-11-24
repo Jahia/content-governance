@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import {Button} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../../common/i18n';
 import {HighlightContext} from '../HighlightContext';
-import {auditFindingKey, recommendationId, recommendationText} from '../../drawer/findings';
+import {auditFindingKey, NS_OF, recommendationId, recommendationText} from '../../drawer/findings';
 import {FindingActions} from '../../drawer/FindingActions';
 import styles from './Tabs.module.css';
 import {impactClass} from './impactClass';
@@ -40,7 +40,9 @@ ItemHighlight.propTypes = {
  * Items come from the check of the server or the checks of the browser as {key, rule, severity, params,
  * items?, title, detail}: the texts come from the rule, in the editor's interface language, for a built-in
  * rule and for a rule of another module alike. An audit stored by an older version has no title, and shows
- * its old text.
+ * its old text. An item with `bucket`, the key of the results that hold it (audit/subdomainResults.js), takes
+ * its finding key and the namespace of its old text from that key: the section of its subdomain may be the
+ * view of other results.
  */
 export function Recommendations({items, ns, tab, title}) {
     const {t} = useGovernanceTranslation('audit');
@@ -52,7 +54,7 @@ export function Recommendations({items, ns, tab, title}) {
                 <div className={styles.allGood}>{t('recs.none')}</div>
             )}
             {items.map(rec => {
-                const text = recommendationText(rec, ns, t);
+                const text = recommendationText(rec, rec.bucket ? NS_OF[rec.bucket] : ns, t);
                 return (
                     <div key={recommendationId(rec)} className={styles.rec}>
                         <span className={impactClass(rec.severity)}>
@@ -77,7 +79,7 @@ export function Recommendations({items, ns, tab, title}) {
                                     </ul>
                                 </details>
                             )}
-                            <FindingActions findingKey={auditFindingKey(tab, recommendationId(rec))}/>
+                            <FindingActions findingKey={auditFindingKey(rec.bucket || tab, recommendationId(rec))}/>
                         </div>
                     </div>
                 );

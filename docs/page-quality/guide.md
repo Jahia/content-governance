@@ -34,9 +34,18 @@ governance** button again. Results are
 kept: the next time anyone opens the drawer on the same page and language, the newest audit comes
 back at once, whoever ran it.
 
-Page quality shows one section per check: **ACCESSIBILITY**, **SEO**, **WEB VITALS**,
-**READABILITY**, **ECODESIGN**, **LINKS** and **JAHIA**. Press the title of a section to open or close
-it. A section with a critical or serious finding opens on its own, and so does a section whose check
+The page check feeds sections in several tabs of the drawer. The layout that the module ships shows
+these sections:
+
+- **Page quality**: **JAHIA HEALTH**, **LINKS**, **ACCESSIBILITY**, **WEB VITALS** and **ECODESIGN**.
+- **SEO & GEO**: **SEO**, beside the sections of GEO readiness.
+- **Compliance**: **READABILITY**, beside the terms, and **WRITING** for the writing rules.
+
+A site administrator can move a section to another tab, change the order of the tabs and sections, or
+switch a section off. A finding shows in the section of the subdomain of its rule. The check runs
+once for the drawer, so every tab shows the same audit.
+
+Press the title of a section to open or close it. A section with a critical or serious finding opens on its own, and so does a section whose check
 did not finish. The other sections stay closed. **Expand all** opens every section, and **Collapse
 all** closes them. After a new audit, the sections open and close by these rules again.
 
@@ -49,8 +58,8 @@ it gives the most serious one on one line, with how many more there are. **Show*
 them (critical, then serious), whatever their tab: accessibility violations and the recommendations of
 every Page quality section, the GEO readiness score and crawler access, and the forbidden terms.
 Moderate and minor findings stay in their sections. **Open** goes to the tab and opens the section that
-explains it. GEO readiness and Compliance measure only once opened, so their findings join the list
-after that.
+explains it. The GEO check runs when you press **Run check**. The scan of the terms runs the first time
+the drawer shows its tab. Their findings join the list after that.
 
 ### The language that is checked
 

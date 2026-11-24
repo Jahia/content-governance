@@ -97,7 +97,9 @@ export const PublishCheckAction = ({path, language, render: Render, ...rest}) =>
         return null;
     }
 
-    const section = !notAudited && issues === 0 && terms > 0 ? 'compliance' : 'audit';
+    // The drawer opens on the domain of the subdomain: the terms, or the accessibility of the page, whose
+    // serious issues the label counts
+    const section = !notAudited && issues === 0 && terms > 0 ? 'terms' : 'accessibility';
     return (
         <Render {...rest}
                 buttonLabel={`${NS}:publishCheck.${labelKey(notAudited, auditOn, termsOn && terms > 0)}`}

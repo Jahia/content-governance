@@ -11,8 +11,9 @@ keeps its history when it moves.
 
 A **Content governance** button in the header of jContent and Page Builder opens a drawer on the
 right, under the header: the page under edit (or the content list) narrows beside it and stays
-usable, and the drawer's left edge drags to make it wider. It has one tab per section, each with a count of the issues to review, red only when one of them is critical or serious. Inside
-Page quality and GEO readiness, each check is a collapsible section with its count left of its title:
+usable, and the drawer's left edge drags to make it wider. Its tabs are the domains of the layout of the site, such as Page quality, in the order of the
+site. Each tab has a count of the issues to review, red only when one of them is critical or serious.
+Inside a domain, each subdomain is a collapsible section with its count left of its title:
 a section with a critical or serious finding opens on its own, the others stay closed. Every tab and
 every section has a tooltip saying what it is for, and why it is greyed out when it cannot be used.
 Under the tabs, **Fix first** lists up to five critical or serious findings, whatever their tab, each
@@ -87,10 +88,10 @@ review, opening the drawer. It never blocks publishing; jContent's own publish a
 
 **Administration > Sites > (site) > Content governance** (`site-admin`), in two tabs:
 
-- **Features**: one switch per section and one per tab, everything on by default. A section off hides
-  its drawer section and switches its dashboard off (the entry stays and says so); a tab off
-  disappears from the drawer. The server refuses the calls of what is switched off. Each tab's switch
-  says what the tab is for.
+- **Features**: one switch per panel of the drawer and per tab that another module adds, everything
+  on by default. A tab off disappears from the drawer. The server refuses the calls of what is
+  switched off. Each switch says what the tab is for. The layout of the site places and switches the
+  domains and the subdomains of the drawer (`saveSiteLayout`).
 - **BotRank**: connect the site to a BotRank project, map cited addresses to pages, and set the time
   of the daily sync.
 
@@ -242,9 +243,9 @@ call to BotRank: a daily sync, on the processing server, stores the citations of
 
 | Surface | Permission | Shown when |
 |---|---|---|
-| Header button and drawer | read the page | the site enables the module and at least one section is on |
-| Page quality, GEO readiness sections | read the page | the section is on |
-| Compliance section | `jcr:write` on a page | the section is on; greyed out on content that is not a page, or without write access |
+| Header button and drawer | read the page | the site enables the module, and the layout keeps a domain on or the site keeps a tab on |
+| A domain and its subdomains | read the page | the layout of the site keeps them on |
+| The compliance scan | `jcr:write` on a page | a domain shows its subdomains; on content that is not a page, or without write access, its sections say why |
 | GEO readiness dashboard and its endpoints | `publish` on the site | always listed; says it is switched off when the GEO section is off |
 | Publish menu line | read the page; `jcr:write` for the forbidden terms | the page is in view, Page quality or Compliance is on, and something was found |
 | Page quality dashboard and the shared audits | `jContentAccess` on the site, read on the page | always listed; says it is switched off when the Page quality section is off |
@@ -294,6 +295,8 @@ Feature ids are the key of a tab of the drawer, or `<tab>.<part>` for a part of 
 the module are `audit` (`accessibility`, `seo`, `vitals`, `readability`, `ecodesign`, `links`,
 `jahia`), `geo` (`score`, `crawler`, `files`, `schema`, `citations`) and `compliance`. A tab
 that another module adds has the key it registers. Every tab is on until the site switches it off. The
+drawer does not read `audit`, `geo` and `compliance`, because the layout of the site places and
+switches its domains. These ids still switch the calls of the server and the dashboards. The
 compliance scans stay under `complianceScan { scanPage, scanSite }`. Servlets live under
 `/modules/content-governance/` (`geo/crawler-check`, `geo/report`, `geo/site-scan`, `geo/site-files`,
 `geo/citations`). The Java API of the editorial frame is the OSGi service

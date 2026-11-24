@@ -7,15 +7,19 @@ answers that for the page you have open, and tells you which parts are yours to 
 
 Open a page in jContent or Page Builder. A content item that has its own address (a main resource,
 such as a blog post) works too. Press **Content governance** in the header. A drawer opens on the
-right, beside the page, with one tab per domain the site uses: **Page quality**, **GEO readiness** and
-**Compliance**. Choose **GEO readiness**. When it is the only domain switched on, the drawer opens on
-it, still under its **GEO readiness** tab.
+right, beside the page, with one tab per domain of the layout of the site. The layout that the module
+ships has **Page quality**, **SEO & GEO** and **Compliance**. Choose **SEO & GEO**. When it is the only
+domain switched on, the drawer opens on it.
 
-Inside the tab, each check is a section that opens and closes: **SCORE**, **CRAWLER ACCESS**,
-**SITE FILES**, **STRUCTURED DATA** and **AI CITATIONS**. Press the title of a section to open or close
+Inside the tab, each subdomain is a section that opens and closes. The checks of GEO readiness are
+**AI CITATIONS**, **SCORE**, **CONTENT**, **SITE FILES**, **STRUCTURED DATA** and **CRAWLER ACCESS**.
+The tab also shows **SEO**, which the page check feeds. Press the title of a section to open or close
 it. A section with a red number opens on its own. **Expand all** opens every section.
 
-The **GEO readiness** tab carries a number when its sections found problems: it is the total of their
+**CONTENT** lists the checks of the score that failed on its rules: the text of the page, its headings
+and its date. A site can move a section to another tab, and the section keeps its results there.
+
+The **SEO & GEO** tab carries a number when its sections found problems: it is the total of their
 own numbers, red when the score or the crawler access is concerned, grey otherwise. Each tab and each
 section has a tooltip saying what it is for.
 
@@ -23,9 +27,8 @@ Nothing in this tab changes your page: it only reads and reports. The page under
 usable beside the drawer, and the drawer's left edge drags to make it wider. The drawer closes with
 Escape, its close button, or the **Content governance** button again.
 
-If you do not see **GEO readiness**, a site administrator switched it off for this site in
-**Site Settings > Content governance**. A single section can be switched off the same way, and is
-then simply absent.
+If you do not see **SEO & GEO**, the layout of the site switches it off. A single section can be
+switched off the same way, and is then absent.
 
 A companion guide covers the site-wide screen: [`dashboard-guide.md`](dashboard-guide.md).
 

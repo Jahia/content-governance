@@ -9,6 +9,7 @@ export default defineConfig({
         alias: {
             // The host's library, shared and never installed (webpack.config.js)
             '@apollo/client': stub('apollo-client'),
+            'react-redux': stub('react-redux'),
             // Reads `document` when it loads: the tests run in Node
             '@jahia/moonstone': stub('moonstone')
         }

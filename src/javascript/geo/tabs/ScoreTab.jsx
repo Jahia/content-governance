@@ -34,14 +34,9 @@ function wordCheck(check, rules, t) {
     return {label: worded.label, fix: worded.detail ? `${worded.title}${end}${worded.detail}` : worded.title};
 }
 
-/**
- * The score is a count of checks, not a rating out of 100. Every row names the
- * fact it read, so an editor can disagree with a specific line rather than with
- * a number they cannot see inside. Each row is the pass/fail result of a rule, worded by that rule, and
- * the counts come from the rows: a rule of the domain geo of another module counts the same way.
- */
-export const ScoreTab = ({report, path}) => {
-    const {t, i18n} = useGovernanceTranslation('geo');
+/** The rules of the site of a page, with their texts in the editor's interface language, or null while they load. */
+function useRuleBook(path) {
+    const {i18n} = useGovernanceTranslation('geo');
     const client = useApolloClient();
     const [rules, setRules] = useState(null);
     const uiLanguage = i18n?.language || 'en';
@@ -54,6 +49,106 @@ export const ScoreTab = ({report, path}) => {
             live = false;
         };
     }, [client, path, uiLanguage]);
+    return rules;
+}
+
+/** One check of the GEO score: passed or failed, its text, its rule, its value and its severity. */
+function CheckRow({check, fromTemplate}) {
+    const {t} = useGovernanceTranslation('geo');
+    return (
+        <li className={styles.checkItem}>
+            <span className={styles.checkMark}>
+                {/* A bare glyph is not a word: a screen reader either skips it as
+                  * punctuation or reads "check mark", neither of which says
+                  * pass or fail. */}
+                <Chip
+                    label={check.passed ? t('score.passed') : t('score.failed')}
+                    color={check.passed ? 'success' : 'danger'}
+                />
+            </span>
+            <span className={styles.checkText}>
+                <Typography variant="body" className={styles.checkLabel}>
+                    {check.label}
+                </Typography>
+                {check.fix && (
+                    <Typography variant="caption" className={styles.checkFix}>
+                        {check.fix}
+                    </Typography>
+                )}
+                {check.rule && (
+                    <code className={styles.checkRule}>{check.rule}</code>
+                )}
+                {fromTemplate && (
+                    <Typography variant="caption" className={styles.fromTemplate}>
+                        {fromTemplate}
+                    </Typography>
+                )}
+            </span>
+            <span className={styles.checkMeta}>
+                {check.value !== null && check.value !== undefined && check.value !== '' && (
+                    <Typography variant="caption" className={styles.checkValue}>
+                        {String(check.value)}
+                    </Typography>
+                )}
+                <Chip
+                    label={t(`score.severity.${check.severity}`)}
+                    color={check.severity === 'critical' ? 'warning' : 'default'}
+                />
+            </span>
+        </li>
+    );
+}
+
+CheckRow.propTypes = {
+    check: PropTypes.shape({
+        passed: PropTypes.bool,
+        label: PropTypes.string,
+        fix: PropTypes.string,
+        rule: PropTypes.string,
+        value: PropTypes.any,
+        severity: PropTypes.string
+    }).isRequired,
+    // Why the failure comes from the template of the page, or nothing
+    fromTemplate: PropTypes.string
+};
+
+/**
+ * The checks of the GEO score that failed on rules of a list, such as the rules that a site places in the
+ * subdomain `geo.content`. Nothing when none failed.
+ *
+ * @param {{report: object, path: string, ruleIds: Set<string>}} props the report of the GEO check, the page,
+ *     and the ids of the rules
+ */
+export const FailedChecks = ({report, path, ruleIds}) => {
+    const {t} = useGovernanceTranslation('geo');
+    const rules = useRuleBook(path);
+    const checks = (report?.score?.checks || []).filter(check => !check.passed && ruleIds.has(check.rule))
+        .map(check => ({...check, ...wordCheck(check, rules, t)}));
+    if (checks.length === 0) {
+        return null;
+    }
+    return (
+        <ul className={styles.checkList}>
+            {checks.map(check => <CheckRow key={check.id} check={check}/>)}
+        </ul>
+    );
+};
+
+FailedChecks.propTypes = {
+    report: PropTypes.object,
+    path: PropTypes.string.isRequired,
+    ruleIds: PropTypes.instanceOf(Set).isRequired
+};
+
+/**
+ * The score is a count of checks, not a rating out of 100. Every row names the
+ * fact it read, so an editor can disagree with a specific line rather than with
+ * a number they cannot see inside. Each row is the pass/fail result of a rule, worded by that rule, and
+ * the counts come from the rows: a rule of the domain geo of another module counts the same way.
+ */
+export const ScoreTab = ({report, path}) => {
+    const {t} = useGovernanceTranslation('geo');
+    const rules = useRuleBook(path);
     const score = report.score;
 
     if (!score) {
@@ -137,49 +232,11 @@ export const ScoreTab = ({report, path}) => {
                         </Typography>
                         <ul className={styles.checkList}>
                             {rows.map(c => (
-                                <li key={c.id} className={styles.checkItem}>
-                                    <span className={styles.checkMark}>
-                                        {/* A bare glyph is not a word: a screen reader either skips it as
-                                          * punctuation or reads "check mark", neither of which says
-                                          * pass or fail. */}
-                                        <Chip
-                                            label={c.passed ? t('score.passed') : t('score.failed')}
-                                            color={c.passed ? 'success' : 'danger'}
-                                        />
-                                    </span>
-                                    <span className={styles.checkText}>
-                                        <Typography variant="body" className={styles.checkLabel}>
-                                            {c.label}
-                                        </Typography>
-                                        {c.fix && (
-                                            <Typography variant="caption" className={styles.checkFix}>
-                                                {c.fix}
-                                            </Typography>
-                                        )}
-                                        {c.rule && (
-                                            <code className={styles.checkRule}>{c.rule}</code>
-                                        )}
-                                        {!c.passed && shared.has(c.id) && (
-                                            <Typography variant="caption" className={styles.fromTemplate}>
-                                                {t('score.fromTemplate', {
-                                                    template: rollup.template,
-                                                    count: rollup.pages
-                                                })}
-                                            </Typography>
-                                        )}
-                                    </span>
-                                    <span className={styles.checkMeta}>
-                                        {c.value !== null && c.value !== undefined && c.value !== '' && (
-                                            <Typography variant="caption" className={styles.checkValue}>
-                                                {String(c.value)}
-                                            </Typography>
-                                        )}
-                                        <Chip
-                                            label={t(`score.severity.${c.severity}`)}
-                                            color={c.severity === 'critical' ? 'warning' : 'default'}
-                                        />
-                                    </span>
-                                </li>
+                                <CheckRow key={c.id}
+                                          check={c}
+                                          fromTemplate={!c.passed && shared.has(c.id) ?
+                                              t('score.fromTemplate', {template: rollup.template, count: rollup.pages}) :
+                                              undefined}/>
                             ))}
                         </ul>
                     </div>

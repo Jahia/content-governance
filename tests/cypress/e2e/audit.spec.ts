@@ -1,7 +1,7 @@
 import {deleteUser} from '@jahia/cypress';
 import {
     FramePageFinding, TestUser, addPageText, asRoot, createTestSite, createTestUser, deleteTestSite, framePageCheck, gqlOk,
-    setDrawerDisplay
+    setDrawerDisplay, subdomainSection
 } from '../support/cg';
 
 const BUTTON = 'Content governance';
@@ -37,19 +37,28 @@ const freshAudit = () => {
     cy.get(DRAWER).contains('button', 'Re-run', {timeout: 120000}).should('not.be.disabled').click();
 };
 
+/** The domain of the layout that content-governance ships that holds each subdomain that a test opens. */
+const DOMAIN_OF: Record<string, string> = {readability: 'compliance', seo: 'geo'};
+
 /**
- * A subdomain of Page quality is a section that the press on its header opens, and closes when it is
- * open. Its header shows once the audit is ready; a section with a major defect is already open.
+ * A subdomain is a section of its domain, which the press on its header opens, and closes when it is
+ * open. The tab of its domain shows first. Its header shows once the layout is read; a section with a
+ * major defect is already open.
  */
 const openSection = (id: string, timeout = 4000) => {
-    cy.get(`#audit-subdomain-${id}`, {timeout}).then($header => {
+    cy.get(`#content-governance-section-${DOMAIN_OF[id] || 'quality'}`, {timeout}).then($tab => {
+        if ($tab.attr('aria-selected') !== 'true') {
+            cy.wrap($tab).click();
+        }
+    });
+    cy.get(subdomainSection(id), {timeout}).then($header => {
         if ($header.attr('aria-expanded') !== 'true') {
             cy.wrap($header).click();
         }
     });
-    cy.get(`#audit-subdomain-${id}`).should('have.attr', 'aria-expanded', 'true');
+    cy.get(subdomainSection(id)).should('have.attr', 'aria-expanded', 'true');
 };
-const sectionPanel = (id: string) => `#audit-subdomain-${id}-panel`;
+const sectionPanel = (id: string) => `${subdomainSection(id)}-panel`;
 
 /**
  * Readability per page language: the formula of a language that has one, no score (rather than
@@ -70,7 +79,7 @@ type RuleCounts = Record<string, number>;
 type StoredRecommendation = {rule?: string; items?: unknown[]};
 
 /** The tabs whose recommendations the check of the server gives, by their key in the stored results. */
-const SERVER_TABS = ['seo', 'readability', 'links', 'jahia', 'a11y'];
+const SERVER_TABS = ['seo', 'readability', 'links', 'jahia', 'a11y', 'other'];
 
 const PAGE_AUDITS = `query A($path: String!) {
     contentGovernance { pageAudits(path: $path, language: "en") { auditedBy results } }
@@ -116,7 +125,7 @@ describe('Content Governance - Page quality audit', () => {
         freshAudit();
         // The image without alt of the fixture is critical: "Fix first" would list it, and its section turns red
         cy.get(DRAWER).contains('a', /^image-alt$/, {timeout: 90000}).should('exist');
-        cy.get('#audit-subdomain-accessibility').find('.moonstone-badge').should('exist');
+        cy.get(subdomainSection('accessibility')).find('.moonstone-badge').should('exist');
         cy.get('section[aria-label="Fix first"]').should('not.exist');
         cy.get(DRAWER).contains('button', /^(Show|Hide) preview$/).should('not.exist');
     });
@@ -155,22 +164,25 @@ describe('Content Governance - Page quality audit', () => {
         cy.contains('button', BUTTON, {timeout: 30000}).click();
         freshAudit();
         // The fixture's image without alt is critical: its section opens on its own
-        cy.get('#audit-subdomain-accessibility', {timeout: 90000}).should('have.attr', 'aria-expanded', 'true');
+        cy.get(subdomainSection('accessibility'), {timeout: 90000}).should('have.attr', 'aria-expanded', 'true');
         cy.get(sectionPanel('accessibility')).should('contain.text', 'automated rules passed');
-        cy.get('#audit-subdomain-accessibility').click().should('have.attr', 'aria-expanded', 'false');
+        cy.get(subdomainSection('accessibility')).click().should('have.attr', 'aria-expanded', 'false');
         cy.get(sectionPanel('accessibility')).should('not.be.visible');
         cy.get(fixFirst).contains('button', 'Show').click();
-        // The image without alt of the fixture: a critical violation, ahead of every other finding
-        cy.get('#content-governance-fix-first li').first().should('contain.text', 'Critical').and('contain.text', 'alternative text');
+        // The image without alt of the fixture: a critical violation. Findings of one severity keep the order of the
+        // sections, so a critical finding of Links, before Accessibility in the layout, may come first.
+        cy.get('#content-governance-fix-first li').first().should('contain.text', 'Critical');
+        const imageFinding = () => cy.contains('#content-governance-fix-first li', 'alternative text');
+        imageFinding().should('contain.text', 'Critical');
         // Red is for what is critical or serious: the fixture's image without alt, on its section and its domain
-        cy.get('#audit-subdomain-accessibility').find('.moonstone-badge').should('exist');
-        cy.get('#content-governance-section-audit').find('.moonstone-badge').should('exist');
+        cy.get(subdomainSection('accessibility')).find('.moonstone-badge').should('exist');
+        cy.get('#content-governance-section-quality').find('.moonstone-badge').should('exist');
         cy.get('#content-governance-fix-first li').each($finding => {
             expect($finding.text(), 'Fix first lists critical and serious findings only').to.match(/Critical|Serious/);
         });
         // The drawer's own button: an action of another module on the finding may start with "Open" too
-        cy.get('#content-governance-fix-first li').first().contains('button', /^Open$/).click();
-        cy.get('#audit-subdomain-accessibility').should('have.attr', 'aria-expanded', 'true');
+        imageFinding().contains('button', /^Open$/).click();
+        cy.get(subdomainSection('accessibility')).should('have.attr', 'aria-expanded', 'true');
         // The docked drawer is as tall as the page under edit: the section's results may start below its fold
         cy.get(sectionPanel('accessibility')).contains('automated rules passed').scrollIntoView().should('be.visible');
     });
@@ -299,7 +311,7 @@ describe('Content Governance - Page quality audit', () => {
         cy.contains('button', BUTTON, {timeout: 30000}).click();
         freshAudit();
         // The section of a check that did not finish opens on its own, so its warning shows
-        cy.get('#audit-subdomain-links', {timeout: 150000}).should('have.attr', 'aria-expanded', 'true');
+        cy.get(subdomainSection('links'), {timeout: 150000}).should('have.attr', 'aria-expanded', 'true');
         cy.get(sectionPanel('links')).should('contain.text', 'This check did not finish')
             .and('contain.text', 'It took more than 60 seconds');
         openSection('accessibility');

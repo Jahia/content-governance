@@ -12,3 +12,15 @@ export const Tooltip = ({children}) => children;
 export const Loader = () => h('span', null, 'loading');
 export const Close = () => null;
 export const Chip = ({label}) => h('span', null, label);
+export const Banner = ({title, children}) => h('div', {role: 'status'}, title, children);
+// Icons draw nothing here
+const icon = () => null;
+export const Reload = icon;
+export const Download = icon;
+export const Visibility = icon;
+export const ChevronDown = icon;
+export const ChevronUp = icon;
+export const Check = icon;
+export const Edit = icon;
+export const Information = icon;
+export const Warning = icon;

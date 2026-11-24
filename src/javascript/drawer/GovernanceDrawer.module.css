@@ -101,12 +101,22 @@
     display: none;
 }
 
+/* The tabs of the governance panel, over the preview of the page check: hidden, the preview is a layer behind
+   them at their size, and every band of a tab is opaque. */
+.body {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    isolation: isolate;
+}
+
 .section {
     flex: 1 1 0%;
     min-height: 0;
     display: flex;
     flex-direction: column;
-    /* A section may keep a layer behind its content (the hidden preview of Page quality) */
     position: relative;
     isolation: isolate;
 }

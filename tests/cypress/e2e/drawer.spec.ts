@@ -1,14 +1,21 @@
 import {deleteUser} from '@jahia/cypress';
 import type {Interception} from 'cypress/types/net-stubbing';
-import {TEST_TAB, TestUser, addNodeTree, createTestSite, createTestUser, deleteTestSite, switchOff} from '../support/cg';
+import {
+    TEST_TAB, TestUser, addNodeTree, createTestSite, createTestUser, deleteTestSite, resetLayout, saveLayout, switchOff
+} from '../support/cg';
 
 const BUTTON = 'Content governance';
 const DRAWER = 'dialog[aria-labelledby="content-governance-drawer-title"]';
 const section = (id: string) => `#content-governance-section-${id}`;
+const SUBDOMAIN_PREFIX = 'content-governance-subdomain-';
+
+/** The subdomain sections of a domain tab, in order, by the part of their element id after the prefix. */
+const sectionIds = (domain: string) => cy.get(`#content-governance-panel-${domain} button[id^="${SUBDOMAIN_PREFIX}"]`)
+    .then($headers => $headers.toArray().map(header => header.id.slice(SUBDOMAIN_PREFIX.length)));
 
 /**
- * The drawer in jContent, as a site administrator: one header button on a page, a tab per section
- * the site keeps on, and no button once every section is off. Kept apart from the API specs: a
+ * The drawer in jContent, as a site administrator: one header button on a page, a tab per domain of
+ * the layout of the site, and no button once every domain is off. Kept apart from the API specs: a
  * back-office login takes a licence seat.
  */
 describe('Content Governance - drawer', () => {
@@ -39,6 +46,7 @@ describe('Content Governance - drawer', () => {
     afterEach(() => {
         cy.logout();
         switchOff(siteKey, []);
+        resetLayout(siteKey);
     });
 
     after(() => {
@@ -63,19 +71,52 @@ describe('Content Governance - drawer', () => {
         });
     });
 
-    it('opens on a page with a tab per section, and closes with Escape', () => {
+    it('opens on a page with a tab per domain of the shipped layout, its subdomains as sections, and closes with Escape', () => {
         cy.login(admin.username, admin.password);
         cy.visit(pageUrl);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
         cy.get(DRAWER).should('be.visible').within(() => {
-            cy.get(section('audit')).should('contain.text', 'Page quality');
-            cy.get(section('geo')).should('contain.text', 'GEO readiness');
+            cy.get('[role="tab"]').then($tabs => {
+                expect($tabs.toArray().map(tab => tab.id)).to.deep.eq([section('quality'), section('geo'), section('compliance'), section(TEST_TAB)]
+                    .map(id => id.slice(1)));
+            });
+            cy.get(section('quality')).should('contain.text', 'Page quality');
+            cy.get(section('geo')).should('contain.text', 'SEO & GEO');
             cy.get(section('compliance')).should('contain.text', 'Compliance');
+            sectionIds('quality').should('deep.eq', ['health', 'links', 'accessibility', 'vitals', 'ecodesign']);
             cy.get(section('geo')).click();
             cy.get(section('geo')).should('have.attr', 'aria-selected', 'true');
+            // SEO sits in the domain geo of the layout, and the drawer shows it there
+            sectionIds('geo').should('deep.eq', ['geo-citations', 'seo', 'geo-score', 'geo-content', 'geo-files', 'geo-schema', 'geo-crawlers']);
+            cy.get(section('compliance')).click();
+            sectionIds('compliance').should('deep.eq', ['readability', 'terms', 'glossary', 'writing']);
         });
         cy.focused().type('{esc}');
         cy.get(DRAWER).should('not.exist');
+    });
+
+    it('follows the layout that the site saved: the order of its domains and subdomains, and what it switches off', () => {
+        saveLayout(siteKey, {
+            domains: [
+                {id: 'compliance', subdomains: [{id: 'writing'}, {id: 'readability'}]},
+                {id: 'quality', subdomains: [{id: 'seo'}, {id: 'links'}]}
+            ],
+            off: ['geo', 'vitals', 'glossary']
+        });
+        cy.login(admin.username, admin.password);
+        cy.visit(pageUrl);
+        cy.contains('button', BUTTON, {timeout: 30000}).click();
+        cy.get(DRAWER).should('be.visible').within(() => {
+            cy.get('[role="tab"]').then($tabs => {
+                expect($tabs.toArray().map(tab => tab.id)).to.deep.eq([section('compliance'), section('quality'), section(TEST_TAB)]
+                    .map(id => id.slice(1)));
+            });
+            cy.get(section('compliance')).should('have.attr', 'aria-selected', 'true');
+            sectionIds('compliance').should('deep.eq', ['writing', 'readability', 'terms']);
+            cy.get(section('quality')).click();
+            // The site moved SEO to Page quality, and switched Web Vitals off
+            sectionIds('quality').should('deep.eq', ['seo', 'links', 'health', 'accessibility', 'ecodesign']);
+        });
     });
 
     // The drawer used to cover the right of the screen and close on any press outside it.
@@ -141,20 +182,20 @@ describe('Content Governance - drawer', () => {
         cy.contains('button', BUTTON, {timeout: 30000}).click();
         cy.get(DRAWER).should('be.visible');
         hover('geo');
-        help('geo').should('be.visible').and('contain.text', 'AI');
+        help('geo').should('be.visible').and('contain.text', 'AI assistants');
         cy.get(section('geo')).click();
         cy.get(section('geo')).should('have.attr', 'aria-selected', 'true');
         hover('geo');
         help('geo').should('not.be.visible');
     });
 
-    it('leaves out the tab of a section the site switched off', () => {
-        switchOff(siteKey, ['geo']);
+    it('leaves out the tab of a domain that the layout of the site switches off', () => {
+        saveLayout(siteKey, {off: ['geo']});
         cy.login(admin.username, admin.password);
         cy.visit(pageUrl);
         cy.contains('button', BUTTON, {timeout: 30000}).click();
         cy.get(DRAWER).should('be.visible');
-        cy.get(section('audit')).should('exist');
+        cy.get(section('quality')).should('exist');
         cy.get(section('compliance')).should('exist');
         cy.get(section('geo')).should('not.exist');
     });
@@ -184,8 +225,9 @@ describe('Content Governance - drawer', () => {
         });
     });
 
-    it('shows no button once every tab is off', () => {
-        switchOff(siteKey, ['audit', 'geo', 'compliance', TEST_TAB]);
+    it('shows no button once every domain and every tab is off', () => {
+        saveLayout(siteKey, {off: ['quality', 'geo', 'compliance']});
+        switchOff(siteKey, [TEST_TAB]);
         cy.login(admin.username, admin.password);
         cy.visit(pageUrl);
         // The header is drawn once its other actions are: wait for one before asserting an absence.

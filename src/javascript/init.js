@@ -4,7 +4,7 @@ import i18next from 'i18next';
 import {registry} from '@jahia/ui-extender';
 import {Header, LayoutContent, Loader} from '@jahia/moonstone';
 import {GovernanceAction} from './drawer/GovernanceAction';
-import {registerOwnPanel, registerOwnTabs} from './drawer/ownTabs';
+import {registerOwnPanel} from './drawer/ownTabs';
 import {registerDrawerApi} from './drawer/drawerApi';
 import {registerChecks} from './checks/register';
 import {PublishCheckAction} from './publish/PublishCheckAction';
@@ -96,10 +96,9 @@ function register() {
     );
 
     // The panels of the drawer: governance before those of other modules, such as the chat of AI
-    // Assistant. The tabs of the governance panel: Page quality, GEO readiness and Compliance, before
-    // those of other modules.
+    // Assistant. The governance panel shows the domains of the layout of the site, then the tabs of
+    // other modules.
     registerOwnPanel(buttonIcon);
-    registerOwnTabs();
     // openPanel(id, context) for other modules, such as an action on a finding that opens the chat
     registerDrawerApi();
 
@@ -108,7 +107,7 @@ function register() {
 
     // One button per panel of the drawer, on a site that enables the module and keeps the panel
     // switched on. The governance panel shows on a page or a main resource that it can check, while
-    // the site keeps at least one of its tabs switched on.
+    // the layout of the site keeps one of its domains on, or the site one of its tabs.
     registry.add('action', 'contentGovernance', {
         targets: ['headerPrimaryActions:890'],
         buttonIcon,

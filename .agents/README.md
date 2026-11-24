@@ -13,13 +13,13 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 
 | Path | What |
 |---|---|
-| `src/javascript/drawer/` | The header action, one button per panel, and the one drawer: `GovernanceDrawer` hosts the panels under their header, each panel mounted on first visit, and the header buttons switch between the panels; `GovernancePanel` holds the section bar, the main tab bar of the drawer, and the sections; `useDock.js` docks the drawer beside the page under jContent's header; `drawerApi.js` gives other modules `openPanel`; `entries.js` and `FindingActions.jsx` read the panels, tabs, finding actions and checks of the browser other modules add (`docs/drawer-entries.md`) |
-| `src/javascript/audit/` | Page quality section: preview frame, the run of the checks of the browser (`runChecks.js`, `browserResults.js`), tabs, shared audits (`auditHistory.js`), the Page quality dashboard (`dashboard/`) |
+| `src/javascript/drawer/` | The header action, one button per panel, and the one drawer: `GovernanceDrawer` hosts the panels under their header, each panel mounted on first visit, and the header buttons switch between the panels; `GovernancePanel` holds the section bar, the main tab bar of the drawer, with the domains of the layout of the site (`layout.js`) and the tabs of other modules, and runs the three checks once for the drawer; `DomainTab` shows the sections of a domain, `subdomains.js` names the check of each view, and `sections.js` counts the sections and places each finding in the subdomain of its rule; `useDock.js` docks the drawer beside the page under jContent's header; `drawerApi.js` gives other modules `openPanel`; `entries.js` and `FindingActions.jsx` read the panels, tabs, finding actions and checks of the browser other modules add (`docs/drawer-entries.md`) |
+| `src/javascript/audit/` | The page check of the drawer (`usePageAudit`, `PageAudit`, `subdomainResults.js`): preview frame, the run of the checks of the browser (`runChecks.js`, `browserResults.js`), tabs, shared audits (`auditHistory.js`), the Page quality dashboard (`dashboard/`) |
 | `src/javascript/checks/` | The checks of the browser that Content Governance registers (`register.js`): axe-core, the web vitals and eco-design |
 | `src/main/java/.../audit/` | Shared audits: `service/spi/AuditHistoryService` and its DS component, `AuditResults` (input check), `model/`, `graphql/` (`AuditAccess`, `AuditFields`, types) |
 | `src/javascript/publish/` | The line at the top of jContent's Publish menu (`PublishCheckAction`) |
-| `src/javascript/geo/` | GEO readiness section (`GeoSection`), its tabs, the GEO dashboard, the BotRank screen |
-| `src/javascript/compliance/` | Compliance section and the compliance dashboard |
+| `src/javascript/geo/` | The GEO check of the drawer (`useGeoCheck`, `GeoParts`), its views, the GEO dashboard, the BotRank screen |
+| `src/javascript/compliance/` | The compliance scan of the drawer (`useComplianceScan`, `ComplianceParts`) and the compliance dashboard |
 | `src/javascript/settings/` | Site Settings > Content governance: Features, BotRank |
 | `src/javascript/common/` | i18n hook, settings query and hook, the hook of what the drawer shows (`useDrawerDisplay`), `SectionGate`, URL helper |
 | `src/main/java/.../geo/spi/` | `GeoReportWriter` (exported, `1.0.0`), which another module implements to write the report of the GEO dashboard. Its contract is in `docs/geo-readiness/architecture.md`, "The GEO report writer" |
@@ -149,10 +149,11 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   non-blocking item, jContent's publish actions untouched): it is added to `publishMenu`, never
   wraps jContent's actions; jContent writes action labels as HTML, so `buttonLabelParams` holds the
   module's own counts only.
-- **A section that gains a kind of finding reports it to "Fix first"** (2026-10-31): through its
-  `onFindings`, with an axe-core severity (`critical serious moderate minor`) and a translated title,
-  and the tab that shows it (`drawer/findings.js`). Sections report every change of their results;
-  the drawer ignores an identical list, so a section never needs to deduplicate.
+- **A check that gains a kind of finding reports it to "Fix first"** (2026-10-31): with an axe-core
+  severity (`critical serious moderate minor`) and a translated title (`drawer/findings.js`). A check
+  of the module gives it in `drawer/sections.js`, with the domain and the subdomain that show it. A
+  tab of another module gives it through its `onFindings`, and reports every change of its results;
+  the drawer ignores an identical list, so a tab never needs to deduplicate.
 - **A field of a content rule that one check type uses sits on the mixin of that type**: `rules/CheckType`
   lists the keys of `ccsmix:patternCheck`, `ccsmix:aiCheck` and `ccsmix:codeCheck`, and `CheckTypeTest`
   fails when the CND disagrees. Every writer of a rule node adds the mixin before it sets one of those keys

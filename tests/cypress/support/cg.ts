@@ -123,6 +123,28 @@ export function switchOff(siteKey: string, disabled: string[]): void {
     saveSettings(asRoot(), siteKey, disabled).its('errors').should('be.undefined');
 }
 
+/** The layout of a site: the order and the place of its domains, subdomains and rules, and what it switches off. */
+export type SiteLayout = {
+    domains?: Array<{id: string; subdomains?: Array<{id: string; rules?: string[]}>}>;
+    off?: string[];
+};
+
+/** Saves the layout of a site as root, which the drawer of the site follows. */
+export function saveLayout(siteKey: string, layout: SiteLayout): void {
+    gql(asRoot(), `mutation L($siteKey: String!, $layout: String!) {
+        contentGovernance { saveSiteLayout(siteKey: $siteKey, layout: $layout) { saved } }
+    }`, {siteKey, layout: JSON.stringify(layout)}).its('errors').should('be.undefined');
+}
+
+/** Removes the layout of a site as root: the site shows the tree of the system site again. */
+export function resetLayout(siteKey: string): void {
+    gql(asRoot(), 'mutation R($siteKey: String!) { contentGovernance { resetSiteLayout(siteKey: $siteKey) { saved } } }', {siteKey})
+        .its('errors').should('be.undefined');
+}
+
+/** The element id of the section of a subdomain in the drawer: a dot of the id, as in `geo.score`, becomes `-`. */
+export const subdomainSection = (id: string): string => `#content-governance-subdomain-${id.split('.').join('-')}`;
+
 /**
  * Shows or hides "Fix first" and the "Show preview" button of Page quality for every editor of the
  * server, through the cfg of the module (org.jahia.community.contentgovernance.drawer.cfg). Both are

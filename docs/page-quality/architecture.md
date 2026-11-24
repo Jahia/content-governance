@@ -22,12 +22,13 @@ module ai-assistant is installed, it adds its own AI review tab to the drawer
 jContent / Page Builder header
   GovernanceAction (headerPrimaryActions:890, one button per panel)
     GovernanceDrawer  (portal into document.body)
-      GovernancePanel
-        AuditSection
-          GraphQL checkPage (HtmlCheck)  -> one result per rule: seo, readability, links, jahia, HTML rules
+      GovernancePanel  (GraphQL contentDomains + contentRules: the layout of the site)
+        usePageAudit  (the page check, once for the drawer)
+          GraphQL checkPage (HtmlCheck)  -> one result per rule: seo, readability, links, jahia, other, HTML rules
           iframe  /cms/render/default/{lang}{path}.html?pageAuditRun=N
             removeToolingElements -> runChecks: webVitals, ecodesign.*, axe (axe-core injected), checks of other modules
           localStorage  content-governance:audit:{lang}:{path}
+        DomainTab  (one per domain: a section per subdomain, PageSubdomainView for the page check)
 ```
 
 ## Where the code lives
@@ -38,11 +39,13 @@ jContent / Page Builder header
 | `src/javascript/drawer/GovernanceAction.jsx` | Shows one button per panel of the registry (`contentGovernancePanel`, `drawer/entries.js`) on a site that enables the module (`useNodeChecks`, `requireModuleInstalledOnSite`) and keeps the panel on. A panel shows on `jnt:page` and `jmix:mainResource` unless its entry names other node types. It reads the site settings, holds which panel the one drawer shows (`drawer/drawerState.js`), and listens to `openPanel` (`drawer/drawerApi.js`). The button of the panel in view is pressed (`aria-pressed`, accent color). The drawer is one lazy chunk, fetched when the browser is idle once a button shows (`requestIdleCallback`, else after 2 s), at the latest on the first click. The governance panel and its sections load on first show. |
 | `src/javascript/drawer/FixFirst.jsx`, `findings.js` | "Fix first": each section reports `{key, section, tab, severity, title}` findings through `onFindings` (Page quality: violations by impact and every tab's recommendations, `auditFindings`; GEO: one per tab with a count, score and crawler serious, the others moderate; Compliance: one serious per term, `complianceFindings`). The drawer keeps them per section (an identical list changes nothing), `rankFindings` keeps the five most serious, ties in section order, and **Open** selects the section and passes `requestedTab` `{tab, at}`. |
 | `src/javascript/drawer/GovernanceDrawer.jsx` | The drawer: header with the label of the panel in view, panels mounted on first show and kept mounted while the drawer is open. The drawer has no switch between the panels: the header buttons switch them. |
-| `src/javascript/drawer/GovernancePanel.jsx` | The governance panel: one section tab per switched-on section with its count badge, in the main tab bar of the drawer, in Moonstone's default size, "Fix first" where `drawerDisplay` shows it (`common/useDrawerDisplay.js`), sections mounted on first show and kept mounted while the drawer is open. |
+| `src/javascript/drawer/GovernancePanel.jsx` | The governance panel. Its main tabs are the domains of the layout of the site (`drawer/layout.js`), then the tabs of other modules, each with its count badge, in Moonstone's default size. It shows "Fix first" where `drawerDisplay` shows it (`common/useDrawerDisplay.js`). It runs the three checks once for the drawer: the page check, the GEO check and the compliance scan. A tab mounts on first show and stays mounted while the drawer is open. |
+| `src/javascript/drawer/DomainTab.jsx`, `subdomains.js`, `sections.js` | A domain: the toolbar of each check that its subdomains read, the facts of the page, and one collapsible section per subdomain. `subdomains.js` names the check of each dedicated view. `sections.js` counts each section and places each finding in the subdomain of its rule. |
 | `src/javascript/drawer/useDock.js` | Docks the drawer beside the page under edit, under jContent's header, and resizes it from its left edge (see the drawer notes below). |
-| `src/javascript/audit/AuditSection.jsx` | The section. It holds the check of the server, the preview frame and the run of the checks of the browser. It also holds the cache, the staleness probe, the export, and one collapsible section per subdomain with its count. |
-| `src/javascript/common/CollapsibleSection.jsx`, `openSections.js` | The subdomains of Page quality and GEO readiness: one section each, with its count left of its title in capitals, its help as tooltip, and its content mounted on first open. A section with a critical or serious finding, or whose step did not finish, opens by default. The editor's choice holds until new results (`resetKey`: `auditedAt`, `ranAt`), when the defaults apply again. **Open** in "Fix first" opens the section of `requestedTab` and scrolls to it. |
-| `src/javascript/audit/pageCheck.js` | Calls `checkPage`, and turns the findings and the values of its results into the results of the tabs SEO, Readability, Links and Jahia health, and the HTML rules of the Accessibility tab. |
+| `src/javascript/audit/usePageAudit.js`, `PageAudit.jsx` | The page check. It holds the check of the server, the preview frame and the run of the checks of the browser. It also holds the cache, the staleness probe and the export. `PageAudit.jsx` draws its toolbar, its state, the preview and the view of each subdomain. |
+| `src/javascript/audit/subdomainResults.js` | The results of the page check by subdomain: the recommendations, the counts and the steps that did not finish of each subdomain. |
+| `src/javascript/common/CollapsibleSection.jsx`, `openSections.js` | The subdomains of a domain: one section each, with its count left of its title in capitals, its help as tooltip, and its content mounted on first open. A section with a critical or serious finding, or whose step did not finish, opens by default. The editor's choice on a section holds until the check that feeds it runs again (one reset key per section: the run of the page check, of the GEO check or of the scan), when the defaults apply again. A choice made while the check runs holds for its results. **Open** in "Fix first" opens the section of `requestedTab` and scrolls to it. |
+| `src/javascript/audit/pageCheck.js` | Calls `checkPage`, and turns the findings and the values of its results into the results of SEO, Readability, Links, Jahia health, the HTML rules of Accessibility, and the rules of the other subdomains (`other`). |
 | `src/javascript/audit/runChecks.js` | Runs the checks of the browser on the preview, one after the other, each with its time limit. It gives the results, the checks that did not finish, and the rules that no check gave a result for. |
 | `src/javascript/audit/browserResults.js` | Turns the results of the checks of the browser into what each tab shows. These are the recommendations by subdomain, the view of axe-core, the figures of the web vitals and the criteria of eco-design. |
 | `src/javascript/audit/tooling.js`, `timeLimit.js` | The cleanup of the editing tooling in the DOM, and the time limit of a step (`runStep`). |
@@ -76,12 +79,12 @@ jContent / Page Builder header
   drawer covers the page instead. Geometry is written to the elements, not React state, so a drag
   does not render the sections. It closes on Escape, its close button and the header button; a
   press on the page leaves it open, and it returns focus where it was on close.
-- `AuditSection` receives `isOn(tab)` for the `audit` section. `TAB_IDS` (`accessibility`, `seo`,
-  `vitals`, `readability`, `ecodesign`, `links`, `jahia`) is filtered by it.
+- `usePageAudit` receives `isOn(tab)`: true when the layout of the site shows the subdomain of those
+  results. The results `other` are always on.
 
-A tab switched off is not shown. Its result is not cached or exported (`keepEnabled` in
-`AuditSection.jsx`). A check of the browser runs while the site keeps a rule of its evaluator on,
-whatever tab shows the rule. The check of the server runs while a tab that reads it is on, Accessibility included, and gives the
+A subdomain that the layout switches off is not shown. Its result is not cached or exported
+(`keepEnabled` in `usePageAudit.js`). A check of the browser runs while the site keeps a rule of its
+evaluator on, whatever section shows the rule. The check of the server runs while a tab that reads it is on, Accessibility included, and gives the
 page facts kept with each audit: `results.page` holds the title, the meta description and the number
 of images without alt. Neither result is kept when its own tab is off. A run whose check of the
 server did not finish, or whose server could not read the state of the content (Jahia health and
@@ -166,11 +169,14 @@ A measure rule has no limit: it always passes, and carries values only. Each oth
 carries its values too, such as the score under `readability.flesch` or the Open Graph tags under
 `seo.openGraph`, for what the drawer shows later.
 
-Each finding goes to the tab of the subdomain of its rule on the site, when the drawer has one (`tabOf`,
-`DOMAIN_TABS`): `accessibility`, `seo`, `readability` (and `writing`), `links`, `health` for Jahia
-health, and `ecodesign`. No list names the tab of one rule, so a check that another module registers
-lands like a built-in one. A
-tab shows one recommendation per rule `{key, rule, severity, params, items, title, detail, label}`:
+Each finding goes to the results of the subdomain of its rule on the site (`tabOf`, `DOMAIN_TABS`).
+These results are `accessibility`, `seo`, `readability`, `links`, `jahia` for Jahia health, and
+`ecodesign`. The
+finding of a rule of any other subdomain, such as `writing`, goes to `other`. No list names the place
+of one rule, so a check that another module registers lands like a built-in one. The drawer then shows
+each recommendation in the section of the subdomain of its rule on the site, whatever results hold it
+(`audit/subdomainResults.js`). A
+section shows one recommendation per rule `{key, rule, severity, params, items, title, detail, label}`:
 `items` holds each finding of the rule, with its `locator` when the check gave one. The texts come
 from the rule (`audit/ruleText.js`), in the language of the interface of the editor: the plural form
 of its title for the count, with the values `count`, `value` (the text of the first finding), `min`
@@ -227,7 +233,7 @@ realm. Inline injection is not possible: `axe.source` was removed in axe-core 4.
 
 ### GraphQL through jContent's Apollo client
 
-`AuditSection` takes the client from `useApolloClient()`. `@apollo/client` is shared with the host
+`usePageAudit` takes the client from `useApolloClient()`. `@apollo/client` is shared with the host
 as a Module Federation singleton with `import: false`, so the bundle never ships its own copy and
 the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-cache'`:
 
@@ -239,15 +245,15 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
 
 ## Results, badges, cache and export
 
-- Results: `{a11y, vitals, ecodesign, readability, seo, links, jahia}`.
-- Counts (`audit/tabCounts.js`): the violations of axe-core and the HTML rules of the server for
-  Accessibility, `recommendations.length` for the other tabs, each with `serious` when one finding is
+- Results: `{a11y, vitals, ecodesign, readability, seo, links, jahia, other}`. An audit stored before
+  2.0.0 has no `other`, and shows what it holds.
+- Counts (`pageStateOf` in `audit/subdomainResults.js`): the recommendations that show in a subdomain,
+  and for Accessibility the violations of axe-core too, each with `serious` when one finding is
   critical or serious. `common/CountBadge.jsx` draws a count red (Moonstone `Badge`, danger) when
   serious and grey (`Chip`) otherwise, on the subdomain sections of every section, a grey 0 included,
   and on the section tabs, where the drawer reads the severities from the findings the section
   reports. A subdomain with no count (its step did not finish, or AI citations without BotRank) shows
-  a dash. The section total, reported through `onCount`, sums the counts of the switched-on
-  subdomains. "Fix first" lists critical and serious findings only (`isSerious`,
+  a dash. The count of a domain sums the counts of its subdomains. "Fix first" lists critical and serious findings only (`isSerious`,
   `drawer/findings.js`) and shows nothing without one. GEO readiness: Score and Crawler access are
   serious, the other subdomains grey.
 - Cache: `localStorage` key `content-governance:audit:{language}:{path}`, entry
@@ -309,8 +315,9 @@ the queries run with the editor's session. Two queries, both `fetchPolicy: 'no-c
     nothing was found.
   - jContent writes action labels as HTML (`dangerouslySetInnerHTML`), so `buttonLabelParams` holds
     numbers only.
-  - The click calls `openPanel('governance', {section}, path)` (`drawer/drawerApi.js`);
-    `GovernanceAction` opens the drawer of its page on the governance panel and that section.
+  - The click calls `openPanel('governance', {section}, path)` (`drawer/drawerApi.js`), with the
+    subdomain `accessibility`, or `terms` when only terms were found. `GovernanceAction` opens the
+    drawer of its page on the governance panel, on the domain of that subdomain, with its section open.
 - **Dashboard:** `audit/dashboard/AuditDashboard.jsx`, jContent app `contentGovernancePageQuality`
   (`jcontent:89`, `jContentAccess`, `SectionGate` on `audit`, lazy).
   - Moonstone `DataTable`: page, last audit, issues by tab as chips (tabs with issues only), total

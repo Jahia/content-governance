@@ -3,7 +3,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {registry} from '@jahia/ui-extender';
 import {drawerTabs, FINDING_ACTIONS_TARGET, findingActions, isTabId, TAB_TARGET, TAB_TYPE, tabParts} from '../../javascript/drawer/entries.js';
-import {registerOwnTabs} from '../../javascript/drawer/ownTabs.js';
+import {registerOwnPanel} from '../../javascript/drawer/ownTabs.js';
 import {entryFindings} from '../../javascript/drawer/findings.js';
 import {DrawerEntryContext} from '../../javascript/drawer/DrawerEntryContext.js';
 import {FindingActions} from '../../javascript/drawer/FindingActions.jsx';
@@ -53,17 +53,11 @@ describe('drawerTabs', () => {
         expect(console.warn).toHaveBeenCalledTimes(1);
     });
 
-    it('lists the tabs of the module first, then those of other modules', () => {
-        registerOwnTabs();
+    it('lists the tabs of other modules only: the domains of the module come from the layout of the site', () => {
+        registerOwnPanel(null);
         registry.add(TAB_TYPE, 'aiAssistantReview', {targets: [`${TAB_TARGET}:10`], label: 'ai-assistant:review.tab', component: () => null});
 
-        expect(drawerTabs().map(entry => entry.key)).toEqual(['audit', 'geo', 'compliance', 'aiAssistantReview']);
-        const [audit, geo, compliance] = drawerTabs();
-        expect(tabParts(audit).map(part => part.id)).toEqual(['accessibility', 'seo', 'vitals', 'readability', 'ecodesign', 'links', 'jahia']);
-        expect(tabParts(geo).find(part => part.id === 'citations').needs).toBe('botRank');
-        expect(tabParts(geo).map(part => part.id)).toEqual(['score', 'crawler', 'files', 'schema', 'citations']);
-        expect(tabParts(compliance)).toEqual([]);
-        expect(compliance.requirePage && compliance.requireWrite).toBe(true);
+        expect(drawerTabs().map(entry => entry.key)).toEqual(['aiAssistantReview']);
     });
 });
 

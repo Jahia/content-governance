@@ -64,8 +64,8 @@ export function resultsOf(value, given, key) {
 }
 
 /**
- * The rules that a check of the browser applies: on, stating `runtime: browser`, and of a subdomain that a
- * Page quality tab shows. A rule of another subdomain never runs, as on the server.
+ * The rules that a check of the browser applies: on, stating `runtime: browser`, and placed in a subdomain. A
+ * rule with no subdomain never runs, as on the server.
  *
  * @param {{all: function(): Array<object>}} rules the rules of the site
  * @returns {Array<object>} the rules
