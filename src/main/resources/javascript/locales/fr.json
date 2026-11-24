@@ -1760,8 +1760,8 @@
           "passed": "Réussi",
           "review": "À vérifier"
         },
-        "occurrences": "{{count}} élément",
-        "occurrences_plural": "{{count}} éléments",
+        "occurrences": "Constats ({{count}})",
+        "occurrences_plural": "Constats ({{count}})",
         "passed": "✓ {{count}} réussi",
         "passed_plural": "✓ {{count}} réussis",
         "moreActions": "Plus d'actions"

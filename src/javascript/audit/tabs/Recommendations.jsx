@@ -80,7 +80,6 @@ export function Recommendations({items, ns, tab, title, isQuietWhenEmpty, itemAc
                                 detail={text.detail}
                                 rule={rec.rule}
                                 occurrences={occurrencesOf(rec, itemAction)}
-                                occurrencesLabel={rec.items?.length > 1 ? t('recs.items', {count: rec.items.length}) : undefined}
                                 menu={<FindingMenu findingKey={auditFindingKey(rec.bucket || tab, id)}/>}/>
                 );
             })}

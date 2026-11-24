@@ -149,10 +149,6 @@
 }
 
 /* Beside the floated rule, never under it */
-.single {
-    display: flow-root;
-}
-
 .occurrences > summary {
     cursor: pointer;
     color: #6b7a86;
