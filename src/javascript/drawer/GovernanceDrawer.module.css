@@ -20,6 +20,13 @@
     overflow: hidden;
 }
 
+/* Moonstone renders a tooltip at the end of the page with z-index 1, under the panel: the tooltip of
+   a tab or a section of the drawer hid behind it. Tooltips go above the panel. */
+:global(body) :global(.moonstone-tooltip_label),
+:global(body) :global(.moonstone-tooltip_arrow) {
+    z-index: 3;
+}
+
 /* The left edge drags to resize; arrows do the same once it has focus. */
 .resize {
     position: absolute;
