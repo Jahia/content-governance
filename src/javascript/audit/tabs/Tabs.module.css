@@ -410,6 +410,15 @@
     margin-left: 8px;
 }
 
+/* The run of a fixer on a finding with no occurrence, under its advice */
+.pageFix {
+    padding: 0 10px 10px 38px;
+}
+
+.pageFix:empty {
+    display: none;
+}
+
 .notFound {
     color: #b3122a;
     font-size: 12px;

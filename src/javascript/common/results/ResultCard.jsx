@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import PropTypes from 'prop-types';
 import {Check, HelpOutline, Information, Report, Warning} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../i18n';
@@ -16,16 +16,26 @@ const LEVEL_ICON = {serious: Report, moderate: Warning, minor: Information, pass
  * The occurrences always fold under "Findings (N)", one or many, and each row holds its own action,
  * such as Highlight or Edit. Only a rule with no occurrence, a rule of the whole page, shows its action
  * on the title line. The `menu` (the ⋮ of the actions of other modules) always ends the title line.
+ * An occurrence may show a line under its row (`below`), and the line of the occurrences may end with an
+ * action of its own, such as Generate all.
  *
  * Example: "Open Graph tags are missing: og:image", Moderate: an orange border, a triangle, the title
  * and its ⋮, the advice, then "Findings (1)" with `seo.openGraph` at the right of the same line.
  */
-export const ResultCard = ({level, title, detail, rule, chips, occurrences = [], occurrencesLabel, action, menu, children, isCompact}) => {
+export const ResultCard = ({level, title, detail, rule, chips, occurrences = [], occurrencesLabel, occurrencesAction, occurrencesHeader, isOpen, action, menu, children, isCompact}) => {
     const {t} = useGovernanceTranslation('common');
     const cardAction = occurrences.length === 0 ? action : null;
     const isFolded = occurrences.length > 0;
     const LevelIcon = LEVEL_ICON[level];
     const word = t(`results.levels.${level}`);
+    const [open, setOpen] = useState(Boolean(isOpen));
+
+    // A card that asks to show its occurrences, such as when Generate all starts, opens them
+    useEffect(() => {
+        if (isOpen) {
+            setOpen(true);
+        }
+    }, [isOpen]);
 
     return (
         <article className={`${styles.card} ${styles['level_' + level]} ${isCompact ? styles.compact : ''}`}>
@@ -55,13 +65,18 @@ export const ResultCard = ({level, title, detail, rule, chips, occurrences = [],
                     {/* Before the occurrences, so that it floats at the right of their first line */}
                     {rule && <code className={`${styles.rule} ${styles.footRule}`}>{rule}</code>}
                     {isFolded && (
-                        <details className={styles.occurrences}>
-                            <summary>{occurrencesLabel || t('results.occurrences', {count: occurrences.length})}</summary>
+                        <details className={styles.occurrences} open={open} onToggle={event => setOpen(event.currentTarget.open)}>
+                            <summary>
+                                {occurrencesLabel || t('results.occurrences', {count: occurrences.length})}
+                                {occurrencesAction && <span className={styles.summaryAction}>{occurrencesAction}</span>}
+                            </summary>
+                            {occurrencesHeader}
                             <ul>
                                 {occurrences.map(occurrence => (
                                     <li key={occurrence.key} className={styles.row}>
                                         <div className={styles.rowContent}>{occurrence.content}</div>
                                         {occurrence.action && <div className={styles.rowAction}>{occurrence.action}</div>}
+                                        {occurrence.below && <div className={styles.rowBelow}>{occurrence.below}</div>}
                                     </li>
                                 ))}
                             </ul>
@@ -78,7 +93,9 @@ export const occurrenceShape = PropTypes.shape({
     // What and where: an element, a content, a value
     content: PropTypes.node,
     // Its one action, such as Highlight or Edit
-    action: PropTypes.node
+    action: PropTypes.node,
+    // What shows under the row, across its whole width, such as the proposals of a fixer
+    below: PropTypes.node
 });
 
 ResultCard.propTypes = {
@@ -93,6 +110,12 @@ ResultCard.propTypes = {
     occurrences: PropTypes.arrayOf(occurrenceShape),
     // The label of the folded occurrences, "Findings (N)" when omitted
     occurrencesLabel: PropTypes.string,
+    // An action at the end of the line of the occurrences, such as Generate all
+    occurrencesAction: PropTypes.node,
+    // What shows above the open occurrences, such as the progress of Generate all
+    occurrencesHeader: PropTypes.node,
+    // Opens the occurrences when it turns true
+    isOpen: PropTypes.bool,
     // The action of a rule with no occurrence
     action: PropTypes.node,
     // The ⋮ of the actions of other modules, at the end of the title line

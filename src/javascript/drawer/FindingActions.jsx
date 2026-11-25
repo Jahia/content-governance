@@ -77,21 +77,25 @@ FindingActions.propTypes = {
 
 /**
  * The ⋯ of a result card: the actions that other modules add to its finding, such as the
- * assistant's Fix. Nothing when no module adds one or the drawer does not know the finding.
+ * assistant's Fix, after the other fixers of the finding (`fixers`). Nothing when there is neither.
  */
-export const FindingMenu = ({findingKey}) => {
+export const FindingMenu = ({findingKey, fixers}) => {
     const {findings, actions} = useContext(DrawerEntryContext);
-    if (actions.length === 0 || !findings.some(item => item.key === findingKey)) {
+    const hasActions = actions.length > 0 && findings.some(item => item.key === findingKey);
+    if (!hasActions && !fixers) {
         return null;
     }
     return (
         <MoreActions>
-            <FindingActions findingKey={findingKey}/>
+            {fixers && <span className={styles.findingActions}>{fixers}</span>}
+            {hasActions && <FindingActions findingKey={findingKey}/>}
         </MoreActions>
     );
 };
 
 FindingMenu.propTypes = {
     // The key of the finding, as drawer/findings.js builds it
-    findingKey: PropTypes.string.isRequired
+    findingKey: PropTypes.string.isRequired,
+    // The fixers after the first one, as buttons
+    fixers: PropTypes.node
 };

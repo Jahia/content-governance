@@ -162,6 +162,7 @@
 
 .row {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
     gap: 8px;
     padding: 6px 0;
@@ -172,6 +173,17 @@
     flex: 1 1 0%;
     min-width: 0;
     overflow-wrap: anywhere;
+}
+
+/* Under the row, across its whole width */
+.rowBelow {
+    flex: 1 0 100%;
+    min-width: 0;
+}
+
+/* At the end of the line of the occurrences */
+.summaryAction {
+    margin-left: 8px;
 }
 
 .rowAction {

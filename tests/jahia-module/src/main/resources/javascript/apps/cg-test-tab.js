@@ -3,8 +3,9 @@
  * module does (docs/drawer-entries.md). Content Governance names them nowhere: the Cypress suite
  * checks that the tab still gets a site switch, a "Fix first" rank and a history, and that the panel
  * gets a button, a site switch, and the context of the finding that the action opens it with, as the
- * chat of AI Assistant does. app-shell loads this file when jContent starts, without a build, so it
- * takes React from the share scope of jContent.
+ * chat of AI Assistant does. It also adds two fixers of the rule links.mixedContent, which the
+ * Cypress suite drives through `window.cgTestFixers`. app-shell loads this file when jContent starts,
+ * without a build, so it takes React from the share scope of jContent.
  */
 (function () {
     const jahia = globalThis.jahia;
@@ -16,8 +17,83 @@
 
     jahia.i18n.addResourceBundle('en', NS, {
         tab: {label: 'Test tab', help: 'A tab that the test module adds', summary: 'Summary'},
-        panel: {label: 'Test panel', button: 'Test panel', help: 'A panel that the test module adds', open: 'Open in the test panel'}
+        panel: {label: 'Test panel', button: 'Test panel', help: 'A panel that the test module adds', open: 'Open in the test panel'},
+        fixer: {label: 'Test fix', other: 'Test fix: other'}
     }, true, true);
+
+    /**
+     * What the Cypress suite reads and sets on the fixers. `hold()` keeps every run in the running state
+     * until `release()`. `fail` makes a run reject with that message, and `empty` makes it answer no
+     * proposal. `runs` and `applied` record what each run and each apply received.
+     */
+    const control = {
+        held: false,
+        waiters: [],
+        fail: null,
+        empty: false,
+        runs: [],
+        applied: [],
+        hold() {
+            control.held = true;
+        },
+        release() {
+            control.held = false;
+            control.waiters.splice(0).forEach(resolve => resolve());
+        }
+    };
+    globalThis.cgTestFixers = control;
+
+    /** Resolves after the hold, or at once with no hold; rejects when the drawer cancels the run. */
+    const wait = signal => new Promise((resolve, reject) => {
+        signal.addEventListener('abort', () => reject(new Error('cancelled')));
+        if (control.held) {
+            control.waiters.push(resolve);
+        } else {
+            setTimeout(resolve, 50);
+        }
+    });
+
+    const isMixedContent = ({rule}) => rule.id === 'links.mixedContent';
+
+    // Two proposals and a note for each insecure address, and an apply that records the text it gets
+    jahia.uiExtender.registry.add('contentGovernanceFixer', 'cgTestFix', {
+        label: `${NS}:fixer.label`,
+        appliesTo: isMixedContent,
+        run: ({occurrence, path, language, signal}) => {
+            const address = occurrence ? occurrence.text : '';
+            control.runs.push({fixer: 'cgTestFix', occurrence: address, path, language});
+            return wait(signal).then(() => {
+                if (control.fail) {
+                    throw new Error(control.fail);
+                }
+                if (control.empty) {
+                    return {proposals: []};
+                }
+                return {
+                    proposals: [
+                        {text: address.replace('http://', 'https://'), original: address, reason: 'The same address over HTTPS'},
+                        {text: address.replace('http://', 'https://www.'), original: address}
+                    ],
+                    note: 'Test note: both addresses answer over HTTPS.'
+                };
+            });
+        },
+        apply: ({proposal, occurrence}) => {
+            control.applied.push({text: proposal.text, occurrence: occurrence ? occurrence.text : null});
+            return Promise.resolve();
+        }
+    });
+
+    // A second fixer of the same rule: the drawer puts it in the ⋮ of the card
+    jahia.uiExtender.registry.add('contentGovernanceFixer', 'cgTestFixOther', {
+        label: `${NS}:fixer.other`,
+        appliesTo: isMixedContent,
+        run: ({occurrence, signal}) => {
+            const address = occurrence ? occurrence.text : '';
+            control.runs.push({fixer: 'cgTestFixOther', occurrence: address});
+            return wait(signal).then(() => ({proposals: [{text: `${address}#other`}]}));
+        }
+    });
 
     function register(React) {
         const h = React.createElement;
