@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Button, Loader} from '@jahia/moonstone';
+import {Button, Loader, Reload} from '@jahia/moonstone';
 import {useGovernanceTranslation} from '../common/i18n';
 import {toLocaleTag} from '../common/locale';
 import {ResultBanner} from '../common/results/ResultBanner';
@@ -17,11 +17,16 @@ export function ManualRules({manual, id, rules, language}) {
     const {status, run, error} = manual.of(id);
     const running = status === 'running';
     const idle = run ? t('runAgain') : t('run');
+    let icon;
+    if (running) {
+        icon = <Loader size="small"/>;
+    } else if (run) {
+        icon = <Reload/>;
+    }
     const action = (
-        <Button size="small"
-                variant="outlined"
+        <Button variant="outlined"
                 label={running ? t('running') : idle}
-                icon={running ? <Loader size="small"/> : undefined}
+                icon={icon}
                 isDisabled={running || status === 'loading'}
                 onClick={() => manual.run(id)}/>
     );
