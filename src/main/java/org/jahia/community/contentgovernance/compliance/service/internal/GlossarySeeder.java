@@ -59,7 +59,7 @@ public class GlossarySeeder extends DefaultEventListener {
     private static final String SITES = "/sites";
     private static final String CONTENTS = "/contents";
     /** The path of the glossary folder under the path of a site. */
-    private static final String FOLDER_PATH = CONTENTS + "/" + FOLDER;
+    private static final String FOLDER_PATH = CONTENTS + '/' + FOLDER;
     private static final String CONTRIBUTE_MODE = "jmix:contributeMode";
     private static final String CONTRIBUTE_TYPES = "j:contributeTypes";
     private static final String CONTENT_FOLDER = "jnt:contentFolder";
