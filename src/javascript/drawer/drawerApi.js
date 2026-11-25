@@ -1,4 +1,8 @@
 import {registry} from '@jahia/ui-extender';
+import {PassedFold, ResultCard} from '../common/results/ResultCard';
+import {FactBlock} from '../common/results/FactBlock';
+import {ScoreBlock} from '../common/results/ScoreBlock';
+import {ResultBanner} from '../common/results/ResultBanner';
 
 /**
  * How code opens the drawer on a panel: the module's own (the Publish menu, a tab that reopens
@@ -11,6 +15,9 @@ export const API_TYPE = 'contentGovernanceApi';
 
 /** The key of the drawer's entry of that type. */
 export const DRAWER_API_KEY = 'drawer';
+
+/** The key of the entry of that type that holds the result patterns of the drawer (docs/result-patterns.md). */
+export const RESULTS_API_KEY = 'results';
 
 const listeners = new Set();
 
@@ -48,4 +55,13 @@ export function registerDrawerApi() {
     registry.add(API_TYPE, DRAWER_API_KEY, {
         openPanel: (id, context) => openPanel(id, context)
     });
+}
+
+/**
+ * Gives other modules the result patterns of the drawer, so that a tab of another module shows its results as the
+ * sections of the drawer do: `registry.get('contentGovernanceApi', 'results')` holds `ResultCard`, `PassedFold`,
+ * `FactBlock`, `ScoreBlock` and `ResultBanner`.
+ */
+export function registerResultPatterns() {
+    registry.add(API_TYPE, RESULTS_API_KEY, {ResultCard, PassedFold, FactBlock, ScoreBlock, ResultBanner});
 }

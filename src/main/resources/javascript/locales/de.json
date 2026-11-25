@@ -1621,6 +1621,17 @@
         "ecodesign": "Ökodesign-Prüfungen nach dem französischen Referenzrahmen RGESN: Seitengewicht, Anfragen, Bilder, Schriften, Medien und Drittanbieter.",
         "links": "Defekte interne Links, vollständig ausgeschriebene Adressen, gemischte Inhalte und Links, die ohne Schutz ein neues Fenster öffnen.",
         "jahia": "Prüfungen, die nur Jahia machen kann: unveröffentlichte Inhalte auf der Seite, fehlende Übersetzungen, rohe Bezeichner und Platzhaltertexte, sowie die Prüfungen, die andere Module hinzufügen."
+      },
+      "manual": {
+        "run": "Ausführen",
+        "runAgain": "Erneut ausführen",
+        "running": "Läuft",
+        "notRunTitle": "Noch nicht ausgeführt",
+        "notRun": "Diese Regeln laufen nur, wenn Sie sie ausführen.",
+        "lastRunTitle": "Letzte Ausführung",
+        "lastRun": "{{date}}",
+        "lastRunBy": "{{date}}, von {{user}}",
+        "failed": "Die Ausführung ist fehlgeschlagen"
       }
     },
     "compliance": {
@@ -1764,7 +1775,19 @@
         "occurrences_plural": "Befunde ({{count}})",
         "passed": "✓ {{count}} bestanden",
         "passed_plural": "✓ {{count}} bestanden",
-        "moreActions": "Weitere Aktionen"
+        "moreActions": "Weitere Aktionen",
+        "fixers": {
+          "running": "{{fixer}}: Vorschlag wird erstellt",
+          "cancel": "Abbrechen",
+          "failed": "{{fixer}} hat nichts vorgeschlagen",
+          "none": "Kein Vorschlag für diesen Befund.",
+          "copy": "Kopieren",
+          "copied": "Kopiert",
+          "apply": "Übernehmen",
+          "applied": "Übernommen",
+          "regenerate": "Neu erzeugen",
+          "close": "Schließen"
+        }
       }
     },
     "publishCheck": {

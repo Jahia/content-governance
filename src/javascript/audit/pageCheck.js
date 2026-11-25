@@ -1,5 +1,6 @@
 import {gql} from '@apollo/client';
 import {limits} from './rules';
+import {itemOf, paramsOf, ruleViewsOf, severityOf} from './ruleViews';
 
 /**
  * The page check service of the server for the Page quality tabs SEO, Readability, Links and Jahia
@@ -97,16 +98,13 @@ export function tabOf(rule) {
  */
 export function recommendationsByTab(findings, rules) {
     const byRule = new Map();
+    const byRuleFindings = new Map();
     findings.forEach(finding => {
         const items = byRule.get(finding.ruleId) || [];
-        items.push({
-            text: finding.text,
-            ...(finding.context ? {context: finding.context} : {}),
-            ...(finding.locator ? {locator: finding.locator} : {})
-        });
+        items.push(itemOf(finding));
         byRule.set(finding.ruleId, items);
+        byRuleFindings.set(finding.ruleId, [...(byRuleFindings.get(finding.ruleId) || []), finding]);
     });
-    const severities = new Map(findings.map(finding => [finding.ruleId, finding.severity]));
     const out = {seo: [], readability: [], links: [], jahia: [], accessibility: [], ecodesign: [], [OTHER_TAB]: []};
     byRule.forEach((items, ruleId) => {
         const rule = rules.find(ruleId);
@@ -119,7 +117,8 @@ export function recommendationsByTab(findings, rules) {
         out[tab].push({
             key: ruleId,
             rule: ruleId,
-            severity: severities.get(ruleId) || rule?.severity || 'minor',
+            // A check may give a finding its own severity, such as the one a model judges: the most serious wins
+            severity: severityOf(byRuleFindings.get(ruleId), rule?.severity || 'minor'),
             params,
             items,
             ...rules.word(ruleId, params)
@@ -203,7 +202,7 @@ export function tabResults(results, rules, pagePath, pageUrl) {
         },
         accessibility: recs.accessibility,
         ecodesign: recs.ecodesign,
-        [OTHER_TAB]: {recommendations: recs[OTHER_TAB]},
+        [OTHER_TAB]: {recommendations: recs[OTHER_TAB], views: ruleViewsOf(results, rules, paramsOf)},
         unread: unreadTabs(values)
     };
 }

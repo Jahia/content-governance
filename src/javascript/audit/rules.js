@@ -1,4 +1,5 @@
-import {gql} from '@apollo/client';
+import {useEffect, useState} from 'react';
+import {gql, useApolloClient} from '@apollo/client';
 import {wordFinding} from './ruleText';
 
 /** The rules of a site, with their texts in the editor's interface language (English when a rule has none). */
@@ -21,23 +22,34 @@ export const CONTENT_RULES = gql`
                 unit
                 minimum
                 maximum
+                trigger
+                view
+                valueLabels {
+                    key
+                    label
+                }
             }
         }
     }
 `;
 
+/** The value of `trigger` of a rule that runs only when an editor runs it in the drawer. */
+export const MANUAL = 'manual';
+
 /**
  * The rules of a site by id, from the list that the GraphQL API or the catalog file gives.
  *
  * @param {Array<{id: string, severity: string, enabled: boolean, runtime: ?string, minimum: ?number, maximum: ?number}>} list the
- *     rules; a rule with no `runtime` runs on the server
+ *     rules; a rule with no `runtime` runs on the server, with no `trigger` in every audit, and with no `view` as a card
  * @param {string} [language] the language of their texts: the editor's interface language
  * @returns {{get: function(string): object, find: function(string): ?object, all: function(): Array<object>,
  *     language: string, word: function(string, object): object}} `get` throws on an id the catalog does not
  *     know, and `find` answers undefined; `word(id, values)` gives the texts of a finding of a rule
  */
 export function ruleBook(list, language = 'en') {
-    const byId = new Map(list.map(rule => [rule.id, {enabled: true, runtime: 'server', minimum: null, maximum: null, title: [], ...rule}]));
+    const byId = new Map(list.map(rule => [rule.id, {
+        enabled: true, runtime: 'server', trigger: 'auto', view: 'card', minimum: null, maximum: null, title: [], valueLabels: [], ...rule
+    }]));
     return {
         language,
         get(id) {
@@ -90,4 +102,30 @@ export function limits(rule) {
         out.max = rule.maximum;
     }
     return out;
+}
+
+/**
+ * The rules of the site of a page, with their texts in the editor's interface language, read once per page and
+ * language: what the cards of the drawer and the runs on demand read.
+ *
+ * @param {string} path the page
+ * @param {string} language the editor's interface language
+ * @returns {?object} the rules (`ruleBook`), or null until they are read or when they could not be read
+ */
+export function useRuleBook(path, language) {
+    const client = useApolloClient();
+    const [book, setBook] = useState(null);
+    useEffect(() => {
+        let cancelled = false;
+        setBook(null);
+        fetchRules(client, path, language).then(rules => {
+            if (!cancelled) {
+                setBook(rules);
+            }
+        }).catch(error => console.warn('[content-governance] the rules of the site could not be read', error));
+        return () => {
+            cancelled = true;
+        };
+    }, [client, path, language]);
+    return book;
 }

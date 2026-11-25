@@ -10,6 +10,8 @@ import {GOVERNANCE_PANEL} from '../common/module';
 import {useDrawerDisplay} from '../common/useDrawerDisplay';
 import {fetchPageAudits, saveFindings} from '../audit/auditHistory';
 import {usePageAudit} from '../audit/usePageAudit';
+import {useManualRuns} from '../audit/useManualRuns';
+import {useRuleBook} from '../audit/rules';
 import {PagePreview} from '../audit/PageAudit';
 import {OTHER} from '../audit/subdomainResults';
 import {useGeoCheck} from '../geo/useGeoCheck';
@@ -70,6 +72,8 @@ export const GovernanceSections = ({path, language, domains = NO_DOMAINS, places
     const {t: tAudit} = useGovernanceTranslation('audit');
     const {t: tGeo} = useGovernanceTranslation('geo');
     const {t: tCompliance} = useGovernanceTranslation('compliance');
+    const {i18n} = useGovernanceTranslation();
+    const uiLanguage = i18n?.language || 'en';
     // An entry's labels are keys with their own namespace (`my-module:tab.label`)
     const {t: translate} = useGovernanceTranslation();
     const site = useSelector(state => state.site);
@@ -149,7 +153,12 @@ export const GovernanceSections = ({path, language, domains = NO_DOMAINS, places
     const page = usePageAudit({path, language, active: needed.has(PAGE), isOn: pageIsOn});
     const geo = useGeoCheck({path, language, active: needed.has(GEO), citationsOn: shown.has('geo.citations')});
     const compliance = useComplianceScan({path, language, active: needed.has(COMPLIANCE) && !complianceUnavailable});
-    const engines = {page, geo, compliance};
+    // The rules of the site, which word the runs on demand and which a fixer of another module receives
+    const rules = useRuleBook(path, uiLanguage);
+    const manualKey = (places.manualSubdomains?.() || []).filter(id => shown.has(id)).join(',');
+    const manualSubdomains = useMemo(() => (manualKey ? manualKey.split(',') : []), [manualKey]);
+    const manual = useManualRuns({path, language, subdomains: manualSubdomains, rules, frameRef: page.frameRef, uiLanguage});
+    const engines = {page, geo, compliance, manual, rules};
 
     const reportCount = useCallback((id, count) => {
         setCounts(c => (c[id] === count ? c : {...c, [id]: count}));
@@ -190,8 +199,15 @@ export const GovernanceSections = ({path, language, domains = NO_DOMAINS, places
 
     // The same object while the findings and the usable tabs stay the same, so an entry that keys
     // an effect on it runs that effect again only when they change
-    const entryContext = useMemo(() => ({path, language, findings: entryFindings(all, usableIds.split(',')), actions}),
-        [path, language, all, usableIds, actions]);
+    const {frameRef} = page;
+    const entryContext = useMemo(() => ({
+        path,
+        language,
+        findings: entryFindings(all, usableIds.split(',')),
+        actions,
+        ruleOf: id => rules?.find(id),
+        previewDocument: () => frameRef.current?.contentDocument || null
+    }), [path, language, all, usableIds, actions, rules, frameRef]);
     const hasSerious = id => (all[id] || []).some(finding => isSerious(finding.severity));
     const goTo = useCallback(finding => {
         select(finding.section);
@@ -325,7 +341,8 @@ GovernanceSections.propTypes = {
     // Where the rules of the site sit (drawer/layout.js)
     places: PropTypes.shape({
         subdomainOf: PropTypes.func.isRequired,
-        rulesIn: PropTypes.func.isRequired
+        rulesIn: PropTypes.func.isRequired,
+        manualSubdomains: PropTypes.func
     }),
     // [{id, entry, unavailable?: 'notPage' | 'noWrite'}]: the tabs of other modules that the site keeps on, in
     // drawer order; `entry` is the registry entry of the tab (drawer/entries.js)
