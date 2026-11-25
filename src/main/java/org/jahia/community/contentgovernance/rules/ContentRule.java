@@ -55,6 +55,20 @@ public record ContentRule(String id, String subdomain, String evaluator, String 
     public static final String BROWSER = "browser";
     /** The values of {@link RuleValues#RUNTIME}. */
     public static final List<String> RUNTIMES = List.of(SERVER, BROWSER);
+    /** The rule runs in every audit: the default. */
+    public static final String AUTO = "auto";
+    /** The rule runs only when an editor runs it in the drawer, and never blocks a publication. */
+    public static final String MANUAL = "manual";
+    /** The values of {@link RuleValues#TRIGGER}. */
+    public static final List<String> TRIGGERS = List.of(AUTO, MANUAL);
+    /** The drawer shows the result as a result card: the default. */
+    public static final String CARD = "card";
+    /** The drawer shows the values of the result as label and value lines. */
+    public static final String FACT = "fact";
+    /** The drawer shows the values of the result as score tiles. */
+    public static final String SCORE = "score";
+    /** The values of {@link RuleValues#VIEW}. */
+    public static final List<String> VIEWS = List.of(CARD, FACT, SCORE);
 
     public ContentRule {
         values = Collections.unmodifiableMap(new HashMap<>(values));
@@ -68,7 +82,8 @@ public record ContentRule(String id, String subdomain, String evaluator, String 
     /**
      * A text of the rule in a language, or in English when the rule has none in that language.
      *
-     * @param key      {@link RuleValues#TITLE}, {@link RuleValues#LABEL} or {@link RuleValues#ADVICE}
+     * @param key      {@link RuleValues#TITLE}, {@link RuleValues#LABEL}, {@link RuleValues#ADVICE} or
+     *                 {@link RuleValues#VALUE_LABELS}
      * @param language a language such as {@code fr}, or null for English
      * @return the text, or null when the rule has none
      */
@@ -95,6 +110,34 @@ public record ContentRule(String id, String subdomain, String evaluator, String 
      */
     public boolean inBrowser() {
         return BROWSER.equals(values.get(RuleValues.RUNTIME));
+    }
+
+    /**
+     * True when the rule states {@code trigger: manual}: no audit runs it, and an editor runs it in the drawer.
+     */
+    public boolean manual() {
+        return MANUAL.equals(values.get(RuleValues.TRIGGER));
+    }
+
+    /** How the drawer shows the result: {@value #CARD}, {@value #FACT} or {@value #SCORE}; {@value #CARD} when unknown. */
+    public String view() {
+        Object view = values.get(RuleValues.VIEW);
+        return view != null && VIEWS.contains(view.toString()) ? view.toString() : CARD;
+    }
+
+    /**
+     * The label of each value of the result in a language: the labels of the language, then the English label of
+     * each key that the language does not name.
+     *
+     * @param language a language such as {@code fr}, or null for English
+     * @return the labels by value key, such as {@code {words: "Mots"}}
+     */
+    public Map<String, String> valueLabels(String language) {
+        Map<String, String> out = RuleValues.valueLabels(text(RuleValues.VALUE_LABELS, null));
+        if (language != null && !"en".equals(language)) {
+            out.putAll(RuleValues.valueLabels(text(RuleValues.VALUE_LABELS, language)));
+        }
+        return out;
     }
 
     /**

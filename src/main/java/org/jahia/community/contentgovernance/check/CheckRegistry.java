@@ -124,15 +124,16 @@ public class CheckRegistry {
 
     /**
      * @param rule a rule of a site
-     * @return true when a finding of the rule stops the publication: never for a rule of the browser
+     * @return true when a finding of the rule stops the publication: never for a rule of the browser or a rule that
+     * runs on demand
      */
     public boolean blocking(ContentRule rule) {
-        return rule.blocking() && !rule.inBrowser();
+        return rule.blocking() && !rule.inBrowser() && !rule.manual();
     }
 
     /**
-     * Runs on the input each check of a rule that the site of the input keeps on. A rule of the browser,
-     * or a check not in the scope of the input, does not run. A {@link RuleSetCheck} runs once, on all its
+     * Runs on the input each check of a rule that the site of the input keeps on. A rule of the browser, a rule
+     * that runs on demand ({@code trigger: manual}), or a check not in the scope of the input, does not run. A {@link RuleSetCheck} runs once, on all its
      * rules. A check that fails is logged and skipped.
      *
      * @param input   what to check, whose path names the site
@@ -152,7 +153,21 @@ public class CheckRegistry {
      * @return the results, in the order of the rules, each with at most {@value #MAX_FINDINGS} findings
      */
     public List<CheckResult> results(ContentRules rules, CheckInput input) {
-        return apply(rules, input, Set.of(), null).stream().map(Ran::result).toList();
+        return apply(rules, input, Set.of(), null, false).stream().map(Ran::result).toList();
+    }
+
+    /**
+     * Runs on the input the rules of the site that run on demand ({@code trigger: manual}) and whose id
+     * {@code ruleIds} holds, and gives one result per rule that ran, passed or failed. No other run applies such a
+     * rule: an editor runs it in the drawer.
+     *
+     * @param rules   the rules of the site of the input
+     * @param input   what to check
+     * @param ruleIds the ids of the rules to run; a rule that does not run on demand is left out
+     * @return the results, in the order of the rules, each with at most {@value #MAX_FINDINGS} findings
+     */
+    public List<CheckResult> manualResults(ContentRules rules, CheckInput input, Set<String> ruleIds) {
+        return apply(rules, input, Set.of(), ruleIds, true).stream().map(Ran::result).toList();
     }
 
     /**
@@ -175,34 +190,42 @@ public class CheckRegistry {
      * @param rule  a rule of a site
      * @param scope where the check would run
      * @return true when a run on an input of the scope applies the rule: the site keeps it on, it is placed in
-     * a subdomain of the site, it does not run in the browser, and a started module registers its check in
-     * that scope
+     * a subdomain of the site, it does not run in the browser or on demand, and a started module registers its check
+     * in that scope
      */
     public boolean runs(ContentRule rule, Scope scope) {
-        return runner(rule, scope) != null;
+        return runner(rule, scope, false) != null;
     }
 
-    /** The check that applies the rule in the scope, or null when the rule does not run there. */
-    private Registered runner(ContentRule rule, Scope scope) {
-        Registered registered = rule.enabled() && rule.placed() && !rule.inBrowser() ? find(rule.evaluator()) : null;
+    /**
+     * The check that applies the rule in the scope, or null when the rule does not run there. A run on demand applies
+     * the rules that run on demand only, and any other run the other rules only.
+     */
+    private Registered runner(ContentRule rule, Scope scope, boolean manual) {
+        Registered registered = rule.enabled() && rule.placed() && !rule.inBrowser() && rule.manual() == manual
+                ? find(rule.evaluator()) : null;
         return registered != null && registered.check().scopes().contains(scope) ? registered : null;
     }
 
     /** The findings of {@link #apply}, each with its rule. */
     private List<Checked> run(ContentRules rules, CheckInput input, Set<String> skipped, Set<String> ruleIds) {
         List<Checked> out = new ArrayList<>();
-        for (Ran ran : apply(rules, input, skipped, ruleIds)) {
+        for (Ran ran : apply(rules, input, skipped, ruleIds, false)) {
             ran.result().findings().forEach(finding -> out.add(new Checked(ran.rule(), finding)));
         }
         return out;
     }
 
-    /** The run on the rules of the site whose id {@code ruleIds} holds, or on every rule when it is null. */
-    private List<Ran> apply(ContentRules rules, CheckInput input, Set<String> skipped, Set<String> ruleIds) {
+    /**
+     * The run on the rules of the site whose id {@code ruleIds} holds, or on every rule when it is null: the rules that
+     * run on demand with {@code manual}, else the other rules.
+     */
+    private List<Ran> apply(ContentRules rules, CheckInput input, Set<String> skipped, Set<String> ruleIds,
+                            boolean manual) {
         List<Running> running = new ArrayList<>();
         for (ContentRule rule : rules.all()) {
             boolean wanted = !skipped.contains(rule.evaluator()) && (ruleIds == null || ruleIds.contains(rule.id()));
-            Registered registered = wanted ? runner(rule, input.scope()) : null;
+            Registered registered = wanted ? runner(rule, input.scope(), manual) : null;
             if (registered != null) {
                 running.add(new Running(rule, registered));
             }

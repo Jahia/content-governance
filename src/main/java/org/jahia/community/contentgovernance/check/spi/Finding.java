@@ -8,7 +8,9 @@ import java.util.Map;
  * One place where a content breaks a rule.
  *
  * @param ruleId   the id of the rule
- * @param severity the severity of the rule as the site applies it: critical, serious, moderate or minor
+ * @param severity critical, serious, moderate or minor: the severity of the rule as the site applies it, or the
+ *                 severity that the check gives this finding, such as the severity that a model judges. The drawer
+ *                 shows a rule with the most serious severity of its findings
  * @param text     the text that breaks the rule, such as a matched term, an HTML tag or a measured value
  * @param context  the text around the match, or null
  * @param locator  a CSS selector of the element that breaks the rule in the rendered page, such as

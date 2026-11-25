@@ -193,4 +193,42 @@ class RuleFileTest {
         RuleFile tone = RuleFile.parse("---\nevaluator: model\ncheckType: AI\nsubdomain: writing\nseverity: minor\nminimum: 80\n---\nWrite in a friendly tone.\n", "acme.tone.md");
         assertThat(tone.values()).containsEntry(RuleValues.MINIMUM, 80.0).doesNotContainKey(RuleValues.UNIT);
     }
+
+    @Test
+    @DisplayName("a rule of any check type runs on demand, shows as facts with a label per value, and a bad value is refused")
+    void triggerViewAndValueLabels() {
+        RuleFile rule = RuleFile.parse("""
+                ---
+                id: acme.tone
+                evaluator: model
+                checkType: AI
+                subdomain: writing
+                severity: minor
+                trigger: manual
+                view: fact
+                valueLabels:
+                  en:
+                    words: Words
+                    readingTime: Reading time
+                  fr:
+                    words: Mots
+                ---
+                Write in a friendly tone.
+                """, "acme.tone.md");
+        ContentRule placed = RuleValues.toRule(rule.values());
+
+        assertThat(placed.manual()).isTrue();
+        assertThat(placed.view()).isEqualTo(ContentRule.FACT);
+        assertThat(placed.valueLabels(null)).containsExactly(Map.entry("words", "Words"), Map.entry("readingTime", "Reading time"));
+        assertThat(placed.valueLabels("fr")).containsExactly(Map.entry("words", "Mots"), Map.entry("readingTime", "Reading time"));
+        assertThat(RuleValues.toRule(Map.of(RuleValues.RULE_ID, "acme.plain")).view()).isEqualTo(ContentRule.CARD);
+
+        String base = "---\nevaluator: model\ncheckType: AI\nsubdomain: writing\nseverity: minor\n";
+        assertThatThrownBy(() -> RuleFile.parse(base + "trigger: weekly\n---\n", "acme.a.md"))
+                .hasMessageContaining("unknown trigger weekly");
+        assertThatThrownBy(() -> RuleFile.parse(base + "view: chart\n---\n", "acme.b.md"))
+                .hasMessageContaining("unknown view chart");
+        assertThatThrownBy(() -> RuleFile.parse(base + "valueLabels:\n  en: Words\n---\n", "acme.c.md"))
+                .hasMessageContaining("a map such as words: Words");
+    }
 }

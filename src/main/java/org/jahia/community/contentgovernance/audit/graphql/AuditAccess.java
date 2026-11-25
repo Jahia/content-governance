@@ -45,9 +45,25 @@ public final class AuditAccess {
      * @throws DataFetchingException with one answer for every refusal
      */
     static Target page(String path, String language, String tab) {
+        return page(path, language, tab, Features.isTab(tab));
+    }
+
+    /**
+     * @param path      path of a page or main resource
+     * @param language  content language
+     * @param subdomain the subdomain whose rules on demand run or whose runs are read, which the site must keep on
+     * @return the page, read with the caller's session, and its site
+     * @throws DataFetchingException with one answer for every refusal
+     */
+    static Target subdomainPage(String path, String language, String subdomain) {
+        return page(path, language, subdomain, Features.isValid(subdomain));
+    }
+
+    /** The page of a feature whose id has a valid form, which the site must keep on. */
+    private static Target page(String path, String language, String feature, boolean validFeature) {
         user();
         if (path == null || !path.startsWith("/sites/") || path.contains("..") || !validLanguage(language)
-                || !Features.isTab(tab)) {
+                || !validFeature) {
             throw new DataFetchingException(DENIED);
         }
         try {
@@ -56,7 +72,7 @@ public final class AuditAccess {
                 throw new DataFetchingException(DENIED);
             }
             JCRSiteNode site = page.getResolveSite();
-            requireSite(site, language, tab);
+            requireSite(site, language, feature);
             return new Target(site, page);
         } catch (PathNotFoundException e) {
             throw new DataFetchingException(DENIED);

@@ -44,6 +44,14 @@
  // A finding of a blocking rule stops the publication of the content.
  - blocking (boolean) = 'false' autocreated
  - fixer (string, choicelist[resourceBundle]) = 'editor' autocreated < 'editor', 'developer', 'administrator'
+ // When the rule runs. manual: only when an editor runs it in the drawer, such as a rule that calls a model. It
+ // never blocks a publication. Empty: auto, in every audit.
+ - trigger (string, choicelist[resourceBundle]) nofulltext < 'auto', 'manual'
+ // How the drawer shows the result of the rule. fact: its values as label and value lines. score: its values as
+ // score tiles. Empty: card, a result card for a rule that fails.
+ - view (string, choicelist[resourceBundle]) nofulltext < 'card', 'fact', 'score'
+ // The label of each value of the result, one line per value, such as "words: Words".
+ - valueLabels (string, textarea) i18n
  // What to do about a finding. For a rule of the check type AI, the criterion that the model checks.
  - advice (string, textarea) i18n
  // The title of a finding, with one line per plural form, such as "one: {{count}} image has no text

@@ -158,6 +158,24 @@ public class HtmlCheck {
      */
     public List<CheckResult> results(Rendered rendered, Locale language) {
         ContentRules rules = ContentRules.forPath(rendered.path());
+        return checks.results(rules, renderedInput(rendered, language, rules));
+    }
+
+    /**
+     * Runs the checks of the scope {@code PAGE} of the rules that run on demand ({@code trigger: manual}), whose id
+     * {@code ruleIds} holds, and that the site of the node keeps on: what an editor runs in the drawer.
+     *
+     * @param language the language of the content, such as {@code en}
+     * @param ruleIds  the ids of the rules to run
+     * @return the results, in the order of the rules, with at most 50 findings each
+     */
+    public List<CheckResult> manualResults(Rendered rendered, Locale language, Set<String> ruleIds) {
+        ContentRules rules = ContentRules.forPath(rendered.path());
+        return checks.manualResults(rules, renderedInput(rendered, language, rules), ruleIds);
+    }
+
+    /** The input of the checks on a rendered node, with the facts of the repository and of the rules of the site. */
+    private static CheckInput renderedInput(Rendered rendered, Locale language, ContentRules rules) {
         CheckInput input = input(rendered.path(), language == null ? null : language.getLanguage(), rendered.html(),
                 rendered.scope());
         for (Map.Entry<String, Object> fact : rendered.facts().entrySet()) {
@@ -167,7 +185,7 @@ public class HtmlCheck {
         if (maxSentenceWords != null) {
             input = input.withFact(ReadabilityChecks.LONG_SENTENCE_WORDS, maxSentenceWords);
         }
-        return checks.results(rules, input);
+        return input;
     }
 
     /** The maximum of the rule {@code readability.longSentences} of the site, or null. */

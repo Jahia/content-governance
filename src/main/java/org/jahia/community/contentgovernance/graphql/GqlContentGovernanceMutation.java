@@ -7,7 +7,9 @@ import graphql.annotations.annotationTypes.GraphQLNonNull;
 import graphql.schema.DataFetchingEnvironment;
 import org.jahia.community.contentgovernance.audit.graphql.AuditFields;
 import org.jahia.community.contentgovernance.audit.graphql.GqlAuditRun;
+import org.jahia.community.contentgovernance.audit.graphql.ManualRuns;
 import org.jahia.community.contentgovernance.audit.service.spi.AuditHistoryService;
+import org.jahia.community.contentgovernance.html.HtmlCheck;
 import org.jahia.community.contentgovernance.rules.ContentDomains;
 import org.jahia.community.contentgovernance.rules.SiteLayout;
 import org.jahia.community.contentgovernance.rules.TreeLayout;
@@ -41,6 +43,12 @@ public class GqlContentGovernanceMutation {
     @Inject
     @GraphQLOsgiService
     private AuditHistoryService audits;
+
+    // graphql-java-annotations injects OSGi services into fields only (@GraphQLOsgiService)
+    @SuppressWarnings("java:S6813")
+    @Inject
+    @GraphQLOsgiService
+    private HtmlCheck pages;
 
     /**
      * Saves how a site arranges the domains, the subdomains and the rules of the system site. The write goes
@@ -167,5 +175,32 @@ public class GqlContentGovernanceMutation {
                     + "{key, rule, tab, severity, title, detail, count}") String findings,
             DataFetchingEnvironment environment) {
         return AuditFields.saveFindings(audits, path, language, tab, findings, environment);
+    }
+
+    /**
+     * Runs the rules on demand ({@code trigger: manual}) of a subdomain on a page, and stores the run as the latest of
+     * the subdomain, for every editor of the site. The rules of the server run on the page rendered as the caller.
+     * The drawer of the caller runs the rules of the browser on the preview, and sends their results.
+     *
+     * @param path           path of the page or main resource
+     * @param language       content language
+     * @param subdomain      id of the subdomain of the rules
+     * @param browserResults the results of the rules of the browser as a JSON array, or null
+     * @param environment    the request
+     * @return the stored run, with its results
+     */
+    @GraphQLField
+    @GraphQLName("runManualRules")
+    @GraphQLNonNull
+    @GraphQLDescription("Runs the rules on demand (trigger: manual) of a subdomain on a page, and stores the run as the "
+            + "latest of the subdomain, for every editor of the site")
+    public GqlAuditRun runManualRules(
+            @GraphQLName("path") @GraphQLNonNull @GraphQLDescription("Path of the page") String path,
+            @GraphQLName("language") @GraphQLNonNull @GraphQLDescription("Content language") String language,
+            @GraphQLName("subdomain") @GraphQLNonNull @GraphQLDescription("Id of the subdomain of the rules") String subdomain,
+            @GraphQLName("browserResults") @GraphQLDescription("The results of the rules of the browser that the drawer "
+                    + "ran on the preview, as a JSON array of {ruleId, passed, values, findings}") String browserResults,
+            DataFetchingEnvironment environment) {
+        return ManualRuns.run(audits, pages, path, language, subdomain, browserResults, environment);
     }
 }

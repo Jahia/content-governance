@@ -141,8 +141,22 @@ public record RuleFile(String id, Map<String, Object> values) {
         }
     }
 
-    /** The text of one language: plural forms for a title, as {@link RuleValues#pluralForms} reads them. */
+    /**
+     * The text of one language: plural forms for a title, as {@link RuleValues#pluralForms} reads them, and a label
+     * per value for the value labels, as {@link RuleValues#valueLabels} reads them.
+     */
     private static String encoded(String key, Object text, String fileName) {
+        if (RuleValues.VALUE_LABELS.equals(key)) {
+            if (!(text instanceof Map<?, ?> labels)) {
+                throw new IllegalArgumentException(fileName + ": the value labels of a language are a map such as "
+                        + "words: Words");
+            }
+            try {
+                return RuleValues.encodeLabels(labels);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(fileName + ": " + e.getMessage(), e);
+            }
+        }
         if (text instanceof Map<?, ?> forms) {
             if (!RuleValues.TITLE.equals(key)) {
                 throw new IllegalArgumentException(fileName + ": only a title has plural forms");
@@ -207,6 +221,8 @@ public record RuleFile(String id, Map<String, Object> values) {
         oneOf(id, RuleValues.KIND, values, KINDS);
         oneOf(id, RuleValues.MATCH_MODE, values, MATCH_MODES);
         oneOf(id, RuleValues.RUNTIME, values, ContentRule.RUNTIMES);
+        oneOf(id, RuleValues.TRIGGER, values, ContentRule.TRIGGERS);
+        oneOf(id, RuleValues.VIEW, values, ContentRule.VIEWS);
         boolean limited = values.containsKey(RuleValues.MINIMUM) || values.containsKey(RuleValues.MAXIMUM);
         if (CheckType.CODE.name().equals(values.get(RuleValues.CHECK_TYPE)) && limited
                 && !values.containsKey(RuleValues.UNIT)) {

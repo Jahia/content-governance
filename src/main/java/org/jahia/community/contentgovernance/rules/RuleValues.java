@@ -82,6 +82,21 @@ public final class RuleValues {
      * {@code Map<language, Map<TITLE|LABEL|ADVICE, text>>}. The digest and the seeder ignore it.
      */
     public static final String TRANSLATIONS = "translations";
+    /**
+     * When the rule runs: {@value ContentRule#MANUAL} for a rule that runs only when an editor runs it in the
+     * drawer, such as a rule that calls a model. Empty: {@value ContentRule#AUTO}, in every audit.
+     */
+    public static final String TRIGGER = "trigger";
+    /**
+     * How the drawer shows the result of the rule: {@value ContentRule#CARD}, the default, {@value ContentRule#FACT}
+     * for its values as label and value lines, or {@value ContentRule#SCORE} for its values as score tiles.
+     */
+    public static final String VIEW = "view";
+    /**
+     * Internationalized on the node: the label of each value of the result of the rule, one line per value, such
+     * as {@code words: Words}. The rules read and write its English value.
+     */
+    public static final String VALUE_LABELS = "valueLabels";
 
     /**
      * Every property that a rule file sets, in the order of the digest. 2.0.0 changed the order: it removed
@@ -95,9 +110,9 @@ public final class RuleValues {
     public static final List<String> KEYS = List.of(RULE_ID, EVALUATOR, ENABLED, SEVERITY, BLOCKING, FIXER,
             ADVICE, UNIT, MINIMUM, MAXIMUM, KIND, PATTERN, MATCH_MODE, REPLACEMENT, RULE_LANGUAGE, WRONG_EXAMPLES,
             RIGHT_EXAMPLES, OWNER, DECIDED_ON, VALID_FROM, VALID_UNTIL, PATTERN_FORMS, REPLACEMENT_FORMS,
-            PATTERN_LANGUAGE, TITLE, LABEL, SUBDOMAIN, SITES, RUNTIME, CHECK_TYPE);
+            PATTERN_LANGUAGE, TITLE, LABEL, SUBDOMAIN, SITES, RUNTIME, CHECK_TYPE, TRIGGER, VIEW, VALUE_LABELS);
     /** The texts that a rule holds in each language. */
-    public static final List<String> TRANSLATABLE = List.of(TITLE, LABEL, ADVICE);
+    public static final List<String> TRANSLATABLE = List.of(TITLE, LABEL, ADVICE, VALUE_LABELS);
     /** The plural forms of a title, as {@code Intl.PluralRules} and CLDR name them. */
     public static final List<String> PLURAL_FORMS = List.of("zero", "one", "two", "few", "many", "other");
     public static final List<String> BOOLEANS = List.of(ENABLED, BLOCKING);
@@ -171,6 +186,43 @@ public final class RuleValues {
             }
         }
         return out;
+    }
+
+    /**
+     * The labels of the values of a result: one line per value, {@code <key>: <label>}. A line with no colon is
+     * left out.
+     *
+     * @param encoded the labels as a rule node holds them, such as {@code "words: Words\nreadingTime: Reading
+     *                time"}, or null
+     * @return the label of each value key, in the order of the lines; empty for null
+     */
+    public static Map<String, String> valueLabels(String encoded) {
+        Map<String, String> out = new LinkedHashMap<>();
+        if (encoded == null || encoded.isBlank()) {
+            return out;
+        }
+        for (String line : encoded.split("\n")) {
+            int colon = line.indexOf(':');
+            String key = colon > 0 ? line.substring(0, colon).strip() : "";
+            if (!key.isEmpty()) {
+                out.put(key, line.substring(colon + 1).strip());
+            }
+        }
+        return out;
+    }
+
+    /** The labels of the values, as {@link #valueLabels} reads them. */
+    static String encodeLabels(Map<?, ?> labels) {
+        StringBuilder out = new StringBuilder();
+        for (Map.Entry<?, ?> label : labels.entrySet()) {
+            String key = String.valueOf(label.getKey());
+            if (!RuleFile.ID_PATTERN.matcher(key).matches()) {
+                throw new IllegalArgumentException("The value key " + key + " holds a character that a key refuses");
+            }
+            out.append(out.isEmpty() ? "" : "\n").append(key).append(": ")
+                    .append(String.valueOf(label.getValue()).replace('\n', ' ').strip());
+        }
+        return out.toString();
     }
 
     /** The title of the plural forms, as {@link #pluralForms} reads it. */

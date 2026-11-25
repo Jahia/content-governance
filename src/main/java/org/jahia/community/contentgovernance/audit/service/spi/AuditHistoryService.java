@@ -27,6 +27,17 @@ public interface AuditHistoryService {
     /** The tab of the Page quality audits. */
     String AUDIT_TAB = "audit";
 
+    /** The start of the tab of the runs of the rules on demand of a subdomain, such as {@code manual:writing}. */
+    String MANUAL_TAB_PREFIX = "manual:";
+
+    /**
+     * @param subdomain the id of a subdomain, such as {@code writing}
+     * @return the tab that keeps the runs of the rules on demand of the subdomain, such as {@code manual:writing}
+     */
+    static String manualTab(String subdomain) {
+        return MANUAL_TAB_PREFIX + subdomain;
+    }
+
     /**
      * Stores an audit as the latest of its page.
      *
@@ -58,6 +69,22 @@ public interface AuditHistoryService {
      */
     AuditRun saveFindings(String sitePath, String pageId, String language, String tab, String user,
                           JSONObject findings) throws RepositoryException;
+
+    /**
+     * Stores a run of the rules on demand of a subdomain as the latest run of the tab
+     * {@link #manualTab(String)} of the subdomain on the page. The site dashboard of Page quality does not list it.
+     *
+     * @param sitePath  path of the site ({@code /sites/<key>})
+     * @param pageId    identifier of the page
+     * @param language  content language of the run
+     * @param subdomain id of the subdomain of the rules
+     * @param user      username of the editor who ran the rules
+     * @param results   the result of each rule, {@code {"results": [{ruleId, passed, values, findings}]}}
+     * @return the stored run, with the failed rules as its issues, and with its results
+     * @throws RepositoryException when the run could not be stored
+     */
+    AuditRun saveManualRun(String sitePath, String pageId, String language, String subdomain, String user,
+                           JSONObject results) throws RepositoryException;
 
     /**
      * @param sitePath path of the site
