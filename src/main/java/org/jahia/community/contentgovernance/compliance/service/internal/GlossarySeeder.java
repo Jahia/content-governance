@@ -56,7 +56,10 @@ public class GlossarySeeder extends DefaultEventListener {
     private static final String INSTALLED_MODULES = "j:installedModules";
     private static final String EDIT_WORKSPACE = "default";
     private static final String TITLE = "jcr:title";
+    private static final String SITES = "/sites";
     private static final String CONTENTS = "/contents";
+    /** The path of the glossary folder under the path of a site. */
+    private static final String FOLDER_PATH = CONTENTS + "/" + FOLDER;
     private static final String CONTRIBUTE_MODE = "jmix:contributeMode";
     private static final String CONTRIBUTE_TYPES = "j:contributeTypes";
     private static final String CONTENT_FOLDER = "jnt:contentFolder";
@@ -86,11 +89,11 @@ public class GlossarySeeder extends DefaultEventListener {
     /** The paths of the sites that hold the folder of the example. */
     private static List<String> seededSites(JCRSessionWrapper session) throws RepositoryException {
         List<String> out = new ArrayList<>();
-        if (!session.nodeExists("/sites")) {
+        if (!session.nodeExists(SITES)) {
             return out;
         }
-        for (JCRNodeWrapper site : session.getNode("/sites").getNodes()) {
-            if (session.nodeExists(site.getPath() + CONTENTS + "/" + FOLDER)) {
+        for (JCRNodeWrapper site : session.getNode(SITES).getNodes()) {
+            if (session.nodeExists(site.getPath() + FOLDER_PATH)) {
                 out.add(site.getPath());
             }
         }
@@ -104,7 +107,7 @@ public class GlossarySeeder extends DefaultEventListener {
 
     @Override
     public String getPath() {
-        return "/sites";
+        return SITES;
     }
 
     @Override
@@ -182,7 +185,7 @@ public class GlossarySeeder extends DefaultEventListener {
      * or a rule of the subdomain {@value ContentRules#TERMS} anywhere under its contents.
      */
     private static boolean hasTerms(JCRSessionWrapper session, String sitePath) throws RepositoryException {
-        if (session.nodeExists(sitePath + CONTENTS + "/" + FOLDER)) {
+        if (session.nodeExists(sitePath + FOLDER_PATH)) {
             return true;
         }
         String root = (sitePath + CONTENTS).replace("'", "''");
@@ -276,7 +279,7 @@ public class GlossarySeeder extends DefaultEventListener {
     private static Map<String, String> untouchedFolders(JCRSessionWrapper session, String sitePath, ResourceBundle text)
             throws RepositoryException {
         Map<String, String> out = new LinkedHashMap<>();
-        String path = sitePath + CONTENTS + "/" + FOLDER;
+        String path = sitePath + FOLDER_PATH;
         if (!session.nodeExists(path)) {
             return out;
         }
