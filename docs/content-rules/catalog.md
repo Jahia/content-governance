@@ -33,6 +33,9 @@ properties. jContent shows a label for each property, such as **Check** for `eva
 | `patternLanguage` | For a glossary term to translate, the language of the term, such as `en` for "access token" in a rule of `fr`. `frame.check` on a translation then reports a missing replacement. |
 | `wrongExamples`, `rightExamples`, `owner`, `decidedOn`, `validFrom`, `validUntil` | The examples, the decision and the dates of a writing rule. |
 | `runtime` | Where the check of the rule runs: `browser` for a check that the drawer runs on the preview of the page, else `server`. Empty: `server`. The server never runs a rule of the browser, never blocks a publication on it, and shows it as active. |
+| `trigger` | When the rule runs. With `manual`, the rule runs only when an editor clicks Run in the section of its subdomain. Use it for a rule that calls a model. Empty: `auto`, in every audit. [Rules that run on demand](#rules-that-run-on-demand) states the run. |
+| `view` | How the drawer shows the result of the rule: `card`, `fact` or `score`. Empty: `card`. [How the drawer shows a result](#how-the-drawer-shows-a-result) states each view. |
+| `valueLabels` | The label of each value of the result, one text per language, such as `words: Words`. A view `fact` or `score` shows it beside each value. |
 | `retired` | Set by the module on a rule that an administrator changed and that its module no longer ships. |
 
 | Check (`evaluator`) | Check type | What checks the rule |
@@ -126,7 +129,9 @@ in the log when the file has one of these defects:
 - No subdomain, a list of subdomains, or a subdomain that no started module declares.
 
 The texts of a rule take a map of languages. The drawer shows them in the language of the
-interface of the editor, and in English when the rule has none in that language:
+interface of the editor, and in English when the rule has none in that language. The key
+`valueLabels` takes a map of value keys in each language, and a language with no label for a key
+takes the English label:
 
 ```markdown
 label:
@@ -141,6 +146,12 @@ title:
     other: "{{count}} images sans alternative textuelle"
 advice:
   fr: "Donnez à chaque image un attribut alt : une description, ou une valeur vide pour une image décorative."
+valueLabels:
+  en:
+    words: "Words"
+    minutes: "Reading time"
+  fr:
+    words: "Mots"
 ```
 
 The module writes only the English texts on the node. An administrator translates a text on the
@@ -150,6 +161,50 @@ The module writes the rules of each module once, in the tree of the system site,
 their subdomain. The seeder runs on the processing server when a module that ships rules starts. A
 rule of a subdomain that the tree does not hold yet waits. The seeder writes it when the module that
 declares the subdomain starts.
+
+### How the drawer shows a result
+
+The key `view` of a rule picks the [result pattern](../result-patterns.md) of its result. The view works
+for a check of the server and a check of the browser, of content-governance and of another module.
+
+| View | What the section of the subdomain shows |
+|---|---|
+| `card` | A `ResultCard` when the rule fails, with its title, its advice and its findings. The default. |
+| `fact` | A `FactBlock` with the title of the rule and one row per value of the result. A row takes its label from `valueLabels`, else the key of the value. The rule shows a card too when it fails. |
+| `score` | A `ScoreBlock` with one tile per value of the result, labelled as for `fact`. A number inside `minimum` and `maximum` is `good`, and outside them `poor`. A rule with no limit gives no band. |
+
+Example: the rule `acme.reading` has `view: fact`, and its labels name the values `words` and
+`minutes`. Its check gives 640 words and 3 minutes, and the section shows the rows "Words 640" and
+"Reading time 3".
+
+A module adds a fixer to a finding in the drawer, which proposes what to write instead.
+[Add a fixer of a finding](../drawer-entries.md#add-a-fixer-of-a-finding) states the registry entry. A
+fixer chooses its findings with its function `appliesTo`. The key `fixer` of a rule still names the role of
+the person who fixes a finding.
+
+### Rules that run on demand
+
+A rule with `trigger: manual` never runs in an audit, in a Compliance scan, in `checkText` or in
+`frame.check`, and it never blocks a publication. The section of its subdomain shows the banner "Not
+run yet" with Run, or the date of the last run and who ran it, with Run again. A click on Run runs every
+rule on demand of the subdomain on the page and its language:
+
+- The mutation `runManualRules(path, language, subdomain, browserResults)` renders the page as the
+  editor, and runs the rules of the server.
+- The drawer runs the rules of the browser on the preview first, and sends their results in
+  `browserResults`. The server keeps the results of the rules on demand of the subdomain only.
+- The server stores the run through `AuditHistoryService`, under the tab `manual:<subdomain>`. The run
+  holds the result of each rule, as `{results: [{ruleId, passed, values, findings}]}`. The page keeps
+  the last 10 runs of each subdomain.
+
+The query `manualRuns(path, language, subdomain)` gives the stored runs, newest first, and the newest
+carries its results. When the drawer opens, it shows the last run without a new run, and the failed
+rules of that run count in the badge of the section. Both fields need a signed-in user who may open
+jContent on the site and read the page. The site must keep the subdomain on.
+
+Example: the rule `acme.tone` of the AI assistant has `trigger: manual` and `subdomain: writing`. The
+Writing section shows "Not run yet". An editor clicks Run, and the model judges the page once. Every
+editor of the site then sees the result, with the date and the name of the editor.
 
 ## How an administrator changes a rule
 
@@ -470,7 +525,8 @@ A check states the scopes in which it runs:
 
 A run applies each rule that the site keeps on and whose check is registered for the scope. It gives
 one result per rule, passed or failed. Each finding carries the id of the rule, its severity, and
-the text that breaks the rule. A check that throws an exception
+the text that breaks the rule. A check may give a finding its own severity, such as the severity that
+a model judges. The drawer shows a rule with the most serious severity of its findings. A check that throws an exception
 gives no result, and the other checks still run. One rule gives 50 findings or fewer on one input.
 
 A finding on a value can also carry values, which the Compliance section and `frame.check` read:
@@ -481,6 +537,7 @@ A finding on a value can also carry values, which the Compliance section and `fr
 | `end` | The place where the text of the finding ends, excluded. |
 | `term` | The term of the rule that the text holds, such as "click here". |
 | `replacement` | What to write instead, such as "select". |
+| `fix` | What a check proposes to write instead, such as a sentence that a model rewrote. The card of the finding shows it. |
 
 Example: `{start: 4, end: 14, term: "click here", replacement: "select"}` in "Now click here to buy".
 With no `start`, the Compliance section marks the first place of the text of the finding.
