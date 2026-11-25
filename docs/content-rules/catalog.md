@@ -537,15 +537,16 @@ A finding on a value can also carry values, which the Compliance section and `fr
 | `end` | The place where the text of the finding ends, excluded. |
 | `term` | The term of the rule that the text holds, such as "click here". |
 | `replacement` | What to write instead, such as "select". |
-| `fix` | What a check proposes to write instead, such as a sentence that a model rewrote. The card of the finding shows it. |
+| `fix` | What a check proposes to write instead, such as a sentence that a model rewrote. The occurrence of the finding shows it. |
 
 Example: `{start: 4, end: 14, term: "click here", replacement: "select"}` in "Now click here to buy".
 With no `start`, the Compliance section marks the first place of the text of the finding.
 
 A check whose rules act on each other implements `RuleSetCheck` instead of `ContentCheck`. A run
 then calls it once per input, with all its rules, and gives each finding to the rule that it names.
-Each of these rules gets a result with no value, which passes when the rule has no finding. The
-check `pattern` is one. The term "Sackville-Baggins" of one rule hides the term "Baggins" of
+By default each of these rules gets a result with no value, which passes when the rule has no finding.
+A check that overrides `results` gives each rule its own result with values, such as `{score: 72}`
+for a rule with `view: score`. The check `pattern` is one. The term "Sackville-Baggins" of one rule hides the term "Baggins" of
 another rule. A glossary rule of another language reports a form of its term.
 
 ```graphql

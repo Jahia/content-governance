@@ -66,10 +66,10 @@ public final class Readability {
     private static final Pattern NOT_LETTER = Pattern.compile("[^\\p{L}]");
     private static final Pattern NOT_WORD = Pattern.compile("[^\\p{L}\\p{N}'’-]");
     private static final Pattern SPACES = Pattern.compile("\\s+");
-    /** A sentence ends at the spaces after a full stop, ! ? or an ellipsis. */
-    private static final Pattern SENTENCE_END = Pattern.compile("(?<=[.!?…])\\s+");
+    /** A sentence ends at the spaces after a full stop, ! ? or an ellipsis, and at a line break. */
+    private static final Pattern SENTENCE_END = Pattern.compile("(?<=[.!?…])\\s+|\\s*\\n\\s*");
     /** A sentence of a language written without spaces ends at its full stop, ! or ?. */
-    private static final Pattern UNSPACED_SENTENCE_END = Pattern.compile("[。．！？!?]+");
+    private static final Pattern UNSPACED_SENTENCE_END = Pattern.compile("[。．！？!?\\n]+");
     private static final int READING_WORDS_PER_MINUTE = 200;
     private static final String SPACED = "spaced";
     private static final String EMPTY = "empty";

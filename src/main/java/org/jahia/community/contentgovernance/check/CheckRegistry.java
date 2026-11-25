@@ -263,11 +263,11 @@ public class CheckRegistry {
     }
 
     /**
-     * Applies each {@link RuleSetCheck} once to its rules of the run, and gives each of these rules a result
-     * with no value, which passes when the rule has no finding.
+     * Applies each {@link RuleSetCheck} once to its rules of the run, through {@link RuleSetCheck#results}.
      *
-     * @return the results, by the id of their rule, with none for the rules of a check that failed; a finding
-     * that names a rule of another check is dropped
+     * @return the results, by the id of their rule, with none for the rules of a check that failed; a result
+     * whose rule is not a rule of its check in this run is dropped, and a rule with no result gets a result with
+     * no value and no finding
      */
     private static Map<String, CheckResult> together(CheckInput input, List<Running> running) {
         Map<Registered, List<ContentRule>> sets = new LinkedHashMap<>();
@@ -278,20 +278,18 @@ public class CheckRegistry {
         }
         Map<String, CheckResult> byRule = new HashMap<>();
         sets.forEach((registered, setRules) -> {
-            Map<String, List<Finding>> found = new HashMap<>();
-            setRules.forEach(rule -> found.put(rule.id(), new ArrayList<>()));
+            Map<String, CheckResult> ofSet = new HashMap<>();
             try {
-                for (Finding finding : ((RuleSetCheck) registered.check()).check(input, setRules)) {
-                    List<Finding> ofRule = found.get(finding.ruleId());
-                    if (ofRule != null) {
-                        ofRule.add(finding);
+                for (CheckResult result : ((RuleSetCheck) registered.check()).results(input, setRules)) {
+                    if (result != null && setRules.stream().anyMatch(rule -> rule.id().equals(result.ruleId()))) {
+                        ofSet.putIfAbsent(result.ruleId(), result);
                     }
                 }
             } catch (RuntimeException e) {
                 logger.warn("The check {} failed on its {} rules at {}", registered.id(), setRules.size(), input.path(), e);
                 return;
             }
-            setRules.forEach(rule -> byRule.put(rule.id(), CheckResult.of(rule, Map.of(), found.get(rule.id()))));
+            setRules.forEach(rule -> byRule.put(rule.id(), ofSet.getOrDefault(rule.id(), CheckResult.of(rule, Map.of(), List.of()))));
         });
         return byRule;
     }

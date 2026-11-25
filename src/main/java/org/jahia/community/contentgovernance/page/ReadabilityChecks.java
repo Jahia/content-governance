@@ -5,8 +5,10 @@ import org.jahia.community.contentgovernance.check.ThresholdCheck;
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.NodeTraversor;
+import org.jsoup.select.NodeVisitor;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -60,7 +62,8 @@ public class ReadabilityChecks {
 
     private static final String SHARED = "content-governance:readability";
     /** The parts of a page that are not its text. */
-    private static final String NOT_TEXT = "script, style, noscript, svg, nav, header, footer, [aria-hidden=true]";
+    private static final String NOT_TEXT = "script, style, noscript, svg, nav, header, footer, [aria-hidden=true], "
+            + "[role=navigation], [role=menu], [role=menubar], [role=banner], [role=contentinfo]";
 
     private final CheckServices services = new CheckServices();
 
@@ -238,16 +241,31 @@ public class ReadabilityChecks {
         return main == null ? html.body() : main;
     }
 
-    /** The text of the main part, with a space between the texts of two elements. */
+    /**
+     * The text of the main part, with a space between the texts of two inline elements, and a line break where a block
+     * element or a {@code br} ends, so that the label of a list item or a table cell is a sentence of its own.
+     */
     static String text(Document html) {
         Element root = mainText(html).clone();
         root.select(NOT_TEXT).remove();
-        List<String> parts = new ArrayList<>();
-        NodeTraversor.traverse((node, depth) -> {
-            if (node instanceof TextNode text && !text.text().isBlank()) {
-                parts.add(text.text().trim());
+        StringBuilder out = new StringBuilder();
+        NodeTraversor.traverse(new NodeVisitor() {
+            @Override
+            public void head(Node node, int depth) {
+                if (node instanceof TextNode text && !text.text().isBlank()) {
+                    out.append(' ').append(text.text().trim());
+                } else if (node instanceof Element element && "br".equals(element.normalName())) {
+                    out.append('\n');
+                }
+            }
+
+            @Override
+            public void tail(Node node, int depth) {
+                if (node instanceof Element element && element.isBlock()) {
+                    out.append('\n');
+                }
             }
         }, root);
-        return String.join(" ", parts).replaceAll("\\s+", " ").trim();
+        return out.toString().replaceAll("[ \\t\\x0B\\f\\r]+", " ").replaceAll(" ?\n\\s*", "\n").trim();
     }
 }

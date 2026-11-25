@@ -17,12 +17,7 @@ export function ManualRules({manual, id, rules}) {
     const {status, run, error} = manual.of(id);
     const running = status === 'running';
     const idle = run ? t('runAgain') : t('run');
-    let icon;
-    if (running) {
-        icon = <Loader size="small"/>;
-    } else if (run) {
-        icon = <Reload/>;
-    }
+    const icon = running ? <Loader size="small"/> : <Reload/>;
     const action = (
         <Button variant="outlined"
                 label={running ? t('running') : idle}
