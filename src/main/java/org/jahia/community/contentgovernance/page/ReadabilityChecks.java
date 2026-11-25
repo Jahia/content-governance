@@ -1,6 +1,7 @@
 package org.jahia.community.contentgovernance.page;
 
 import org.jahia.community.contentgovernance.check.CheckServices;
+import org.jahia.community.contentgovernance.check.ThresholdCheck;
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -12,6 +13,7 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -50,6 +52,11 @@ public class ReadabilityChecks {
      * the statistics count the sentences longer than it. With no such fact, they count none.
      */
     public static final String LONG_SENTENCE_WORDS = "content-governance:longSentenceWords";
+
+    /** The value of a finding of {@code readability.longSentences} that holds the whole sentence. */
+    static final String SENTENCE = "sentence";
+    /** The value of a finding of {@code readability.longSentences} that holds the words of the sentence. */
+    static final String WORDS = "words";
 
     private static final String SHARED = "content-governance:readability";
     /** The parts of a page that are not its text. */
@@ -97,7 +104,27 @@ public class ReadabilityChecks {
         for (Map.Entry<String, Map<String, Object>> values : values(measure).entrySet()) {
             out = out.withValues(values.getKey(), values.getValue());
         }
+        if (measure.measured()) {
+            out = out.withFact(ThresholdCheck.placesOf(LONG_SENTENCES), sentencePlaces(text(html)));
+        }
         return out;
+    }
+
+    /**
+     * The places of the rule {@code readability.longSentences}: each sentence of the text, the longest first, with
+     * {@code {sentence, words}} as its values. A fixer reads the sentence to rewrite in {@code sentence}.
+     */
+    static List<ThresholdCheck.Place> sentencePlaces(String text) {
+        return Readability.sentences(text).stream()
+                .map(sentence -> {
+                    int words = Readability.wordCount(sentence);
+                    Map<String, Object> values = new LinkedHashMap<>();
+                    values.put(SENTENCE, sentence);
+                    values.put(WORDS, words);
+                    return new ThresholdCheck.Place(words, sentence, null, values);
+                })
+                .sorted(Comparator.comparingInt((ThresholdCheck.Place place) -> place.value().intValue()).reversed())
+                .toList();
     }
 
     private static Map<String, Object> facts(Readability.Measure measure, Document html) {

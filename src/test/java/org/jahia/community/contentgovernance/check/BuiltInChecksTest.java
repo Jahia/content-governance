@@ -39,6 +39,28 @@ class BuiltInChecksTest {
     }
 
     @Test
+    @DisplayName("threshold gives one finding per place outside the limits when the caller measured the places")
+    void threshold_givesAFindingPerPlace() {
+        ContentRule sentences = rule(Map.of(RuleValues.RULE_ID, "readability.longSentences", RuleValues.EVALUATOR,
+                "threshold", RuleValues.SEVERITY, "minor", RuleValues.MAXIMUM, 25.0));
+        ThresholdCheck check = new ThresholdCheck();
+        CheckInput page = CheckInput.page(PATH, "en", "<html></html>").withFact("readability.longSentences", 40);
+        List<ThresholdCheck.Place> places = List.of(
+                new ThresholdCheck.Place(40, "A long one.", null, Map.of("sentence", "A long one.", "words", 40)),
+                new ThresholdCheck.Place(10, "A short one.", null, Map.of("sentence", "A short one.", "words", 10)),
+                new ThresholdCheck.Place(30, "Another.", "main > p", Map.of("sentence", "Another.", "words", 30)));
+
+        assertThat(check.check(page.withFact(ThresholdCheck.placesOf("readability.longSentences"), places), sentences))
+                .containsExactly(
+                        new Finding("readability.longSentences", "minor", "40", "A long one.", null,
+                                Map.of("sentence", "A long one.", "words", 40)),
+                        new Finding("readability.longSentences", "minor", "30", "Another.", "main > p",
+                                Map.of("sentence", "Another.", "words", 30)));
+        assertThat(check.check(page, sentences)).as("no place measured: one finding for the value")
+                .containsExactly(new Finding("readability.longSentences", "minor", "40", null));
+    }
+
+    @Test
     @DisplayName("a threshold result carries the values that the caller measured, else the measured number")
     void threshold_resultCarriesTheValues() {
         ContentRule title = rule(Map.of(RuleValues.RULE_ID, "seo.title", RuleValues.EVALUATOR, "threshold",
