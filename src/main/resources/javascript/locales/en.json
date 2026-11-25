@@ -1621,6 +1621,17 @@
         "ecodesign": "Eco-design checks from the French RGESN referential: page weight, requests, images, fonts, media and third parties.",
         "links": "Broken internal links, addresses written in full, mixed content and links opening a new window without protection.",
         "jahia": "Checks only Jahia can make: unpublished content on the page, missing translations, raw labels and placeholder text, and the checks that other modules add."
+      },
+      "manual": {
+        "run": "Run",
+        "runAgain": "Run again",
+        "running": "Running",
+        "notRunTitle": "Not run yet",
+        "notRun": "These rules run only when you run them.",
+        "lastRunTitle": "Last run",
+        "lastRun": "{{date}}",
+        "lastRunBy": "{{date}}, by {{user}}",
+        "failed": "The run failed"
       }
     },
     "compliance": {
@@ -1764,7 +1775,19 @@
         "occurrences_plural": "Findings ({{count}})",
         "passed": "✓ {{count}} passed",
         "passed_plural": "✓ {{count}} passed",
-        "moreActions": "More actions"
+        "moreActions": "More actions",
+        "fixers": {
+          "running": "{{fixer}}: proposing a fix",
+          "cancel": "Cancel",
+          "failed": "{{fixer}} gave no proposal",
+          "none": "No proposal for this finding.",
+          "copy": "Copy",
+          "copied": "Copied",
+          "apply": "Apply",
+          "applied": "Applied",
+          "regenerate": "Regenerate",
+          "close": "Close"
+        }
       }
     },
     "publishCheck": {

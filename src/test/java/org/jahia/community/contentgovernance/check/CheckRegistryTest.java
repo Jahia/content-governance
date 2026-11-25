@@ -218,6 +218,24 @@ class CheckRegistryTest {
         assertThat(new CheckRegistry().status(browser)).isEqualTo(new CheckRegistry.Status(true, null, null));
     }
 
+    @Test
+    @DisplayName("a rule on demand runs only in a run on demand, which runs no other rule, and never blocks")
+    void manualRule_runsOnDemandOnly() {
+        CheckRegistry registry = new CheckRegistry();
+        registry.bindCheck(PRICE, id("acme.erpPrice"));
+        ContentRules rules = withRule("acme.erpPrice", "acme.erpPrice").with(RuleValues.toRule(Map.of(
+                RuleValues.RULE_ID, "acme.tone", RuleValues.EVALUATOR, "acme.erpPrice", RuleValues.SEVERITY, "minor",
+                RuleValues.SUBDOMAIN, "writing", RuleValues.TRIGGER, ContentRule.MANUAL, RuleValues.BLOCKING, true)));
+        CheckInput input = CheckInput.value(PAGE, "en", "Only 12.50 EUR");
+
+        assertThat(registry.results(rules, input)).extracting(CheckResult::ruleId).containsExactly("acme.erpPrice");
+        assertThat(registry.runs(rules.get("acme.tone"), ContentCheck.Scope.VALUE)).isFalse();
+        assertThat(registry.manualResults(rules, input, Set.of("acme.tone", "acme.erpPrice")))
+                .containsExactly(new CheckResult("acme.tone", false, Map.of(),
+                        List.of(new Finding("acme.tone", "minor", "12.50 EUR", null))));
+        assertThat(registry.blocking(rules.get("acme.tone"))).isFalse();
+    }
+
     /** A rule of the subdomain ecodesign that states {@code runtime: browser}, with its id as its evaluator. */
     private static ContentRule inBrowser(String id, boolean blocking) {
         return placed(Map.of(RuleValues.RULE_ID, id, RuleValues.EVALUATOR, id, RuleValues.SUBDOMAIN, "ecodesign",

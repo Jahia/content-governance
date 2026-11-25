@@ -1,6 +1,7 @@
 import {browserChecks, CHECKS_MARK} from '../drawer/entries';
 import {tabOf} from './pageCheck';
 import {runStep} from './timeLimit';
+import {MANUAL} from './rules';
 
 /**
  * Runs the checks that modules register in the browser (`contentGovernanceCheck`) on the preview of the
@@ -25,11 +26,18 @@ export const BROWSER = 'browser';
 /** The evaluator of the measure of the web vitals, whose values the Web Vitals tab shows. */
 export const VITALS = 'webVitals';
 
+/** The severities that a check may give a finding, over the severity of its rule, such as the one a model judges. */
+const SEVERITIES = new Set(['critical', 'serious', 'moderate', 'minor']);
+
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
-/** A finding as a check gave it, with texts only: `text`, and `context`, `locator` and `values` when it has them. */
+/**
+ * A finding as a check gave it, with texts only: `text`, and `severity`, `context`, `locator` and `values` when it has
+ * them.
+ */
 const findingOf = finding => ({
     text: String(finding?.text ?? ''),
+    ...(SEVERITIES.has(finding?.severity) ? {severity: finding.severity} : {}),
     ...(finding?.context ? {context: String(finding.context)} : {}),
     ...(finding?.locator ? {locator: String(finding.locator)} : {}),
     ...(isObject(finding?.values) ? {values: finding.values} : {})
@@ -65,12 +73,15 @@ export function resultsOf(value, given, key) {
 
 /**
  * The rules that a check of the browser applies: on, stating `runtime: browser`, and placed in a subdomain. A
- * rule with no subdomain never runs, as on the server.
+ * rule with no subdomain never runs, as on the server. A rule that runs on demand (`trigger: manual`) runs only in
+ * a run on demand, which runs no other rule.
  *
  * @param {{all: function(): Array<object>}} rules the rules of the site
+ * @param {boolean} [manual] true for a run on demand
  * @returns {Array<object>} the rules
  */
-export const browserRules = rules => rules.all().filter(rule => rule.runtime === BROWSER && rule.enabled && tabOf(rule));
+export const browserRules = (rules, manual = false) => rules.all()
+    .filter(rule => rule.runtime === BROWSER && rule.enabled && tabOf(rule) && (rule.trigger === MANUAL) === manual);
 
 /**
  * The rules of the tabs that the site keeps on, for {@link runChecks}: a check of a tab that is off does not
@@ -94,15 +105,16 @@ export const rulesOfTabsOn = (rules, isOn) => ({
  * @param {{all: function(): Array<object>}} rules the rules of the site
  * @param {string} language the editor's interface language
  * @param {Array<object>} [checks] the checks, those of the registry by default
+ * @param {{manual: boolean}} [options] `manual`: run the rules on demand only
  * @returns {Promise<{results: Array<object>, incomplete: Object<string, object>, notChecked: Array<string>}>}
  *     the results of every check; `incomplete`, by evaluator, the outcome of each check that did not finish
  *     (`runStep`); `notChecked`, the ids of the rules that no check gave a result for: no module registers
  *     a check of their evaluator, or the check left them out. Never rejects.
  */
-export async function runChecks(frame, rules, language, checks = browserChecks()) {
+export async function runChecks(frame, rules, language, checks = browserChecks(), {manual = false} = {}) {
     const document = frame.contentDocument;
     const window = frame.contentWindow;
-    const wanted = browserRules(rules);
+    const wanted = browserRules(rules, manual);
     try {
         window.performance.mark(CHECKS_MARK);
     } catch {

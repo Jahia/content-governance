@@ -8,6 +8,7 @@ import graphql.schema.DataFetchingEnvironment;
 import org.jahia.community.contentgovernance.audit.graphql.AuditFields;
 import org.jahia.community.contentgovernance.audit.graphql.GqlAuditRun;
 import org.jahia.community.contentgovernance.audit.graphql.GqlSiteAudits;
+import org.jahia.community.contentgovernance.audit.graphql.ManualRuns;
 import org.jahia.community.contentgovernance.audit.service.spi.AuditHistoryService;
 import org.jahia.community.contentgovernance.check.CheckRegistry;
 import org.jahia.community.contentgovernance.check.spi.CheckInput;
@@ -120,6 +121,29 @@ public class GqlContentGovernance {
             @GraphQLName("tab") @GraphQLDescription("Id of the tab; Page quality (audit) when omitted") String tab,
             DataFetchingEnvironment environment) {
         return AuditFields.history(audits, path, language, tab == null ? AuditHistoryService.AUDIT_TAB : tab, environment);
+    }
+
+    /**
+     * The stored runs of the rules on demand of a subdomain on a page, for anyone who may open jContent on its site
+     * and read the page.
+     *
+     * @param path        path of the page or main resource
+     * @param language    content language
+     * @param subdomain   id of the subdomain, such as writing
+     * @param environment the request
+     * @return the runs, newest first; the newest carries its results
+     */
+    @GraphQLField
+    @GraphQLName("manualRuns")
+    @GraphQLNonNull
+    @GraphQLDescription("The last runs of the rules on demand (trigger: manual) of a subdomain on a page in a language, "
+            + "newest first; the newest carries its results as {results: [{ruleId, passed, values, findings}]}")
+    public List<GqlAuditRun> manualRuns(
+            @GraphQLName("path") @GraphQLNonNull @GraphQLDescription("Path of the page") String path,
+            @GraphQLName("language") @GraphQLNonNull @GraphQLDescription("Content language") String language,
+            @GraphQLName("subdomain") @GraphQLNonNull @GraphQLDescription("Id of the subdomain") String subdomain,
+            DataFetchingEnvironment environment) {
+        return ManualRuns.history(audits, path, language, subdomain, environment);
     }
 
     /**

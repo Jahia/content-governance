@@ -197,6 +197,58 @@ public class GqlContentRule {
 
     @GraphQLField
     @GraphQLNonNull
+    @GraphQLDescription("When the rule runs: auto, in every audit, or manual, only when an editor runs it in the drawer")
+    public String getTrigger() {
+        return rule.manualTrigger() ? ContentRule.MANUAL : ContentRule.AUTO;
+    }
+
+    @GraphQLField
+    @GraphQLNonNull
+    @GraphQLDescription("How the drawer shows the result: card, fact (its values as label and value lines) or score "
+            + "(its values as score tiles)")
+    public String getView() {
+        return rule.view();
+    }
+
+    @GraphQLField
+    @GraphQLNonNull
+    @GraphQLDescription("The label of each value of the result, in the language of the call or in English, in the "
+            + "order of the rule. Empty when the rule names none")
+    public List<ValueLabel> getValueLabels() {
+        return rule.valueLabels(language).entrySet().stream()
+                .map(label -> new ValueLabel(label.getKey(), label.getValue()))
+                .toList();
+    }
+
+    /** The label of one value of the result of the rule. */
+    @GraphQLName("ContentGovernanceRuleValueLabel")
+    @GraphQLDescription("The label of one value of the result of a rule, such as words: Words")
+    public static class ValueLabel {
+        private final String key;
+        private final String label;
+
+        ValueLabel(String key, String label) {
+            this.key = key;
+            this.label = label;
+        }
+
+        @GraphQLField
+        @GraphQLNonNull
+        @GraphQLDescription("The key of the value in the values of the result, such as words")
+        public String getKey() {
+            return key;
+        }
+
+        @GraphQLField
+        @GraphQLNonNull
+        @GraphQLDescription("The label of the value, such as Words")
+        public String getLabel() {
+            return label;
+        }
+    }
+
+    @GraphQLField
+    @GraphQLNonNull
     @GraphQLDescription("What to do about a finding, in the language of the call or in English")
     public String getAdvice() {
         String advice = rule.text(RuleValues.ADVICE, language);

@@ -61,6 +61,18 @@ export function recommendationsIn(results, subdomainId, subdomainOf) {
 }
 
 /**
+ * The views of the rules that show as facts or scores (audit/ruleViews.js) and that show in a subdomain. The results
+ * keep them under `other`.
+ *
+ * @param {?object} results the results of the page check
+ * @param {string} subdomainId the subdomain
+ * @param {function(string): (string|undefined)} subdomainOf the subdomain of a rule on the site
+ * @returns {Array<object>} the views
+ */
+export const viewsIn = (results, subdomainId, subdomainOf) => (results?.[OTHER]?.views || [])
+    .filter(view => placeOf(view.rule, OTHER, subdomainOf) === subdomainId);
+
+/**
  * The rules of the browser that no check gave a result for, and that show in a subdomain.
  *
  * @param {?object} results the results of the page check

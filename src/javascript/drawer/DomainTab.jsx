@@ -8,22 +8,25 @@ import {HighlightContext} from '../audit/HighlightContext';
 import {PageAuditStatus, PageAuditToolbar, PageFindingsOf, PageSubdomainView} from '../audit/PageAudit';
 import {GeoFacts, GeoFindingsOf, GeoSubdomainView, GeoToolbar} from '../geo/GeoParts';
 import {ComplianceFacts, ComplianceSubdomainView, ComplianceToolbar} from '../compliance/ComplianceParts';
+import {ManualRules} from '../audit/ManualRules';
 import {COMPLIANCE, GEO, PAGE, PATTERN, sectionElementId, viewOf} from './subdomains';
 import styles from './DomainTab.module.css';
 
 /**
- * What a subdomain shows: the dedicated view of its check, then the findings of the rules that the site places
- * in it and that this view does not show, whatever check found them.
+ * What a subdomain shows: the last run of its rules on demand with Run, the dedicated view of its check, then the
+ * findings of the rules that the site places in it and that this view does not show, whatever check found them.
  */
 function SubdomainContent({id, engines, places, path, complianceUnavailable, onEdit}) {
-    const {t} = useGovernanceTranslation('drawer');
+    const {t, i18n} = useGovernanceTranslation('drawer');
     const view = viewOf(id);
     const rules = places.rulesIn(id);
     const ruleIds = useMemo(() => new Set(rules.map(rule => rule.id)), [rules]);
     const hasTerms = rules.some(rule => rule.evaluator === PATTERN);
     const edit = uuid => onEdit(uuid, id);
+    const hasManual = Boolean(engines.manual) && rules.some(rule => rule.trigger === 'manual');
     return (
         <>
+            {hasManual && <ManualRules manual={engines.manual} id={id} rules={engines.rules} language={i18n?.language || 'en'}/>}
             {view === GEO && <GeoSubdomainView geo={engines.geo} id={id} path={path}/>}
             {view === COMPLIANCE && complianceUnavailable && <Typography>{t(`unavailable.${complianceUnavailable}`)}</Typography>}
             {view === COMPLIANCE && !complianceUnavailable &&

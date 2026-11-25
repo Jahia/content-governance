@@ -1621,6 +1621,17 @@
         "ecodesign": "Comprobaciones de ecodiseño del referencial francés RGESN: peso de la página, peticiones, imágenes, fuentes, multimedia y servicios de terceros.",
         "links": "Enlaces internos rotos, direcciones escritas completas, contenido mixto y enlaces que abren una ventana nueva sin protección.",
         "jahia": "Comprobaciones que solo Jahia puede hacer: contenido no publicado en la página, traducciones que faltan, etiquetas sin traducir y textos provisionales, y las comprobaciones que añaden otros módulos."
+      },
+      "manual": {
+        "run": "Ejecutar",
+        "runAgain": "Ejecutar de nuevo",
+        "running": "En ejecución",
+        "notRunTitle": "Aún no ejecutadas",
+        "notRun": "Estas reglas solo se ejecutan cuando usted las ejecuta.",
+        "lastRunTitle": "Última ejecución",
+        "lastRun": "{{date}}",
+        "lastRunBy": "{{date}}, por {{user}}",
+        "failed": "La ejecución falló"
       }
     },
     "compliance": {
@@ -1764,7 +1775,19 @@
         "occurrences_plural": "Hallazgos ({{count}})",
         "passed": "✓ {{count}} superado",
         "passed_plural": "✓ {{count}} superados",
-        "moreActions": "Más acciones"
+        "moreActions": "Más acciones",
+        "fixers": {
+          "running": "{{fixer}}: preparando una propuesta",
+          "cancel": "Cancelar",
+          "failed": "{{fixer}} no propuso nada",
+          "none": "Ninguna propuesta para este hallazgo.",
+          "copy": "Copiar",
+          "copied": "Copiado",
+          "apply": "Aplicar",
+          "applied": "Aplicado",
+          "regenerate": "Regenerar",
+          "close": "Cerrar"
+        }
       }
     },
     "publishCheck": {

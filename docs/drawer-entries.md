@@ -1,10 +1,11 @@
 # Add an entry to the drawer from another module
 
-Another module can add four kinds of entry to the drawer of content governance:
+Another module can add five kinds of entry to the drawer of content governance:
 
 - a panel, which is a whole screen of the drawer with its own button in the header of jContent,
 - a tab in the section bar of the governance panel,
 - an action on a finding,
+- a fixer, which proposes a fix of a finding,
 - a check that runs in the browser, on the preview of the page.
 
 A module adds an entry to the registry of jContent (`@jahia/ui-extender`) when jContent starts.
@@ -28,6 +29,24 @@ A tab that another module adds gets these features:
 Example: the AI assistant adds its chat as the panel `chat`, and the action "Fix with the assistant"
 to each finding. The action opens the chat with the finding. On a Jahia with no AI assistant, the
 drawer has no chat and the findings have no such action.
+
+## Choose an entry
+
+Ship rules first, and add a tab only when no rule can show the result. A rule shows in the section of
+its subdomain, with the same card as every other rule. The site places it and switches it off on the
+screen Rules & domains. Use the entries in this order.
+
+| Order | Entry | When |
+|---|---|---|
+| 1 | A rule with a check, on the server or in the browser | Always first. The [catalog of the rules](content-rules/catalog.md#how-a-module-ships-rules) states its file. |
+| 2 | The key `view` of the rule | The result is a set of values: `fact` shows them as label and value lines, and `score` as score tiles. |
+| 3 | The key `trigger: manual` of the rule | The rule is slow or costs money, such as a rule that calls a model. The section of its subdomain then offers Run. |
+| 4 | A fixer | The module can propose what to write instead of a finding. |
+| 5 | A tab, as a last resort | The screen is no result of a rule, such as a chat or a review with its own steps. |
+
+[The result patterns](result-patterns.md) define the card, the facts, the scores and the banner that
+the drawer shows. A tab of another module gets them from the registry, as the section
+[Add a tab](#add-a-tab) shows.
 
 ## Add a panel
 
@@ -219,6 +238,11 @@ section bar adds no finding.
 
 ## Add a tab
 
+A tab is the last resort: [Choose an entry](#choose-an-entry) lists what comes first. A tab shows its
+results with the result patterns of the drawer, which
+`registry.get('contentGovernanceApi', 'results')` gives: `ResultCard`, `PassedFold`, `FactBlock`,
+`ScoreBlock` and `ResultBanner`. [The result patterns](result-patterns.md) define their props.
+
 A tab is an entry of the type `contentGovernanceDrawerTab`, with the target `contentGovernanceDrawer`.
 The tab shows in the section bar of the governance panel. The section bar is the main tab bar of the
 drawer, under its header. The domains of the layout of the site come first, such as Page quality,
@@ -365,6 +389,65 @@ critical or serious.
 If an action throws an error, that action disappears from the finding and the console shows the
 error. The other actions of the finding stay.
 
+## Add a fixer of a finding
+
+A fixer proposes what to write instead of a finding, and the editor copies the proposal or applies
+it. A fixer is an entry of the type `contentGovernanceFixer`. The result card of a finding shows a
+button for each fixer that applies, beside its ⋯, and on each occurrence of the finding.
+
+Example: a module rewrites a sentence that breaks the tone of the site.
+
+```js
+import {registry} from '@jahia/ui-extender';
+
+registry.add('contentGovernanceFixer', 'acmeRewrite', {
+    label: 'acme:fixers.rewrite',
+    appliesTo: ({rule, finding}) => rule.evaluator === 'model' && finding.items.length > 0,
+    run: async ({finding, occurrence, path, language, signal, document}) => {
+        const text = occurrence ? occurrence.text : finding.items[0].text;
+        const rewritten = await rewrite(text, language, signal);
+        return {proposals: [{text: rewritten, original: text, reason: 'A friendly tone'}]};
+    },
+    apply: async ({proposal, finding, occurrence, path, language}) => save(path, language, occurrence, proposal.text)
+});
+```
+
+In this example, `rewrite` and `save` are functions of the module.
+
+| Field | Value |
+|---|---|
+| key | The id of the fixer, as the second argument. Give a key that names your module. |
+| `label` | The label of the button. The drawer translates it with i18next, so it is a key with the namespace of the module, such as `acme:fixers.rewrite`. |
+| `appliesTo` | A function that receives `{rule, finding}` and returns `true` when the fixer applies. It is the only way that a fixer matches a finding. |
+| `run` | A function that returns a promise of `{proposals: [{text}], note}`. `note` is optional. |
+| `apply` | An optional function that applies one proposal and returns a promise. Without it, the editor copies the proposal. |
+
+The drawer leaves out a fixer with no label, no `appliesTo` function or no `run` function, and the
+console shows why. A fixer whose `appliesTo` throws an error does not apply.
+
+### What a fixer receives
+
+| Argument | Value |
+|---|---|
+| `rule` | The rule of the finding, with the fields of the GraphQL field `contentRules`, such as `id`, `evaluator`, `severity`, `trigger` and `view`. |
+| `finding` | `{rule, severity, title, detail, items}`. `items` holds the occurrences. |
+| `occurrence` | The occurrence whose button the editor clicked: `{text, context, locator, values}`, with the `locator` of the check as is. It is null for the button of the finding. |
+| `path`, `language` | The page and the language of its content. |
+| `signal` | An `AbortSignal`. The drawer aborts it when the editor clicks Cancel, runs a fixer again, or closes the card. |
+| `document` | The document of the preview of the page, or null when the preview is not loaded. A fixer reads the page there, and does not render it again. |
+
+`apply` receives `{proposal, finding, occurrence, path, language}`.
+
+### What the editor sees
+
+A click on the button shows a loader with Cancel. The proposals then show under the finding, or under
+the occurrence. Each proposal shows its `text`, with `original` above it and `reason` as a caption when
+the proposal has them. The drawer ignores the other fields of a proposal.
+
+Each proposal has Copy, and
+Apply when the fixer has `apply`. Regenerate runs the fixer again. A fixer that throws an error shows a
+banner with its message and Regenerate.
+
 ## Add a check that runs in the browser
 
 A check that needs a browser runs on the preview of the page, in the page check of the drawer. The
@@ -427,7 +510,9 @@ Use the dark variant of the brand color on a white background.
 ```
 
 [The catalog of the rules](content-rules/catalog.md) states every key of a rule file. A module with no
-Java code ships its rules and its check this way.
+Java code ships its rules and its check this way. The key `view` shows the values of the result as
+facts or as scores. The key `trigger: manual` runs the rule only when an editor clicks Run in the
+section of its subdomain.
 
 ### What `run` receives
 
@@ -462,6 +547,7 @@ checks added them. The script of axe-core is one of them.
 | `values` | What the check measured, such as `{color: '#ffcc00'}`. The title and the advice of the rule can name each value that is a text, a number or a flag, as `{{color}}`. |
 | `findings` | One finding per place that breaks the rule. The drawer keeps the first 50. |
 | `text` | What the finding shows, such as the HTML of an element. |
+| `severity` | An optional severity of the finding, such as the one that a model judges. It replaces the severity of the rule, and the card of the rule shows the most serious severity of its findings. |
 | `context` | An optional text beside it, such as what fails. |
 | `locator` | An optional CSS selector of the element in the preview. With it, the finding offers "Highlight on the page". |
 

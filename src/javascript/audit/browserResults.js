@@ -1,5 +1,5 @@
-import {limits} from './rules';
 import {tabOf} from './pageCheck';
+import {itemOf, paramsOf, ruleViewsOf, severityOf} from './ruleViews';
 import {browserRules, VITALS} from './runChecks';
 
 /**
@@ -37,18 +37,7 @@ const IMPACT_ORDER = {critical: 0, serious: 1, moderate: 2, minor: 3};
 
 const evaluatorIs = (rules, evaluator) => result => rules.find(result.ruleId)?.evaluator === evaluator;
 
-/**
- * The values of the texts of a result: the limits of its rule, `count` (its findings), `value` (the text of
- * its first finding), and each value of the result that is a text, a number or a flag, such as `size`.
- *
- * @param {{values: object, findings: Array<{text: string}>}} result a result of a check
- * @param {object} rule its rule
- * @returns {object} the values
- */
-export function paramsOf(result, rule) {
-    const scalars = Object.fromEntries(Object.entries(result.values).filter(([, value]) => value === null || typeof value !== 'object'));
-    return {...limits(rule), count: result.findings.length, ...(result.findings[0] ? {value: result.findings[0].text} : {}), ...scalars};
-}
+export {paramsOf} from './ruleViews';
 
 /**
  * The recommendations of the failed results, by tab: one per rule, worded by its rule, with each finding
@@ -70,9 +59,9 @@ export function recommendationsOf(results, rules) {
         out[tab].push({
             key: result.ruleId,
             rule: result.ruleId,
-            severity: rule.severity,
+            severity: severityOf(result.findings, rule.severity),
             params,
-            ...(result.findings.length > 0 ? {items: result.findings.map(({text, context, locator}) => ({text, ...(context ? {context} : {}), ...(locator ? {locator} : {})}))} : {}),
+            ...(result.findings.length > 0 ? {items: result.findings.map(itemOf)} : {}),
             ...rules.word(result.ruleId, params)
         });
     });
@@ -179,7 +168,7 @@ function labelsByTab(ids, rules) {
  * @param {{results: Array<object>, incomplete: Object<string, object>, notChecked: Array<string>}} run what runChecks gave
  * @param {object} rules the rules of the site
  * @returns {{accessibility: ?object, vitals: ?object, ecodesign: object, recommendations: Object<string, Array<object>>,
- *     incomplete: Object<string, object>, notChecked: Object<string, Array<{rule: string, label: string}>>}} by tab id:
+ *     views: Array<object>, incomplete: Object<string, object>, notChecked: Object<string, Array<{rule: string, label: string}>>}} by tab id:
  *     the views of axe-core and of the web vitals (null when their check did not finish), the recommendations, the
  *     outcome of each tab that a check did not finish, and the rules that no check gave a result for
  */
@@ -197,6 +186,7 @@ export function browserTabs({results, incomplete, notChecked}, rules) {
         vitals,
         ecodesign: ecodesignOf(results, rules, vitals?.diagnostics || null),
         recommendations: recommendationsOf(results, rules),
+        views: ruleViewsOf(results, rules, paramsOf),
         incomplete: unfinished,
         notChecked: labelsByTab(notChecked, rules)
     };
@@ -223,6 +213,11 @@ export function withBrowserResults(checked, browser) {
             recommendations: unique([...checked[key].recommendations, ...browser.recommendations[key]])
         }]))
     };
+    // The views of the rules shown as facts or scores sit with the recommendations of the other subdomains
+    const views = [...(measured.other?.views || []), ...(browser.views || [])];
+    if (views.length > 0) {
+        measured.other = {recommendations: [], ...measured.other, views};
+    }
     Object.entries(browser.notChecked).forEach(([tab, rules]) => {
         const key = RESULT_KEYS[tab];
         if (measured[key]) {

@@ -14,7 +14,8 @@ import {JahiaTab} from './tabs/JahiaTab';
 import {IncompleteStep} from './tabs/IncompleteStep';
 import {NotChecked} from './tabs/NotChecked';
 import {Recommendations} from './tabs/Recommendations';
-import {incompleteIn, notCheckedIn, recommendationsIn, RESULT_OF} from './subdomainResults';
+import {incompleteIn, notCheckedIn, recommendationsIn, RESULT_OF, viewsIn} from './subdomainResults';
+import {RuleViews} from '../common/results/RuleViews';
 import styles from './PageAudit.module.css';
 
 /**
@@ -234,8 +235,8 @@ DedicatedView.propTypes = {
 };
 
 /**
- * What the page check found in a subdomain: why its step did not finish, its dedicated view, or else the list
- * of the recommendations of the rules that the site places in it, and the rules of the browser that no check
+ * What the page check found in a subdomain: why its step did not finish, the facts and scores of the rules that
+ * show their values, its dedicated view, or else the list of the recommendations of the rules that the site places in it, and the rules of the browser that no check
  * gave a result for. Nothing while the audit has no results.
  */
 export function PageSubdomainView({audit, id, subdomainOf}) {
@@ -249,6 +250,7 @@ export function PageSubdomainView({audit, id, subdomainOf}) {
     return (
         <>
             {incomplete && <IncompleteStep outcome={incomplete} onRerun={audit.rerun}/>}
+            <RuleViews views={viewsIn(results, id, subdomainOf)}/>
             {RESULT_OF[id] ?
                 <DedicatedView id={id}
                                results={results}
@@ -278,7 +280,12 @@ export function PageFindingsOf({audit, id, subdomainOf}) {
         return null;
     }
     const recommendations = recommendationsIn(audit.results, id, subdomainOf);
-    return recommendations.length > 0 ? <Recommendations items={recommendations} ns="recs" tab="other"/> : null;
+    return (
+        <>
+            <RuleViews views={viewsIn(audit.results, id, subdomainOf)}/>
+            {recommendations.length > 0 && <Recommendations items={recommendations} ns="recs" tab="other"/>}
+        </>
+    );
 }
 
 PageFindingsOf.propTypes = PageSubdomainView.propTypes;

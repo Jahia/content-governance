@@ -3,6 +3,7 @@ import {pageStateOf, placeOf} from '../audit/subdomainResults';
 import {geoStateOf} from '../geo/geoState';
 import {complianceStateOf, termPlaceOf} from '../compliance/complianceState';
 import {auditFindings, complianceFindings} from './findings';
+import {runFindings, runStateOf} from '../audit/manualRuns';
 
 /**
  * What each section of a domain has to review, and the findings of each domain, from the three checks of the
@@ -33,7 +34,9 @@ const combine = parts => {
 const checkStates = (engines, places, complianceUnavailable) => ({
     page: id => (engines.page.ready ? pageStateOf(engines.page.results, id, places.subdomainOf) : NONE),
     geo: id => geoStateOf(engines.geo, id, new Set(places.rulesIn(id).map(rule => rule.id))),
-    compliance: id => (complianceUnavailable ? NONE : complianceStateOf(engines.compliance, id, places.subdomainOf))
+    compliance: id => (complianceUnavailable ? NONE : complianceStateOf(engines.compliance, id, places.subdomainOf)),
+    // The last stored run of the rules on demand of the subdomain
+    manual: id => (engines.manual ? runStateOf(engines.manual.of(id).run) : NONE)
 });
 
 /**
@@ -55,11 +58,13 @@ export function sectionsOf(domain, engines, places, complianceUnavailable) {
         const page = states.page(subdomain.id);
         const geo = states.geo(subdomain.id);
         const compliance = states.compliance(subdomain.id);
+        const manual = states.manual(subdomain.id);
         // The check of the view counts, even 0; another check counts what it found there
         const parts = [
             ...(view === PAGE || view === null || page.count > 0 ? [page] : []),
             ...(view === GEO || (view === null && geo.count > 0) ? [geo] : []),
-            ...(view === COMPLIANCE || compliance.count > 0 ? [compliance] : [])
+            ...(view === COMPLIANCE || compliance.count > 0 ? [compliance] : []),
+            ...(manual.count > 0 ? [manual] : [])
         ];
         return {
             id: subdomain.id,
@@ -100,7 +105,8 @@ export function domainFindings(domains, engines, places, complianceUnavailable, 
                 severity: geo.serious ? 'serious' : 'moderate',
                 title: t.geo('fixFirst', {tab: subdomain.label, count: geo.count})
             }] : []),
-            ...terms.filter(finding => finding.tab === subdomain.id)
+            ...terms.filter(finding => finding.tab === subdomain.id),
+            ...(engines.manual ? runFindings(engines.manual.of(subdomain.id).run, subdomain.id, engines.rules) : [])
         ].map(finding => ({...finding, section: domain.id}));
     })]));
 }

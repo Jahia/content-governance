@@ -1621,6 +1621,17 @@
         "ecodesign": "Contrôles d'écoconception du référentiel RGESN : poids de la page, requêtes, images, polices, médias et services tiers.",
         "links": "Liens internes cassés, adresses écrites en entier, contenu mixte et liens ouvrant une nouvelle fenêtre sans protection.",
         "jahia": "Les vérifications que seul Jahia peut faire : contenu non publié sur la page, traductions manquantes, libellés bruts et textes provisoires, et les vérifications qu'ajoutent d'autres modules."
+      },
+      "manual": {
+        "run": "Exécuter",
+        "runAgain": "Exécuter à nouveau",
+        "running": "Exécution",
+        "notRunTitle": "Pas encore exécutées",
+        "notRun": "Ces règles s'exécutent seulement quand vous les exécutez.",
+        "lastRunTitle": "Dernière exécution",
+        "lastRun": "{{date}}",
+        "lastRunBy": "{{date}}, par {{user}}",
+        "failed": "L'exécution a échoué"
       }
     },
     "compliance": {
@@ -1764,7 +1775,19 @@
         "occurrences_plural": "Constats ({{count}})",
         "passed": "✓ {{count}} réussi",
         "passed_plural": "✓ {{count}} réussis",
-        "moreActions": "Plus d'actions"
+        "moreActions": "Plus d'actions",
+        "fixers": {
+          "running": "{{fixer}} : proposition en cours",
+          "cancel": "Annuler",
+          "failed": "{{fixer}} n'a rien proposé",
+          "none": "Aucune proposition pour ce constat.",
+          "copy": "Copier",
+          "copied": "Copié",
+          "apply": "Appliquer",
+          "applied": "Appliqué",
+          "regenerate": "Régénérer",
+          "close": "Fermer"
+        }
       }
     },
     "publishCheck": {

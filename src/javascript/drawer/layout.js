@@ -26,6 +26,8 @@ export const DRAWER_LAYOUT = gql`
                 subdomain
                 evaluator
                 enabled
+                runtime
+                trigger
             }
         }
     }
@@ -63,18 +65,21 @@ export const governanceDomains = domains => (domains || [])
  * switches off is left out: it gives no finding.
  *
  * @param {Array<{id: string, subdomain: ?string, evaluator: ?string, enabled: boolean}>} [rules] what `contentRules` gives
- * @returns {{subdomainOf: function(string): (string|undefined), rulesIn: function(string): Array<object>}}
- *     `subdomainOf(ruleId)` is undefined for a rule the site does not know; `rulesIn(subdomainId)` lists
- *     the rules on in a subdomain
+ * @returns {{subdomainOf: function(string): (string|undefined), rulesIn: function(string): Array<object>,
+ *     manualSubdomains: function(): Array<string>}} `subdomainOf(ruleId)` is undefined for a rule the site does not
+ *     know; `rulesIn(subdomainId)` lists the rules on in a subdomain; `manualSubdomains()` the subdomains that hold a
+ *     rule on demand (`trigger: manual`)
  */
 export function rulePlaces(rules) {
     const on = (rules || []).filter(rule => rule.enabled !== false && rule.subdomain);
     const bySubdomain = new Map();
     on.forEach(rule => bySubdomain.set(rule.subdomain, [...(bySubdomain.get(rule.subdomain) || []), rule]));
     const byId = new Map((rules || []).filter(rule => rule.subdomain).map(rule => [rule.id, rule.subdomain]));
+    const manual = [...new Set(on.filter(rule => rule.trigger === 'manual').map(rule => rule.subdomain))];
     return {
         subdomainOf: id => byId.get(id),
-        rulesIn: subdomainId => bySubdomain.get(subdomainId) || EMPTY
+        rulesIn: subdomainId => bySubdomain.get(subdomainId) || EMPTY,
+        manualSubdomains: () => manual
     };
 }
 

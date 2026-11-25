@@ -6,7 +6,7 @@ import {registry} from '@jahia/ui-extender';
 import {Header, LayoutContent, Loader} from '@jahia/moonstone';
 import {GovernanceAction} from './drawer/GovernanceAction';
 import {registerOwnPanel} from './drawer/ownTabs';
-import {registerDrawerApi} from './drawer/drawerApi';
+import {registerDrawerApi, registerResultPatterns} from './drawer/drawerApi';
 import {registerChecks} from './checks/register';
 import {PublishCheckAction} from './publish/PublishCheckAction';
 import {SectionGate} from './common/SectionGate';
@@ -113,6 +113,8 @@ function register() {
     registerOwnPanel(buttonIcon);
     // openPanel(id, context) for other modules, such as an action on a finding that opens the chat
     registerDrawerApi();
+    // The result patterns of the drawer, for the tabs of other modules
+    registerResultPatterns();
 
     // The checks that Page quality runs in the browser: axe-core, the web vitals and eco-design
     registerChecks();

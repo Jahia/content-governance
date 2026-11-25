@@ -120,3 +120,43 @@ export function browserChecks() {
         return valid;
     });
 }
+
+/** The registry type of a fixer: an action on a finding that proposes a fix, which the editor copies or applies. */
+export const FIXER_TYPE = 'contentGovernanceFixer';
+
+/**
+ * The fixers that modules register, in the order that the modules added them. A fixer with no label, no
+ * `appliesTo` function or no `run` function is left out, and the console says why once.
+ *
+ * @returns {Array<{key: string, label: string, appliesTo: Function, run: Function, apply: ?Function}>} the registry entries
+ */
+export function drawerFixers() {
+    return registry.find({type: FIXER_TYPE}).filter(entry => {
+        const valid = typeof entry.label === 'string' && entry.label !== '' && typeof entry.appliesTo === 'function'
+            && typeof entry.run === 'function';
+        if (!valid) {
+            warnOnce(`[content-governance] the fixer "${entry.key}" has no label, no appliesTo function or no run function, and is left out`);
+        }
+        return valid;
+    });
+}
+
+/**
+ * The fixers that apply to a finding: those whose `appliesTo({rule, finding})` answers true. A fixer whose
+ * `appliesTo` throws does not apply.
+ *
+ * @param {Array<object>} fixers the fixers of `drawerFixers`
+ * @param {object} rule the rule of the finding, with the fields of the GraphQL field `contentRules`
+ * @param {object} finding the finding: `{rule, severity, title, detail, items}`
+ * @returns {Array<object>} the fixers that apply
+ */
+export function applicableFixers(fixers, rule, finding) {
+    return fixers.filter(fixer => {
+        try {
+            return fixer.appliesTo({rule, finding}) === true;
+        } catch (error) {
+            console.warn(`[content-governance] the fixer "${fixer.key}" failed to say whether it applies`, error);
+            return false;
+        }
+    });
+}

@@ -3,6 +3,7 @@ package org.jahia.community.contentgovernance.audit.service.internal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -60,6 +61,16 @@ public class AuditHistoryServiceImpl implements AuditHistoryService {
         }
         AuditSummary summary = AuditSummary.ofFindings(tab, findings.getJSONArray(AuditResults.FINDINGS));
         return save(new Page(sitePath, pageId, language, null, null), tab, user, summary, findings);
+    }
+
+    @Override
+    public AuditRun saveManualRun(String sitePath, String pageId, String language, String subdomain, String user,
+                                  JSONObject results) throws RepositoryException {
+        String tab = AuditHistoryService.manualTab(subdomain);
+        int failed = ManualResults.failed(results);
+        AuditRun run = save(new Page(sitePath, pageId, language, null, null), tab, user,
+                new AuditSummary(Map.of(tab, failed), failed, -1), results);
+        return new AuditRun(tab, run.auditedAt(), user, run.summary(), results.toString());
     }
 
     private static AuditRun save(Page page, String tab, String user, AuditSummary summary, JSONObject stored)
