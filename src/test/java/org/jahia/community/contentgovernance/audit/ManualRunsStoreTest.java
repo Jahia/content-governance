@@ -63,7 +63,7 @@ class ManualRunsStoreTest {
 
     @Test
     @DisplayName("a run on demand is stored under the tab of its subdomain, counts its failed rules, and reads back newest first")
-    void manualRun_isStoredAndReadBack() throws RepositoryException, InterruptedException {
+    void manualRun_isStoredAndReadBack() throws RepositoryException {
         Fake site = new Fake("digitall");
         Fake store = site.add(SiteFeatures.STORE_NODE);
         JCRSessionWrapper session = mock(JCRSessionWrapper.class, invocation -> "getNode".equals(invocation.getMethod().getName())
@@ -84,8 +84,8 @@ class ManualRunsStoreTest {
             features.when(() -> SiteFeatures.storeNode(site.node)).thenReturn(store.node);
 
             AuditRun stored = service.saveManualRun(SITE, PAGE_ID, "en", "writing", "jane", first);
-            // The runs are ordered by the millisecond they were stored at
-            Thread.sleep(5);
+            // The runs are ordered by the millisecond they were stored at, so the first one moves a second back
+            store.shiftTime("auditedAt", -1000);
             service.saveManualRun(SITE, PAGE_ID, "en", "writing", "joe", second);
             List<AuditRun> runs = service.history(SITE, PAGE_ID, "en", AuditHistoryService.manualTab("writing"));
 
@@ -121,6 +121,14 @@ class ManualRunsStoreTest {
             child.parent = this;
             children.add(child);
             return child;
+        }
+
+        /** Adds {@code delta} to the long property {@code property} of this node and of every descendant that holds it. */
+        void shiftTime(String property, long delta) {
+            if (properties.get(property) instanceof Number value) {
+                properties.put(property, value.longValue() + delta);
+            }
+            children.forEach(child -> child.shiftTime(property, delta));
         }
 
         private Fake child(String childName) {
