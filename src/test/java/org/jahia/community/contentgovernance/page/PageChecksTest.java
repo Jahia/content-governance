@@ -216,7 +216,18 @@ class PageChecksTest {
         @DisplayName("the text leaves out the navigation, the scripts and what is hidden")
         void theText_leavesOutWhatIsNotText() {
             assertThat(ReadabilityChecks.text(Jsoup.parse("<body><nav>Menu</nav><main><p>One</p><div>two"
-                    + "<span aria-hidden='true'>x</span></div><script>var a;</script></main></body>"))).isEqualTo("One two");
+                    + "<span aria-hidden='true'>x</span></div><script>var a;</script></main></body>"))).isEqualTo("One\ntwo");
+        }
+
+        @Test
+        @DisplayName("a list item, a table cell and a menu with a role are no part of a long sentence")
+        void aBlock_endsASentence() {
+            String text = ReadabilityChecks.text(Jsoup.parse("<body><main><div role='navigation'><a>Home</a> <a>About</a>"
+                    + "</div><ul><li><a href='/a'>Our offer for</a> small teams</li><li>Prices and plans</li></ul>"
+                    + "<p>A short <b>sentence</b> here.<br>And another one</p></main></body>"));
+
+            assertThat(Readability.sentences(text))
+                    .containsExactly("Our offer for small teams", "Prices and plans", "A short sentence here.", "And another one");
         }
     }
 

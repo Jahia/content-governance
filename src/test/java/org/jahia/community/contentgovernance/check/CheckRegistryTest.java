@@ -357,6 +357,35 @@ class CheckRegistryTest {
     }
 
     @Test
+    @DisplayName("a check of a rule set gives each rule its values, and a result of a rule it was not given goes nowhere")
+    void results_keepTheValuesOfARuleSet() {
+        CheckRegistry registry = new CheckRegistry();
+        registry.bindCheck(new RuleSetCheck() {
+            @Override
+            public Set<Scope> scopes() {
+                return Set.of(Scope.VALUE);
+            }
+
+            @Override
+            public List<Finding> check(CheckInput input, List<? extends Rule> rules) {
+                return List.of();
+            }
+
+            @Override
+            public List<CheckResult> results(CheckInput input, List<? extends Rule> rules) {
+                return List.of(new CheckResult("acme.second", false, Map.of("score", 40), List.of()),
+                        new CheckResult("acme.erpPrice", true, Map.of("score", 99), List.of()));
+            }
+        }, id("acme.set"));
+        registry.bindCheck(PRICE, id("acme.erpPrice"));
+
+        assertThat(registry.results(setAndPrice(), CheckInput.value(PAGE, "en", "Free")))
+                .extracting(CheckResult::ruleId, CheckResult::passed, CheckResult::values)
+                .containsExactly(tuple("acme.first", true, Map.of()), tuple("acme.erpPrice", true, Map.of()),
+                        tuple("acme.second", false, Map.of("score", 40)));
+    }
+
+    @Test
     @DisplayName("a check of a rule set that throws gives nothing for its rules, and the other checks still run")
     void run_survivesAFailingRuleSet() {
         CheckRegistry registry = new CheckRegistry();

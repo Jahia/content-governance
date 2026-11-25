@@ -69,7 +69,7 @@ const occurrencesOf = (rec, itemAction, fix) => (rec.items || []).map((item, ind
  * The card of one recommendation, with the fixers of other modules that apply to it (`contentGovernanceFixer`).
  * The first fixer is a button on each occurrence, or on the title line of a finding with no occurrence, and
  * Generate all runs it on every occurrence. The other fixers sit in the ⋮, where they run on every occurrence.
- * The card detail ends with the fix that the check proposes for a single occurrence.
+ * The fix that the check proposes shows under its occurrence, never in the card detail.
  */
 function RuleCard({rec, text, id, tab, itemAction}) {
     const {t} = useGovernanceTranslation('common.results.fixers.all');
@@ -104,11 +104,10 @@ function RuleCard({rec, text, id, tab, itemAction}) {
                 }}/>
     ) : null;
     const menuFixers = others.length > 0 ? others.map(fixer => <FixerButton key={fixer.key} isOnMenu fixer={fixer} onRun={() => runOther(fixer)}/>) : null;
-    const single = count === 1 ? fixOf(finding.items[0]) : null;
     return (
         <ResultCard level={levelOf(rec.severity)}
                     title={text.title}
-                    detail={single ? <>{text.detail}{text.detail && ' '}{single}</> : text.detail}
+                    detail={text.detail}
                     rule={rec.rule}
                     occurrences={occurrencesOf(rec, itemAction, {
                         button,

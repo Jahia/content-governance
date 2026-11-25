@@ -321,7 +321,7 @@
                         <Export-Package>
                             org.jahia.community.contentgovernance.compliance.model,
                             org.jahia.community.contentgovernance.compliance.service.spi,
-                            org.jahia.community.contentgovernance.check.spi;version="1.1.0",
+                            org.jahia.community.contentgovernance.check.spi;version="1.2.0",
                             org.jahia.community.contentgovernance.geo.spi;version="1.0.0",
                             org.jahia.pm.modules.editorialframe.api;version="1.0.0"
                         </Export-Package>
