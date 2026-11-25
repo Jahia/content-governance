@@ -118,15 +118,25 @@ describe('the fixers of other modules', () => {
         expect(applicableFixers(fixers, RULES.get('acme.reading'), {})).toEqual([]);
     });
 
-    it('shows a fixer that applies on the finding and on each occurrence, with the fix that the check proposes', () => {
-        registry.add(FIXER_TYPE, 'rewrite', rewrite);
-        const rec = {key: 'acme.tone', rule: 'acme.tone', severity: 'minor', title: 'Tone of the page', detail: 'Be friendly.',
-            items: [{text: 'Hey you', values: {fix: 'Hello'}}, {text: 'Yo'}]};
-        const markup = renderToStaticMarkup(h(DrawerEntryContext.Provider, {value: {path: '/sites/a/home', language: 'en', findings: [],
-            actions: [], ruleOf: id => RULES.find(id), previewDocument: () => null}}, h(Recommendations, {items: [rec], ns: 'recs', tab: 'other'})));
+    const render = rec => renderToStaticMarkup(h(DrawerEntryContext.Provider, {value: {path: '/sites/a/home', language: 'en', findings: [],
+        actions: [], ruleOf: id => RULES.find(id), previewDocument: () => null}}, h(Recommendations, {items: [rec], ns: 'recs', tab: 'other'})));
 
-        expect(markup.match(/data-fixer="rewrite"/g)).toHaveLength(3);
+    it('shows the first fixer on each occurrence, with Generate all and the fix that the check proposes', () => {
+        registry.add(FIXER_TYPE, 'rewrite', rewrite);
+        const markup = render({key: 'acme.tone', rule: 'acme.tone', severity: 'minor', title: 'Tone of the page', detail: 'Be friendly.',
+            items: [{text: 'Hey you', values: {fix: 'Hello'}}, {text: 'Yo'}]});
+
+        expect(markup.match(/data-fixer="rewrite"/g)).toHaveLength(2);
+        expect(markup).toContain('data-fix-all="rewrite"');
         expect(markup).toContain('Hello');
+    });
+
+    it('shows the first fixer of a finding with no occurrence on its title line, and no Generate all', () => {
+        registry.add(FIXER_TYPE, 'rewrite', rewrite);
+        const markup = render({key: 'acme.tone', rule: 'acme.tone', severity: 'minor', title: 'Tone of the page', detail: 'Be friendly.', items: []});
+
+        expect(markup.match(/data-fixer="rewrite"/g)).toHaveLength(1);
+        expect(markup).not.toContain('data-fix-all');
     });
 });
 

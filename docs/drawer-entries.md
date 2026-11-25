@@ -392,8 +392,9 @@ error. The other actions of the finding stay.
 ## Add a fixer of a finding
 
 A fixer proposes what to write instead of a finding, and the editor copies the proposal or applies
-it. A fixer is an entry of the type `contentGovernanceFixer`. The result card of a finding shows a
-button for each fixer that applies, beside its ⋯, and on each occurrence of the finding.
+it. A fixer is an entry of the type `contentGovernanceFixer`. The first fixer that applies to a
+finding is a button on each occurrence of the finding. A finding with no occurrence shows the button
+on its title line, beside its ⋯. The other fixers that apply sit in the ⋯.
 
 Example: a module rewrites a sentence that breaks the tone of the site.
 
@@ -420,7 +421,7 @@ In this example, `rewrite` and `save` are functions of the module.
 | `label` | The label of the button. The drawer translates it with i18next, so it is a key with the namespace of the module, such as `acme:fixers.rewrite`. |
 | `appliesTo` | A function that receives `{rule, finding}` and returns `true` when the fixer applies. It is the only way that a fixer matches a finding. |
 | `run` | A function that returns a promise of `{proposals: [{text}], note}`. `note` is optional. |
-| `apply` | An optional function that applies one proposal and returns a promise. Without it, the editor copies the proposal. |
+| `apply` | An optional function that writes one proposal into the content and returns a promise. The module writes, and content governance writes nothing. Without `apply`, the editor copies the proposal. |
 
 The drawer leaves out a fixer with no label, no `appliesTo` function or no `run` function, and the
 console shows why. A fixer whose `appliesTo` throws an error does not apply.
@@ -431,22 +432,36 @@ console shows why. A fixer whose `appliesTo` throws an error does not apply.
 |---|---|
 | `rule` | The rule of the finding, with the fields of the GraphQL field `contentRules`, such as `id`, `evaluator`, `severity`, `trigger` and `view`. |
 | `finding` | `{rule, severity, title, detail, items}`. `items` holds the occurrences. |
-| `occurrence` | The occurrence whose button the editor clicked: `{text, context, locator, values}`, with the `locator` of the check as is. It is null for the button of the finding. |
+| `occurrence` | The occurrence that the fixer runs on: `{text, context, locator, values}`, with the `locator` of the check as is. It is null for a finding with no occurrence. |
 | `path`, `language` | The page and the language of its content. |
-| `signal` | An `AbortSignal`. The drawer aborts it when the editor clicks Cancel, runs a fixer again, or closes the card. |
+| `signal` | An `AbortSignal`. The drawer aborts it when the editor clicks Cancel or Cancel all, runs the fixer again on the same occurrence, or closes the card. |
 | `document` | The document of the preview of the page, or null when the preview is not loaded. A fixer reads the page there, and does not render it again. |
 
-`apply` receives `{proposal, finding, occurrence, path, language}`.
+`apply` receives `{proposal, finding, occurrence, path, language}`. `proposal.text` is the text as
+the editor left it, after an edit.
 
 ### What the editor sees
 
-A click on the button shows a loader with Cancel. The proposals then show under the finding, or under
-the occurrence. Each proposal shows its `text`, with `original` above it and `reason` as a caption when
-the proposal has them. The drawer ignores the other fields of a proposal.
+Each occurrence runs on its own, so the editor may run the fixer on two occurrences at once. The run
+of an occurrence shows under its row, and the run of a finding with no occurrence under its advice.
 
-Each proposal has Copy, and
-Apply when the fixer has `apply`. Regenerate runs the fixer again. A fixer that throws an error shows a
-banner with its message and Regenerate.
+| State | What the editor sees |
+|---|---|
+| Running | A loader, "Generating…" and Cancel. Cancel brings back the button. |
+| Proposal | "Proposal · " and the label of the fixer, then `original` after "Before:". With two proposals or more, the editor chooses one. The chosen proposal is in a text field that the editor may change. Then `reason` and `note` as captions, and Apply when the fixer has `apply`, Copy, Regenerate and Discard. |
+| Error | One line with the message of the error, and Retry. A run with no proposal shows "No proposal for this finding." A failed Apply keeps the proposal, with the message above its buttons. |
+| Applied | "Applied:" with the text, and "The finding clears at the next audit." The finding stays until the check runs again. |
+
+The drawer ignores the fields of a proposal other than `text`, `original` and `reason`.
+
+### Generate all
+
+A finding with two occurrences or more shows Generate all on its line "Findings (N)". Generate all
+runs the first fixer on every occurrence that is not applied, three at a time. A fixer of the ⋯ runs
+the same way. A bar above the occurrences shows the progress with Cancel all. Each occurrence then
+shows its proposal in one text field, with Regenerate and Discard. The bar counts the proposals and
+the errors, and offers Apply N and Discard all. Apply N asks on the same line before it applies, then
+the bar counts what it applied.
 
 ## Add a check that runs in the browser
 

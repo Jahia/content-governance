@@ -7,7 +7,7 @@ import {auditFindingKey, NS_OF, recommendationId, recommendationText} from '../.
 import {FindingMenu} from '../../drawer/FindingActions';
 import {DrawerEntryContext} from '../../drawer/DrawerEntryContext';
 import {applicableFixers, drawerFixers} from '../../drawer/entries';
-import {FixerButtons, FixerPanel, useFixRun} from '../../drawer/Fixers';
+import {FixAllBar, FixerButton, FixerState, PAGE, useFixRuns} from '../../drawer/Fixers';
 import {ResultCard} from '../../common/results/ResultCard';
 import {ResultBanner} from '../../common/results/ResultBanner';
 import {levelOf} from '../../common/results/levels';
@@ -44,13 +44,13 @@ ItemHighlight.propTypes = {
 const fixOf = item => (typeof item?.values?.fix === 'string' && item.values.fix !== '' ? item.values.fix : null);
 
 /**
- * The occurrences of a recommendation: each item its check found, with the fix that its check proposes, its
- * Highlight when the check gave a locator, else the action the section gives (`itemAction`), then the fixers that
- * apply (`extra`).
+ * The occurrences of a recommendation: each item its check found, with the fix that its check proposes. Its
+ * actions are the button of the first fixer (`fix.button`), then its Highlight when the check gave a locator,
+ * else the action the section gives (`itemAction`). The run of a fixer shows under the row (`fix.state`).
  */
-const occurrencesOf = (rec, itemAction, extra) => (rec.items || []).map((item, index) => {
+const occurrencesOf = (rec, itemAction, fix) => (rec.items || []).map((item, index) => {
     const own = item.locator ? <ItemHighlight locator={item.locator}/> : (itemAction?.(rec, item) || null);
-    const more = extra(index);
+    const fixer = fix.button(index);
     return {
         key: `${index}`,
         content: (
@@ -58,42 +58,68 @@ const occurrencesOf = (rec, itemAction, extra) => (rec.items || []).map((item, i
                 <code className={results.code}>{item.text}</code>
                 {item.context && <span className={results.muted}> {item.context}</span>}
                 {fixOf(item) && <div className={results.muted}>{fixOf(item)}</div>}
-                {more.panel}
             </>
         ),
-        action: own || more.buttons ? <span className={styles.itemAction}>{own}{more.buttons}</span> : null
+        action: own || fixer ? <span className={styles.itemAction}>{fixer}{own}</span> : null,
+        below: fix.state(index)
     };
 });
 
 /**
- * The card of one recommendation, with the fixers of other modules that apply to it (`contentGovernanceFixer`): on
- * the finding, beside its ⋯, and on each occurrence. The proposals of the fixer under way show under the finding
- * or under its occurrence. The card detail ends with the fix that the check proposes for a single occurrence.
+ * The card of one recommendation, with the fixers of other modules that apply to it (`contentGovernanceFixer`).
+ * The first fixer is a button on each occurrence, or on the title line of a finding with no occurrence, and
+ * Generate all runs it on every occurrence. The other fixers sit in the ⋮, where they run on every occurrence.
+ * The card detail ends with the fix that the check proposes for a single occurrence.
  */
 function RuleCard({rec, text, id, tab, itemAction}) {
+    const {t} = useGovernanceTranslation('common.results.fixers.all');
     const {path, language, ruleOf, previewDocument} = useContext(DrawerEntryContext);
     const finding = useMemo(() => ({rule: rec.rule, severity: rec.severity, title: text.title, detail: text.detail, items: rec.items || []}),
         [rec, text.title, text.detail]);
     const fixers = useMemo(() => applicableFixers(drawerFixers(), ruleOf?.(rec.rule) || {id: rec.rule}, finding),
         [ruleOf, rec.rule, finding]);
-    const run = useFixRun({finding, path, language, previewDocument});
-    const at = run.target ? run.target.index : undefined;
-    const buttons = index => (fixers.length > 0 ?
-        <span className={styles.itemAction}><FixerButtons fixers={fixers} isDisabled={run.status === 'running'} onRun={fixer => run.start(fixer, index)}/></span> :
-        null);
-    const single = finding.items.length === 1 ? fixOf(finding.items[0]) : null;
+    const fixes = useFixRuns({finding, path, language, previewDocument});
+    const [first, ...others] = fixers;
+    const count = finding.items.length;
+    const isBulk = Object.values(fixes.runs).some(current => current.isBulk);
+    const button = target => (first && !fixes.runs[target] ? <FixerButton fixer={first} onRun={() => fixes.start(first, target)}/> : null);
+    const runOther = fixer => {
+        if (count === 0) {
+            fixes.start(fixer, PAGE);
+        } else if (count === 1) {
+            fixes.start(fixer, 0);
+        } else {
+            fixes.generateAll(fixer);
+        }
+    };
+    const generateAll = first && count > 1 && !isBulk ? (
+        <Button size="small"
+                variant="ghost"
+                label={t('generate')}
+                data-fix-all={first.key}
+                onClick={event => {
+                    // A click in the line of the occurrences opens them through isOpen, not through the fold
+                    event.preventDefault();
+                    fixes.generateAll(first);
+                }}/>
+    ) : null;
+    const menuFixers = others.length > 0 ? others.map(fixer => <FixerButton key={fixer.key} isOnMenu fixer={fixer} onRun={() => runOther(fixer)}/>) : null;
+    const single = count === 1 ? fixOf(finding.items[0]) : null;
     return (
         <ResultCard level={levelOf(rec.severity)}
                     title={text.title}
                     detail={single ? <>{text.detail}{text.detail && ' '}{single}</> : text.detail}
                     rule={rec.rule}
-                    occurrences={occurrencesOf(rec, itemAction, index => ({
-                        buttons: buttons(index),
-                        panel: at === index ? <FixerPanel run={run}/> : null
-                    }))}
-                    menu={<>{buttons(null)}<FindingMenu findingKey={auditFindingKey(rec.bucket || tab, id)}/></>}
+                    occurrences={occurrencesOf(rec, itemAction, {
+                        button,
+                        state: index => (fixes.runs[index] ? <FixerState fixes={fixes} target={index}/> : null)
+                    })}
+                    occurrencesAction={generateAll}
+                    occurrencesHeader={<FixAllBar fixes={fixes}/>}
+                    isOpen={isBulk}
+                    menu={<>{count === 0 && button(PAGE)}<FindingMenu findingKey={auditFindingKey(rec.bucket || tab, id)} fixers={menuFixers}/></>}
         >
-            {at === null && <FixerPanel run={run}/>}
+            {count === 0 && <div className={styles.pageFix}><FixerState fixes={fixes} target={PAGE}/></div>}
         </ResultCard>
     );
 }

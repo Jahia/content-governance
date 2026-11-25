@@ -39,8 +39,11 @@ it fails.
 | `detail` | What to do, in one or two sentences. |
 | `rule` | The id of the rule, such as `seo.openGraph`. |
 | `chips` | Marks at the start of the title, such as a WCAG level. |
-| `occurrences` | A list of `{key, content, action}`: one row per occurrence, with one action, such as Highlight. |
+| `occurrences` | A list of `{key, content, action, below}`: one row per occurrence, with one action, such as Highlight. `below` shows under the row, across its whole width. |
 | `occurrencesLabel` | The label of the folded occurrences, "Findings (N)" by default. |
+| `occurrencesAction` | An action at the end of the line "Findings (N)", such as Generate all. |
+| `occurrencesHeader` | What shows above the open occurrences, such as the progress of Generate all. |
+| `isOpen` | Opens the occurrences when it turns `true`. |
 | `action` | The action of a rule with no occurrence, on the title line. |
 | `menu` | The actions at the end of the title line, such as the ⋯ of the actions of other modules. |
 | `children` | More about the finding, between the head and the occurrences. |
