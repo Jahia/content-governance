@@ -34,7 +34,7 @@ Shared with the other sections:
 | `org.jahia.community.contentgovernance.text` | `PlainText` (rich text to text), which the check `pattern` reads too, `FoldedText` and `TermPattern` |
 | `org.jahia.community.contentgovernance.check` | `CheckRegistry`, which runs the checks of every module, and `PatternCheck`, the check of the evaluator `pattern` |
 | `org.jahia.community.contentgovernance.settings` | `Features` (section and tab ids: the Compliance section is `compliance`, with no tabs) and `SiteFeatures` (the server-side gate) |
-| `src/javascript/drawer/` | `GovernanceAction` draws a header button per panel. `GovernanceDrawer` holds the panels. `GovernancePanel` shows the domains of the layout and the tabs of other modules, and `DomainTab` the sections of a domain. |
+| `src/javascript/drawer/` | `GovernanceAction` draws a header button per panel. `GovernanceDrawer` holds the panels. `GovernancePanel` shows the domains of the layout and the tabs of other modules, and `DomainTab` the sections of a domain, where a subdomain may hold the tab of another module. |
 | `src/javascript/compliance/` | `useComplianceScan.js`, `ComplianceParts.jsx` and `complianceState.js` (the scan in the drawer), `scan.gql.js`, `renderedPaths.js` (frame paths), `dashboard/` (dashboard, `scanSite.gql.js`, CSV and JSON exports) |
 | `src/javascript/common/SectionGate.jsx` | Shows the dashboard only while the site keeps the section on |
 

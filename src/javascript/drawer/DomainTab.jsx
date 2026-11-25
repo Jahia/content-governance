@@ -49,10 +49,10 @@ SubdomainContent.propTypes = {
 
 /**
  * A domain of the drawer, such as Page quality: the toolbar of each check that its subdomains read, what holds
- * for the whole page, and one section per subdomain, in the order of the layout of the site. Every section
- * starts closed.
+ * for the whole page, and one section per subdomain, in the order of the layout of the site. The section of a
+ * subdomain that holds the tab of another module shows that tab. Every section starts closed.
  */
-export function DomainTab({sections, checks, engines, places, path, language, requested, complianceUnavailable, onEdit}) {
+export function DomainTab({sections, checks, engines, places, path, language, requested, complianceUnavailable, renderEntry, onEdit}) {
     const {t} = useGovernanceTranslation('audit');
     const {t: tGeo} = useGovernanceTranslation('geo');
     const {page, geo, compliance} = engines;
@@ -97,12 +97,14 @@ export function DomainTab({sections, checks, engines, places, path, language, re
                                             isOpen={isOpen(section.id)}
                                             onToggle={() => setOpen([section.id], !isOpen(section.id))}
                         >
-                            <SubdomainContent id={section.id}
-                                              engines={engines}
-                                              places={places}
-                                              path={path}
-                                              complianceUnavailable={complianceUnavailable}
-                                              onEdit={onEdit}/>
+                            {section.entry ? renderEntry(section.id) : (
+                                <SubdomainContent id={section.id}
+                                                  engines={engines}
+                                                  places={places}
+                                                  path={path}
+                                                  complianceUnavailable={complianceUnavailable}
+                                                  onEdit={onEdit}/>
+                            )}
                         </CollapsibleSection>
                     ))}
                 </div>
@@ -119,7 +121,9 @@ DomainTab.propTypes = {
         help: PropTypes.string,
         count: PropTypes.number,
         serious: PropTypes.bool,
-        unavailable: PropTypes.bool
+        unavailable: PropTypes.bool,
+        // The tab of another module that the subdomain holds (drawer/heldTabs.js)
+        entry: PropTypes.object
     })).isRequired,
     // The checks that the subdomains read (drawer/subdomains.js)
     checks: PropTypes.instanceOf(Set).isRequired,
@@ -137,6 +141,8 @@ DomainTab.propTypes = {
     requested: PropTypes.shape({tab: PropTypes.string, at: PropTypes.number}),
     // Why the editor cannot use the compliance scan here: notPage or noWrite
     complianceUnavailable: PropTypes.string,
+    // (subdomain id): the tab of another module that the subdomain holds
+    renderEntry: PropTypes.func.isRequired,
     // Opens a content in Content Editor, and the drawer again on a subdomain when it closes
     onEdit: PropTypes.func.isRequired
 };

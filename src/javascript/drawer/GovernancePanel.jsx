@@ -21,6 +21,7 @@ import {openPanel} from './drawerApi';
 import {DrawerEntryContext} from './DrawerEntryContext';
 import {EntryBoundary} from './EntryBoundary';
 import {DomainTab} from './DomainTab';
+import {heldTabs, usableHeldIn, withHeldSections, withoutHeld} from './heldTabs';
 import {rulePlaces, useDrawerLayout} from './layout';
 import {checksOf, COMPLIANCE, GEO, PAGE} from './subdomains';
 import {domainFindings, sectionsOf} from './sections';
@@ -50,7 +51,8 @@ const SUBDOMAIN_OF_TAB = {jahia: 'health'};
 /**
  * The tabs of the governance panel, "Fix first", and the content of those tabs. The main tabs are the domains of
  * the layout of the site, such as Page quality, in its order (drawer/layout.js): each shows its subdomains as
- * sections (drawer/DomainTab.jsx). The tabs that other modules register come after them (drawer/entries.js). The
+ * sections (drawer/DomainTab.jsx). The tabs that other modules register come after them (drawer/entries.js),
+ * except a tab that a subdomain holds, which shows as the section of that subdomain (drawer/heldTabs.js). The
  * bar of these tabs is the main tab bar of the drawer, right under its header. A tab mounts the first time it is
  * shown and stays mounted while the drawer is open, so switching back to it keeps its results and any answer
  * still on its way.
@@ -80,11 +82,13 @@ export const GovernanceSections = ({path, language, domains = NO_DOMAINS, places
     // The client of jContent, with which a tab stores and reads its history
     const client = useApolloClient();
 
-    // The bar: the domains, then the tabs of other modules whose key is not the id of a domain
+    // The bar: the domains, then the tabs of other modules whose key is neither the id of a domain nor of a
+    // subdomain, which shows the tab as its section (drawer/heldTabs.js)
     const domainIds = new Set(domains.map(domain => domain.id));
+    const held = heldTabs(domains, tabs);
     const bar = [
         ...domains.map(domain => ({id: domain.id, label: domain.label, help: domain.help || domain.label, domain})),
-        ...tabs.filter(tab => !domainIds.has(tab.id)).map(tab => ({
+        ...tabs.filter(tab => !domainIds.has(tab.id) && !held.has(tab.id)).map(tab => ({
             ...tab,
             label: translate(tab.entry.label),
             help: translate(tab.entry.help || tab.entry.label)
@@ -138,7 +142,13 @@ export const GovernanceSections = ({path, language, domains = NO_DOMAINS, places
     const shownKey = domains.flatMap(domain => domain.subdomains.map(subdomain => subdomain.id)).join(',');
     const shown = useMemo(() => new Set(shownKey.split(',')), [shownKey]);
     const pageIsOn = useCallback(tab => tab === OTHER || shown.has(SUBDOMAIN_OF_TAB[tab] || tab), [shown]);
-    const checks = useMemo(() => Object.fromEntries(domains.map(domain => [domain.id, checksOf(domain, places)])), [domains, places]);
+    // The checks of the module read the subdomains that hold no tab
+    const heldKey = [...held.keys()].join(',');
+    const ownDomains = useMemo(() => {
+        const ids = new Set(heldKey.split(','));
+        return domains.map(domain => withoutHeld(domain, ids));
+    }, [domains, heldKey]);
+    const checks = useMemo(() => Object.fromEntries(ownDomains.map(domain => [domain.id, checksOf(domain, places)])), [ownDomains, places]);
     const needed = new Set(domains.filter(domain => visited.has(domain.id)).flatMap(domain => [...checks[domain.id]]));
     let complianceUnavailable = null;
     if (!isPage) {
@@ -175,31 +185,51 @@ export const GovernanceSections = ({path, language, domains = NO_DOMAINS, places
     }])), [ids, isOn, reportCount, reportFindings, client, path, language]);
 
     // The sections of each domain, and the findings of the domains, the same object while they stay the same
-    const sections = Object.fromEntries(domains.map(domain => [domain.id, sectionsOf(domain, engines, places, complianceUnavailable)]));
-    const ownKey = JSON.stringify(domainFindings(domains, engines, places, complianceUnavailable, {audit: tAudit, geo: tGeo, compliance: tCompliance}));
+    const ownKey = JSON.stringify(domainFindings(ownDomains, engines, places, complianceUnavailable, {audit: tAudit, geo: tGeo, compliance: tCompliance}));
     const own = useMemo(() => JSON.parse(ownKey), [ownKey]);
     const all = useMemo(() => ({...findings, ...own}), [findings, own]);
+    const hasSerious = id => (all[id] || []).some(finding => isSerious(finding.severity));
+    const sections = Object.fromEntries(domains.map((domain, index) => [domain.id, withHeldSections(domain,
+        sectionsOf(ownDomains[index], engines, places, complianceUnavailable), held, counts, hasSerious)]));
     const countOf = id => (sections[id] ? sections[id].reduce((sum, section) => sum + (section.count || 0), 0) : counts[id]);
+
+    // The ids whose findings each usable tab of the bar shows: a domain shows those of the tabs it holds too
+    const idsOf = item => (item.domain ? [item.id, ...usableHeldIn(item.domain, held)] : [item.id]);
+    const order = usable.flatMap(idsOf).join(',');
 
     // "Fix first" lists what is critical or serious only, tabs in the drawer's order so findings of
     // equal severity follow it; a tab's count is red when it holds one of them
-    const ranked = useMemo(() => rankFindings(usableIds.split(',')
+    const ranked = useMemo(() => rankFindings(order.split(',')
         .flatMap(id => all[id] || [])
         .filter(finding => isSerious(finding.severity))),
-    [usableIds, all]);
+    [order, all]);
 
     // The same object while the findings and the usable tabs stay the same, so an entry that keys
     // an effect on it runs that effect again only when they change
-    const entryContext = useMemo(() => ({path, language, findings: entryFindings(all, usableIds.split(',')), actions}),
-        [path, language, all, usableIds, actions]);
-    const hasSerious = id => (all[id] || []).some(finding => isSerious(finding.severity));
+    const entryContext = useMemo(() => ({path, language, findings: entryFindings(all, order.split(',')), actions}),
+        [path, language, all, order, actions]);
+    // A finding of a tab that a subdomain holds opens its domain, its section, and the part of the tab
     const goTo = useCallback(finding => {
+        const domain = domainOfSubdomain.get(finding.section);
+        if (domain) {
+            select(domain);
+            setRequested({section: domain, tab: finding.section, part: finding.tab, at: Date.now()});
+            return;
+        }
         select(finding.section);
         if (finding.tab) {
             setRequested({section: finding.section, tab: finding.tab, at: Date.now()});
         }
-    }, [select]);
+    }, [select, domainOfSubdomain]);
     const requestedFor = id => (requested && requested.section === id ? requested : null);
+    // The part that a tab shows on request: a tab of the bar receives the request of its section, a held tab the
+    // part that a finding of the tab names
+    const requestedTabOf = id => {
+        if (!held.has(id)) {
+            return requestedFor(id);
+        }
+        return requested && requested.tab === id && requested.part ? {tab: requested.part, at: requested.at} : null;
+    };
 
     // Content Editor opens over jContent: close the drawer, and open it again on the subdomain once the editor
     // closes, so the compliance scan runs again
@@ -229,7 +259,7 @@ export const GovernanceSections = ({path, language, domains = NO_DOMAINS, places
                            findings={entryContext.findings}
                            settings={settings}
                            isOn={scoped[id].isOn}
-                           requestedTab={requestedFor(id)}
+                           requestedTab={requestedTabOf(id)}
                            onCount={scoped[id].onCount}
                            onFindings={scoped[id].onFindings}
                            saveFindings={scoped[id].saveFindings}
@@ -241,6 +271,12 @@ export const GovernanceSections = ({path, language, domains = NO_DOMAINS, places
         );
     };
 
+    // A tab that a subdomain holds, in the section of the subdomain, or why the page cannot use it
+    const renderHeld = id => {
+        const tab = held.get(id);
+        return tab.unavailable ? <Typography>{t(`unavailable.${tab.unavailable}`)}</Typography> : renderEntry(tab);
+    };
+
     const renderTab = item => (item.domain ? (
         <DomainTab sections={sections[item.id]}
                    checks={checks[item.id]}
@@ -250,6 +286,7 @@ export const GovernanceSections = ({path, language, domains = NO_DOMAINS, places
                    language={language}
                    requested={requestedFor(item.id)}
                    complianceUnavailable={complianceUnavailable}
+                   renderEntry={renderHeld}
                    onEdit={edit}/>
     ) : renderEntry(item));
 
@@ -274,7 +311,7 @@ export const GovernanceSections = ({path, language, domains = NO_DOMAINS, places
                                          label={item.label}
                                          isSelected={active === item.id}
                                          isDisabled={Boolean(item.unavailable)}
-                                         icon={countOf(item.id) > 0 ? <CountBadge count={countOf(item.id)} isSerious={hasSerious(item.id)}/> : undefined}
+                                         icon={countOf(item.id) > 0 ? <CountBadge count={countOf(item.id)} isSerious={idsOf(item).some(hasSerious)}/> : undefined}
                                          onClick={() => select(item.id)}/>
                             </HelpTab>
                         ))}

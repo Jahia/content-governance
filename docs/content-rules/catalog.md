@@ -323,7 +323,9 @@ The prices that the ERP gives.
 ```
 
 The key `domain` names the domain of a subdomain. The key `order` places a new node among the nodes
-that the modules ship: a lower order comes first. The seeder reads `order` only when it adds the
+that the modules ship: a lower order comes first. A subdomain whose id is the key of a tab of the drawer
+holds that tab, and the section of the subdomain shows the tab:
+[Show the tab as a subdomain](../drawer-entries.md#show-the-tab-as-a-subdomain). The seeder reads `order` only when it adds the
 node, and an administrator can move the node afterwards.
 
 A subdomain names a domain, and a rule names a subdomain, that the same module, content-governance or

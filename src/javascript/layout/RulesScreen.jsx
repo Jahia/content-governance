@@ -16,15 +16,22 @@ export const SYSTEM_SITE = 'systemsite';
 /** What a subdomain needs, as a chip: AI citations read BotRank. */
 const NEEDS = {'geo.citations': 'needsBotRank'};
 
-/** A level accepts a drop of its own level, and the level under it, which goes last into it. */
-const accepts = (item, over) => item.level === over.level ||
-    (item.level === SUBDOMAIN && over.level === DOMAIN) || (item.level === RULE && over.level === SUBDOMAIN);
+/**
+ * A level accepts a drop of its own level, and the level under it, which goes last into it. A subdomain that holds
+ * the tab of another module takes no rule: the tab shows instead of the findings of rules.
+ */
+const accepts = (item, over, tabs) => item.level === over.level ||
+    (item.level === SUBDOMAIN && over.level === DOMAIN) || (item.level === RULE && over.level === SUBDOMAIN && !tabs[over.id]);
 
 /**
  * Drag and drop between the rows. The handle of a row starts a drag, and a row of the same level, or of the level
  * above, takes the drop. The "Move to" menu does the same moves from the keyboard.
+ *
+ * @param {boolean} canEdit whether the screen can change the draft
+ * @param {Function} setDraft the setter of the draft
+ * @param {Object<string, object>} tabs the tabs of other modules by key, which a subdomain may hold
  */
-function useDragAndDrop(canEdit, setDraft) {
+function useDragAndDrop(canEdit, setDraft, tabs) {
     const [dragging, setDragging] = useState(null);
     const [over, setOver] = useState(null);
     const end = useCallback(() => {
@@ -48,7 +55,7 @@ function useDragAndDrop(canEdit, setDraft) {
 
     const target = (level, id) => (canEdit && dragging ? {
         onDragOver: e => {
-            if (accepts(dragging, {level, id})) {
+            if (accepts(dragging, {level, id}, tabs)) {
                 e.preventDefault();
                 e.stopPropagation();
                 if (over?.id !== id || over?.level !== level) {
@@ -57,7 +64,7 @@ function useDragAndDrop(canEdit, setDraft) {
             }
         },
         onDrop: e => {
-            if (accepts(dragging, {level, id})) {
+            if (accepts(dragging, {level, id}, tabs)) {
                 e.preventDefault();
                 e.stopPropagation();
                 const item = dragging;
@@ -83,10 +90,11 @@ DragHandle.propTypes = {
     dragProps: PropTypes.object.isRequired
 };
 
-/** The "Move to" menu of an item: up, down, and into another parent. */
-const MoveMenu = ({level, id, label, draft, labels, isDisabled, onMove}) => {
+/** The "Move to" menu of an item: up, down, and into another parent, but a rule into no subdomain that holds a tab. */
+const MoveMenu = ({level, id, label, draft, labels, tabs, isDisabled, onMove}) => {
     const {t} = useGovernanceTranslation('rulesScreen');
-    const options = moveOptions(draft, level, id);
+    const all = moveOptions(draft, level, id);
+    const options = level === RULE ? {...all, parents: all.parents.filter(parent => !tabs[parent])} : all;
     const data = [{
         groupLabel: t('moveOrder'),
         options: [
@@ -122,6 +130,8 @@ MoveMenu.propTypes = {
     draft: PropTypes.object.isRequired,
     // The label of each domain and subdomain, by id
     labels: PropTypes.object.isRequired,
+    // The tabs of other modules by key, which a subdomain may hold
+    tabs: PropTypes.object.isRequired,
     isDisabled: PropTypes.bool,
     // (level, id, value): value is up, down or into:<parent id>
     onMove: PropTypes.func.isRequired
@@ -167,7 +177,7 @@ const RuleRow = ({id, rule, isParentOn, ctx}) => {
                 {label !== id && <Typography variant="caption" className={styles.muted}>{id}</Typography>}
             </span>
             {rule?.isNew && <Chip color="accent" label={t('new')}/>}
-            <MoveMenu level={RULE} id={id} label={label} draft={ctx.draft} labels={ctx.labels} isDisabled={!ctx.canEdit} onMove={ctx.onMove}/>
+            <MoveMenu level={RULE} id={id} label={label} draft={ctx.draft} labels={ctx.labels} tabs={ctx.tabs} isDisabled={!ctx.canEdit} onMove={ctx.onMove}/>
         </li>
     );
 };
@@ -180,7 +190,34 @@ RuleRow.propTypes = {
     ctx: PropTypes.object.isRequired
 };
 
-/** One subdomain of a domain, with its rules, which open under it. */
+/** The parts of the tab of another module, each with its switch: the layout stores the id `<tab>.<part>`. */
+const PartRows = ({entry, draft, isDisabled, onToggle}) => {
+    // The labels of a part are keys with their own namespace (`my-module:tab.part`)
+    const {t: translate} = useGovernanceTranslation();
+    return tabParts(entry).map(part => {
+        const id = `${entry.key}.${part.id}`;
+        const partLabel = translate(part.label);
+        return (
+            <li key={part.id} className={styles.rule} data-part={id}>
+                <ItemSwitch label={partLabel} isOn={!draft.off.has(id)} isDisabled={isDisabled} onToggle={on => onToggle(id, on)}/>
+                <Typography className={styles.itemLabel}>{partLabel}</Typography>
+            </li>
+        );
+    });
+};
+
+PartRows.propTypes = {
+    // A registry entry of drawerTabs (drawer/entries.js)
+    entry: PropTypes.object.isRequired,
+    draft: PropTypes.object.isRequired,
+    isDisabled: PropTypes.bool.isRequired,
+    onToggle: PropTypes.func.isRequired
+};
+
+/**
+ * One subdomain of a domain, with its rules, which open under it. A subdomain that holds the tab of another module
+ * lists the parts of the tab instead, on the screen of a site.
+ */
 const SubdomainRow = ({place, subdomain, isParentOn, ctx}) => {
     const {t} = useGovernanceTranslation('rulesScreen');
     const {t: tSettings} = useGovernanceTranslation('settings');
@@ -191,6 +228,36 @@ const SubdomainRow = ({place, subdomain, isParentOn, ctx}) => {
     const isOn = !ctx.draft.off.has(id);
     const need = NEEDS[id];
     const rulesId = `cg-rules-${id}`;
+    const tab = ctx.tabs[id];
+    const parts = tab && !ctx.isDefaults ? tabParts(tab) : [];
+    let toggle = null;
+    if (!tab || parts.length > 0) {
+        toggle = (
+            <Button variant="ghost"
+                    size="small"
+                    label={tab ? t('parts', {count: parts.length}) : t('rules', {count: place.rules.length})}
+                    aria-expanded={isOpen}
+                    aria-controls={rulesId}
+                    onClick={() => setOpen(open => !open)}/>
+        );
+    }
+    let list = null;
+    if (isOpen && tab) {
+        list = (
+            <ul id={rulesId} className={styles.rules} aria-label={t('partsOf', {item: label})}>
+                <PartRows entry={tab} draft={ctx.draft} isDisabled={!ctx.canEdit || !isParentOn || !isOn} onToggle={ctx.onToggle}/>
+            </ul>
+        );
+    } else if (isOpen) {
+        list = (
+            <ul id={rulesId} className={styles.rules} aria-label={t('rulesOf', {item: label})}>
+                {place.rules.length === 0 && <li className={styles.muted}><Typography variant="caption">{t('noRule')}</Typography></li>}
+                {place.rules.map(ruleId => (
+                    <RuleRow key={ruleId} id={ruleId} rule={ctx.rules[ruleId]} isParentOn={isParentOn && isOn} ctx={ctx}/>
+                ))}
+            </ul>
+        );
+    }
     return (
         <li ref={rowRef}
             className={`${styles.subdomain} ${ctx.dnd.isOver(SUBDOMAIN, id) ? styles.over : ''}`}
@@ -206,22 +273,10 @@ const SubdomainRow = ({place, subdomain, isParentOn, ctx}) => {
                 </span>
                 {subdomain?.isNew && <Chip color="accent" label={t('new')}/>}
                 {need && <Chip color="accent" label={tSettings(need)}/>}
-                <Button variant="ghost"
-                        size="small"
-                        label={t('rules', {count: place.rules.length})}
-                        aria-expanded={isOpen}
-                        aria-controls={rulesId}
-                        onClick={() => setOpen(open => !open)}/>
-                <MoveMenu level={SUBDOMAIN} id={id} label={label} draft={ctx.draft} labels={ctx.labels} isDisabled={!ctx.canEdit} onMove={ctx.onMove}/>
+                {toggle}
+                <MoveMenu level={SUBDOMAIN} id={id} label={label} draft={ctx.draft} labels={ctx.labels} tabs={ctx.tabs} isDisabled={!ctx.canEdit} onMove={ctx.onMove}/>
             </div>
-            {isOpen && (
-                <ul id={rulesId} className={styles.rules} aria-label={t('rulesOf', {item: label})}>
-                    {place.rules.length === 0 && <li className={styles.muted}><Typography variant="caption">{t('noRule')}</Typography></li>}
-                    {place.rules.map(ruleId => (
-                        <RuleRow key={ruleId} id={ruleId} rule={ctx.rules[ruleId]} isParentOn={isParentOn && isOn} ctx={ctx}/>
-                    ))}
-                </ul>
-            )}
+            {list}
         </li>
     );
 };
@@ -252,7 +307,7 @@ const DomainCard = ({place, domain, ctx}) => {
                     {domain?.help && <Typography variant="caption" className={styles.muted}>{domain.help}</Typography>}
                 </div>
                 {domain?.isNew && <Chip color="accent" label={t('new')}/>}
-                <MoveMenu level={DOMAIN} id={id} label={label} draft={ctx.draft} labels={ctx.labels} isDisabled={!ctx.canEdit} onMove={ctx.onMove}/>
+                <MoveMenu level={DOMAIN} id={id} label={label} draft={ctx.draft} labels={ctx.labels} tabs={ctx.tabs} isDisabled={!ctx.canEdit} onMove={ctx.onMove}/>
                 <ItemSwitch label={label} isOn={isOn} isDisabled={!ctx.canEdit || !isPanelOn} onToggle={on => ctx.onToggle(id, on)}/>
             </div>
             <ul className={styles.subdomains} aria-label={t('subdomainsOf', {item: label})}>
@@ -318,9 +373,8 @@ PanelSwitches.propTypes = {
 };
 
 /**
- * The tabs that other modules add to the governance panel, such as the review of AI Assistant, with their parts:
- * the tree of the system site does not hold them, so the screen switches them as the registry of the drawer lists
- * them.
+ * The tabs that other modules add to the governance panel, with their parts, when no subdomain of the tree holds
+ * them: the screen switches them as the registry of the drawer lists them.
  */
 const OtherTabs = ({tabs, draft, canEdit, isPanelOn, onToggle}) => {
     const {t} = useGovernanceTranslation('rulesScreen');
@@ -347,19 +401,7 @@ const OtherTabs = ({tabs, draft, canEdit, isPanelOn, onToggle}) => {
                             </div>
                             {tabParts(entry).length > 0 && (
                                 <ul className={styles.rules}>
-                                    {tabParts(entry).map(part => {
-                                        const id = `${entry.key}.${part.id}`;
-                                        const partLabel = translate(part.label);
-                                        return (
-                                            <li key={part.id} className={styles.rule} data-part={id}>
-                                                <ItemSwitch label={partLabel}
-                                                            isOn={!draft.off.has(id)}
-                                                            isDisabled={!canEdit || !isPanelOn || !tabOn}
-                                                            onToggle={on => onToggle(id, on)}/>
-                                                <Typography className={styles.itemLabel}>{partLabel}</Typography>
-                                            </li>
-                                        );
-                                    })}
+                                    <PartRows entry={entry} draft={draft} isDisabled={!canEdit || !isPanelOn || !tabOn} onToggle={onToggle}/>
                                 </ul>
                             )}
                         </li>
@@ -371,7 +413,7 @@ const OtherTabs = ({tabs, draft, canEdit, isPanelOn, onToggle}) => {
 };
 
 OtherTabs.propTypes = {
-    // The registry entries of drawerTabs (drawer/entries.js) that no domain holds
+    // The registry entries of drawerTabs (drawer/entries.js) that no domain or subdomain holds
     tabs: PropTypes.array.isRequired,
     draft: PropTypes.object.isRequired,
     canEdit: PropTypes.bool.isRequired,
@@ -385,11 +427,13 @@ const LayoutEditor = ({siteKey, data, isDefaults, canEdit, isReloading, title, s
     const {t} = useGovernanceTranslation('rulesScreen');
     const governance = data.contentGovernance;
     const panels = useMemo(() => (isDefaults ? [] : drawerPanels()), [isDefaults]);
-    // The tabs of other modules: the tabs of this module are domains of the tree
+    // The tabs of other modules, by key: a subdomain of the tree with the key of a tab holds it, and the screen lists
+    // the parts of the tab under that subdomain; the other tabs go to their own card
+    const tabs = useMemo(() => Object.fromEntries(drawerTabs().map(entry => [entry.key, entry])), []);
     const otherTabs = useMemo(() => {
-        const domains = new Set(governance.contentDomains.map(domain => domain.id));
-        return isDefaults ? [] : drawerTabs().filter(entry => !domains.has(entry.key));
-    }, [governance, isDefaults]);
+        const tree = new Set(governance.contentDomains.flatMap(domain => [domain.id, ...domain.subdomains.map(s => s.id)]));
+        return isDefaults ? [] : Object.values(tabs).filter(entry => !tree.has(entry.key));
+    }, [governance, isDefaults, tabs]);
     // The ids that the layout switches off, those of the panels and of the tabs of other modules included
     const initial = useMemo(() => draftOf(governance.contentDomains, governance.contentRules, governance.siteLayout.off),
         [governance]);
@@ -400,7 +444,7 @@ const LayoutEditor = ({siteKey, data, isDefaults, canEdit, isReloading, title, s
     const dirty = !sameLayout(draft, initial);
     // A change while a save runs, or while the screen reads what it saved, would be lost when the draft starts again
     const editable = canEdit && !saving && !resetting && !isReloading;
-    const dnd = useDragAndDrop(editable, setDraft);
+    const dnd = useDragAndDrop(editable, setDraft, tabs);
 
     const lookups = useMemo(() => {
         const domains = Object.fromEntries(governance.contentDomains.map(domain => [domain.id, domain]));
@@ -439,7 +483,7 @@ const LayoutEditor = ({siteKey, data, isDefaults, canEdit, isReloading, title, s
         }
     };
 
-    const ctx = {draft, canEdit: editable, isDefaults, dnd, onToggle, onMove, ...lookups};
+    const ctx = {draft, canEdit: editable, isDefaults, dnd, tabs, onToggle, onMove, ...lookups};
     const error = saveError || resetError;
     const actions = [];
     if (!isDefaults) {

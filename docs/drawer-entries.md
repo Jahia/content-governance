@@ -17,7 +17,8 @@ The first tabs of the governance panel are the domains of the layout of the site
 quality. They come in the order of the site. Each domain shows its subdomains as sections, such as Accessibility.
 Content governance does not register these tabs: the drawer reads the layout of the site from the
 GraphQL field `contentDomains`. [The catalog of the rules](content-rules/catalog.md#domains-and-subdomains)
-states the layout. The tabs of other modules come after the domains.
+states the layout. The tabs of other modules come after the domains, unless a subdomain holds the tab: see
+[Show the tab as a subdomain](#show-the-tab-as-a-subdomain).
 
 A tab that another module adds gets these features:
 
@@ -272,10 +273,44 @@ component can be a `React.lazy` component, and the drawer shows a loader while t
 component throws an error, the tab shows a message and the console shows the error. The other tabs
 of the drawer continue to work.
 
+### Show the tab as a subdomain
+
+A module can place its tab in a domain, as a subdomain. The module ships a subdomain whose id is the key
+of the tab, as [the catalog of the rules](content-rules/catalog.md#how-a-module-ships-domains-and-subdomains)
+states. The tab then shows as the section of that subdomain, and not in the section bar.
+
+Example: ai-assistant declares the header `Jahia-Content-Rules: content-rules` and ships the file
+`content-rules/subdomains/aiAssistantVoice.md`:
+
+```markdown
+---
+id: aiAssistantVoice
+domain: compliance
+order: 50
+label:
+  en: "Voice"
+---
+The voice of the brand and the readers of the site.
+```
+
+Its Voice tab shows as the last section of Compliance.
+
+- The tab follows the subdomain. A site administrator moves it to another domain, or switches it off, on
+  the screen Rules & domains. The screen lists the parts of the tab under the subdomain, each with its
+  switch. A rule cannot go into the subdomain.
+- The section shows the label and the help of the subdomain.
+- The tab mounts the first time the editor opens its section. Its count shows on the section, and the
+  count of the domain includes it.
+- The tab has the width of the drawer and no height of its own. It grows with its content, and the
+  domain scrolls.
+- "Open" in "Fix first" on a finding of the tab opens the domain and the section of the tab. The tab
+  receives the `tab` of the finding in `requestedTab`.
+- A tab that the page cannot use shows why in its section, and adds no finding.
+
 ### The site switch
 
 The screen Rules & domains lists, in its card **Tabs of other modules**, every tab of the registry that
-no domain of the tree holds. Each tab has a switch, and each of its parts has a switch too. The layout
+no domain or subdomain of the tree holds. Each tab has a switch, and each of its parts has a switch too. The layout
 of the site stores the ids that a site administrator switched off, so a new tab is on until then. A
 tab that the site switched off is not in the drawer. The server refuses to store or read its history.
 
@@ -290,7 +325,8 @@ through `onFindings` all the same: they also colour its count and reach the othe
 
 "Fix first" lists the 5 most serious findings that are critical or serious, from the tabs that the
 page can use. Findings of the same severity keep the order of the tabs. The drawer sets the field
-`section` of each finding of a tab to the key of the tab. "Open" in "Fix first" then opens that tab.
+`section` of each finding of a tab to the key of the tab. "Open" in "Fix first" then opens that tab, or
+the section of the subdomain that holds it.
 The tab then receives the `tab` of the finding in `requestedTab`. "Open" on a finding of a domain
 opens the domain and the section of the subdomain of the finding.
 
