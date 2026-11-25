@@ -31,6 +31,11 @@ English and "cliquez ici" in French. A language that the module does not transla
 text. The id of the
 example rule is `compliance.example-term`.
 
+The two folders get a title in English, French, German and Spanish. The Compliance section names the
+folder of a rule in the language of the interface of the editor, else in the language of the content.
+When the module starts, it adds the missing titles to the folders of an older version. A folder keeps its
+titles when an editor changed its title in the default language of the site.
+
 The example is not published, because the checks read the rules in the edit workspace. Rename it, add
 your rules and delete the example. The module creates it once for each site, so it does not come back.
 

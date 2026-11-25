@@ -148,7 +148,7 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         JCRSessionWrapper session = page.getSession();
         String language = session.getLocale().toString();
         String sitePath = page.getResolveSite().getPath();
-        ComplianceRules rules = ComplianceRules.read(session, checks, page.getResolveSite().getSiteKey(), language);
+        ComplianceRules rules = ComplianceRules.read(session, checks, page.getResolveSite().getSiteKey(), language, uiLocale);
         Scan scan = new Scan(rules, checks, language, uiLocale, true, MAX_SCANNED_NODES, MAX_ISSUES);
         if (!rules.applies()) {
             return new ComplianceReport(page.getPath(), language, ScanStatus.NO_GLOSSARY, 0, false,
@@ -187,7 +187,7 @@ public class ComplianceScanServiceImpl implements ComplianceScanService {
         JCRSessionWrapper session = site.getSession();
         String language = session.getLocale().toString();
         String sitePath = site.getPath();
-        ComplianceRules rules = ComplianceRules.read(session, checks, site.getSiteKey(), language);
+        ComplianceRules rules = ComplianceRules.read(session, checks, site.getSiteKey(), language, uiLocale);
         Scan scan = new Scan(rules, checks, language, uiLocale, false, MAX_SITE_SCANNED_NODES, MAX_SITE_ISSUES);
         if (!rules.applies()) {
             return new SiteComplianceReport(site.getSiteKey(), language, ScanStatus.NO_GLOSSARY, 0, 0, 0, false,

@@ -32,4 +32,15 @@ class GlossarySeederTest {
         assertThat(GlossarySeeder.seedText("ja").getString("seed.term")).isEqualTo("click here");
         assertThat(GlossarySeeder.seedText("en").getString("seed.folder")).isEqualTo("Compliance glossaries");
     }
+
+    @Test
+    void eachBundleLanguage_translatesTheTitlesOfTheFolders() {
+        String folder = GlossarySeeder.seedText("en").getString("seed.folder");
+        String glossary = GlossarySeeder.seedText("en").getString("seed.glossary");
+        GlossarySeeder.BUNDLE_LANGUAGES.stream().filter(language -> !"en".equals(language)).forEach(language -> {
+            assertThat(GlossarySeeder.seedText(language).getString("seed.folder")).as(language).isNotEqualTo(folder);
+            assertThat(GlossarySeeder.seedText(language).getString("seed.glossary")).as(language).isNotEqualTo(glossary);
+        });
+        assertThat(GlossarySeeder.seedText("fr").getString("seed.glossary")).isEqualTo("Termes non autoris\u00e9s");
+    }
 }
