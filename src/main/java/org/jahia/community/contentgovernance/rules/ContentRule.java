@@ -115,7 +115,7 @@ public record ContentRule(String id, String subdomain, String evaluator, String 
     /**
      * True when the rule states {@code trigger: manual}: no audit runs it, and an editor runs it in the drawer.
      */
-    public boolean manual() {
+    public boolean manualTrigger() {
         return MANUAL.equals(values.get(RuleValues.TRIGGER));
     }
 

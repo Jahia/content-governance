@@ -199,7 +199,7 @@ public class GqlContentRule {
     @GraphQLNonNull
     @GraphQLDescription("When the rule runs: auto, in every audit, or manual, only when an editor runs it in the drawer")
     public String getTrigger() {
-        return rule.manual() ? ContentRule.MANUAL : ContentRule.AUTO;
+        return rule.manualTrigger() ? ContentRule.MANUAL : ContentRule.AUTO;
     }
 
     @GraphQLField

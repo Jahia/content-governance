@@ -107,7 +107,7 @@ public final class ManualRuns {
      */
     static List<ContentRule> manualRules(ContentRules rules, String subdomain) {
         return rules.all().stream()
-                .filter(rule -> rule.manual() && rule.enabled() && rule.placed() && subdomain.equals(rule.subdomain()))
+                .filter(rule -> rule.manualTrigger() && rule.enabled() && rule.placed() && subdomain.equals(rule.subdomain()))
                 .toList();
     }
 

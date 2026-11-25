@@ -217,7 +217,7 @@ class RuleFileTest {
                 """, "acme.tone.md");
         ContentRule placed = RuleValues.toRule(rule.values());
 
-        assertThat(placed.manual()).isTrue();
+        assertThat(placed.manualTrigger()).isTrue();
         assertThat(placed.view()).isEqualTo(ContentRule.FACT);
         assertThat(placed.valueLabels(null)).containsExactly(Map.entry("words", "Words"), Map.entry("readingTime", "Reading time"));
         assertThat(placed.valueLabels("fr")).containsExactly(Map.entry("words", "Mots"), Map.entry("readingTime", "Reading time"));

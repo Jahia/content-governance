@@ -128,7 +128,7 @@ public class CheckRegistry {
      * runs on demand
      */
     public boolean blocking(ContentRule rule) {
-        return rule.blocking() && !rule.inBrowser() && !rule.manual();
+        return rule.blocking() && !rule.inBrowser() && !rule.manualTrigger();
     }
 
     /**
@@ -202,7 +202,7 @@ public class CheckRegistry {
      * the rules that run on demand only, and any other run the other rules only.
      */
     private Registered runner(ContentRule rule, Scope scope, boolean manual) {
-        Registered registered = rule.enabled() && rule.placed() && !rule.inBrowser() && rule.manual() == manual
+        Registered registered = rule.enabled() && rule.placed() && !rule.inBrowser() && rule.manualTrigger() == manual
                 ? find(rule.evaluator()) : null;
         return registered != null && registered.check().scopes().contains(scope) ? registered : null;
     }
