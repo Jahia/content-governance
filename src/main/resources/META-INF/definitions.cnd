@@ -185,3 +185,20 @@
 [ccs:contentDomainFolder] > jnt:contentFolder
  + * (ccs:contentDomain)
  + * (ccs:contentSubdomain)
+
+// A node of the audit history of a site, /sites/<key>/content-governance/audits: the node of the history, of a
+// language, of a page, or of one run. It accepts any property and any child. Jahia indexes no property of it.
+// The index reads the definition of a property by its name and never reads a residual definition, so each property
+// that the history writes is declared here with indexed=no.
+[ccs:governanceAudit] > nt:base
+ - path (string) indexed=no
+ - title (string) indexed=no
+ - tab (string) indexed=no
+ - auditedAt (long) indexed=no
+ - auditedBy (string) indexed=no
+ - previousTotal (long) indexed=no
+ - summary (string) indexed=no
+ - results (string) indexed=no
+ - * (undefined) indexed=no
+ - * (undefined) multiple indexed=no
+ + * (ccs:governanceAudit)

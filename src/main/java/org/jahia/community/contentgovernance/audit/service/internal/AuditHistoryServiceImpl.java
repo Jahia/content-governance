@@ -14,20 +14,29 @@ import org.jahia.community.contentgovernance.audit.service.spi.AuditHistoryServi
 import org.jahia.community.contentgovernance.settings.SiteFeatures;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRTemplate;
+import org.jahia.settings.SettingsBean;
 import org.json.JSONObject;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Stores the runs in the site's private node of the module, with system sessions in the default
  * workspace: one node per language and page, holding the summary of the latest Page quality audit,
  * and one child per run holding the id of its tab and what it stores. A run stored before the runs
- * carried a tab is a Page quality audit.
+ * carried a tab is a Page quality audit. Every node of the history is a {@value #NODE_TYPE}, which Jahia does not
+ * index.
  */
 @Component(service = AuditHistoryService.class, immediate = true)
 public class AuditHistoryServiceImpl implements AuditHistoryService {
 
+    private static final Logger logger = LoggerFactory.getLogger(AuditHistoryServiceImpl.class);
+
     private static final String WORKSPACE = "default";
-    private static final String NODE_TYPE = "nt:unstructured";
+    static final String NODE_TYPE = "ccs:governanceAudit";
+    /** The type of the history of a version before {@value #NODE_TYPE}, which Jahia indexes. */
+    private static final String LEGACY_TYPE = "nt:unstructured";
     static final String AUDITS = "audits";
     private static final String RUN_PREFIX = "run-";
     private static final String P_PATH = "path";
@@ -45,6 +54,43 @@ public class AuditHistoryServiceImpl implements AuditHistoryService {
 
     /** One run to store. */
     private record Run(String tab, long auditedAt, String user, AuditSummary summary, String results) {
+    }
+
+    /**
+     * Deletes the history of every site that a version before {@value #NODE_TYPE} stored, on the processing server
+     * only: the nodes of a cluster share the repository. A failure is logged, and the module starts anyway.
+     */
+    @Activate
+    public void activate() {
+        if (!SettingsBean.getInstance().isProcessingServer()) {
+            return;
+        }
+        try {
+            int deleted = JCRTemplate.getInstance().doExecuteWithSystemSessionAsUser(null, WORKSPACE, null,
+                    session -> deleteLegacyHistory(session.getNode("/sites")));
+            if (deleted > 0) {
+                logger.info("Deleted the audit history of {} sites, stored as {}", deleted, LEGACY_TYPE);
+            }
+        } catch (RepositoryException | RuntimeException e) {
+            logger.warn("The audit history stored as {} could not be deleted", LEGACY_TYPE, e);
+        }
+    }
+
+    /** Deletes the history of type {@value #LEGACY_TYPE} of each site under {@code sites}, and returns its count. */
+    static int deleteLegacyHistory(JCRNodeWrapper sites) throws RepositoryException {
+        int deleted = 0;
+        NodeIterator children = sites.getNodes();
+        while (children.hasNext()) {
+            JCRNodeWrapper history = existing((JCRNodeWrapper) children.nextNode(), SiteFeatures.STORE_NODE, AUDITS);
+            if (history != null && LEGACY_TYPE.equals(history.getPrimaryNodeTypeName())) {
+                history.remove();
+                deleted++;
+            }
+        }
+        if (deleted > 0) {
+            sites.getSession().save();
+        }
+        return deleted;
     }
 
     @Override
