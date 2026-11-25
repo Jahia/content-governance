@@ -8,6 +8,7 @@ import {GOVERNANCE_PANEL, MODULE} from '../common/module';
 import {drawerPanels, PANEL_NODE_TYPES} from './entries';
 import {onPanelRequest} from './drawerApi';
 import {openWith, pressButton} from './drawerState';
+import {rememberPanel, rememberedState} from './drawerMemory';
 
 // The drawer loads apart from jContent's start: fetched when the browser is idle once a button
 // shows, and at the latest on the first click. Each panel and tab loads the first time the drawer
@@ -84,10 +85,11 @@ PanelButton.propTypes = {
 /**
  * The header buttons of Page Builder and jContent, one per panel of the drawer, on a site that
  * enables the module and keeps the panel switched on. A button opens the one drawer on its panel.
- * Code opens it too, through `openPanel` (drawer/drawerApi.js).
+ * Code opens it too, through `openPanel` (drawer/drawerApi.js). The drawer stays open or closed
+ * from one page to the next (drawer/drawerMemory.js).
  */
 export const GovernanceAction = ({path, language, render: Render, ...rest}) => {
-    const [state, setState] = useState(null);
+    const [state, setState] = useState(rememberedState);
     const [available, setAvailable] = useState({});
     const reduxLanguage = useSelector(s => s.language);
     const siteKey = useSelector(s => s.site);
@@ -105,6 +107,9 @@ export const GovernanceAction = ({path, language, render: Render, ...rest}) => {
     }, []);
     const close = useCallback(() => setState(null), []);
     const press = useCallback(id => setState(s => pressButton(s, id)), []);
+
+    const panelInState = state ? state.panel : null;
+    useEffect(() => rememberPanel(panelInState), [panelInState]);
 
     const shown = Boolean(pagePath && moduleOn && settings);
     const withButton = shown ? panels.filter(entry => isPanelOn(entry.key)) : [];
