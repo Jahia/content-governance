@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import PropTypes from 'prop-types';
-import {useGovernanceTranslation} from '../../common/i18n';
+import {useDateFormat, useGovernanceTranslation} from '../../common/i18n';
 import {Banner, Button, Chip, Field, Input, Loader, Switch, TablePagination, Typography} from '@jahia/moonstone';
 import {CronBuilder} from './CronBuilder';
 import {scanStatus, runScan, saveSchedule} from '../api/siteScore';
@@ -22,6 +22,7 @@ const POLL_MS = 4000;
  */
 export const SiteScorePanel = ({path, language}) => {
     const {t} = useGovernanceTranslation('geo');
+    const {formatDateTime} = useDateFormat();
     // Pages with findings is a matrix, and a matrix of five hundred rows is a
     // wall. Twenty-five at a time - enough that a small site never pages - with
     // the column set computed over every finding so columns do not reshuffle.
@@ -195,12 +196,12 @@ export const SiteScorePanel = ({path, language}) => {
                     />
                     {run.finishedAt && (
                         <Typography variant="caption">
-                            {t('score17.lastRun', {date: new Date(run.finishedAt).toLocaleString()})}
+                            {t('score17.lastRun', {date: formatDateTime(run.finishedAt)})}
                         </Typography>
                     )}
                     {state && state.nextRun && (
                         <Typography variant="caption">
-                            {t('score17.nextRun', {date: new Date(state.nextRun).toLocaleString()})}
+                            {t('score17.nextRun', {date: formatDateTime(state.nextRun)})}
                         </Typography>
                     )}
                 </Actions>

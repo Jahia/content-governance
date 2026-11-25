@@ -1,6 +1,6 @@
 import React, {useCallback, useState} from 'react';
 import PropTypes from 'prop-types';
-import {useGovernanceTranslation} from '../../common/i18n';
+import {useDateFormat, useGovernanceTranslation} from '../../common/i18n';
 import {Banner, Button, Chip, Typography} from '@jahia/moonstone';
 import {guestVisibility} from '../api/siteScan';
 import {Paged} from '../util/Paged';
@@ -25,6 +25,7 @@ const scanLabelKey = (phase, result) => {
  */
 export const VisibilityPanel = ({path, language}) => {
     const {t} = useGovernanceTranslation('geo');
+    const {formatDay} = useDateFormat();
     const [result, setResult] = useState(null);
     const [phase, setPhase] = useState('idle');
     const [error, setError] = useState(null);
@@ -54,7 +55,7 @@ export const VisibilityPanel = ({path, language}) => {
                     {showKind && (
                         <span className={styles.checkMeta}>
                             <Chip
-                                label={t(`visibility.kind.${f.kind}`, {date: formatDate(f.expiredOn)})}
+                                label={t(`visibility.kind.${f.kind}`, {date: formatDay(f.expiredOn)})}
                                 color={f.kind === 'isolatedRestriction' ? 'warning' : 'default'}
                             />
                         </span>
@@ -128,19 +129,6 @@ export const VisibilityPanel = ({path, language}) => {
         </Panel>
     );
 };
-
-/** The server sends an ISO instant; show the day, which is all anyone needs. */
-function formatDate(iso) {
-    if (!iso) {
-        return '';
-    }
-
-    try {
-        return new Date(iso).toLocaleDateString();
-    } catch (e) {
-        return iso;
-    }
-}
 
 VisibilityPanel.propTypes = {
     path: PropTypes.string.isRequired,

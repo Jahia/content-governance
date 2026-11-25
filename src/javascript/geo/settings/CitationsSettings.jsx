@@ -1,23 +1,13 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {useSelector} from 'react-redux';
 import PropTypes from 'prop-types';
-import {useGovernanceTranslation} from '../../common/i18n';
+import {useDateFormat, useGovernanceTranslation} from '../../common/i18n';
 import {useNodeChecks} from '@jahia/data-helper';
 import {Banner, Button, Dropdown, Field, Header, Input, LayoutContent, Loader, Switch, Typography} from '@jahia/moonstone';
 import {citationSettings} from '../api/citations';
 import {MODULE} from '../../common/module';
 import styles from './CitationsSettings.module.css';
 
-
-// An unparsable value is shown as BotRank sent it; Date never throws, it is only invalid.
-const formatDate = iso => {
-    if (!iso) {
-        return '-';
-    }
-
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
-};
 
 /**
  * Site Settings > Content governance > BotRank: binds a site to a BotRank connection, a project and the
@@ -28,6 +18,8 @@ const formatDate = iso => {
  */
 export const CitationsSettings = ({title: panelTitle, toolbarLeft}) => {
     const {t} = useGovernanceTranslation('geo');
+    const {formatDateTime} = useDateFormat();
+    const formatDate = iso => formatDateTime(iso) || '-';
     const siteKey = useSelector(state => state.site);
     const language = useSelector(state => state.language);
     const sitePath = `/sites/${siteKey}`;

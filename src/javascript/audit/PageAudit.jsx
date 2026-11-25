@@ -1,9 +1,8 @@
 import React, {useEffect, useRef} from 'react';
 import PropTypes from 'prop-types';
 import {Banner, Button, Download, Loader, Reload, Typography, Visibility} from '@jahia/moonstone';
-import {useGovernanceTranslation} from '../common/i18n';
+import {useDateFormat, useGovernanceTranslation} from '../common/i18n';
 import {useDrawerDisplay} from '../common/useDrawerDisplay';
-import {toLocaleTag} from '../common/locale';
 import {AccessibilityTab} from './tabs/AccessibilityTab';
 import {VitalsTab} from './tabs/VitalsTab';
 import {ReadabilityTab} from './tabs/ReadabilityTab';
@@ -24,14 +23,13 @@ import styles from './PageAudit.module.css';
  * `usePageAudit`.
  */
 
-const formatDate = (timestamp, language) => new Date(timestamp).toLocaleString(toLocaleTag(language));
-
 /**
  * The issues of the stored audits of the page, oldest to newest ("12 → 9 → 7"), each with its date and
  * who ran it on hover. Nothing while the page has fewer than two.
  */
-function AuditTrend({runs, language}) {
+function AuditTrend({runs}) {
     const {t} = useGovernanceTranslation('audit');
+    const {formatDateTime} = useDateFormat();
     if (runs.length < 2) {
         return null;
     }
@@ -42,7 +40,7 @@ function AuditTrend({runs, language}) {
             {oldestFirst.map((run, index) => (
                 <React.Fragment key={run.auditedAt}>
                     {index > 0 && ' → '}
-                    <span title={`${formatDate(Date.parse(run.auditedAt), language)} · ${run.auditedBy || ''}`}>{run.summary.total}</span>
+                    <span title={`${formatDateTime(run.auditedAt)} · ${run.auditedBy || ''}`}>{run.summary.total}</span>
                 </React.Fragment>
             ))}
         </Typography>
@@ -54,8 +52,7 @@ AuditTrend.propTypes = {
         auditedAt: PropTypes.string.isRequired,
         auditedBy: PropTypes.string,
         summary: PropTypes.shape({total: PropTypes.number.isRequired}).isRequired
-    })).isRequired,
-    language: PropTypes.string.isRequired
+    })).isRequired
 };
 
 /** The state of `usePageAudit`, as its parts read it. */
@@ -76,8 +73,9 @@ const auditShape = PropTypes.shape({
 });
 
 /** "Re-run", "Export JSON", "Show preview" where the server shows it, and the date of the audit in view. */
-export function PageAuditToolbar({audit, language}) {
+export function PageAuditToolbar({audit}) {
     const {t} = useGovernanceTranslation('audit');
+    const {formatDateTime} = useDateFormat();
     // The "Show preview" button shows where the cfg of the server shows it
     const {previewButton} = useDrawerDisplay();
     return (
@@ -102,18 +100,17 @@ export function PageAuditToolbar({audit, language}) {
             {audit.auditedAt && (
                 <Typography variant="caption" className={styles.lastAudit}>
                     {audit.auditedBy ?
-                        t('drawer.lastAuditBy', {date: formatDate(audit.auditedAt, language), user: audit.auditedBy}) :
-                        t('drawer.lastAudit', {date: formatDate(audit.auditedAt, language)})}
+                        t('drawer.lastAuditBy', {date: formatDateTime(audit.auditedAt), user: audit.auditedBy}) :
+                        t('drawer.lastAudit', {date: formatDateTime(audit.auditedAt)})}
                 </Typography>
             )}
-            <AuditTrend runs={audit.history} language={language}/>
+            <AuditTrend runs={audit.history}/>
         </>
     );
 }
 
 PageAuditToolbar.propTypes = {
-    audit: auditShape.isRequired,
-    language: PropTypes.string.isRequired
+    audit: auditShape.isRequired
 };
 
 /** An audit stored before #140, an audit older than the page, the audit under way, or why it failed. */

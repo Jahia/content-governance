@@ -1,5 +1,6 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useTranslation} from 'react-i18next';
+import {formatDateTime, formatDay} from './locale';
 
 /** The module's i18next namespace: every label of the module lives in it. */
 export const NS = 'content-governance';
@@ -16,4 +17,19 @@ export function useGovernanceTranslation(prefix) {
     const {t, i18n} = useTranslation(NS);
     const scoped = useCallback((key, options) => t(prefix ? `${prefix}.${key}` : key, options), [t, prefix]);
     return {t: scoped, i18n};
+}
+
+/**
+ * The formatters of a date in the language of the interface of the editor (common/locale.js).
+ *
+ * @returns {{formatDateTime: function((string|number|Date)): string,
+ *     formatDay: function((string|number|Date), Intl.DateTimeFormatOptions=): string}}
+ */
+export function useDateFormat() {
+    const {i18n} = useTranslation(NS);
+    const uiLanguage = i18n?.language;
+    return useMemo(() => ({
+        formatDateTime: value => formatDateTime(value, uiLanguage),
+        formatDay: (value, options) => formatDay(value, uiLanguage, options)
+    }), [uiLanguage]);
 }

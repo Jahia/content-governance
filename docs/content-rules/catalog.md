@@ -564,6 +564,23 @@ they find nothing. The values of their result are the ones that the caller gives
 `input.withValues("seo.title", Map.of("length", 72, "text", "…"))`. Without them, `threshold` gives
 `value`, the measured number.
 
+A caller may also measure each place of the content, and give the list of `ThresholdCheck.Place` as the
+fact `ThresholdCheck.placesOf(ruleId)`. A rule that fails then gives one finding for each place outside the
+limits, in the order of the list. Each finding carries the value of its place as its text, and the context,
+the locator and the values of the place.
+
+The rule `readability.longSentences` gives one finding for each sentence longer than its maximum, the
+longest first. The text of the finding is the number of words, so the title still names the longest
+sentence. The context is the sentence, and the values of the finding name the sentence for a fixer:
+
+| Value | What it holds |
+|---|---|
+| `sentence` | The whole sentence, as the text of the page reads it. |
+| `words` | The number of words of the sentence, such as 31. |
+
+Example: `{text: "31", context: "When the …", values: {sentence: "When the …", words: 31}}`. The finding
+has no locator.
+
 A measure rule has no limit: its check finds nothing and gives values only, so the rule always
 passes. The drawer shows these values, and a site switches the rule off in its layout to hide them.
 Example: `readability.statistics` gives the word count and the reading time of the Readability tab.

@@ -187,11 +187,23 @@ public final class Readability {
 
     /** The number of words of each sentence of a text that holds two words or more. */
     private static List<Integer> sentenceLengths(String text) {
+        return sentences(text).stream().map(Readability::wordCount).toList();
+    }
+
+    /**
+     * @param text the text, its white space collapsed
+     * @return each sentence of the text that holds two words or more, in the order of the text
+     */
+    static List<String> sentences(String text) {
         return Arrays.stream(SENTENCE_END.split(text))
                 .map(String::trim)
-                .map(sentence -> SPACES.split(sentence).length)
-                .filter(length -> length > 1)
+                .filter(sentence -> wordCount(sentence) > 1)
                 .toList();
+    }
+
+    /** The number of words of a sentence, as the length of a sentence counts them. */
+    static int wordCount(String sentence) {
+        return SPACES.split(sentence).length;
     }
 
     private static List<String> words(String text) {

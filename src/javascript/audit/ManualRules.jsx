@@ -1,8 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Button, Loader} from '@jahia/moonstone';
-import {useGovernanceTranslation} from '../common/i18n';
-import {toLocaleTag} from '../common/locale';
+import {Button, Loader, Reload} from '@jahia/moonstone';
+import {useDateFormat, useGovernanceTranslation} from '../common/i18n';
 import {ResultBanner} from '../common/results/ResultBanner';
 import {RuleViews} from '../common/results/RuleViews';
 import {Recommendations} from './tabs/Recommendations';
@@ -12,22 +11,28 @@ import {manualKey, shownRun} from './manualRuns';
  * The rules on demand of a subdomain (audit/manualRuns.js): a banner with the date of the last run, and who ran it,
  * or "Not run yet", with Run; then what the last run found, as the cards, facts and scores of any rule.
  */
-export function ManualRules({manual, id, rules, language}) {
+export function ManualRules({manual, id, rules}) {
     const {t} = useGovernanceTranslation('audit.manual');
+    const {formatDateTime} = useDateFormat();
     const {status, run, error} = manual.of(id);
     const running = status === 'running';
     const idle = run ? t('runAgain') : t('run');
+    let icon;
+    if (running) {
+        icon = <Loader size="small"/>;
+    } else if (run) {
+        icon = <Reload/>;
+    }
     const action = (
-        <Button size="small"
-                variant="outlined"
+        <Button variant="outlined"
                 label={running ? t('running') : idle}
-                icon={running ? <Loader size="small"/> : undefined}
+                icon={icon}
                 isDisabled={running || status === 'loading'}
                 onClick={() => manual.run(id)}/>
     );
     let banner;
     if (run) {
-        const date = new Date(run.at).toLocaleString(toLocaleTag(language));
+        const date = formatDateTime(run.at);
         banner = <ResultBanner title={t('lastRunTitle')} action={action}>{run.by ? t('lastRunBy', {date, user: run.by}) : t('lastRun', {date})}</ResultBanner>;
     } else {
         banner = <ResultBanner title={t('notRunTitle')} action={action}>{t('notRun')}</ResultBanner>;
@@ -49,7 +54,5 @@ ManualRules.propTypes = {
     // The subdomain
     id: PropTypes.string.isRequired,
     // The rules of the site, which word the results; null while they load
-    rules: PropTypes.object,
-    // The language of the dates: the editor's interface language
-    language: PropTypes.string.isRequired
+    rules: PropTypes.object
 };

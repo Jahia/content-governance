@@ -11,6 +11,7 @@ import org.jahia.community.contentgovernance.rules.Domain;
 import org.jahia.pm.modules.editorialframe.api.WritingRule;
 import org.jahia.pm.modules.editorialframe.internal.frame.RuleChecker;
 import org.jahia.services.content.JCRNodeWrapper;
+import org.jahia.services.content.JCRSessionFactory;
 import org.jahia.services.content.JCRSessionWrapper;
 
 import javax.jcr.RepositoryException;
@@ -21,6 +22,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -54,15 +56,33 @@ record ComplianceRules(ContentRules site, Set<String> ids, boolean applies, List
     static final String READABILITY = "readability";
 
     /**
-     * @param session  the session of the scan, which reads the title of each folder
+     * @param session  the session of the scan
      * @param checks   the checks that apply the rules
      * @param siteKey  the key of the site
      * @param language the language of the texts, such as {@code fr}
+     * @param uiLocale the language of the interface of the editor, which the title of each folder takes, else the
+     *                 language of the texts
      * @return the rules that apply
      */
-    static ComplianceRules read(JCRSessionWrapper session, CheckRegistry checks, String siteKey, String language) {
+    static ComplianceRules read(JCRSessionWrapper session, CheckRegistry checks, String siteKey, String language,
+                                Locale uiLocale) {
+        JCRSessionWrapper titles = titleSession(session, uiLocale);
         return of(ContentRules.forSite(siteKey), rule -> checks.runs(rule, Scope.VALUE), language, LocalDate.now(),
-                path -> folder(session, path));
+                path -> folder(titles, path));
+    }
+
+    /** A session of the user of the scan in the language of the interface, with the language of the texts as fallback. */
+    private static JCRSessionWrapper titleSession(JCRSessionWrapper session, Locale uiLocale) {
+        if (uiLocale == null || uiLocale.equals(session.getLocale())) {
+            return session;
+        }
+        try {
+            return JCRSessionFactory.getInstance().getCurrentUserSession(session.getWorkspace().getName(), uiLocale,
+                    session.getLocale());
+        } catch (RepositoryException e) {
+            // The titles then take the language of the texts.
+            return session;
+        }
     }
 
     /** The title and the identifier of a folder, read by the user of the scan. */

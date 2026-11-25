@@ -4,7 +4,7 @@ import React from 'react';
 // components the drawer tests render are plain elements here; any other is undefined.
 const h = React.createElement;
 
-export const Button = ({label, icon, isDisabled, onClick, size, variant, ...rest}) => h('button', {type: 'button', disabled: isDisabled, ...rest}, icon, label);
+export const Button = ({label, icon, isDisabled, onClick, size, variant, ...rest}) => h('button', {type: 'button', disabled: isDisabled, 'data-size': size, 'data-variant': variant, ...rest}, icon, label);
 export const Typography = ({children, id, title, className}) => h('span', {id, title, className}, children);
 export const Tab = ({children, ...rest}) => h('div', rest, children);
 export const TabItem = ({label, icon, isSelected, isDisabled, size, onClick, ...rest}) => h('button', {type: 'button', disabled: isDisabled, ...rest}, icon, label);

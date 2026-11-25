@@ -8,7 +8,7 @@ import {jcontentUrl} from '../util/jcontentUrl';
 import {Card, Columns, Figure, Figures, Meta, Note, Panel, PanelHeader, Ring, Source} from '../dashboard/Layout';
 import styles from './Tabs.module.css';
 import own from './SiteCitationsPanel.module.css';
-import {toLocaleTag} from '../../common/locale';
+import {formatDateTime, formatDay, toLocaleTag} from '../../common/locale';
 
 
 /** The four sub-tabs of the dashboard's AI citations group, in order. */
@@ -44,14 +44,8 @@ const formats = language => {
         pct: v => (v === null || v === undefined ? '-' : pct.format(v)),
         int: v => (v === null || v === undefined ? '-' : int.format(v)),
         points: v => one.format(Math.abs(v) * 100),
-        date: iso => {
-            const d = new Date(iso);
-            return Number.isNaN(d.getTime()) ? iso : d.toLocaleString(lang);
-        },
-        day: day => {
-            const d = new Date(`${day}T12:00:00Z`);
-            return Number.isNaN(d.getTime()) ? day : d.toLocaleDateString(lang, {day: 'numeric', month: 'short'});
-        }
+        date: iso => formatDateTime(iso, language),
+        day: day => formatDay(day, language, {day: 'numeric', month: 'short'})
     };
 };
 

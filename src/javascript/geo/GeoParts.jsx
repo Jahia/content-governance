@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {Button, Reload, Typography} from '@jahia/moonstone';
-import {useGovernanceTranslation} from '../common/i18n';
+import {useDateFormat, useGovernanceTranslation} from '../common/i18n';
 import {ScoreTab, FailedChecks} from './tabs/ScoreTab';
 import {CrawlerTab} from './tabs/CrawlerTab';
 import {SiteFilesTab} from './tabs/SiteFilesTab';
@@ -19,12 +19,6 @@ import styles from './GeoParts.module.css';
  * subdomain, such as `geo.content`. The state comes from `useGeoCheck`.
  */
 
-/** A stored scan date for a sentence; an unparsable value is shown as stored. */
-const formatScanDate = iso => {
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? String(iso || '') : d.toLocaleString();
-};
-
 // The label of the run button: running, run before, never run
 const runLabelKey = (phase, report) => {
     if (phase === 'running') {
@@ -36,6 +30,7 @@ const runLabelKey = (phase, report) => {
 /** "Run check" or "Run again", and the date of the last check. */
 export function GeoToolbar({geo}) {
     const {t} = useGovernanceTranslation('geo');
+    const {formatDateTime} = useDateFormat();
     return (
         <>
             <Button
@@ -47,7 +42,7 @@ export function GeoToolbar({geo}) {
             />
             {geo.ranAt && (
                 <Typography variant="caption" className={styles.meta}>
-                    {t('drawer.lastRun', {date: new Date(geo.ranAt).toLocaleString()})}
+                    {t('drawer.lastRun', {date: formatDateTime(geo.ranAt)})}
                 </Typography>
             )}
         </>
@@ -120,13 +115,14 @@ const FROM_SCAN = new Set(['notListed', 'noindexListed', 'stale']);
  */
 export function GeoPageFindings({report, id}) {
     const {t} = useGovernanceTranslation('geo');
+    const {formatDateTime} = useDateFormat();
     const sitemap = report.sitemap || {};
-    const scanDate = sitemap.checkedAt ? ` ${t('sitemap.fromScan', {date: formatScanDate(sitemap.checkedAt)})}` : '';
+    const scanDate = sitemap.checkedAt ? ` ${t('sitemap.fromScan', {date: formatDateTime(sitemap.checkedAt)})}` : '';
     return (
         <>
             {id === 'geo.files' && sitemap.unreachable && (
                 <ResultBanner variant="warning" title={t('sitemap.unreachablePageTitle')}>
-                    {t('sitemap.unreachablePage', {url: sitemap.url, date: formatScanDate(sitemap.checkedAt)})}
+                    {t('sitemap.unreachablePage', {url: sitemap.url, date: formatDateTime(sitemap.checkedAt)})}
                     {sitemap.error && ` ${fetchErrorHint(t, sitemap.error)}`}
                 </ResultBanner>
             )}

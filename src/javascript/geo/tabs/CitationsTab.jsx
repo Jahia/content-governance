@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import PropTypes from 'prop-types';
-import {useGovernanceTranslation} from '../../common/i18n';
+import {useDateFormat, useGovernanceTranslation} from '../../common/i18n';
 import {Button, Loader, Typography} from '@jahia/moonstone';
 import {FactBlock} from '../../common/results/FactBlock';
 import {ResultBanner} from '../../common/results/ResultBanner';
@@ -9,17 +9,6 @@ import {BarList, Histogram} from '../charts/Charts';
 import styles from './Tabs.module.css';
 import cit from './CitationsTab.module.css';
 import {toLocaleTag} from '../../common/locale';
-
-// An unparsable value is shown as BotRank sent it; Date never throws, it is only invalid.
-const formatDate = iso => {
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
-};
-
-const formatDay = day => {
-    const d = new Date(`${day}T12:00:00Z`);
-    return Number.isNaN(d.getTime()) ? day : d.toLocaleDateString();
-};
 
 // A position as BotRank sends it (two decimals), shown with one.
 const formatRank = (rank, lang) => Number(rank).toLocaleString(toLocaleTag(lang), {maximumFractionDigits: 1});
@@ -56,7 +45,7 @@ const surfaceName = (surface, t) => t('citations.surface.' + surface.aiSurface, 
  * One question that cites the page, as a fact row: its text, then its share of the page's citations
  * over the same 30 days, its market, when it last cited the page and by which engines.
  */
-const promptRow = (prompt, pageTotal, t) => {
+const promptRow = (prompt, pageTotal, t, formatDay) => {
     const share = pageTotal > 0 ? Math.min(1, prompt.citationCount / pageTotal) : 0;
     const meta = [
         prompt.market && prompt.market.toUpperCase(),
@@ -158,6 +147,7 @@ const citationFacts = (page, t) => [
  */
 export const CitationsTab = ({data, failed}) => {
     const {t} = useGovernanceTranslation('geo');
+    const {formatDateTime, formatDay} = useDateFormat();
 
     if (failed) {
         return <ResultBanner variant="danger" title={t('citations.loadErrorTitle')}>{t('citations.loadError')}</ResultBanner>;
@@ -170,8 +160,8 @@ export const CitationsTab = ({data, failed}) => {
     const page = data.page;
     const asOf = (
         <Typography variant="caption" className={styles.explain}>
-            {data.latestAnswerAt ? t('citations.asOf', {date: formatDate(data.latestAnswerAt)}) : t('citations.asOfUnknown')}
-            {data.syncedAt ? ` ${t('citations.syncedAt', {date: formatDate(data.syncedAt)})}` : ''}
+            {data.latestAnswerAt ? t('citations.asOf', {date: formatDateTime(data.latestAnswerAt)}) : t('citations.asOfUnknown')}
+            {data.syncedAt ? ` ${t('citations.syncedAt', {date: formatDateTime(data.syncedAt)})}` : ''}
             {data.status === 'running' ? ` ${t('citations.running')}` : ''}
         </Typography>
     );
@@ -245,7 +235,7 @@ export const CitationsTab = ({data, failed}) => {
                 </>
             )}
 
-            <FactBlock title={t('citations.prompts')} rows={prompts.map(p => promptRow(p, page.citations, t))}/>
+            <FactBlock title={t('citations.prompts')} rows={prompts.map(p => promptRow(p, page.citations, t, formatDay))}/>
 
             {tags.length > 0 && (
                 <section className={cit.section}>

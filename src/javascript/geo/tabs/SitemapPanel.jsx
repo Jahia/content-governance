@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import PropTypes from 'prop-types';
-import {useGovernanceTranslation} from '../../common/i18n';
+import {useDateFormat, useGovernanceTranslation} from '../../common/i18n';
 import {Banner, Button, Chip, Loader, Typography} from '@jahia/moonstone';
 import {scanStatus, checkSitemap} from '../api/siteScore';
 import {jcontentUrl} from '../util/jcontentUrl';
@@ -24,6 +24,7 @@ const GROUPS = ['redirects', 'missing', 'unknown', 'staleDate', 'noindexListed']
  */
 export const SitemapPanel = ({path, language}) => {
     const {t} = useGovernanceTranslation('geo');
+    const {formatDateTime} = useDateFormat();
     const [state, setState] = useState(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState(null);
@@ -64,7 +65,7 @@ export const SitemapPanel = ({path, language}) => {
         <Panel>
             <PanelHeader title={t('sitemap.title')} intro={t('sitemap.intro')}>
                 {checkedAt && (
-                    <Meta items={[{key: 'checked', text: t('sitemap.lastCheck', {date: new Date(checkedAt).toLocaleString()})}]}/>
+                    <Meta items={[{key: 'checked', text: t('sitemap.lastCheck', {date: formatDateTime(checkedAt)})}]}/>
                 )}
             </PanelHeader>
 

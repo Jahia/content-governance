@@ -191,9 +191,25 @@ class PageChecksTest {
             assertThat(rules(found)).contains("readability.flesch", "readability.longSentences",
                     "readability.thinContent").doesNotContain("readability.lix", "readability.longParagraphs");
             assertThat(found).filteredOn(finding -> finding.ruleId().equals("readability.longSentences"))
-                    .extracting(Finding::text).containsExactly("30");
+                    .as("one finding per long sentence").extracting(Finding::text).containsExactly("30", "30");
             assertThat(rules(run(page("<html lang='en'><body><p>Five words are not enough.</p></body></html>"))))
                     .noneMatch(rule -> rule.startsWith("readability."));
+        }
+
+        @Test
+        @DisplayName("each long sentence is a finding, the longest first, with the sentence and its words as values")
+        void eachLongSentence_isAFinding() {
+            String shortOne = sentences("word", 1, 10);
+            String longOne = sentences("long", 1, 30);
+            String longest = sentences("longest", 1, 40);
+            List<Finding> found = run(page("<html lang='en'>" + GOOD_HEAD + "<body><h1>T</h1><main><p>" + shortOne
+                    + " " + longOne + " " + longest + "</p></main></body></html>"))
+                    .stream().filter(finding -> finding.ruleId().equals("readability.longSentences")).toList();
+
+            assertThat(found).extracting(Finding::text).containsExactly("40", "30");
+            assertThat(found.get(0).context()).isEqualTo(longest);
+            assertThat(found.get(0).values()).containsExactly(Map.entry("sentence", longest), Map.entry("words", 40));
+            assertThat(found.get(1).values()).containsEntry("sentence", longOne).containsEntry("words", 30);
         }
 
         @Test

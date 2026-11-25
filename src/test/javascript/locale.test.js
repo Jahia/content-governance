@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {languageDisplayName, toLocaleTag} from '../../javascript/common/locale.js';
+import {formatDateTime, formatDay, languageDisplayName, toLocaleTag} from '../../javascript/common/locale.js';
 
 describe('toLocaleTag', () => {
     it('turns a Jahia locale into the tag the browser formatters take', () => {
@@ -39,5 +39,29 @@ describe('languageDisplayName', () => {
     it('falls back to the code, or the fallback given, when the browser cannot name it', () => {
         expect(languageDisplayName('no_NO_NY', 'en')).toBe('no_NO_NY');
         expect(languageDisplayName('no_NO_NY', 'en', null)).toBeNull();
+    });
+});
+
+describe('formatDateTime and formatDay', () => {
+    // Midday UTC: the same day in every time zone of the machine that runs the tests
+    const noon = Date.UTC(2026, 10, 25, 12, 2, 52);
+
+    it('write a date in the language of the interface, whatever the value gives it', () => {
+        expect(formatDateTime(noon, 'fr')).toContain('25/11/2026');
+        expect(formatDateTime(new Date(noon).toISOString(), 'fr')).toContain('25/11/2026');
+        expect(formatDateTime(noon, 'en')).toContain('11/25/2026');
+        expect(formatDay(noon, 'de')).toBe('25.11.2026');
+    });
+
+    it('read a day such as 2026-11-25 as that day, and take the parts to show', () => {
+        expect(formatDay('2026-11-25', 'fr')).toBe('25/11/2026');
+        expect(formatDay('2026-11-25', 'fr', {day: 'numeric', month: 'short'})).toBe('25 nov.');
+    });
+
+    it('give a value that is not a date as it is, and an empty text for no value', () => {
+        expect(formatDateTime('soon', 'fr')).toBe('soon');
+        expect(formatDay('soon', 'fr')).toBe('soon');
+        expect(formatDateTime(null, 'fr')).toBe('');
+        expect(formatDay(undefined, 'fr')).toBe('');
     });
 });

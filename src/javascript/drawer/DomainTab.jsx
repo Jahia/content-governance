@@ -17,7 +17,7 @@ import styles from './DomainTab.module.css';
  * findings of the rules that the site places in it and that this view does not show, whatever check found them.
  */
 function SubdomainContent({id, engines, places, path, complianceUnavailable, onEdit}) {
-    const {t, i18n} = useGovernanceTranslation('drawer');
+    const {t} = useGovernanceTranslation('drawer');
     const view = viewOf(id);
     const rules = places.rulesIn(id);
     const ruleIds = useMemo(() => new Set(rules.map(rule => rule.id)), [rules]);
@@ -26,7 +26,7 @@ function SubdomainContent({id, engines, places, path, complianceUnavailable, onE
     const hasManual = Boolean(engines.manual) && rules.some(rule => rule.trigger === 'manual');
     return (
         <>
-            {hasManual && <ManualRules manual={engines.manual} id={id} rules={engines.rules} language={i18n?.language || 'en'}/>}
+            {hasManual && <ManualRules manual={engines.manual} id={id} rules={engines.rules}/>}
             {view === GEO && <GeoSubdomainView geo={engines.geo} id={id} path={path}/>}
             {view === COMPLIANCE && complianceUnavailable && <Typography>{t(`unavailable.${complianceUnavailable}`)}</Typography>}
             {view === COMPLIANCE && !complianceUnavailable &&
@@ -55,7 +55,7 @@ SubdomainContent.propTypes = {
  * for the whole page, and one section per subdomain, in the order of the layout of the site. Every section
  * starts closed.
  */
-export function DomainTab({sections, checks, engines, places, path, language, requested, complianceUnavailable, onEdit}) {
+export function DomainTab({sections, checks, engines, places, path, requested, complianceUnavailable, onEdit}) {
     const {t} = useGovernanceTranslation('audit');
     const {t: tGeo} = useGovernanceTranslation('geo');
     const {page, geo, compliance} = engines;
@@ -76,7 +76,7 @@ export function DomainTab({sections, checks, engines, places, path, language, re
     return (
         <>
             <div className={styles.toolbar}>
-                {checks.has(PAGE) && <PageAuditToolbar audit={page} language={language}/>}
+                {checks.has(PAGE) && <PageAuditToolbar audit={page}/>}
                 {checks.has(GEO) && <GeoToolbar geo={geo}/>}
                 {usesCompliance && <ComplianceToolbar scan={compliance}/>}
                 <ExpandAll ids={sections.map(section => section.id)} isOpen={isOpen} setOpen={setOpen}/>
@@ -135,7 +135,6 @@ DomainTab.propTypes = {
     // Where the rules of the site sit (drawer/layout.js)
     places: PropTypes.object.isRequired,
     path: PropTypes.string.isRequired,
-    language: PropTypes.string.isRequired,
     // {tab, at}: the subdomain to open, once per request
     requested: PropTypes.shape({tab: PropTypes.string, at: PropTypes.number}),
     // Why the editor cannot use the compliance scan here: notPage or noWrite

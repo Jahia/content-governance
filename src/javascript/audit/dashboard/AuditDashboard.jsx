@@ -3,13 +3,12 @@ import PropTypes from 'prop-types';
 import {useSelector} from 'react-redux';
 import {useApolloClient} from '@apollo/client';
 import {Banner, Button, Chip, DataTable, Download, EmptyData, Header, LayoutContent, Loader, Pagination, Reload, Typography} from '@jahia/moonstone';
-import {useGovernanceTranslation} from '../../common/i18n';
+import {useDateFormat, useGovernanceTranslation} from '../../common/i18n';
 import {languageName, pageBuilderUrl} from '../../common/url';
 import {SITE_AUDITS, countsOf} from '../auditHistory';
 import {keyed, readFindings, subRowsOf} from './pageFindings';
 import {TAB_COLUMNS, exportCsv, exportJson} from './exportAudits';
 import styles from './AuditDashboard.module.css';
-import {toLocaleTag} from '../../common/locale';
 
 const PER_PAGE_OPTIONS = [10, 20, 50];
 const COUNTED_PAGES_LIMIT = 10_000;
@@ -39,6 +38,7 @@ Trend.propTypes = {
 
 const PagesTable = ({pages, siteKey, language}) => {
     const {t} = useGovernanceTranslation('audit');
+    const {formatDateTime} = useDateFormat();
     const client = useApolloClient();
     const [page, setPage] = useState(1);
     const [expanded, setExpanded] = useState([]);
@@ -48,7 +48,6 @@ const PagesTable = ({pages, siteKey, language}) => {
     const [perPage, setPerPage] = useState(PER_PAGE_OPTIONS[0]);
     const lastPage = Math.max(1, Math.ceil(pages.length / perPage));
     const current = Math.min(page, lastPage);
-    const formatDate = iso => new Date(iso).toLocaleString(toLocaleTag(language));
 
     // A page with issues gets sub-rows, so it can be opened; they are its findings once read.
     const data = useMemo(() => pages.slice((current - 1) * perPage, current * perPage).map(item => {
@@ -116,7 +115,7 @@ const PagesTable = ({pages, siteKey, language}) => {
                 }
                 return (
                     <div className={styles.cellText}>
-                        <Typography variant="caption" className={styles.wrap}>{formatDate(value.item.lastAudit.auditedAt)}</Typography>
+                        <Typography variant="caption" className={styles.wrap}>{formatDateTime(value.item.lastAudit.auditedAt)}</Typography>
                         <Typography variant="caption" className={styles.muted}>{value.item.lastAudit.auditedBy}</Typography>
                     </div>
                 );
