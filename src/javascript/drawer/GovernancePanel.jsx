@@ -263,7 +263,6 @@ export const GovernanceSections = ({path, language, domains = NO_DOMAINS, places
                    engines={engines}
                    places={places}
                    path={path}
-                   language={language}
                    requested={requestedFor(item.id)}
                    complianceUnavailable={complianceUnavailable}
                    onEdit={edit}/>
