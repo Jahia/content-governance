@@ -1,5 +1,168 @@
 # Changelog
 
+## 2.0.0
+
+### Breaking Changes
+
+* Added a way for other modules to add Page quality checks that run in the browser, on the preview of the page.
+
+  A rule states that it runs in the browser in its file, or with **Runs in** on its node, and it never stops a publication. Accessibility, Web Vitals and Ecodesign now run this way. A rule whose check no installed module provides shows under **Not checked** in its tab. The Ecodesign tab lists 11 criteria and can highlight each image it reports. An eco-design rule that an administrator changed in the system site keeps its limits and moves to the browser when the module starts. If your own module marked a check as a browser check on the server, state `runtime: browser` on its rules instead. Six accessibility rules that axe-core marks experimental, such as `p-as-heading` and `td-has-header`, are now off by default: switch one on in the layout of the site to keep it.
+
+* Removed the AI features, which now come from the AI Assistant module: Content Governance calls no model.
+
+* Changed each Page quality finding to take its text from its rule, in the editor's language, and its tab from its domain.
+
+  The alt text, language and heading findings now show in Accessibility, and the Web Vitals findings in Ecodesign. Each axe-core check is a rule that a site can switch off in its layout, and that an administrator can give another severity in the system site. Readability has two rules, `readability.flesch` and `readability.lix`, each with its own limit; they replace `readability.hardText` and `readability.veryHardText`. A rule file that a module ships must state its subdomain, such as `seo`, or the module skips it.
+
+* Added the domains and subdomains of the drawer as content, and the sites that each rule applies to.
+
+  Page quality, SEO & GEO and Compliance are the domains, and each tab is a subdomain, such as SEO under SEO & GEO. An administrator changes them in jContent, under the system site. A domain, a subdomain or a rule is on for all sites until an administrator narrows its Sites. A rule file that a module ships names its subdomain, such as `subdomain: seo`, in place of `domain`, or the module skips it. When it starts, the module moves the domain of each rule of your sites to its subdomain. The GraphQL field `contentRules` gives `subdomain` and `sites` in place of `domain`.
+
+* Stored the rules, domains and subdomains of all sites once, in a tree of the system site, and let each site arrange this tree with a layout of its own.
+
+  In the system site, under `contents/content-governance`, each domain holds its subdomains and each subdomain holds its rules, in the order of the tabs. An administrator changes a rule there for every site. A site saves its layout with the GraphQL mutation `saveSiteLayout`: the order and the place of its domains, subdomains and rules, and what it switches off. A rule that a module adds later shows on every site, in its subdomain. A rule now belongs to one subdomain: a rule file names `subdomain: seo`, and the GraphQL field `contentRules` gives `subdomain`. When it starts, the module removes the copies of the shipped rules from your sites, and the log names the values that a site had changed.
+
+* Changed Page quality and GEO readiness to report a page with the same rules as the server and AI agents.
+
+  The SEO, Readability, Links and Jahia health tabs now show the findings that an AI agent gets for the page, so the two always agree. GEO readiness judges the title, headings, meta description, canonical address, language, structured data and image alt texts with these rules too. A script that reads the GraphQL field `checkPage` now reads its findings under `checkPage { findings { ruleId severity text } }`. The rule `health.graphqlUnavailable` is removed: if an administrator changed it in the system site, it stays there as retired, and can be deleted.
+
+* The drawer follows the layout of the site. Its main tabs are the domains of the site, such as Page quality, SEO & GEO and Compliance, in the order of the site, and each domain shows its subdomains as sections, in the order of the site. A domain, a subdomain or a rule that the site switches off is not in the drawer. A finding shows in the section of the subdomain of its rule: a site that moves `seo.canonical` to `links` sees its finding in the Links section.
+
+  The shipped layout moves SEO to **SEO & GEO**, and Readability and Writing to **Compliance**. The page check, the GEO check and the scan of the terms each run once for the drawer, so a section keeps its results in any tab. A subdomain with no view of its own, such as **Content** of SEO & GEO or **Writing**, lists the findings of its rules. The labels and the help of the shipped domains and subdomains now exist in German and Spanish too.
+
+  Content governance no longer registers the drawer tabs `audit`, `geo` and `compliance`, so the site settings no longer switch them. `openPanel('governance', {section})` takes the id of a domain or of a subdomain, such as `{section: 'terms'}`, and the field `section` of a finding names its domain.
+
+* Changed the page check to give the result of each rule, passed or failed, with the values that its check measured.
+
+  The GraphQL field `checkPage` now answers `results { ruleId passed values findings }`, and its fields `findings` and `facts` are removed: a script reads the findings inside each result. Three new rules always pass and give what the tabs show beside the findings: `seo.tags` (the tag list and the sharing preview), `readability.statistics` (the word count, the reading time and the score) and `readability.headings` (the outline of the headings). A site that turns one of them off hides that part of its tab. A site that turns off `links.broken`, `health.unpublishedChanges` or `health.missingTranslations` also hides the links or the state of the content that the rule gives. A check that another module adds can now give values with its result.
+
+* A tab that another module adds to the drawer now gets a switch in the site settings, its serious findings in "Fix first" and a history of its findings. The GraphQL field `sections` of the site settings is removed: a tab is on unless `disabled` names it. The summary of a stored audit gives its counts in `counts { tab count }` instead of one field per tab.
+
+* Added the screen **Rules & domains** in jContent > Additional, for site administrators. It orders the domains, the subdomains and the rules of the drawer, moves a rule to another subdomain, and switches the panels, the domains, the subdomains and the rules on or off. Drag an item by its handle, or use its **Move to** menu from the keyboard. **Reset to defaults** removes the layout of the site. A rule that a module ships after the last save shows the mark **New since your last save**.
+
+  Server administrators get the same screen for the defaults of every site in Administration > Server > Configuration > **Content governance rules**. A domain and a subdomain now have a default switch, **On**, which this screen writes in the tree of `systemsite`.
+
+  The switches left Administration > Sites > Content Governance, which keeps only the BotRank connection. The layout of a site now holds them in its `off` list. When the module starts, the switches that a site saved in an earlier version move into that list, with the ids of the domains and the subdomains, such as `quality` for `audit` and `geo.crawlers` for `geo.crawler`. The GraphQL mutation `saveSiteSettings` is gone: use `saveSiteLayout`. The field `siteSettings.disabled` now lists the ids of the layout that are off on the site.
+
+* Added a check type to each content rule, so that its form in jContent shows only the fields of its check.
+
+  A rule now has a **Check type**, and the form shows the fields of that type only:
+
+  * **Pattern**, for a writing rule: the term, its forms and its replacement.
+  * **AI**, for a rule that a model checks: the passing score.
+  * **Code**, for a measure or a check of a module: the unit and the limits.
+
+  The field **Evaluator** is now labelled **Check**. Your rules get their check type from their check when the module starts, and keep their values. A rule file that your own module ships must state `checkType: PATTERN`, `AI` or `CODE`, and set only the fields of that type. A module that writes rule nodes through the API must add the mixin of the check type before it sets a field of that type. Example: `ccsmix:patternCheck` before `pattern`.
+
+### New Features
+
+* Page quality and GEO readiness show each check as a section that opens and closes, instead of a row of tabs. The number of issues of a section sits left of its title, in capitals. Every section starts closed, and one that the editor opens stays open while the drawer is open. **Expand all** opens every section, and **Open** in **Fix first** opens the section that explains a finding.
+
+  The buttons that run a check again, **Re-run**, **Run again** and **Scan again**, are now secondary buttons of the same size as **Export JSON**.
+
+* Upgraded the accessibility engine to axe-core 4.14.1. It mostly removes false positives in the Accessibility tab, such as on empty table headers, links in a text block and target size, and it now reports invalid zoom settings of a page (`user-scalable`, `maximum-scale`). A page can therefore show a different count than before without its markup having changed.
+
+* Added the findings of the checks that other modules add to the Compliance section, for terms, the glossary and writing rules.
+
+  The Compliance section and `frame.check` now give the same findings for the same text. `frame.check` reads the rules that you edit, as the drawer does, and reports up to 50 places per rule. A term rule of another domain, such as SEO, no longer shows in Compliance.
+
+* Fixed a writing rule of the kind regular expression that missed a capitalised word.
+
+  A regular expression now matches in any case, as a term does, so the rule `\b(thou|verily)\b` reports "Verily" at the start of a sentence. A rule that must respect case starts with `(?-i)`. Review each regular expression of your sites that relies on case, such as `[A-Z]`, because it now matches lower case too.
+
+* Fixed the conversion of the rules and the glossaries of an older version, which ran on every node of a cluster at once.
+
+  Only the processing server converts them, and seeds the tree of the system site with the shipped rules, when the module starts. A browsing node shares its repository and writes nothing then, so it never reads a node that the processing server is writing.
+
+* Checked the Compliance terms and the glossary of the editorial frame as content rules of one model, so that the Compliance section and frame.check report the same terms.
+
+  Each team keeps its terms in a folder of rules with the permissions of that folder, so the legal team keeps terms that the brand team cannot change. Each finding names its rule id and its folder. A glossary term to translate is a replace rule of the language of the translation: "access token" becomes "jeton d'accès" in French. When the module starts, it converts the Compliance glossaries and the glossary terms of the frame into rules in place, with the same identifiers and permissions. The conversion is one-way. A term now ignores accents in every rule, and a star at its end or its start replaces the match modes of the Compliance terms.
+
+* Another module can add a content check: it registers a `ContentCheck` service under the id that the evaluator of its rule names. A rule whose check no module registers shows as inactive in `contentRules`, with the missing check. The 16 rules of the HTML check are now rules of the catalog, named `html.*`, and a site can switch each one off.
+
+* Fixed the tooltips of the drawer's tabs and sections, which showed under the drawer.
+
+* Fixed a name form of another language that passed the check, such as the French "Frodon" in a Spanish text.
+
+  The glossary rules of one term hold its form in each language. A text now gets a warning on a form that belongs to another language of the same term, with the form of the language of the text. Example: with "Frodo" in English and Spanish and "Frodon" in French, the Spanish text "Frodon Bolsón abandona la Comarca." gets a warning on "Frodon", with the replacement "Frodo".
+
+* Ran the SEO, readability, link and content health checks on the server, with one rule id for each practice.
+
+* Moved the **Page summary** of Jahia health to the top of its section, and hid it by default. A server administrator shows it again with `SHOW_PAGE_SUMMARY=true` in `org.jahia.community.contentgovernance.drawer.cfg`.
+
+* A check that applies its rules together can now give each rule values, such as a score. Such a rule can then show as facts or scores. The new method is `RuleSetCheck.results`, and the package `org.jahia.community.contentgovernance.check.spi` moves to version 1.2.0.
+
+  The rule `readability.longSentences` now ends a sentence at the end of a paragraph, a list item, a table cell or a line break. It also leaves out a menu that has the role navigation, menu, menubar, banner or contentinfo. A menu of links no longer counts as one long sentence.
+
+  The card of a finding no longer adds the text that a check proposes to its description. That text shows under its occurrence only. The button **Run** of the rules on demand now shows the icon of **Re-run**.
+
+* Fixed the governance drawer so it stays open on the same panel, or stays closed, when the editor moves to another page. A new browser tab starts with the drawer closed.
+
+* Renamed the BotRank file to org.jahia.community.contentgovernance.geo.botrank-<id>.cfg; the old name still works.
+
+* The domains of Content governance are now the main tabs of the drawer. Page quality, GEO readiness and Compliance use the size of the tabs that switched between the panels.
+
+  The drawer no longer shows a switch between its panels. The buttons in the header of Page Builder and jContent switch between Content governance and the panels of other modules, such as AI Assistant. The button of the panel in view shows as pressed.
+
+* Updated the build and test tools of the module to their latest patch and minor versions.
+
+* Added a way for other modules to add a tab to the drawer, or an action on a finding.
+
+* Added the editorial frame of a brand: its writing rules and its translation glossary, checked with no model.
+
+  The module editorial-frame held it before: uninstall that module first. The tool for AI agents needs the optional module mcp-server.
+
+* Changed the drawer to show each finding as one card per rule, with its severity, its places to fix and their actions.
+
+  Severity is now Serious, Moderate or Minor in every section, shown by an icon and the card's border colour, and passed checks fold into one line. The places to fix fold under one line too, such as "Findings (1)", each with its own action. Compliance lists each content that uses a term under that term, and GEO readiness shows page issues, such as a page missing from the sitemap, in their own section.
+
+* A fix that another module proposes now shows on the occurrence it fixes, and you can edit it before you apply it.
+
+  * Each occurrence shows the first fix as a button. The other fixes are in the ⋮ of the finding.
+  * The proposal shows in a text field that you can change. With several proposals, you choose one first.
+  * **Generate all** proposes a fix for every occurrence of a finding. You then apply all of them, after a confirmation, or discard them.
+  * An applied fix stays on its occurrence until the next audit.
+
+* Improved the code of the rules and the link check of the HTML check on the server, with no change in its findings.
+
+* Improved the code that renders a page for the HTML check on the server, with no change in its findings.
+
+* Added rules that run on demand. A rule with `trigger: manual` runs only when an editor clicks Run in the section of its subdomain, and every editor of the site sees its last run.
+
+* Added panels to the Content governance drawer, so another module, such as AI Assistant, shows its own screen there.
+
+  Each panel has its own button in the jContent header and its own switch in the site settings. Switching off the Content governance panel switches off all its sections.
+
+* Fixed a term rule that matched inside a longer name, such as "Baggins" inside "Sackville-Baggins".
+
+  When two term rules match at the same place, the longer match wins, and the shorter rule reports nothing there. With the rules "Baggins" to "Sacquet" and "Sackville-Baggins" to "Sacquet-de-Besace", the text "Lobelia Sackville-Baggins" gets one warning, with the replacement "Sacquet-de-Besace".
+
+* Improved the code quality of the content rule catalog, with no change to the checks or their findings.
+
+* Added a catalog of content rules, which an administrator changes as content, so that every check applies one value per rule.
+
+  Each finding shows the id of its rule, and each rule names what checks it. An administrator changes the severity or the limits of a rule for every site, under Content folders > content-governance of the system site. A site adds a rule of its own under its Content folders. Another module ships rules with the manifest header Jahia-Content-Rules. A new version updates the rules that an administrator did not change. The writing rules of the editorial frame are content rules too. Some defaults changed: a GEO title now passes from 30 to 60 characters, and a GEO meta description must be 50 to 160 characters.
+
+* Added the views `fact` and `score` to a rule, so that the drawer shows the values of its result as facts or as scores. Another module can add a fixer that proposes what to write instead of a finding, and can show its own results with the result patterns of the drawer.
+
+* Added an HTML check on the server, which AI agents run on a page or a content item through mcp-server.
+
+* Hid **Fix first** and the **Show preview** button of Page quality by default. A server administrator shows each of them again in the new file `org.jahia.community.contentgovernance.drawer.cfg`, with `SHOW_FIX_FIRST=true` and `SHOW_PREVIEW_BUTTON=true`. The setting applies to every site of the server, and editors see a change the next time they open the drawer.
+
+### Bug Fixes
+
+* Every date of the drawer, of the GEO tabs and of the audit dashboard now follows the language of your interface. Before, the date of the last audit followed the language of the content, and other dates followed the language of the browser.
+
+* Fixed the tab Report of GEO readiness, which said "No AI model available" when the server refused or did not answer its status call, such as after a CSRF token mismatch. The tab now says that it could not reach the server and offers a retry, and a CSRF refusal that the guard answers with an error status is sent again with fresh tokens.
+
+* The Compliance section names the folder of a rule in the language of your interface. The example folders "Compliance glossaries" and "Non-authorised terms" now have a title in English, French, German and Spanish, and the module adds the missing titles to the folders that an older version created.
+
+* Jahia no longer indexes the audit history. The history uses its own node type, `ccs:governanceAudit`, and the module deletes the audit history that a previous version stored when it starts.
+
+* The rule "Length of sentences" now lists each sentence that is longer than the limit, the longest first. A fixer, such as Rewrite of the AI assistant, receives the sentence to rewrite.
+
+* The buttons Run and Run again of the rules that run on demand now have the size and the style of the other run buttons of the drawer.
+
 ## 1.11.0
 
 ### New Features
