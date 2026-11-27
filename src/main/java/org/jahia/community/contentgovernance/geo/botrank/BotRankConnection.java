@@ -18,10 +18,12 @@ import java.util.regex.Pattern;
 /**
  * One BotRank organisation this Jahia can read, from one configuration file.
  *
- * <p>Each file {@code karaf/etc/org.jahia.se.modules.georeadiness.botrank-<id>.cfg} is a factory
- * configuration of the PID below, and DS creates one instance of this component per file
+ * <p>Each file {@code karaf/etc/org.jahia.community.contentgovernance.geo.botrank-<id>.cfg} is a
+ * factory configuration of the PID below, and DS creates one instance of this component per file
  * ({@code configurationPolicy = REQUIRE}: no file, no connection). The id is the part of the file
- * name after the dash. Keys:</p>
+ * name after the dash. A file under the name of GEO Readiness,
+ * {@code org.jahia.se.modules.georeadiness.botrank-<id>.cfg}, still works through
+ * {@link LegacyBotRankConnection}, which asks in the log to rename it. Keys:</p>
  * <ul>
  *   <li>{@code apiKey} (required): an API key of the organisation, created by an owner in BotRank
  *       under Organisation, Integrations, API keys;</li>
@@ -47,7 +49,9 @@ import java.util.regex.Pattern;
 public class BotRankConnection {
 
     /** Factory PID of the connection files. */
-    public static final String PID = "org.jahia.se.modules.georeadiness.botrank";
+    public static final String PID = "org.jahia.community.contentgovernance.geo.botrank";
+    /** Factory PID that GEO Readiness used: its files are still read, and the log asks to rename them. */
+    public static final String LEGACY_PID = "org.jahia.se.modules.georeadiness.botrank";
     public static final String DEFAULT_BASE_URL = "https://api.botrank.ai/public/v1";
 
     private static final Logger logger = LoggerFactory.getLogger(BotRankConnection.class);
@@ -172,16 +176,21 @@ public class BotRankConnection {
                     Collections.unmodifiableSet(sites), problem);
         }
 
-        /** The part of the file name after the PID and a dash, or "default" for the plain PID file. */
+        /**
+         * The part of the file name after the PID and a dash, under the current or the legacy PID, or
+         * "default" for the plain PID file.
+         */
         private static String idOf(Map<String, Object> c) {
             String file = str(c, "felix.fileinstall.filename");
             int slash = file.lastIndexOf('/');
             String name = slash >= 0 ? file.substring(slash + 1) : file;
-            String prefix = PID + "-";
-            if (name.startsWith(prefix) && name.endsWith(".cfg")) {
-                String id = name.substring(prefix.length(), name.length() - 4).toLowerCase(Locale.ROOT);
-                if (ID.matcher(id).matches()) {
-                    return id;
+            for (String pid : new String[]{PID, LEGACY_PID}) {
+                String prefix = pid + "-";
+                if (name.startsWith(prefix) && name.endsWith(".cfg")) {
+                    String id = name.substring(prefix.length(), name.length() - 4).toLowerCase(Locale.ROOT);
+                    if (ID.matcher(id).matches()) {
+                        return id;
+                    }
                 }
             }
             return "default";

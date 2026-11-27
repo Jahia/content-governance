@@ -892,7 +892,7 @@
         "error": "Die Anfrage ist fehlgeschlagen.",
         "errorTitle": "Ein Fehler ist aufgetreten",
         "noConnectionTitle": "Keine BotRank-Verbindung",
-        "noConnection": "Ein Server-Administrator legt pro BotRank-Organisation eine Datei in karaf/etc an, mit dem Namen org.jahia.se.modules.georeadiness.botrank-<id>.cfg und dem API-Schlüssel der Organisation. Siehe Moduldokumentation.",
+        "noConnection": "Ein Server-Administrator legt pro BotRank-Organisation eine Datei in karaf/etc an, mit dem Namen org.jahia.community.contentgovernance.geo.botrank-<id>.cfg und dem API-Schlüssel der Organisation. Siehe Moduldokumentation.",
         "connection": "BotRank-Verbindung",
         "connectionHelp": "Die BotRank-Organisation, deren Daten diese Website liest.",
         "connectionProblem": "Diese Verbindung kann nicht verwendet werden",

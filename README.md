@@ -225,10 +225,16 @@ The same for every site of the server. Editors see a change the next time they o
 
 For example, `SHOW_FIX_FIRST=true` gives every editor the list of the critical findings of the page.
 
-### `org.jahia.se.modules.georeadiness.botrank-<id>.cfg`: one per BotRank organisation
+### `org.jahia.community.contentgovernance.geo.botrank-<id>.cfg`: one per BotRank organisation
 
-The name GEO Readiness used, so existing files keep working. No file ships with the module: a file
-is a credential.
+No file ships with the module: a file is a credential. `<id>` is what site administrators pick in
+the **BotRank** tab.
+
+A file under the name GEO Readiness used, `org.jahia.se.modules.georeadiness.botrank-<id>.cfg`, still
+works, and the log asks to rename it on each start:
+`BotRank connection <id> comes from a file named org.jahia.se.modules.georeadiness.botrank-<id>.cfg`.
+Rename it to the new name with the same `<id>`. Keep only one of the two: a file under each name
+with the same `<id>` makes both unusable.
 
 ```properties
 label = Acme (BotRank)

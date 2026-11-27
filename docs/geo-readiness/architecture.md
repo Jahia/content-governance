@@ -170,7 +170,8 @@ organisation key; the browser never calls BotRank, and editors never cause a cal
 
 | Class | Does |
 |---|---|
-| `BotRankConnection` | One organisation, from one factory configuration file `org.jahia.se.modules.georeadiness.botrank-<id>.cfg` (`configurationPolicy = REQUIRE`). The PID keeps its GEO Readiness name so existing files keep working. The id comes from the file name. A file without a key registers with a `problem` and is never used. |
+| `BotRankConnection` | One organisation, from one factory configuration file `org.jahia.community.contentgovernance.geo.botrank-<id>.cfg` (`configurationPolicy = REQUIRE`). The id comes from the file name. A file without a key registers with a `problem` and is never used. |
+| `LegacyBotRankConnection` | The same connection from a file under the PID of GEO Readiness, `org.jahia.se.modules.georeadiness.botrank-<id>.cfg`, so a server that replaced GEO Readiness keeps its connections. Each activation logs a warning that asks to rename the file. A file under each name with one id makes both unusable, as any duplicate id does in `BotRankConnections`. |
 | `BotRankConnections` | Every connection, bound and unbound by DS; `forSite` honours a connection's `sites` list with no fallback. |
 | `BotRankClient` | The read routes it uses (projects and one project, data freshness, a site's cited pages, totals, share history and ranking under `/ai-visibility/sites/{domain}/`, the visibility score and its history, the five page routes) on `java.net.http`: bearer key, `Project-Id`, explicit Paris days, cursor walk bounded at 50 pages, no redirects. RFC 9457 problems become a `BotRankException` that carries the type and never the key. |
 | `CitedUrls` | BotRank's page identity: `www.`, trailing slash, anchor, its published tracking parameters and host case fold away; scheme, subdomain, path case and other parameters do not. |
@@ -361,10 +362,11 @@ say which, and on a multi-site box it is required rather than optional.
 
 AI citations come from [BotRank](https://www.botrank.ai/)'s public API v1. Each BotRank organisation
 this Jahia may read is one file,
-`digital-factory-data/karaf/etc/org.jahia.se.modules.georeadiness.botrank-<id>.cfg`, created by a
-server administrator; `<id>` is what site administrators pick on the BotRank screen of Site
-Settings > Content governance. The file name is the one GEO Readiness used, so existing files keep
-working. No file ships with the module, because a file is a credential.
+`digital-factory-data/karaf/etc/org.jahia.community.contentgovernance.geo.botrank-<id>.cfg`, created
+by a server administrator; `<id>` is what site administrators pick on the BotRank screen of Site
+Settings > Content governance. No file ships with the module, because a file is a credential. A
+file under the name GEO Readiness used, `org.jahia.se.modules.georeadiness.botrank-<id>.cfg`, keeps
+working through `LegacyBotRankConnection`, and the log asks to rename it.
 
 ```properties
 # BotRank organisation of the customer

@@ -71,8 +71,10 @@ Connects the site to a BotRank project, so that the drawer's **AI citations** ta
 dashboard's citations panels show how AI answers cite the site's pages.
 
 1. A server administrator first adds one file per BotRank organisation in
-   `digital-factory-data/karaf/etc/`, named `org.jahia.se.modules.georeadiness.botrank-<id>.cfg`
-   (format in the root `README.md`). A connection restricted to other sites is not listed here.
+   `digital-factory-data/karaf/etc/`, named `org.jahia.community.contentgovernance.geo.botrank-<id>.cfg`
+   (format in the root `README.md`). A connection restricted to other sites is not listed here. A
+   file under the old name of GEO Readiness, `org.jahia.se.modules.georeadiness.botrank-<id>.cfg`,
+   still works until it is renamed.
 2. Pick the connection, then the project. Save.
 3. Optionally, map cited addresses that do not resolve to a page by themselves, and change the time of
    the daily sync.

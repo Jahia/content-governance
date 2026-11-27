@@ -76,8 +76,9 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
   its features here: content checks (`check.spi`), drawer tabs (`docs/drawer-entries.md`) and the
   GEO report writer (`geo.spi`).
 - Legacy storage, kept on purpose so the three old modules can be replaced in place: GEO scans and
-  the BotRank binding under `/sites/<key>/geo-readiness`, BotRank factory PID
-  `org.jahia.se.modules.georeadiness.botrank-<id>`, CND namespaces `ccs`/`ccsmix`. The old modules
+  the BotRank binding under `/sites/<key>/geo-readiness`, BotRank files under the factory PID
+  `org.jahia.se.modules.georeadiness.botrank-<id>` (read by `LegacyBotRankConnection`, which asks to
+  rename them to `org.jahia.community.contentgovernance.geo.botrank-<id>`), CND namespaces `ccs`/`ccsmix`. The old modules
   must be uninstalled before this one is installed (same CND types, same GraphQL field). Jahia then
   keeps the `ccs:` types under the old systemId and ignores ours, which hides them from New content;
   `compliance/service/internal/GlossaryTypeOwner` takes them over at start (1.1.0). Never take types
@@ -169,7 +170,8 @@ Merged on 2026-10-29 from three modules, whose history stays in their own reposi
 ## Configuration
 
 - `org.jahia.community.contentgovernance.geo.cfg`: crawler fetch settings of the GEO section.
-- `org.jahia.se.modules.georeadiness.botrank-<id>.cfg`: one per BotRank organisation (legacy PID).
+- `org.jahia.community.contentgovernance.geo.botrank-<id>.cfg`: one per BotRank organisation; the
+  GEO Readiness name `org.jahia.se.modules.georeadiness.botrank-<id>.cfg` is still read, with a warning.
 
 The module ships the first one with `# default configuration` as first line, so a redeploy never
 overwrites it. A server administrator creates the BotRank files, and the module never ships them.

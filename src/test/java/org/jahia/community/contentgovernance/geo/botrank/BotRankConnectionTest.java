@@ -24,14 +24,20 @@ class BotRankConnectionTest {
 
     @Test
     void theIdComesFromTheFileName() {
-        assertThat(BotRankConnection.Settings.from(file("org.jahia.se.modules.georeadiness.botrank-acme.cfg", null)).id)
+        assertThat(BotRankConnection.Settings.from(file("org.jahia.community.contentgovernance.geo.botrank-acme.cfg", null)).id)
                 .isEqualTo("acme");
         assertThat(BotRankConnection.Settings.from(file("other.cfg", null)).id).isEqualTo("default");
     }
 
     @Test
+    void aFileUnderTheNameOfGeoReadinessKeepsItsId() {
+        assertThat(BotRankConnection.Settings.from(file("org.jahia.se.modules.georeadiness.botrank-acme.cfg", null)).id)
+                .isEqualTo("acme");
+    }
+
+    @Test
     void aValidListRestricts() {
-        BotRankConnection.Settings s = BotRankConnection.Settings.from(file("org.jahia.se.modules.georeadiness.botrank-a.cfg", "fr-site, com_site"));
+        BotRankConnection.Settings s = BotRankConnection.Settings.from(file("org.jahia.community.contentgovernance.geo.botrank-a.cfg", "fr-site, com_site"));
         assertThat(s.problem).isNull();
         assertThat(s.sites).containsExactly("fr-site", "com_site");
     }
@@ -39,13 +45,13 @@ class BotRankConnectionTest {
     @ParameterizedTest
     @ValueSource(strings = {"acme-fr;acme-com", "acme fr", "acme.fr", "acme-fr,,../x"})
     void anUnreadableListClosesTheConnectionInsteadOfOpeningIt(String sites) {
-        BotRankConnection.Settings s = BotRankConnection.Settings.from(file("org.jahia.se.modules.georeadiness.botrank-a.cfg", sites));
+        BotRankConnection.Settings s = BotRankConnection.Settings.from(file("org.jahia.community.contentgovernance.geo.botrank-a.cfg", sites));
         assertThat(s.problem).contains("sites");
     }
 
     @Test
     void aMissingKeyIsAProblemNotACrash() {
-        Map<String, Object> c = file("org.jahia.se.modules.georeadiness.botrank-a.cfg", null);
+        Map<String, Object> c = file("org.jahia.community.contentgovernance.geo.botrank-a.cfg", null);
         c.remove("apiKey");
         assertThat(BotRankConnection.Settings.from(c).problem).contains("apiKey");
     }
