@@ -1,0 +1,66 @@
+{
+  "about": "The findings that dataset.py check expects on each page, from the page check and the compliance scan. A page may give more: check prints them on an 'also' line. 'template' lists the findings that the luxe template gives on every page, which check does not print.",
+  "template": [
+    "html.frameTitleMissing",
+    "links.blankNoopener",
+    "seo.canonical",
+    "seo.structuredData"
+  ],
+  "pages": [
+    {
+      "path": "/sites/luxe/home/quality-lab",
+      "languages": ["en", "fr"],
+      "findings": {"*": []}
+    },
+    {
+      "path": "/sites/luxe/home/quality-lab/accessibility",
+      "languages": ["en", "fr"],
+      "findings": {
+        "en": ["html.imageAltMissing", "html.headingH1Multiple", "html.headingLevelSkipped", "html.headingEmpty",
+               "html.linkTextVague", "html.linkNameMissing", "html.tableHeaderMissing", "html.duplicateId",
+               "html.formLabelMissing", "html.buttonNameMissing", "links.blankNoopener", "compliance.example-term"],
+        "fr": ["html.imageAltMissing", "html.headingH1Multiple", "html.headingLevelSkipped", "html.headingEmpty",
+               "html.linkTextVague", "html.linkNameMissing", "html.tableHeaderMissing", "html.duplicateId",
+               "html.formLabelMissing", "html.buttonNameMissing", "links.blankNoopener", "compliance.luxe-cliquez-ici"]
+      }
+    },
+    {
+      "path": "/sites/luxe/home/quality-lab/seo",
+      "languages": ["en", "fr"],
+      "findings": {"*": ["seo.title", "seo.metaDescription", "seo.openGraph", "links.hardcodedUrls", "links.mixedContent", "links.broken"]}
+    },
+    {
+      "path": "/sites/luxe/home/quality-lab/thin-page",
+      "languages": ["en", "fr"],
+      "findings": {"*": ["seo.title", "seo.metaDescription", "seo.openGraph", "readability.thinContent"]}
+    },
+    {
+      "path": "/sites/luxe/home/quality-lab/readability",
+      "languages": ["en", "fr"],
+      "findings": {"*": ["readability.flesch", "readability.longSentences", "readability.longParagraphs"]}
+    },
+    {
+      "path": "/sites/luxe/home/quality-lab/jahia-health",
+      "languages": ["en", "fr"],
+      "findings": {
+        "en": ["health.missingTranslations", "health.placeholderText", "health.rawI18nKeys", "health.unpublishedChanges"],
+        "fr": ["health.missingTranslations", "health.unpublishedChanges"]
+      }
+    },
+    {
+      "path": "/sites/luxe/home/quality-lab/geo-members-only",
+      "languages": ["en", "fr"],
+      "findings": {"*": []}
+    },
+    {
+      "path": "/sites/luxe/home/quality-lab/compliance",
+      "languages": ["en", "fr"],
+      "findings": {
+        "en": ["compliance.luxe-guaranteed-return", "compliance.luxe-risk-free", "compliance.luxe-tax-free",
+               "compliance.luxe-best-price", "compliance.example-term", "html.linkTextVague"],
+        "fr": ["compliance.luxe-rendement-garanti", "compliance.luxe-sans-risque", "compliance.luxe-meilleur-prix",
+               "compliance.luxe-cliquez-ici", "html.linkTextVague"]
+      }
+    }
+  ]
+}
