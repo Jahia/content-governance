@@ -1,5 +1,8 @@
 # Test fixtures
 
+[`luxe-dataset/`](luxe-dataset/README.md) holds test pages on the demo site `luxe` that break the
+rules of the drawer on purpose, for tests by hand. The rest of this page is about the crawler fixture.
+
 A local Jahia has no firewall and no bot protection, so every crawler returns 200 and the
 crawler check looks like it always passes. That proves nothing. These fixtures let you produce
 the cases that actually matter.
